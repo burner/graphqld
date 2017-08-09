@@ -27,7 +27,7 @@ enum TokenType {
 	true_,
 	false_,
 	null_,
-	hash,
+	comment,
 	comma,
 	union_
 }

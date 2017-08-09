@@ -86,9 +86,17 @@ struct Lexer {
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '#') {
-			this.cur = Token(TokenType.hash);
-			++this.column;
+			size_t b = this.stringPos;	
+			size_t e = this.stringPos;
+			do {
+				++this.stringPos;
+				++this.column;
+				++e;
+			} while(this.stringPos < this.input.length 
+					&& this.input[this.stringPos] != '\n');
+			++this.line;
 			++this.stringPos;
+			this.cur = Token(TokenType.comment, this.input[b .. e]);
 		} else if(this.input[this.stringPos] == ',') {
 			this.cur = Token(TokenType.comma);
 			++this.column;
@@ -325,6 +333,25 @@ struct Lexer {
 						return;
 					}
 					goto default;
+				case '"':
+					++this.stringPos;
+					++this.column;
+					++e;
+					while((this.stringPos > 0 
+							&& this.stringPos < this.input.length
+							&& this.input[this.stringPos] == '"'
+							&& this.input[this.stringPos - 1U] != '\\')
+						|| (this.stringPos < this.input.length 
+							&& this.input[this.stringPos] != '\"'))
+					{
+						++this.stringPos;
+						++this.column;
+						++e;
+					}
+					++this.stringPos;
+					++this.column;
+					this.cur = Token(TokenType.stringValue, this.input[b .. e]);
+					break;
 				default:
 					do {
 						++this.stringPos;
@@ -437,7 +464,8 @@ unittest {
 	string f = `
 		query withFragments {
 		  user(id: +4) {
-		    friends(first: -10.3) {
+			# super cool comment
+friends(first: -10.3) {
 		      ...friendFields
 			  null false true
 		    }
@@ -480,6 +508,10 @@ unittest {
 	assert(!l.empty);
 	assert(l.front.type == TokenType.rparen);
 	l.popFront();
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.comment);
+	assert(l.front.value == "# super cool comment");
 	l.popFront();
 	assert(!l.empty);
 	assert(l.front.type == TokenType.name);
