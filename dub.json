@@ -1,0 +1,9 @@
+{
+	"name": "graphqld",
+	"authors": [
+		"burner"
+	],
+	"description": "A vibe.d library to handle the GraphQL Protocol",
+	"copyright": "Copyright © 2017, burner",
+	"license": "LGPL3"
+}
