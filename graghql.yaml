@@ -1,0 +1,123 @@
+Document:
+    Defi: [Definitions#defs]
+
+Definitions:
+    Def: [Definition#def]
+    Defs: [Definition#def, Definitions#follow]
+
+Definition:
+    Op: [OperationDefinition#op] 
+    Frag: [FragmentDefinition#frag]
+
+OperationDefinition:
+    SelSet: [SelectionSet#ss] 
+    OT_VD: [OperationType#ot, name#name, VariableDefinitions#vd, Directives#d, SelectionSet#ss]
+    OT_V: [OperationType#ot, name#name, VariableDefinitions#vd, SelectionSet#ss]
+    OT_D: [OperationType#ot, name#name, Directives#d, SelectionSet#ss]
+    OT: [OperationType#ot, name#name, SelectionSet#ss]
+
+SelectionSet:
+   SS: [lcurly, Selections#sel, rcurly]
+
+OperationType:
+    Query: [query#tok]
+    Mutation: [mutation#tok]
+
+Selections:
+    Sel: [Selection#sel]
+    Sels: [Selection#sel, Selections#follow]
+    Selsc: [Selection#sel, comma, Selections#follow]
+
+Selection:
+    Field: [Field#field]
+    Frag: [FragmentSpread#frag]
+    IFrag: [InlineFragment#ifrag]
+
+Field:
+    FADS: [FieldName#name, Arguments#args, Directives#dirs, SelectionSet#ss]
+    FAS: [FieldName#name, Arguments#args, SelectionSet#ss]
+    FAD: [FieldName#name, Arguments#args, Directives#dirs]
+    FDS: [FieldName#name, Directives#dirs, SelectionSet#ss]
+    FS: [FieldName#name, SelectionSet#ss]
+    FD: [FieldName#name, Directives#dirs]
+    FA: [FieldName#name, Arguments#args]
+    F: [FieldName#name]
+
+FieldName:
+    A: [alias_#tok]
+    N: [name#tok]
+
+Alias:
+    A: [name#from, colon, name#to]
+
+Arguments:
+    Arg: [lparen, Argument#arg, rparen]
+    Args: [lparen, Argument#arg, comma, Arguments#follow, rparen]
+
+Argument:
+    Name: [name#name, colon, ValueOrVariable]
+
+FragmentSpread:
+    FD: [dots, name#name, Directives#dirs]
+    F: [dots, name#name]
+
+InlineFragment:
+    TDS: [dots, on_, TypeCondition#tc, Directives#dirs, SelectionSet#ss]
+    TS: [dots, on_, TypeCondition#tc, SelectionSet#ss]
+
+FragmentDefinition:
+    FTDS: [fragment, name#name, on_, TypeCondition#tc, Directives#dirs, SelectionSet#ss]
+    FTS: [fragment, name#name, on_, TypeCondition#tc, SelectionSet#ss]
+
+Directives:
+   Dir: [Directive#dir]
+   Dirs: [Directive#dir, Directives#follow]
+
+Directive:
+    NVV: [at, name#name, colon, ValueOrVariable#vv]
+    NArg: [at, name#name, lparen, Argument#arg, rparen]
+    N: [at, name#name]
+
+TypeCondition:
+    TN: [name#tname]
+
+VariableDefinitions:
+    Var: [lparen, VariableDefinition#var, rparen]
+    Vars: [lparen, VariableDefinition#var, comma, VariableDefinitions#follow, rparen]
+
+VariableDefinition:
+    VarD: [Variable, colon, Type#type, DefaultValue#dvalue]
+    Var: [Variable, colon, Type#type]
+
+Variable:
+    Var: [dollar, name#name]
+
+DefaultValue:
+    DV: [equal, Value#value]
+
+ValueOrVariable:
+   Val: [Value#val]
+   Var: [Variable#var]
+
+Value:
+    STR: [stringValue#tok]
+    INT: [intValue#tok]
+    FLOAT: [floatValue#tok]
+    T: [true_#tok]
+    F: [false_#tok]
+    ARR: [Array#arr]
+
+Type:
+    TN: [name#tname, exclamation]
+    T: [name#tname]
+
+ListType:
+    T: [lbrack, Type#type, rbrack]
+
+Values:
+    Val: [Value#val]
+    Vals: [Value#val, comma, Values#follow]
+
+Array:
+    Empty: [lbrack, rbrack]
+    Value: [lbrack, Values#vals, rbrack]
