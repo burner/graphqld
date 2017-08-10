@@ -1,2 +1,2 @@
 gen:
-	../Darser/darser -i graghql.yaml -a source/graphast.d -p source/graphparser.d -e source/graphexp.d -v source/graphvis.d
+	../Darser/darser -i graghql.yaml -a source/ast.d -p source/parser.d -e source/exception.d -v source/visitor.d

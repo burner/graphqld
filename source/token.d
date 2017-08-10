@@ -24,6 +24,7 @@ enum TokenType {
 	subscription,
 	fragment,
 	on,
+	alias_,
 	true_,
 	false_,
 	null_,
