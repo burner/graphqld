@@ -337,12 +337,12 @@ struct Lexer {
 					++this.stringPos;
 					++this.column;
 					++e;
-					while((this.stringPos > 0 
-							&& this.stringPos < this.input.length
-							&& this.input[this.stringPos] == '"'
-							&& this.input[this.stringPos - 1U] != '\\')
-						|| (this.stringPos < this.input.length 
-							&& this.input[this.stringPos] != '\"'))
+					while(this.stringPos < this.input.length
+							&& (this.input[this.stringPos] != '"'
+								|| (this.input[this.stringPos] == '"' 
+									&& this.input[this.stringPos - 1U] == '\\')
+						 		)
+						)
 					{
 						++this.stringPos;
 						++this.column;
@@ -350,7 +350,7 @@ struct Lexer {
 					}
 					++this.stringPos;
 					++this.column;
-					this.cur = Token(TokenType.stringValue, this.input[b .. e]);
+					this.cur = Token(TokenType.stringValue, this.input[b + 1 .. e]);
 					break;
 				default:
 					do {
@@ -549,4 +549,40 @@ friends(first: -10.3) {
 	while(!l.empty) {
 		l.popFront();
 	}
+}
+
+unittest {
+	string f = `
+		query withFragments {
+		  user(id: "hello") {
+		  }
+		}`;
+
+	auto l = Lexer(f);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.query);
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name);
+	assert(l.front.value == "withFragments");
+	l.popFront();
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name);
+	assert(l.front.value == "user");
+	l.popFront();
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name);
+	assert(l.front.value == "id", l.front.value);
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.colon);
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue);
+	assert(l.front.value == "hello", format("'%s' '%s'", l.front.value, "hello"));
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.rparen);
 }
