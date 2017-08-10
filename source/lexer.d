@@ -173,7 +173,7 @@ struct Lexer {
 					++e;
 					if(this.testCharAndInc('n', e)) {
 						if(this.isTokenStop()) {
-							this.cur = Token(TokenType.on);
+							this.cur = Token(TokenType.on_);
 							return;
 						}
 					}

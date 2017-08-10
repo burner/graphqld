@@ -23,7 +23,7 @@ enum TokenType {
 	mutation,
 	subscription,
 	fragment,
-	on,
+	on_,
 	alias_,
 	true_,
 	false_,
