@@ -35,7 +35,7 @@ enum DirectivesEnum {
 
 struct Directives {
 	DirectivesEnum ruleSelection;
-	std.container.array.Array!(DirectivePtr) defs;
+	std.container.array.Array!(DirectivePtr) dirs;
 }
 
 alias DirectivesPtr = RefCounted!(Directives);
@@ -50,3 +50,26 @@ struct Arguments {
 }
 
 alias ArgumentsPtr = RefCounted!(Arguments);
+
+enum ValuesEnum {
+	vals,
+}
+
+struct Values {
+	ValuesEnum ruleSelection;
+	std.container.array.Array!(ValuePtr) vals;
+}
+
+alias ValuesPtr = RefCounted!(Values);
+
+enum VariableDefinitionsEnum {
+	args,
+}
+
+struct VariableDefinitions {
+	VariableDefinitionsEnum ruleSelection;
+	std.container.array.Array!(VariableDefinition) vars;
+}
+
+alias VariableDefinitionsPtr = RefCounted!(VariableDefinitions);
+

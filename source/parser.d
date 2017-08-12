@@ -31,7 +31,7 @@ struct Parser {
 	}
 
 	DocumentPtr parseDocumentImpl() {
-		DocumentPtr ret = refCounted!Document();
+		DocumentPtr ret = refCounted!Document(Document());
 		if(this.firstDefinitions()) {
 			ret.defs = this.parseDefinitions();
 			ret.ruleSelection = DocumentEnum.Defi;
@@ -39,34 +39,6 @@ struct Parser {
 		}
 		throw new ParseException(format(
 			"Was expecting an Definitions. Found a '%s' at %s:%s.", 
-			this.lex.front.type,this.lex.line, this.lex.column)
-		);
-	}
-
-	bool firstDefinitions() const {
-		return this.firstDefinition();
-	}
-
-	DefinitionsPtr parseDefinitions() {
-		try {
-			return this.parseDefinitionsImpl();
-		} catch(ParseException e) {
-			throw new ParseException("While parsing a Definitions an Exception was thrown.", e);
-		}
-	}
-
-	DefinitionsPtr parseDefinitionsImpl() {
-		DefinitionsPtr ret = refCounted!Definitions();
-		if(this.firstDefinition()) {
-			ret.def = this.parseDefinition();
-			if(this.firstDefinitions()) {
-				ret.follow = this.parseDefinitions();
-				ret.ruleSelection = DefinitionsEnum.Defs;
-				return ret;
-			}
-		}
-		throw new ParseException(format(
-			"Was expecting an Definition. Found a '%s' at %s:%s.", 
 			this.lex.front.type,this.lex.line, this.lex.column)
 		);
 	}
@@ -85,7 +57,7 @@ struct Parser {
 	}
 
 	DefinitionPtr parseDefinitionImpl() {
-		DefinitionPtr ret = refCounted!Definition();
+		DefinitionPtr ret = refCounted!Definition(Definition());
 		if(this.firstOperationDefinition()) {
 			ret.op = this.parseOperationDefinition();
 			ret.ruleSelection = DefinitionEnum.Op;
@@ -115,7 +87,7 @@ struct Parser {
 	}
 
 	OperationDefinitionPtr parseOperationDefinitionImpl() {
-		OperationDefinitionPtr ret = refCounted!OperationDefinition();
+		OperationDefinitionPtr ret = refCounted!OperationDefinition(OperationDefinition());
 		if(this.firstSelectionSet()) {
 			ret.ss = this.parseSelectionSet();
 			ret.ruleSelection = OperationDefinitionEnum.SelSet;
@@ -192,7 +164,7 @@ struct Parser {
 	}
 
 	SelectionSetPtr parseSelectionSetImpl() {
-		SelectionSetPtr ret = refCounted!SelectionSet();
+		SelectionSetPtr ret = refCounted!SelectionSet(SelectionSet());
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
 			if(this.firstSelections()) {
@@ -232,7 +204,7 @@ struct Parser {
 	}
 
 	OperationTypePtr parseOperationTypeImpl() {
-		OperationTypePtr ret = refCounted!OperationType();
+		OperationTypePtr ret = refCounted!OperationType(OperationType());
 		if(this.lex.front.type == TokenType.query) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
@@ -265,7 +237,7 @@ struct Parser {
 	}
 
 	SelectionPtr parseSelectionImpl() {
-		SelectionPtr ret = refCounted!Selection();
+		SelectionPtr ret = refCounted!Selection(Selection());
 		if(this.firstField()) {
 			ret.field = this.parseField();
 			ret.ruleSelection = SelectionEnum.Field;
@@ -298,7 +270,7 @@ struct Parser {
 	}
 
 	FieldPtr parseFieldImpl() {
-		FieldPtr ret = refCounted!Field();
+		FieldPtr ret = refCounted!Field(Field());
 		if(this.firstFieldName()) {
 			ret.name = this.parseFieldName();
 			if(this.firstArguments()) {
@@ -364,7 +336,7 @@ struct Parser {
 	}
 
 	FieldNamePtr parseFieldNameImpl() {
-		FieldNamePtr ret = refCounted!FieldName();
+		FieldNamePtr ret = refCounted!FieldName(FieldName());
 		if(this.lex.front.type == TokenType.alias_) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
@@ -395,7 +367,7 @@ struct Parser {
 	}
 
 	AliasPtr parseAliasImpl() {
-		AliasPtr ret = refCounted!Alias();
+		AliasPtr ret = refCounted!Alias(Alias());
 		if(this.lex.front.type == TokenType.name) {
 			ret.from = this.lex.front;
 			this.lex.popFront();
@@ -436,7 +408,7 @@ struct Parser {
 	}
 
 	ArgumentPtr parseArgumentImpl() {
-		ArgumentPtr ret = refCounted!Argument();
+		ArgumentPtr ret = refCounted!Argument(Argument());
 		if(this.lex.front.type == TokenType.name) {
 			ret.name = this.lex.front;
 			this.lex.popFront();
@@ -476,7 +448,7 @@ struct Parser {
 	}
 
 	FragmentSpreadPtr parseFragmentSpreadImpl() {
-		FragmentSpreadPtr ret = refCounted!FragmentSpread();
+		FragmentSpreadPtr ret = refCounted!FragmentSpread(FragmentSpread());
 		if(this.lex.front.type == TokenType.dots) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.name) {
@@ -516,7 +488,7 @@ struct Parser {
 	}
 
 	InlineFragmentPtr parseInlineFragmentImpl() {
-		InlineFragmentPtr ret = refCounted!InlineFragment();
+		InlineFragmentPtr ret = refCounted!InlineFragment(InlineFragment());
 		if(this.lex.front.type == TokenType.dots) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.on_) {
@@ -573,7 +545,7 @@ struct Parser {
 	}
 
 	FragmentDefinitionPtr parseFragmentDefinitionImpl() {
-		FragmentDefinitionPtr ret = refCounted!FragmentDefinition();
+		FragmentDefinitionPtr ret = refCounted!FragmentDefinition(FragmentDefinition());
 		if(this.lex.front.type == TokenType.fragment) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.name) {
@@ -638,7 +610,7 @@ struct Parser {
 	}
 
 	DirectivePtr parseDirectiveImpl() {
-		DirectivePtr ret = refCounted!Directive();
+		DirectivePtr ret = refCounted!Directive(Directive());
 		if(this.lex.front.type == TokenType.at) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.name) {
@@ -703,7 +675,7 @@ struct Parser {
 	}
 
 	TypeConditionPtr parseTypeConditionImpl() {
-		TypeConditionPtr ret = refCounted!TypeCondition();
+		TypeConditionPtr ret = refCounted!TypeCondition(TypeCondition());
 		if(this.lex.front.type == TokenType.name) {
 			ret.tname = this.lex.front;
 			this.lex.popFront();
@@ -729,7 +701,7 @@ struct Parser {
 	}
 
 	VariableDefinitionPtr parseVariableDefinitionImpl() {
-		VariableDefinitionPtr ret = refCounted!VariableDefinition();
+		VariableDefinitionPtr ret = refCounted!VariableDefinition(VariableDefinition());
 		if(this.firstVariable()) {
 			this.parseVariable();
 			if(this.lex.front.type == TokenType.colon) {
@@ -775,7 +747,7 @@ struct Parser {
 	}
 
 	VariablePtr parseVariableImpl() {
-		VariablePtr ret = refCounted!Variable();
+		VariablePtr ret = refCounted!Variable(Variable());
 		if(this.lex.front.type == TokenType.dollar) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.name) {
@@ -808,7 +780,7 @@ struct Parser {
 	}
 
 	DefaultValuePtr parseDefaultValueImpl() {
-		DefaultValuePtr ret = refCounted!DefaultValue();
+		DefaultValuePtr ret = refCounted!DefaultValue(DefaultValue());
 		if(this.lex.front.type == TokenType.equal) {
 			this.lex.popFront();
 			if(this.firstValue()) {
@@ -841,7 +813,7 @@ struct Parser {
 	}
 
 	ValueOrVariablePtr parseValueOrVariableImpl() {
-		ValueOrVariablePtr ret = refCounted!ValueOrVariable();
+		ValueOrVariablePtr ret = refCounted!ValueOrVariable(ValueOrVariable());
 		if(this.firstValue()) {
 			ret.val = this.parseValue();
 			ret.ruleSelection = ValueOrVariableEnum.Val;
@@ -875,7 +847,7 @@ struct Parser {
 	}
 
 	ValuePtr parseValueImpl() {
-		ValuePtr ret = refCounted!Value();
+		ValuePtr ret = refCounted!Value(Value());
 		if(this.lex.front.type == TokenType.stringValue) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
@@ -925,7 +897,7 @@ struct Parser {
 	}
 
 	TypePtr parseTypeImpl() {
-		TypePtr ret = refCounted!Type();
+		TypePtr ret = refCounted!Type(Type());
 		if(this.lex.front.type == TokenType.name) {
 			ret.tname = this.lex.front;
 			this.lex.popFront();
@@ -958,7 +930,7 @@ struct Parser {
 	}
 
 	ListTypePtr parseListTypeImpl() {
-		ListTypePtr ret = refCounted!ListType();
+		ListTypePtr ret = refCounted!ListType(ListType());
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
 			if(this.firstType()) {
@@ -997,7 +969,7 @@ struct Parser {
 	}
 
 	ArrayPtr parseArrayImpl() {
-		ArrayPtr ret = refCounted!Array();
+		ArrayPtr ret = refCounted!Array(Array());
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.rbrack) {

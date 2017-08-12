@@ -6,8 +6,6 @@ public import astcustom;
 
 import tokenmodule;
 
-import visitor;
-
 enum DocumentEnum {
 	Defi,
 }
@@ -15,23 +13,10 @@ enum DocumentEnum {
 struct Document {
 	DocumentEnum ruleSelection;
 	DefinitionsPtr defs;
+
 }
 
 alias DocumentPtr = RefCounted!(Document);
-
-enum DefinitionsEnum {
-	Def,
-	Defs,
-}
-
-struct Definitions {
-	DefinitionsEnum ruleSelection;
-	DefinitionPtr def;
-	DefinitionsPtr follow;
-
-}
-
-alias DefinitionsPtr = RefCounted!(Definitions);
 
 enum DefinitionEnum {
 	Op,
@@ -349,15 +334,3 @@ struct Array {
 
 alias ArrayPtr = RefCounted!(Array);
 
-
-enum ValueSetEnum {
-	SS,
-}
-
-struct ValueSet {
-	ValueSetEnum ruleValue;
-	ValuesPtr vals;
-
-}
-
-alias ValueSetPtr = RefCounted!(ValueSet);

@@ -1,8 +1,15 @@
 module parsercustom;
 
-import parser;
+import std.typecons : RefCounted, refCounted;
+import std.format : format;
 
-bool firstDefinitions(ref Parser this_) {
+import tokenmodule;
+import parser;
+import ast;
+import astcustom;
+import exception;
+
+bool firstDefinitions(ref const(Parser) this_) {
 	return this_.firstDefinition();
 }
 
@@ -15,15 +22,15 @@ DefinitionsPtr parseDefinitions(ref Parser this_) {
 }
 
 DefinitionsPtr parseDefinitionsImpl(ref Parser this_) {
-	DefinitionsPtr ret = refCounted!Definitions();
+	DefinitionsPtr ret = refCounted!Definitions(Definitions());
 	ret.ruleSelection = DefinitionsEnum.Def;
 	while(this_.firstDefinition()) {
-		ret.def ~= this_.parseDefinition();
+		ret.defs ~= this_.parseDefinition();
 	}
 	return ret;
 }
 
-bool firstSelections(ref Parser this_) {
+bool firstSelections(ref const(Parser) this_) {
 	return this_.firstSelection();
 }
 
@@ -36,14 +43,14 @@ SelectionsPtr parseSelections(ref Parser this_) {
 }
 
 SelectionsPtr parseSelectionsImpl(ref Parser this_) {
-	SelectionsPtr ret = refCounted!Selections();
+	SelectionsPtr ret = refCounted!Selections(Selections());
 	if(this_.firstSelection()) {
 		ret.sels ~= this_.parseSelection();
 		while(this_.lex.front.type == TokenType.comma 
 			|| this_.firstSelection()) 
 		{
 			if(this_.lex.front.type == TokenType.comma) {
-				this_.popFront();
+				this_.lex.popFront();
 			}
 			if(this_.firstSelection()) {
 				ret.sels ~= this_.parseSelection();
@@ -62,7 +69,7 @@ SelectionsPtr parseSelectionsImpl(ref Parser this_) {
 	);
 }
 
-bool firstDirectives(ref Parser this_) {
+bool firstDirectives(ref const(Parser) this_) {
 	return this_.firstDirective();
 }
 
@@ -75,15 +82,15 @@ DirectivesPtr parseDirectives(ref Parser this_) {
 }
 
 DirectivesPtr parseDirectivesImpl(ref Parser this_) {
-	DirectivesPtr ret = refCounted!Directives();
-	ret.ruleSelection = DirectivesEnum.Def;
+	DirectivesPtr ret = refCounted!Directives(Directives());
+	ret.ruleSelection = DirectivesEnum.Der;
 	while(this_.firstDirective()) {
-		ret.dir ~= this_.parseDirective();
+		ret.dirs ~= this_.parseDirective();
 	}
 	return ret;
 }
 
-bool firstArguments(ref Parser this_) {
+bool firstArguments(ref const(Parser) this_) {
 	return this_.firstArgument();
 }
 
@@ -96,13 +103,13 @@ ArgumentsPtr parseArguments(ref Parser this_) {
 }
 
 ArgumentsPtr parseArgumentsImpl(ref Parser this_) {
-	ArgumentsPtr ret = refCounted!Arguments();
+	ArgumentsPtr ret = refCounted!Arguments(Arguments());
 	if(this_.lex.front.type == TokenType.lparen) {
-		this_.popFront();
+		this_.lex.popFront();
 		if(this_.firstArgument()) {
 			ret.args ~= this_.parseArgument();
 			while(this_.lex.front.type == TokenType.comma) {
-				this_.popFront();
+				this_.lex.popFront();
 				if(this_.firstArgument()) {
 					ret.args ~= this_.parseArgument();
 					continue;
@@ -113,7 +120,7 @@ ArgumentsPtr parseArgumentsImpl(ref Parser this_) {
 				);
 			}
 			if(this_.lex.front.type == TokenType.rparen) {
-				this_.popFront();
+				this_.lex.popFront();
 				return ret;
 			}
 			throw new ParseException(format(
@@ -128,7 +135,7 @@ ArgumentsPtr parseArgumentsImpl(ref Parser this_) {
 	);
 }
 
-bool firstValues(ref Parser this_) {
+bool firstValues(ref const(Parser) this_) {
 	return this_.firstValue();
 }
 
@@ -141,11 +148,11 @@ ValuesPtr parseValues(ref Parser this_) {
 }
 
 ValuesPtr parseValuesImpl(ref Parser this_) {
-	ValuesPtr ret = refCounted!Values();
+	ValuesPtr ret = refCounted!Values(Values());
 	if(this_.firstValue()) {
 		ret.vals ~= this_.parseValue();
 		while(this_.lex.front.type == TokenType.comma) {
-			this_.popFront();
+			this_.lex.popFront();
 			if(this_.firstValue()) {
 				ret.vals ~= this_.parseValue();
 				continue;
@@ -159,6 +166,51 @@ ValuesPtr parseValuesImpl(ref Parser this_) {
 	}
 	throw new ParseException(format(
 		"Was expecting an Value. Found a '%s' at %s:%s.", 
+		this_.lex.front.type,this_.lex.line, this_.lex.column)
+	);
+}
+
+bool firstVariableDefinitions(ref const(Parser) this_) {
+	return this_.firstVariableDefinition();
+}
+
+VariableDefinitionsPtr parseVariableDefinitions(ref Parser this_) {
+	try {
+		return this_.parseVariableDefinitionsImpl();
+	} catch(ParseException e) {
+		throw new ParseException("While parsing a VariableDefinitions an Exception was thrown.", e);
+	}
+}
+
+VariableDefinitionsPtr parseVariableDefinitionsImpl(ref Parser this_) {
+	VariableDefinitionsPtr ret = refCounted!VariableDefinitions(VariableDefinitions());
+	if(this_.lex.front.type == TokenType.lparen) {
+		this_.lex.popFront();
+		if(this_.firstVariableDefinition()) {
+			ret.vars ~= this_.parseVariableDefinition();
+			while(this_.lex.front.type == TokenType.comma) {
+				this_.lex.popFront();
+				if(this_.firstVariableDefinition()) {
+					ret.vars ~= this_.parseVariableDefinition();
+					continue;
+				}
+				throw new ParseException(format(
+					"Was expecting an VariableDefinition. Found a '%s' at %s:%s.", 
+					this_.lex.front.type,this_.lex.line, this_.lex.column)
+				);
+			}
+			if(this_.lex.front.type == TokenType.rparen) {
+				this_.lex.popFront();
+				return ret;
+			}
+			throw new ParseException(format(
+				"Was expecting an rparen. Found a '%s' at %s:%s.", 
+				this_.lex.front.type,this_.lex.line, this_.lex.column)
+			);
+		}
+	}
+	throw new ParseException(format(
+		"Was expecting an lparen. Found a '%s' at %s:%s.", 
 		this_.lex.front.type,this_.lex.line, this_.lex.column)
 	);
 }
