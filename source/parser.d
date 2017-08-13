@@ -19,7 +19,7 @@ struct Parser {
 	}
 
 	bool firstDocument() const {
-		return this.firstDefinitions();
+		return this.lex.front.type == TokenType.lcurly;
 	}
 
 	DocumentPtr parseDocument() {
@@ -32,13 +32,24 @@ struct Parser {
 
 	DocumentPtr parseDocumentImpl() {
 		DocumentPtr ret = refCounted!Document(Document());
-		if(this.firstDefinitions()) {
-			ret.defs = this.parseDefinitions();
+		if(this.lex.front.type == TokenType.lcurly) {
+			this.lex.popFront();
+			if(this.firstDefinitions()) {
+				ret.defs = this.parseDefinitions();
+				if(this.lex.front.type == TokenType.rcurly) {
+					this.lex.popFront();
+
+					ret.ruleSelection = DocumentEnum.Defi;
+					return ret;
+				}
+				ret.ruleSelection = DocumentEnum.Defi;
+				return ret;
+			}
 			ret.ruleSelection = DocumentEnum.Defi;
 			return ret;
 		}
 		throw new ParseException(format(
-			"Was expecting an Definitions. Found a '%s' at %s:%s.", 
+			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
 			this.lex.front.type,this.lex.line, this.lex.column)
 		);
 	}
@@ -60,10 +71,12 @@ struct Parser {
 		DefinitionPtr ret = refCounted!Definition(Definition());
 		if(this.firstOperationDefinition()) {
 			ret.op = this.parseOperationDefinition();
+
 			ret.ruleSelection = DefinitionEnum.Op;
 			return ret;
 		} else if(this.firstFragmentDefinition()) {
 			ret.frag = this.parseFragmentDefinition();
+
 			ret.ruleSelection = DefinitionEnum.Frag;
 			return ret;
 		}
@@ -90,6 +103,7 @@ struct Parser {
 		OperationDefinitionPtr ret = refCounted!OperationDefinition(OperationDefinition());
 		if(this.firstSelectionSet()) {
 			ret.ss = this.parseSelectionSet();
+
 			ret.ruleSelection = OperationDefinitionEnum.SelSet;
 			return ret;
 		} else if(this.firstOperationType()) {
@@ -103,47 +117,41 @@ struct Parser {
 						ret.d = this.parseDirectives();
 						if(this.firstSelectionSet()) {
 							ret.ss = this.parseSelectionSet();
+
 							ret.ruleSelection = OperationDefinitionEnum.OT_VD;
 							return ret;
 						}
-						throw new ParseException(format(
-							"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front.type,this.lex.line, this.lex.column)
-						);
+						ret.ruleSelection = OperationDefinitionEnum.OT_VD;
+						return ret;
 					} else if(this.firstSelectionSet()) {
 						ret.ss = this.parseSelectionSet();
+
 						ret.ruleSelection = OperationDefinitionEnum.OT_V;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = OperationDefinitionEnum.OT_VD;
+					return ret;
 				} else if(this.firstDirectives()) {
 					ret.d = this.parseDirectives();
 					if(this.firstSelectionSet()) {
 						ret.ss = this.parseSelectionSet();
+
 						ret.ruleSelection = OperationDefinitionEnum.OT_D;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = OperationDefinitionEnum.OT_D;
+					return ret;
 				} else if(this.firstSelectionSet()) {
 					ret.ss = this.parseSelectionSet();
+
 					ret.ruleSelection = OperationDefinitionEnum.OT;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an VariableDefinitions, Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = OperationDefinitionEnum.OT_VD;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = OperationDefinitionEnum.OT_VD;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an SelectionSet, or OperationType. Found a '%s' at %s:%s.", 
@@ -171,18 +179,15 @@ struct Parser {
 				ret.sel = this.parseSelections();
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
+
 					ret.ruleSelection = SelectionSetEnum.SS;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = SelectionSetEnum.SS;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an Selections. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = SelectionSetEnum.SS;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
@@ -208,11 +213,13 @@ struct Parser {
 		if(this.lex.front.type == TokenType.query) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = OperationTypeEnum.Query;
 			return ret;
 		} else if(this.lex.front.type == TokenType.mutation) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = OperationTypeEnum.Mutation;
 			return ret;
 		}
@@ -240,14 +247,17 @@ struct Parser {
 		SelectionPtr ret = refCounted!Selection(Selection());
 		if(this.firstField()) {
 			ret.field = this.parseField();
+
 			ret.ruleSelection = SelectionEnum.Field;
 			return ret;
 		} else if(this.firstFragmentSpread()) {
 			ret.frag = this.parseFragmentSpread();
+
 			ret.ruleSelection = SelectionEnum.Frag;
 			return ret;
 		} else if(this.firstInlineFragment()) {
 			ret.ifrag = this.parseInlineFragment();
+
 			ret.ruleSelection = SelectionEnum.IFrag;
 			return ret;
 		}
@@ -279,42 +289,38 @@ struct Parser {
 					ret.dirs = this.parseDirectives();
 					if(this.firstSelectionSet()) {
 						ret.ss = this.parseSelectionSet();
+
 						ret.ruleSelection = FieldEnum.FADS;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = FieldEnum.FAD;
+					return ret;
 				} else if(this.firstSelectionSet()) {
 					ret.ss = this.parseSelectionSet();
+
 					ret.ruleSelection = FieldEnum.FAS;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = FieldEnum.FA;
+				return ret;
 			} else if(this.firstDirectives()) {
 				ret.dirs = this.parseDirectives();
 				if(this.firstSelectionSet()) {
 					ret.ss = this.parseSelectionSet();
+
 					ret.ruleSelection = FieldEnum.FDS;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = FieldEnum.FD;
+				return ret;
 			} else if(this.firstSelectionSet()) {
 				ret.ss = this.parseSelectionSet();
+
 				ret.ruleSelection = FieldEnum.FS;
 				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an Arguments, Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = FieldEnum.F;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an FieldName. Found a '%s' at %s:%s.", 
@@ -340,11 +346,13 @@ struct Parser {
 		if(this.lex.front.type == TokenType.alias_) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = FieldNameEnum.A;
 			return ret;
 		} else if(this.lex.front.type == TokenType.name) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = FieldNameEnum.N;
 			return ret;
 		}
@@ -376,18 +384,15 @@ struct Parser {
 				if(this.lex.front.type == TokenType.name) {
 					ret.to = this.lex.front;
 					this.lex.popFront();
+
 					ret.ruleSelection = AliasEnum.A;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an name. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = AliasEnum.A;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = AliasEnum.A;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an name. Found a '%s' at %s:%s.", 
@@ -416,18 +421,15 @@ struct Parser {
 				this.lex.popFront();
 				if(this.firstValueOrVariable()) {
 					this.parseValueOrVariable();
+
 					ret.ruleSelection = ArgumentEnum.Name;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an ValueOrVariable. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = ArgumentEnum.Name;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = ArgumentEnum.Name;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an name. Found a '%s' at %s:%s.", 
@@ -456,18 +458,15 @@ struct Parser {
 				this.lex.popFront();
 				if(this.firstDirectives()) {
 					ret.dirs = this.parseDirectives();
+
 					ret.ruleSelection = FragmentSpreadEnum.FD;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an Directives. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = FragmentSpreadEnum.F;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = FragmentSpreadEnum.FD;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an dots. Found a '%s' at %s:%s.", 
@@ -499,32 +498,26 @@ struct Parser {
 						ret.dirs = this.parseDirectives();
 						if(this.firstSelectionSet()) {
 							ret.ss = this.parseSelectionSet();
+
 							ret.ruleSelection = InlineFragmentEnum.TDS;
 							return ret;
 						}
-						throw new ParseException(format(
-							"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front.type,this.lex.line, this.lex.column)
-						);
+						ret.ruleSelection = InlineFragmentEnum.TDS;
+						return ret;
 					} else if(this.firstSelectionSet()) {
 						ret.ss = this.parseSelectionSet();
+
 						ret.ruleSelection = InlineFragmentEnum.TS;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = InlineFragmentEnum.TDS;
+					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an TypeCondition. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = InlineFragmentEnum.TDS;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an on_. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = InlineFragmentEnum.TDS;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an dots. Found a '%s' at %s:%s.", 
@@ -559,37 +552,29 @@ struct Parser {
 							ret.dirs = this.parseDirectives();
 							if(this.firstSelectionSet()) {
 								ret.ss = this.parseSelectionSet();
+
 								ret.ruleSelection = FragmentDefinitionEnum.FTDS;
 								return ret;
 							}
-							throw new ParseException(format(
-								"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-								this.lex.front.type,this.lex.line, this.lex.column)
-							);
+							ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+							return ret;
 						} else if(this.firstSelectionSet()) {
 							ret.ss = this.parseSelectionSet();
+
 							ret.ruleSelection = FragmentDefinitionEnum.FTS;
 							return ret;
 						}
-						throw new ParseException(format(
-							"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front.type,this.lex.line, this.lex.column)
-						);
+						ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an TypeCondition. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an on_. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an fragment. Found a '%s' at %s:%s.", 
@@ -620,41 +605,33 @@ struct Parser {
 					this.lex.popFront();
 					if(this.firstValueOrVariable()) {
 						ret.vv = this.parseValueOrVariable();
+
 						ret.ruleSelection = DirectiveEnum.NVV;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an ValueOrVariable. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = DirectiveEnum.NVV;
+					return ret;
 				} else if(this.lex.front.type == TokenType.lparen) {
 					this.lex.popFront();
 					if(this.firstArgument()) {
 						ret.arg = this.parseArgument();
 						if(this.lex.front.type == TokenType.rparen) {
 							this.lex.popFront();
+
 							ret.ruleSelection = DirectiveEnum.NArg;
 							return ret;
 						}
-						throw new ParseException(format(
-							"Was expecting an rparen. Found a '%s' at %s:%s.", 
-							this.lex.front.type,this.lex.line, this.lex.column)
-						);
+						ret.ruleSelection = DirectiveEnum.NArg;
+						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an Argument. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = DirectiveEnum.NArg;
+					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an colon, or lparen. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = DirectiveEnum.N;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = DirectiveEnum.NVV;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an at. Found a '%s' at %s:%s.", 
@@ -679,6 +656,7 @@ struct Parser {
 		if(this.lex.front.type == TokenType.name) {
 			ret.tname = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = TypeConditionEnum.TN;
 			return ret;
 		}
@@ -710,23 +688,18 @@ struct Parser {
 					ret.type = this.parseType();
 					if(this.firstDefaultValue()) {
 						ret.dvalue = this.parseDefaultValue();
+
 						ret.ruleSelection = VariableDefinitionEnum.VarD;
 						return ret;
 					}
-					throw new ParseException(format(
-						"Was expecting an DefaultValue. Found a '%s' at %s:%s.", 
-						this.lex.front.type,this.lex.line, this.lex.column)
-					);
+					ret.ruleSelection = VariableDefinitionEnum.Var;
+					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an Type. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = VariableDefinitionEnum.VarD;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = VariableDefinitionEnum.VarD;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an Variable. Found a '%s' at %s:%s.", 
@@ -753,13 +726,12 @@ struct Parser {
 			if(this.lex.front.type == TokenType.name) {
 				ret.name = this.lex.front;
 				this.lex.popFront();
+
 				ret.ruleSelection = VariableEnum.Var;
 				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = VariableEnum.Var;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an dollar. Found a '%s' at %s:%s.", 
@@ -785,13 +757,12 @@ struct Parser {
 			this.lex.popFront();
 			if(this.firstValue()) {
 				ret.value = this.parseValue();
+
 				ret.ruleSelection = DefaultValueEnum.DV;
 				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an Value. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = DefaultValueEnum.DV;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an equal. Found a '%s' at %s:%s.", 
@@ -816,10 +787,12 @@ struct Parser {
 		ValueOrVariablePtr ret = refCounted!ValueOrVariable(ValueOrVariable());
 		if(this.firstValue()) {
 			ret.val = this.parseValue();
+
 			ret.ruleSelection = ValueOrVariableEnum.Val;
 			return ret;
 		} else if(this.firstVariable()) {
 			ret.var = this.parseVariable();
+
 			ret.ruleSelection = ValueOrVariableEnum.Var;
 			return ret;
 		}
@@ -851,30 +824,36 @@ struct Parser {
 		if(this.lex.front.type == TokenType.stringValue) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = ValueEnum.STR;
 			return ret;
 		} else if(this.lex.front.type == TokenType.intValue) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = ValueEnum.INT;
 			return ret;
 		} else if(this.lex.front.type == TokenType.floatValue) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = ValueEnum.FLOAT;
 			return ret;
 		} else if(this.lex.front.type == TokenType.true_) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = ValueEnum.T;
 			return ret;
 		} else if(this.lex.front.type == TokenType.false_) {
 			ret.tok = this.lex.front;
 			this.lex.popFront();
+
 			ret.ruleSelection = ValueEnum.F;
 			return ret;
 		} else if(this.firstArray()) {
 			ret.arr = this.parseArray();
+
 			ret.ruleSelection = ValueEnum.ARR;
 			return ret;
 		}
@@ -903,13 +882,12 @@ struct Parser {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
+
 				ret.ruleSelection = TypeEnum.TN;
 				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an exclamation. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = TypeEnum.T;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an name. Found a '%s' at %s:%s.", 
@@ -937,18 +915,15 @@ struct Parser {
 				ret.type = this.parseType();
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
+
 					ret.ruleSelection = ListTypeEnum.T;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an rbrack. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = ListTypeEnum.T;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an Type. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = ListTypeEnum.T;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an lbrack. Found a '%s' at %s:%s.", 
@@ -974,24 +949,22 @@ struct Parser {
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.rbrack) {
 				this.lex.popFront();
+
 				ret.ruleSelection = ArrayEnum.Empty;
 				return ret;
 			} else if(this.firstValues()) {
 				ret.vals = this.parseValues();
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
+
 					ret.ruleSelection = ArrayEnum.Value;
 					return ret;
 				}
-				throw new ParseException(format(
-					"Was expecting an rbrack. Found a '%s' at %s:%s.", 
-					this.lex.front.type,this.lex.line, this.lex.column)
-				);
+				ret.ruleSelection = ArrayEnum.Value;
+				return ret;
 			}
-			throw new ParseException(format(
-				"Was expecting an rbrack, or Values. Found a '%s' at %s:%s.", 
-				this.lex.front.type,this.lex.line, this.lex.column)
-			);
+			ret.ruleSelection = ArrayEnum.Empty;
+			return ret;
 		}
 		throw new ParseException(format(
 			"Was expecting an lbrack. Found a '%s' at %s:%s.", 

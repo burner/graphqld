@@ -1,5 +1,5 @@
 Document:
-    Defi: [Definitions#defs]
+    Defi: [lcurly, Definitions#defs, rcurly]
 
 #Definitions:
     #    Def: [Definition#def]
