@@ -91,7 +91,7 @@ DirectivesPtr parseDirectivesImpl(ref Parser this_) {
 }
 
 bool firstArguments(ref const(Parser) this_) {
-	return this_.firstArgument();
+	return this_.lex.front.type == TokenType.lparen;
 }
 
 ArgumentsPtr parseArguments(ref Parser this_) {
