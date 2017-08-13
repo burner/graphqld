@@ -156,7 +156,7 @@ unittest {
 	string s = `{
 query HeroNameAndFriends($episode: Episode) {
   hero(episode: $episode) {
-    name
+    name,
     friends {
       name
     }
