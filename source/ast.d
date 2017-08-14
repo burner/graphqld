@@ -285,12 +285,14 @@ enum ValueEnum {
 	T,
 	F,
 	ARR,
+	O,
 }
 
 struct Value {
 	ValueEnum ruleSelection;
 	ArrayPtr arr;
 	Token tok;
+	ObjectTypePtr obj;
 
 }
 
@@ -333,4 +335,17 @@ struct Array {
 }
 
 alias ArrayPtr = RefCounted!(Array);
+
+enum ObjectValueEnum {
+	V,
+}
+
+struct ObjectValue {
+	ObjectValueEnum ruleSelection;
+	Token name;
+	ValuePtr val;
+
+}
+
+alias ObjectValuePtr = RefCounted!(ObjectValue);
 

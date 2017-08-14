@@ -214,3 +214,54 @@ VariableDefinitionsPtr parseVariableDefinitionsImpl(ref Parser this_) {
 		this_.lex.front.type,this_.lex.line, this_.lex.column)
 	);
 }
+
+bool firstObjectType(ref const(Parser) this_) {
+	return this_.firstObjectValue();
+}
+
+ObjectTypePtr parseObjectType(ref Parser this_) {
+	try {
+		return this_.parseObjectImpl();
+	} catch(ParseException e) {
+		throw new ParseException("While parsing a Object an Exception was thrown.", e);
+	}
+}
+
+ObjectTypePtr parseObjectImpl(ref Parser this_) {
+	ObjectTypePtr ret = refCounted!ObjectType(ObjectType());
+	if(this_.lex.front.type == TokenType.lcurly) {
+		this_.lex.popFront();
+		if(this_.firstObjectType()) {
+			ret.objs ~= this_.parseObjectValue();
+			while(this_.lex.front.type == TokenType.comma 
+					|| this_.firstObjectValue()
+			) {
+				if(this_.lex.front.type == TokenType.comma ) {
+					this_.lex.popFront();
+				}
+				if(this_.firstObjectType()) {
+					ret.objs ~= this_.parseObjectValue();
+					continue;
+				}
+				throw new ParseException(format(
+					"Was expecting an Object. Found a '%s' at %s:%s.", 
+					this_.lex.front.type,this_.lex.line, this_.lex.column)
+				);
+			}
+		}
+	} else {
+		throw new ParseException(format(
+			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+			this_.lex.front.type,this_.lex.line, this_.lex.column)
+		);
+	}
+	if(this_.lex.front.type == TokenType.rcurly) {
+		this_.lex.popFront();
+		return ret;
+	} else {
+		throw new ParseException(format(
+			"Was expecting an ccurly. Found a '%s' at %s:%s.", 
+			this_.lex.front.type,this_.lex.line, this_.lex.column)
+		);
+	}
+}

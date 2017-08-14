@@ -73,3 +73,13 @@ struct VariableDefinitions {
 
 alias VariableDefinitionsPtr = RefCounted!(VariableDefinitions);
 
+enum ObjectEnum {
+	O,
+}
+
+struct ObjectType {
+	ObjectEnum ruleSelection;
+	std.container.array.Array!(ObjectValue) objs;
+}
+
+alias ObjectTypePtr = RefCounted!(ObjectType);

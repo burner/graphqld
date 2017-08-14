@@ -808,7 +808,8 @@ struct Parser {
 			 || this.lex.front.type == TokenType.floatValue
 			 || this.lex.front.type == TokenType.true_
 			 || this.lex.front.type == TokenType.false_
-			 || this.firstArray();
+			 || this.firstArray()
+			 || this.firstObjectType();
 	}
 
 	ValuePtr parseValue() {
@@ -856,9 +857,14 @@ struct Parser {
 
 			ret.ruleSelection = ValueEnum.ARR;
 			return ret;
+		} else if(this.firstObjectType()) {
+			ret.obj = this.parseObjectType();
+
+			ret.ruleSelection = ValueEnum.O;
+			return ret;
 		}
 		throw new ParseException(format(
-			"Was expecting an stringValue, intValue, floatValue, true_, false_, or Array. Found a '%s' at %s:%s.", 
+			"Was expecting an stringValue, intValue, floatValue, true_, false_, Array, or ObjectType. Found a '%s' at %s:%s.", 
 			this.lex.front.type,this.lex.line, this.lex.column)
 		);
 	}
@@ -968,6 +974,43 @@ struct Parser {
 		}
 		throw new ParseException(format(
 			"Was expecting an lbrack. Found a '%s' at %s:%s.", 
+			this.lex.front.type,this.lex.line, this.lex.column)
+		);
+	}
+
+	bool firstObjectValue() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	ObjectValuePtr parseObjectValue() {
+		try {
+			return this.parseObjectValueImpl();
+		} catch(ParseException e) {
+			throw new ParseException("While parsing a ObjectValue an Exception was thrown.", e);
+		}
+	}
+
+	ObjectValuePtr parseObjectValueImpl() {
+		ObjectValuePtr ret = refCounted!ObjectValue(ObjectValue());
+		if(this.lex.front.type == TokenType.name) {
+			ret.name = this.lex.front;
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.colon) {
+				this.lex.popFront();
+				if(this.firstValue()) {
+					ret.val = this.parseValue();
+
+					ret.ruleSelection = ObjectValueEnum.V;
+					return ret;
+				}
+				ret.ruleSelection = ObjectValueEnum.V;
+				return ret;
+			}
+			ret.ruleSelection = ObjectValueEnum.V;
+			return ret;
+		}
+		throw new ParseException(format(
+			"Was expecting an name. Found a '%s' at %s:%s.", 
 			this.lex.front.type,this.lex.line, this.lex.column)
 		);
 	}

@@ -167,3 +167,80 @@ query HeroNameAndFriends($episode: Episode) {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 }
+
+unittest {
+	string s = `{
+  __type(name: "User") {
+    name
+    fields {
+      name
+      type {
+        name
+      }
+    }
+  }
+}`;
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+}
+
+unittest {
+	string s = `{
+subscription sub {
+  newMessage {
+    body
+    sender
+  }
+}
+fragment newMessageFields on Message {
+  body
+  sender
+}
+
+subscription sub {
+  newMessage {
+    ... newMessageFields  
+  }
+}
+}`;
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+}
+
+unittest {
+	string s = `{
+fragment inDirectFieldSelectionOnUnion on CatOrDog {
+  __typename
+  ... on Pet {
+    name
+  }
+  ... on Dog {
+    barkVolume
+  }
+}
+}`;
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+}
+
+unittest {
+	string s = `{
+query inlineFragmentNoType($expandedInfo: Boolean) {
+  user(handle: "zuck") {
+    id
+    name
+    ... @include(if: $expandedInfo) {
+      firstName
+      lastName
+      birthday
+    }
+  }
+}
+}`;
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+}

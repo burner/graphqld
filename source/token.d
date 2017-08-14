@@ -30,7 +30,11 @@ enum TokenType {
 	null_,
 	comment,
 	comma,
-	union_
+	union_,
+	type,
+	typename,
+	skip,
+	include_,
 }
 
 struct Token {

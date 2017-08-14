@@ -136,6 +136,36 @@ struct Lexer {
 						}
 					}
 					goto default;
+				case '_':
+					++this.stringPos;
+					++this.column;
+					++e;
+					if(this.testCharAndInc('_', e)) {
+						if(this.testCharAndInc('t', e)) {
+							if(this.testCharAndInc('y', e)) {
+								if(this.testCharAndInc('p', e)) {
+									if(this.testCharAndInc('e', e)) {
+										if(this.isTokenStop()) {
+											this.cur = Token(TokenType.type);
+											return;
+										} else if(this.testCharAndInc('n', e)) {
+											if(this.testCharAndInc('a', e)) {
+												if(this.testCharAndInc('m', e)) {
+													if(this.testCharAndInc('e', e)) {
+														if(this.isTokenStop()) {
+															this.cur = Token(TokenType.typename);
+															return;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					goto default;
 				case 's':
 					++this.stringPos;
 					++this.column;
@@ -210,6 +240,41 @@ struct Lexer {
 								}
 							}
 						}
+					}
+					goto default;
+				case '@':
+					++this.stringPos;
+					++this.column;
+					++e;
+					if(this.testCharAndInc('i', e)) {
+						if(this.testCharAndInc('n', e)) {
+							if(this.testCharAndInc('c', e)) {
+								if(this.testCharAndInc('l', e)) {
+									if(this.testCharAndInc('u', e)) {
+										if(this.testCharAndInc('d', e)) {
+											if(this.testCharAndInc('e', e)) {
+												if(this.isTokenStop()) {
+													this.cur = Token(TokenType.include_);
+													return;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					} else if(this.testCharAndInc('s', e)) {
+						if(this.testCharAndInc('k', e)) {
+							if(this.testCharAndInc('i', e)) {
+								if(this.testCharAndInc('p', e)) {
+									this.cur = Token(TokenType.skip);
+									return;
+								}
+							}
+						}
+					} else if(isTokenStop()) {
+						this.cur = Token(TokenType.at);
+						return;
 					}
 					goto default;
 				case 'q':

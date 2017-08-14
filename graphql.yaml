@@ -106,6 +106,7 @@ Value:
     T: [true_#tok]
     F: [false_#tok]
     ARR: [Array#arr]
+    O: [ObjectType#obj]
 
 Type:
     TN: [name#tname, exclamation]
@@ -121,3 +122,6 @@ ListType:
 Array:
     Empty: [lbrack, rbrack]
     Value: [lbrack, Values#vals, rbrack]
+
+ObjectValue:
+    V: [name#name, colon, Value#val]
