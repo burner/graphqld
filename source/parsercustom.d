@@ -199,15 +199,15 @@ VariableDefinitionsPtr parseVariableDefinitionsImpl(ref Parser this_) {
 					this_.lex.front.type,this_.lex.line, this_.lex.column)
 				);
 			}
-			if(this_.lex.front.type == TokenType.rparen) {
-				this_.lex.popFront();
-				return ret;
-			}
-			throw new ParseException(format(
-				"Was expecting an rparen. Found a '%s' at %s:%s.", 
-				this_.lex.front.type,this_.lex.line, this_.lex.column)
-			);
 		}
+		if(this_.lex.front.type == TokenType.rparen) {
+			this_.lex.popFront();
+			return ret;
+		}
+		throw new ParseException(format(
+			"Was expecting an rparen. Found a '%s' at %s:%s.", 
+			this_.lex.front.type,this_.lex.line, this_.lex.column)
+		);
 	}
 	throw new ParseException(format(
 		"Was expecting an lparen. Found a '%s' at %s:%s.", 

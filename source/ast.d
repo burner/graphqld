@@ -301,11 +301,13 @@ alias ValuePtr = RefCounted!(Value);
 enum TypeEnum {
 	TN,
 	T,
+	L,
 }
 
 struct Type {
 	TypeEnum ruleSelection;
 	Token tname;
+	ListTypePtr list;
 
 }
 

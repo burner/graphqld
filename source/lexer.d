@@ -62,27 +62,27 @@ struct Lexer {
 		}
 
 		if(this.input[this.stringPos] == ')') {
-			this.cur = Token(TokenType.rparen);
+			this.cur = Token(TokenType.rparen, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '(') {
-			this.cur = Token(TokenType.lparen);
+			this.cur = Token(TokenType.lparen, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == ']') {
-			this.cur = Token(TokenType.rbrack);
+			this.cur = Token(TokenType.rbrack, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '[') {
-			this.cur = Token(TokenType.lbrack);
+			this.cur = Token(TokenType.lbrack, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '}') {
-			this.cur = Token(TokenType.rcurly);
+			this.cur = Token(TokenType.rcurly, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '{') {
-			this.cur = Token(TokenType.lcurly);
+			this.cur = Token(TokenType.lcurly, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '#') {
@@ -96,17 +96,18 @@ struct Lexer {
 					&& this.input[this.stringPos] != '\n');
 			++this.line;
 			++this.stringPos;
-			this.cur = Token(TokenType.comment, this.input[b .. e]);
+			this.cur = Token(TokenType.comment, this.input[b .. e], this.line,
+					this.column);
 		} else if(this.input[this.stringPos] == ',') {
-			this.cur = Token(TokenType.comma);
+			this.cur = Token(TokenType.comma, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '=') {
-			this.cur = Token(TokenType.equal);
+			this.cur = Token(TokenType.equal, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == ':') {
-			this.cur = Token(TokenType.colon);
+			this.cur = Token(TokenType.colon, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else {
@@ -125,7 +126,10 @@ struct Lexer {
 										if(this.testCharAndInc('o', e)) {
 											if(this.testCharAndInc('n', e)) {
 												if(this.isTokenStop()) {
-													this.cur = Token(TokenType.mutation);
+													this.cur =
+														Token(TokenType.mutation,
+																this.line,
+																this.column);
 													return;
 												}
 											}
@@ -146,14 +150,18 @@ struct Lexer {
 								if(this.testCharAndInc('p', e)) {
 									if(this.testCharAndInc('e', e)) {
 										if(this.isTokenStop()) {
-											this.cur = Token(TokenType.type);
+											this.cur = Token(TokenType.type,
+													this.line, this.column);
 											return;
 										} else if(this.testCharAndInc('n', e)) {
 											if(this.testCharAndInc('a', e)) {
 												if(this.testCharAndInc('m', e)) {
 													if(this.testCharAndInc('e', e)) {
 														if(this.isTokenStop()) {
-															this.cur = Token(TokenType.typename);
+															this.cur =
+																Token(TokenType.typename,
+																		this.line,
+																		this.column);
 															return;
 														}
 													}
@@ -182,7 +190,10 @@ struct Lexer {
 														if(this.testCharAndInc('o', e)) {
 															if(this.testCharAndInc('n', e)) {
 																if(this.isTokenStop()) {
-																	this.cur = Token(TokenType.subscription);
+																	this.cur =
+																		Token(TokenType.subscription,
+																				this.line,
+																				this.column);
 																	return;
 																}
 															}
@@ -203,7 +214,8 @@ struct Lexer {
 					++e;
 					if(this.testCharAndInc('n', e)) {
 						if(this.isTokenStop()) {
-							this.cur = Token(TokenType.on_);
+							this.cur = Token(TokenType.on_, this.line,
+									this.column);
 							return;
 						}
 					}
@@ -217,7 +229,8 @@ struct Lexer {
 							if(this.testCharAndInc('s', e)) {
 								if(this.testCharAndInc('e', e)) {
 									if(this.isTokenStop()) {
-										this.cur = Token(TokenType.false_);
+										this.cur = Token(TokenType.false_,
+												this.line, this.column);
 										return;
 									}
 								}
@@ -231,7 +244,10 @@ struct Lexer {
 										if(this.testCharAndInc('n', e)) {
 											if(this.testCharAndInc('t', e)) {
 												if(this.isTokenStop()) {
-													this.cur = Token(TokenType.fragment);
+													this.cur =
+														Token(TokenType.fragment,
+																this.line,
+																this.column);
 													return;
 												}
 											}
@@ -254,7 +270,10 @@ struct Lexer {
 										if(this.testCharAndInc('d', e)) {
 											if(this.testCharAndInc('e', e)) {
 												if(this.isTokenStop()) {
-													this.cur = Token(TokenType.include_);
+													this.cur =
+														Token(TokenType.include_,
+																this.line,
+																this.column);
 													return;
 												}
 											}
@@ -267,13 +286,14 @@ struct Lexer {
 						if(this.testCharAndInc('k', e)) {
 							if(this.testCharAndInc('i', e)) {
 								if(this.testCharAndInc('p', e)) {
-									this.cur = Token(TokenType.skip);
+									this.cur = Token(TokenType.skip,
+											this.line, this.column);
 									return;
 								}
 							}
 						}
 					} else if(isTokenStop()) {
-						this.cur = Token(TokenType.at);
+						this.cur = Token(TokenType.at, this.line, this.column);
 						return;
 					}
 					goto default;
@@ -286,7 +306,8 @@ struct Lexer {
 							if(this.testCharAndInc('r', e)) {
 								if(this.testCharAndInc('y', e)) {
 									if(this.isTokenStop()) {
-										this.cur = Token(TokenType.query);
+										this.cur = Token(TokenType.query,
+												this.line, this.column);
 										return;
 									}
 								}
@@ -302,7 +323,8 @@ struct Lexer {
 						if(this.testCharAndInc('u', e)) {
 							if(this.testCharAndInc('e', e)) {
 								if(this.isTokenStop()) {
-									this.cur = Token(TokenType.true_);
+									this.cur = Token(TokenType.true_,
+											this.line, this.column);
 									return;
 								}
 							}
@@ -317,7 +339,8 @@ struct Lexer {
 						if(this.testCharAndInc('l', e)) {
 							if(this.testCharAndInc('l', e)) {
 								if(this.isTokenStop()) {
-									this.cur = Token(TokenType.null_);
+									this.cur = Token(TokenType.null_,
+											this.line, this.column);
 									return;
 								}
 							}
@@ -333,7 +356,8 @@ struct Lexer {
 							if(this.testCharAndInc('o', e)) {
 								if(this.testCharAndInc('n', e)) {
 									if(this.isTokenStop()) {
-										this.cur = Token(TokenType.union_);
+										this.cur = Token(TokenType.union_,
+												this.line, this.column);
 										return;
 									}
 								}
@@ -350,7 +374,8 @@ struct Lexer {
 							if(this.stringPos < this.input.length 
 								&& isAlphaNum(this.input[this.stringPos])) 
 							{
-								this.cur = Token(TokenType.dots);
+								this.cur = Token(TokenType.dots, this.line,
+										this.column);
 								return;
 							}
 						}
@@ -381,7 +406,8 @@ struct Lexer {
 					if(this.stringPos >= this.input.length
 							|| this.input[this.stringPos] != '.') 
 					{
-						this.cur = Token(TokenType.intValue, this.input[b .. e]);
+						this.cur = Token(TokenType.intValue, this.input[b ..
+								e], this.line, this.column);
 						return;
 					} else if(this.stringPos < this.input.length
 							&& this.input[this.stringPos] == '.')
@@ -394,7 +420,8 @@ struct Lexer {
 								&& this.input[this.stringPos] >= '0'
 								&& this.input[this.stringPos] <= '9');
 
-						this.cur = Token(TokenType.floatValue, this.input[b ..  e]);
+						this.cur = Token(TokenType.floatValue, this.input[b ..
+								e], this.line, this.column);
 						return;
 					}
 					goto default;
@@ -415,7 +442,8 @@ struct Lexer {
 					}
 					++this.stringPos;
 					++this.column;
-					this.cur = Token(TokenType.stringValue, this.input[b + 1 .. e]);
+					this.cur = Token(TokenType.stringValue, this.input[b + 1
+							.. e], this.line, this.column);
 					break;
 				default:
 					do {
@@ -423,7 +451,8 @@ struct Lexer {
 						++this.column;
 						++e;
 					} while(!this.isTokenStop());
-					this.cur = Token(TokenType.name, this.input[b .. e]);
+					this.cur = Token(TokenType.name, this.input[b .. e],
+							this.line, this.column);
 					break;
 			}
 		}

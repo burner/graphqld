@@ -111,13 +111,15 @@ Value:
 Type:
     TN: [name#tname, exclamation]
     T: [name#tname]
+    #LN: [ListType#list, exclamation]
+    #L: [ListType#list] TODO Recursion with ListType
 
 ListType:
     T: [lbrack, Type#type, rbrack]
 
-    #Values:
-    #    Val: [Value#val]
-    #    Vals: [Value#val, comma, Values#follow]
+#Values:
+#    Val: [Value#val]
+#    Vals: [Value#val, comma, Values#follow]
 
 Array:
     Empty: [lbrack, rbrack]

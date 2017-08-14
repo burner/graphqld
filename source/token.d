@@ -48,8 +48,19 @@ struct Token {
 		this.type = type;
 	}
 
+	this(TokenType type, size_t line, size_t column) {
+		this.type = type;
+		this.line = line;
+		this.column = column;
+	}
+
 	this(TokenType type, string value) {
 		this(type);
+		this.value = value;
+	}
+
+	this(TokenType type, string value, size_t line, size_t column) {
+		this(type, line, column);
 		this.value = value;
 	}
 }

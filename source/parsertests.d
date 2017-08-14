@@ -1,5 +1,7 @@
 module parsertests;
 
+import std.format : format;
+
 import lexer;
 import parser;
 
@@ -243,4 +245,16 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
 	auto l = Lexer(s);
 	auto p = Parser(l);
 	auto d = p.parseDocument();
+}
+
+unittest {
+	string s = `{
+		query foo ($b, $n: [ bar, args ]) {
+			name
+		}
+}`;
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, format("%s", p.lex.front));
 }

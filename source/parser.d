@@ -870,7 +870,8 @@ struct Parser {
 	}
 
 	bool firstType() const {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstListType();
 	}
 
 	TypePtr parseType() {
@@ -894,9 +895,14 @@ struct Parser {
 			}
 			ret.ruleSelection = TypeEnum.T;
 			return ret;
+		} else if(this.firstListType()) {
+			ret.list = this.parseListType();
+
+			ret.ruleSelection = TypeEnum.L;
+			return ret;
 		}
 		throw new ParseException(format(
-			"Was expecting an name. Found a '%s' at %s:%s.", 
+			"Was expecting an name, or ListType. Found a '%s' at %s:%s.", 
 			this.lex.front.type,this.lex.line, this.lex.column)
 		);
 	}
