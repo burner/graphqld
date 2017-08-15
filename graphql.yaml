@@ -17,16 +17,18 @@ OperationDefinition:
     OT: [OperationType#ot, name#name, SelectionSet#ss]
 
 SelectionSet:
+   Empty: [lcurly, rcurly]
    SS: [lcurly, Selections#sel, rcurly]
 
 OperationType:
     Query: [query#tok]
     Mutation: [mutation#tok]
+    Sub: [subscription#tok]
 
 Selections:
-        Sel: [Selection#sel]
-        Sels: [Selection#sel, Selections#follow]
-        Selsc: [Selection#sel, comma, Selections#follow]
+    Sel: [Selection#sel]
+    Sels: [Selection#sel, Selections#follow]
+    Selsc: [Selection#sel, comma, Selections#follow]
 
 Selection:
     Field: [Field#field]
@@ -44,11 +46,11 @@ Field:
     F: [FieldName#name]
 
 FieldName:
-    A: [alias_#tok]
+    A: [name#tok, colon, name#aka]
     N: [name#tok]
 
-Alias:
-    A: [name#from, colon, name#to]
+    #Alias:
+    #    A: [name#from, colon, name#to]
 
 Arguments:
     Arg: [lparen, Argument#arg, rparen]

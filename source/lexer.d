@@ -94,6 +94,10 @@ struct Lexer {
 			this.cur = Token(TokenType.lcurly, this.line, this.column);
 			++this.column;
 			++this.stringPos;
+		} else if(this.input[this.stringPos] == '@') {
+			this.cur = Token(TokenType.at, this.line, this.column);
+			++this.column;
+			++this.stringPos;
 		} else if(this.input[this.stringPos] == '#') {
 			size_t b = this.stringPos;	
 			size_t e = this.stringPos;
@@ -188,7 +192,7 @@ struct Lexer {
 					++this.column;
 					++e;
 					if(this.testCharAndInc('u', e)) {
-						if(this.testCharAndInc('p', e)) {
+						if(this.testCharAndInc('b', e)) {
 							if(this.testCharAndInc('s', e)) {
 								if(this.testCharAndInc('c', e)) {
 									if(this.testCharAndInc('r', e)) {
@@ -267,45 +271,15 @@ struct Lexer {
 						}
 					}
 					goto default;
-				case '@':
+				/*case '@':
 					++this.stringPos;
 					++this.column;
 					++e;
-					if(this.testCharAndInc('i', e)) {
-						if(this.testCharAndInc('n', e)) {
-							if(this.testCharAndInc('c', e)) {
-								if(this.testCharAndInc('l', e)) {
-									if(this.testCharAndInc('u', e)) {
-										if(this.testCharAndInc('d', e)) {
-											if(this.testCharAndInc('e', e)) {
-												if(this.isTokenStop()) {
-													this.cur =
-														Token(TokenType.include_,
-																this.line,
-																this.column);
-													return;
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					} else if(this.testCharAndInc('s', e)) {
-						if(this.testCharAndInc('k', e)) {
-							if(this.testCharAndInc('i', e)) {
-								if(this.testCharAndInc('p', e)) {
-									this.cur = Token(TokenType.skip,
-											this.line, this.column);
-									return;
-								}
-							}
-						}
-					} else if(isTokenStop()) {
+					if(isTokenStop()) {
 						this.cur = Token(TokenType.at, this.line, this.column);
 						return;
 					}
-					goto default;
+					goto default;*/
 				case 'q':
 					++this.stringPos;
 					++this.column;
@@ -380,8 +354,13 @@ struct Lexer {
 					++e;
 					if(this.testCharAndInc('.', e)) {
 						if(this.testCharAndInc('.', e)) {
-							if(this.stringPos < this.input.length 
-								&& isAlphaNum(this.input[this.stringPos])) 
+							//if(this.stringPos < this.input.length 
+							//	&& isAlphaNum(this.input[this.stringPos])) 
+							if(this.isTokenStop() 
+									|| (this.stringPos < this.input.length 
+										&& isAlphaNum(this.input[this.stringPos])
+										)
+								) 
 							{
 								this.cur = Token(TokenType.dots, this.line,
 										this.column);
@@ -513,6 +492,16 @@ unittest {
 	assert(!l.empty);
 	assert(l.front.type == TokenType.name);
 	assert(l.front.value == "f", format("'%s'", l.front.value));
+}
+
+unittest {
+	string f = "... ";
+
+	auto l = Lexer(f);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.dots);
+	l.popFront();
+	assert(l.empty);
 }
 
 unittest {

@@ -35,7 +35,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Document an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -93,7 +93,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Definitions an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -135,7 +135,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Definition an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -176,7 +176,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a OperationDefinition an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -307,7 +307,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a SelectionSet an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -315,7 +315,12 @@ struct Parser {
 	SelectionSet parseSelectionSetImpl() {
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
-			if(this.firstSelections()) {
+			if(this.lex.front.type == TokenType.rcurly) {
+				this.lex.popFront();
+
+				return this.alloc.make!SelectionSet(SelectionSetEnum.Empty
+				);
+			} else if(this.firstSelections()) {
 				Selections sel = this.parseSelections();
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
@@ -336,7 +341,7 @@ struct Parser {
 			}
 			auto app = AllocAppender!string(this.alloc);
 			formattedWrite(&app, 
-				"Was expecting an Selections. Found a '%s' at %s:%s.", 
+				"Was expecting an rcurly, or Selections. Found a '%s' at %s:%s.", 
 				this.lex.front, this.lex.line, this.lex.column
 			);
 			throw this.alloc.make!ParseException(app.data,
@@ -357,7 +362,8 @@ struct Parser {
 
 	bool firstOperationType() const {
 		return this.lex.front.type == TokenType.query
-			 || this.lex.front.type == TokenType.mutation;
+			 || this.lex.front.type == TokenType.mutation
+			 || this.lex.front.type == TokenType.subscription;
 	}
 
 	OperationType parseOperationType() {
@@ -366,7 +372,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a OperationType an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -386,10 +392,17 @@ struct Parser {
 			return this.alloc.make!OperationType(OperationTypeEnum.Mutation
 				, tok
 			);
+		} else if(this.lex.front.type == TokenType.subscription) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return this.alloc.make!OperationType(OperationTypeEnum.Sub
+				, tok
+			);
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an query, or mutation. Found a '%s' at %s:%s.", 
+			"Was expecting an query, mutation, or subscription. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -408,7 +421,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Selections an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -470,7 +483,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Selection an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -516,7 +529,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Field an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -595,8 +608,7 @@ struct Parser {
 	}
 
 	bool firstFieldName() const {
-		return this.lex.front.type == TokenType.alias_
-			 || this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name;
 	}
 
 	FieldName parseFieldName() {
@@ -605,66 +617,24 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a FieldName an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
 
 	FieldName parseFieldNameImpl() {
-		if(this.lex.front.type == TokenType.alias_) {
-			Token tok = this.lex.front;
-			this.lex.popFront();
-
-			return this.alloc.make!FieldName(FieldNameEnum.A
-				, tok
-			);
-		} else if(this.lex.front.type == TokenType.name) {
-			Token tok = this.lex.front;
-			this.lex.popFront();
-
-			return this.alloc.make!FieldName(FieldNameEnum.N
-				, tok
-			);
-		}
-		auto app = AllocAppender!string(this.alloc);
-		formattedWrite(&app, 
-			"Was expecting an alias_, or name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
-		);
-		throw this.alloc.make!ParseException(app.data,
-			__FILE__, __LINE__
-		);
-
-	}
-
-	bool firstAlias() const {
-		return this.lex.front.type == TokenType.name;
-	}
-
-	Alias parseAlias() {
-		try {
-			return this.parseAliasImpl();
-		} catch(ParseException e) {
-			throw this.alloc.make!(ParseException)(
-				"While parsing a Alias an Exception was thrown.",
-				__FILE__, __LINE__
-			);
-		}
-	}
-
-	Alias parseAliasImpl() {
 		if(this.lex.front.type == TokenType.name) {
-			Token from = this.lex.front;
+			Token tok = this.lex.front;
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
 				if(this.lex.front.type == TokenType.name) {
-					Token to = this.lex.front;
+					Token aka = this.lex.front;
 					this.lex.popFront();
 
-					return this.alloc.make!Alias(AliasEnum.A
-						, from
-						, to
+					return this.alloc.make!FieldName(FieldNameEnum.A
+						, tok
+						, aka
 					);
 				}
 				auto app = AllocAppender!string(this.alloc);
@@ -677,15 +647,9 @@ struct Parser {
 				);
 
 			}
-			auto app = AllocAppender!string(this.alloc);
-			formattedWrite(&app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+			return this.alloc.make!FieldName(FieldNameEnum.N
+				, tok
 			);
-			throw this.alloc.make!ParseException(app.data,
-				__FILE__, __LINE__
-			);
-
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
@@ -708,7 +672,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Arguments an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -797,7 +761,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Argument an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -856,7 +820,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a FragmentSpread an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -910,7 +874,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a InlineFragment an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1001,7 +965,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a FragmentDefinition an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1107,7 +1071,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Directives an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1148,7 +1112,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Directive an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1245,7 +1209,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a TypeCondition an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1280,7 +1244,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a VariableDefinitions an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1343,7 +1307,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a VariableDefinitionList an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1396,7 +1360,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a VariableDefinition an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1461,7 +1425,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Variable an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1508,7 +1472,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a DefaultValue an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1555,7 +1519,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a ValueOrVariable an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1601,7 +1565,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Value an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1677,7 +1641,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Type an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1730,7 +1694,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a ListType an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1788,7 +1752,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Values an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1841,7 +1805,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a Array an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1904,7 +1868,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a ObjectValues an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -1992,7 +1956,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a ObjectValue an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}
@@ -2052,7 +2016,7 @@ struct Parser {
 		} catch(ParseException e) {
 			throw this.alloc.make!(ParseException)(
 				"While parsing a ObjectType an Exception was thrown.",
-				__FILE__, __LINE__
+				e, __FILE__, __LINE__
 			);
 		}
 	}

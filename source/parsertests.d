@@ -68,8 +68,6 @@ unittest {
 	auto d = p.parseDocument();
 }
 
-
-__EOF__
 unittest {
 	string s = `{
 query h {
@@ -85,38 +83,13 @@ query h {
 }
 
 unittest {
-	string s = `
-{
-query {
+	string s = `{
+query foo {
 	name
     builds(first: 1) {
+		abc
   }
  }
-`;
-	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
-	auto d = p.parseDocument();
-}
-
-unittest {
-	string s = `
-{
-query {
-  viewer {
-    user {
-      name
-      builds(first: 1) {
-        edges {
-          node {
-            number
-            branch
-            message
-          }
-        }
-      }
-    }
-  }
 }
 `;
 	auto l = Lexer(s);
@@ -127,12 +100,40 @@ query {
 
 unittest {
 	string s = `
+	{
+		query foo {
+			viewer {
+				user {
+					name
+						builds(first: 1) {
+							edges {
+								node {
+									number
+										branch
+										message
+								}
+							}
+						}
+				}
+			}
+		}
+	}
+`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+}
+
+unittest {
+	string s = `
 {
-query {
- all: builds(first: 1) {
-       number
+query name{
+ builds(first: 54) {
+	all: number
  }
 }
+}
 `;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
@@ -143,12 +144,11 @@ query {
 unittest {
 	string s = `
 {
-  query {
-  {
-    leftComparison: hero(episode: EMPIRE) {
+  query name {
+    leftComparison: hero(episode: $EMPIRE) {
       ...comparisonFields
     }
-    rightComparison: hero(episode: JEDI) {
+    rightComparison: hero(episode: $JEDI) {
       ...comparisonFields
     }
   }
@@ -178,6 +178,7 @@ query HeroNameAndFriends($episode: Episode) {
     }
   }
 }
+}
 `;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
@@ -185,8 +186,9 @@ query HeroNameAndFriends($episode: Episode) {
 	auto d = p.parseDocument();
 }
 
-unittest {
+/*unittest {
 	string s = `{
+		query {
   __type(name: "User") {
     name
     fields {
@@ -196,12 +198,13 @@ unittest {
       }
     }
   }
+}
 }`;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
 	auto p = Parser(l, a);
 	auto d = p.parseDocument();
-}
+}*/
 
 unittest {
 	string s = `{
@@ -230,51 +233,12 @@ subscription sub {
 
 unittest {
 	string s = `{
-fragment inDirectFieldSelectionOnUnion on CatOrDog {
-  __typename
-  ... on Pet {
-    name
-  }
-  ... on Dog {
-    barkVolume
-  }
+query myQuery($someTest: Boolean) {
+  experimentalField @skip(if: $someTest)
 }
 }`;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
 	auto p = Parser(l, a);
 	auto d = p.parseDocument();
-}
-
-unittest {
-	string s = `{
-query inlineFragmentNoType($expandedInfo: Boolean) {
-  user(handle: "zuck") {
-    id
-    name
-    ... @include(if: $expandedInfo) {
-      firstName
-      lastName
-      birthday
-    }
-  }
-}
-}`;
-	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
-	auto d = p.parseDocument();
-}
-
-unittest {
-	string s = `{
-		query foo ($b, $n: [ bar, args ]) {
-			name
-		}
-}`;
-	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
-	auto d = p.parseDocument();
-	assert(p.lex.empty, format("%s", p.lex.front));
 }

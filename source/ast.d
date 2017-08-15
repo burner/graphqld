@@ -120,12 +120,17 @@ class OperationDefinition {
 }
 
 enum SelectionSetEnum {
+	Empty,
 	SS,
 }
 
 class SelectionSet {
 	SelectionSetEnum ruleSelection;
 	Selections sel;
+
+	this(SelectionSetEnum ruleSelection) {
+		this.ruleSelection = ruleSelection;
+	}
 
 	this(SelectionSetEnum ruleSelection, Selections sel) {
 		this.ruleSelection = ruleSelection;
@@ -137,6 +142,7 @@ class SelectionSet {
 enum OperationTypeEnum {
 	Query,
 	Mutation,
+	Sub,
 }
 
 class OperationType {
@@ -283,27 +289,17 @@ enum FieldNameEnum {
 class FieldName {
 	FieldNameEnum ruleSelection;
 	Token tok;
+	Token aka;
+
+	this(FieldNameEnum ruleSelection, Token tok, Token aka) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
+		this.aka = aka;
+	}
 
 	this(FieldNameEnum ruleSelection, Token tok) {
 		this.ruleSelection = ruleSelection;
 		this.tok = tok;
-	}
-
-}
-
-enum AliasEnum {
-	A,
-}
-
-class Alias {
-	AliasEnum ruleSelection;
-	Token to;
-	Token from;
-
-	this(AliasEnum ruleSelection, Token from, Token to) {
-		this.ruleSelection = ruleSelection;
-		this.from = from;
-		this.to = to;
 	}
 
 }
