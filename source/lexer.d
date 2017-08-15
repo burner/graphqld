@@ -2,6 +2,7 @@ module lexer;
 
 import std.experimental.logger;
 import std.format : format;
+import std.stdio;
 
 import tokenmodule;
 
@@ -32,7 +33,7 @@ struct Lexer {
 			c == ' ' || c == '\t' || c == '\n' || c == ';' || c == '(' 
 			|| c == ')' || c == '{' || c == '}' || c == '!' || c == '=' 
 			|| c == '|' || c == '*' || c == '/' || c == '[' || c == ':'
-			|| c == ']' || c == ',' || c == '@' || c == '#';
+			|| c == ']' || c == ',' || c == '@' || c == '#' || c == '$';
 	}
 
 	private void eatWhitespace() {
@@ -79,6 +80,14 @@ struct Lexer {
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '}') {
 			this.cur = Token(TokenType.rcurly, this.line, this.column);
+			++this.column;
+			++this.stringPos;
+		} else if(this.input[this.stringPos] == '$') {
+			this.cur = Token(TokenType.dollar, this.line, this.column);
+			++this.column;
+			++this.stringPos;
+		} else if(this.input[this.stringPos] == '!') {
+			this.cur = Token(TokenType.exclamation, this.line, this.column);
 			++this.column;
 			++this.stringPos;
 		} else if(this.input[this.stringPos] == '{') {
@@ -446,13 +455,22 @@ struct Lexer {
 							.. e], this.line, this.column);
 					break;
 				default:
-					do {
+					while(!this.isTokenStop()) {
+						//writefln("455 '%s'", this.input[this.stringPos]);
 						++this.stringPos;
 						++this.column;
 						++e;
-					} while(!this.isTokenStop());
+					}
+					//writefln("%s %s %s '%s'", b, e, this.stringPos, this.input[b .. e]);
+					//do {
+					//	writefln("'%s'", this.input[this.stringPos]);
+					//	++this.stringPos;
+					//	++this.column;
+					//	++e;
+					//} while(!this.isTokenStop());
 					this.cur = Token(TokenType.name, this.input[b .. e],
-							this.line, this.column);
+							this.line, this.column
+						);
 					break;
 			}
 		}
@@ -487,6 +505,27 @@ struct Lexer {
 	void popFront() {
 		this.buildToken();		
 	}
+}
+
+unittest {
+	string f = "f ";
+	auto l = Lexer(f);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name);
+	assert(l.front.value == "f", format("'%s'", l.front.value));
+}
+
+unittest {
+	string f = "name! ";
+	auto l = Lexer(f);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name);
+	assert(l.front.value == "name", format("'%s'", l.front.value));
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.exclamation);
+	l.popFront();
+	assert(l.empty);
 }
 
 unittest {

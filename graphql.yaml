@@ -1,9 +1,9 @@
 Document:
     Defi: [lcurly, Definitions#defs, rcurly]
 
-#Definitions:
-    #    Def: [Definition#def]
-    #    Defs: [Definition#def, Definitions#follow]
+Definitions:
+    Def: [Definition#def]
+    Defs: [Definition#def, Definitions#follow]
 
 Definition:
     Op: [OperationDefinition#op] 
@@ -23,10 +23,10 @@ OperationType:
     Query: [query#tok]
     Mutation: [mutation#tok]
 
-#Selections:
-    #    Sel: [Selection#sel]
-    #    Sels: [Selection#sel, Selections#follow]
-    #    Selsc: [Selection#sel, comma, Selections#follow]
+Selections:
+        Sel: [Selection#sel]
+        Sels: [Selection#sel, Selections#follow]
+        Selsc: [Selection#sel, comma, Selections#follow]
 
 Selection:
     Field: [Field#field]
@@ -50,9 +50,9 @@ FieldName:
 Alias:
     A: [name#from, colon, name#to]
 
-#Arguments:
-    #    Arg: [lparen, Argument#arg, rparen]
-    #    Args: [lparen, Argument#arg, comma, Arguments#follow, rparen]
+Arguments:
+    Arg: [lparen, Argument#arg, rparen]
+    Args: [lparen, Argument#arg, comma, Arguments#follow, rparen]
 
 Argument:
     Name: [name#name, colon, ValueOrVariable]
@@ -69,9 +69,9 @@ FragmentDefinition:
     FTDS: [fragment, name#name, on_, TypeCondition#tc, Directives#dirs, SelectionSet#ss]
     FTS: [fragment, name#name, on_, TypeCondition#tc, SelectionSet#ss]
 
-#Directives:
-    #   Dir: [Directive#dir]
-    #   Dirs: [Directive#dir, Directives#follow]
+Directives:
+   Dir: [Directive#dir]
+   Dirs: [Directive#dir, Directives#follow]
 
 Directive:
     NVV: [at, name#name, colon, ValueOrVariable#vv]
@@ -81,9 +81,13 @@ Directive:
 TypeCondition:
     TN: [name#tname]
 
-    #VariableDefinitions:
-    #    Var: [lparen, VariableDefinition#var, rparen]
-    #    Vars: [lparen, VariableDefinition#var, comma, VariableDefinitions#follow, rparen]
+VariableDefinitions:
+    Empty: [lparen, rparen]
+    Vars: [lparen, VariableDefinitionList#vars, rparen]
+
+VariableDefinitionList:
+    Var: [VariableDefinition#var]
+    Vars: [VariableDefinition#var, comma, VariableDefinitionList#follow]
 
 VariableDefinition:
     VarD: [Variable, colon, Type#type, DefaultValue#dvalue]
@@ -111,19 +115,27 @@ Value:
 Type:
     TN: [name#tname, exclamation]
     T: [name#tname]
-    #LN: [ListType#list, exclamation]
-    #L: [ListType#list] TODO Recursion with ListType
+    LN: [ListType#list, exclamation]
+    L: [ListType#list] #TODO Recursion with ListType
 
 ListType:
     T: [lbrack, Type#type, rbrack]
 
-#Values:
-#    Val: [Value#val]
-#    Vals: [Value#val, comma, Values#follow]
+Values:
+    Val: [Value#val]
+    Vals: [Value#val, comma, Values#follow]
 
 Array:
     Empty: [lbrack, rbrack]
     Value: [lbrack, Values#vals, rbrack]
 
+ObjectValues:
+    V: [name#name, colon, Value#val]
+    Vsc: [name#name, colon, Value#val, comma, ObjectValues#follow]
+    Vs: [name#name, colon, Value#val, ObjectValues#follow]
+
 ObjectValue:
     V: [name#name, colon, Value#val]
+
+ObjectType:
+        Var: [lcurly, ObjectValues#vals, rcurly]

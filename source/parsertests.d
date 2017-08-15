@@ -1,6 +1,9 @@
 module parsertests;
 
 import std.format : format;
+import std.experimental.allocator;
+import std.experimental.allocator.mallocator : Mallocator;
+import std.stdio;
 
 import lexer;
 import parser;
@@ -13,7 +16,8 @@ unittest {
   }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -26,51 +30,57 @@ unittest {
   }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
 unittest {
 	string s = `
 {
-  query human(id: "1000") {
+  query human($id: Var) {
     name
     height
   }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
 unittest {
 	string s = `
 {
-  query human(id: 1000, limit: 3, gender: "male") {
-    name!
+  query human($id: H, $limit: lim, $gender: Gen) {
+    name
     height
 	friends {
-		id!
+		id
 		gender
 		income
 	}
   }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
+
+__EOF__
 unittest {
 	string s = `{
-query {
+query h {
 	name
     builds
   }
  }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -84,7 +94,8 @@ query {
  }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -109,7 +120,8 @@ query {
 }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -123,7 +135,8 @@ query {
 }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -150,7 +163,8 @@ unittest {
 }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -166,7 +180,8 @@ query HeroNameAndFriends($episode: Episode) {
 }
 `;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -183,7 +198,8 @@ unittest {
   }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -207,7 +223,8 @@ subscription sub {
 }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -224,7 +241,8 @@ fragment inDirectFieldSelectionOnUnion on CatOrDog {
 }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -243,7 +261,8 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
 }
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
 
@@ -254,7 +273,8 @@ unittest {
 		}
 }`;
 	auto l = Lexer(s);
-	auto p = Parser(l);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 	assert(p.lex.empty, format("%s", p.lex.front));
 }

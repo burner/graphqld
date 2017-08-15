@@ -3,6 +3,9 @@
 	"authors": [
 		"burner"
 	],
+	"dependencies" : {
+		"vibe-d": "~>0.8.1-rc.2"
+	},
 	"description": "A vibe.d library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2017, burner",
 	"license": "LGPL3"

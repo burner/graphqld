@@ -2,35 +2,67 @@ module ast;
 
 import std.typecons : RefCounted, refCounted;
 
-public import astcustom;
-
 import tokenmodule;
 
 enum DocumentEnum {
 	Defi,
 }
 
-struct Document {
+class Document {
 	DocumentEnum ruleSelection;
-	DefinitionsPtr defs;
+	Definitions defs;
+
+	this(DocumentEnum ruleSelection, Definitions defs) {
+		this.ruleSelection = ruleSelection;
+		this.defs = defs;
+	}
 
 }
 
-alias DocumentPtr = RefCounted!(Document);
+enum DefinitionsEnum {
+	Def,
+	Defs,
+}
+
+class Definitions {
+	DefinitionsEnum ruleSelection;
+	Definition def;
+	Definitions follow;
+
+	this(DefinitionsEnum ruleSelection, Definition def) {
+		this.ruleSelection = ruleSelection;
+		this.def = def;
+	}
+
+	this(DefinitionsEnum ruleSelection, Definition def, Definitions follow) {
+		this.ruleSelection = ruleSelection;
+		this.def = def;
+		this.follow = follow;
+	}
+
+}
 
 enum DefinitionEnum {
 	Op,
 	Frag,
 }
 
-struct Definition {
+class Definition {
 	DefinitionEnum ruleSelection;
-	OperationDefinitionPtr op;
-	FragmentDefinitionPtr frag;
+	OperationDefinition op;
+	FragmentDefinition frag;
+
+	this(DefinitionEnum ruleSelection, OperationDefinition op) {
+		this.ruleSelection = ruleSelection;
+		this.op = op;
+	}
+
+	this(DefinitionEnum ruleSelection, FragmentDefinition frag) {
+		this.ruleSelection = ruleSelection;
+		this.frag = frag;
+	}
 
 }
-
-alias DefinitionPtr = RefCounted!(Definition);
 
 enum OperationDefinitionEnum {
 	SelSet,
@@ -40,42 +72,107 @@ enum OperationDefinitionEnum {
 	OT,
 }
 
-struct OperationDefinition {
+class OperationDefinition {
 	OperationDefinitionEnum ruleSelection;
 	Token name;
-	SelectionSetPtr ss;
-	DirectivesPtr d;
-	OperationTypePtr ot;
-	VariableDefinitionsPtr vd;
+	SelectionSet ss;
+	Directives d;
+	OperationType ot;
+	VariableDefinitions vd;
+
+	this(OperationDefinitionEnum ruleSelection, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, VariableDefinitions vd, Directives d, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.name = name;
+		this.vd = vd;
+		this.d = d;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, VariableDefinitions vd, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.name = name;
+		this.vd = vd;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, Directives d, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.name = name;
+		this.d = d;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.name = name;
+		this.ss = ss;
+	}
 
 }
-
-alias OperationDefinitionPtr = RefCounted!(OperationDefinition);
 
 enum SelectionSetEnum {
 	SS,
 }
 
-struct SelectionSet {
+class SelectionSet {
 	SelectionSetEnum ruleSelection;
-	SelectionsPtr sel;
+	Selections sel;
+
+	this(SelectionSetEnum ruleSelection, Selections sel) {
+		this.ruleSelection = ruleSelection;
+		this.sel = sel;
+	}
 
 }
-
-alias SelectionSetPtr = RefCounted!(SelectionSet);
 
 enum OperationTypeEnum {
 	Query,
 	Mutation,
 }
 
-struct OperationType {
+class OperationType {
 	OperationTypeEnum ruleSelection;
 	Token tok;
 
+	this(OperationTypeEnum ruleSelection, Token tok) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
+	}
+
 }
 
-alias OperationTypePtr = RefCounted!(OperationType);
+enum SelectionsEnum {
+	Sel,
+	Sels,
+	Selsc,
+}
+
+class Selections {
+	SelectionsEnum ruleSelection;
+	Selection sel;
+	Selections follow;
+
+	this(SelectionsEnum ruleSelection, Selection sel) {
+		this.ruleSelection = ruleSelection;
+		this.sel = sel;
+	}
+
+	this(SelectionsEnum ruleSelection, Selection sel, Selections follow) {
+		this.ruleSelection = ruleSelection;
+		this.sel = sel;
+		this.follow = follow;
+	}
+
+}
 
 enum SelectionEnum {
 	Field,
@@ -83,15 +180,28 @@ enum SelectionEnum {
 	IFrag,
 }
 
-struct Selection {
+class Selection {
 	SelectionEnum ruleSelection;
-	InlineFragmentPtr ifrag;
-	FragmentSpreadPtr frag;
-	FieldPtr field;
+	InlineFragment ifrag;
+	FragmentSpread frag;
+	Field field;
+
+	this(SelectionEnum ruleSelection, Field field) {
+		this.ruleSelection = ruleSelection;
+		this.field = field;
+	}
+
+	this(SelectionEnum ruleSelection, FragmentSpread frag) {
+		this.ruleSelection = ruleSelection;
+		this.frag = frag;
+	}
+
+	this(SelectionEnum ruleSelection, InlineFragment ifrag) {
+		this.ruleSelection = ruleSelection;
+		this.ifrag = ifrag;
+	}
 
 }
-
-alias SelectionPtr = RefCounted!(Selection);
 
 enum FieldEnum {
 	FADS,
@@ -104,99 +214,238 @@ enum FieldEnum {
 	F,
 }
 
-struct Field {
+class Field {
 	FieldEnum ruleSelection;
-	ArgumentsPtr args;
-	FieldNamePtr name;
-	SelectionSetPtr ss;
-	DirectivesPtr dirs;
+	Arguments args;
+	FieldName name;
+	SelectionSet ss;
+	Directives dirs;
+
+	this(FieldEnum ruleSelection, FieldName name, Arguments args, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.args = args;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, Arguments args, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.args = args;
+		this.ss = ss;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, Arguments args, Directives dirs) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.args = args;
+		this.dirs = dirs;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.ss = ss;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, Directives dirs) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.dirs = dirs;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name, Arguments args) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.args = args;
+	}
+
+	this(FieldEnum ruleSelection, FieldName name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
 
 }
-
-alias FieldPtr = RefCounted!(Field);
 
 enum FieldNameEnum {
 	A,
 	N,
 }
 
-struct FieldName {
+class FieldName {
 	FieldNameEnum ruleSelection;
 	Token tok;
 
-}
+	this(FieldNameEnum ruleSelection, Token tok) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
+	}
 
-alias FieldNamePtr = RefCounted!(FieldName);
+}
 
 enum AliasEnum {
 	A,
 }
 
-struct Alias {
+class Alias {
 	AliasEnum ruleSelection;
 	Token to;
 	Token from;
 
+	this(AliasEnum ruleSelection, Token from, Token to) {
+		this.ruleSelection = ruleSelection;
+		this.from = from;
+		this.to = to;
+	}
+
 }
 
-alias AliasPtr = RefCounted!(Alias);
+enum ArgumentsEnum {
+	Arg,
+	Args,
+}
+
+class Arguments {
+	ArgumentsEnum ruleSelection;
+	Argument arg;
+	Arguments follow;
+
+	this(ArgumentsEnum ruleSelection, Argument arg) {
+		this.ruleSelection = ruleSelection;
+		this.arg = arg;
+	}
+
+	this(ArgumentsEnum ruleSelection, Argument arg, Arguments follow) {
+		this.ruleSelection = ruleSelection;
+		this.arg = arg;
+		this.follow = follow;
+	}
+
+}
 
 enum ArgumentEnum {
 	Name,
 }
 
-struct Argument {
+class Argument {
 	ArgumentEnum ruleSelection;
 	Token name;
 
-}
+	this(ArgumentEnum ruleSelection, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
 
-alias ArgumentPtr = RefCounted!(Argument);
+}
 
 enum FragmentSpreadEnum {
 	FD,
 	F,
 }
 
-struct FragmentSpread {
+class FragmentSpread {
 	FragmentSpreadEnum ruleSelection;
 	Token name;
-	DirectivesPtr dirs;
+	Directives dirs;
+
+	this(FragmentSpreadEnum ruleSelection, Token name, Directives dirs) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.dirs = dirs;
+	}
+
+	this(FragmentSpreadEnum ruleSelection, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
 
 }
-
-alias FragmentSpreadPtr = RefCounted!(FragmentSpread);
 
 enum InlineFragmentEnum {
 	TDS,
 	TS,
 }
 
-struct InlineFragment {
+class InlineFragment {
 	InlineFragmentEnum ruleSelection;
-	TypeConditionPtr tc;
-	SelectionSetPtr ss;
-	DirectivesPtr dirs;
+	TypeCondition tc;
+	SelectionSet ss;
+	Directives dirs;
+
+	this(InlineFragmentEnum ruleSelection, TypeCondition tc, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.tc = tc;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(InlineFragmentEnum ruleSelection, TypeCondition tc, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.tc = tc;
+		this.ss = ss;
+	}
 
 }
-
-alias InlineFragmentPtr = RefCounted!(InlineFragment);
 
 enum FragmentDefinitionEnum {
 	FTDS,
 	FTS,
 }
 
-struct FragmentDefinition {
+class FragmentDefinition {
 	FragmentDefinitionEnum ruleSelection;
-	TypeConditionPtr tc;
+	TypeCondition tc;
 	Token name;
-	SelectionSetPtr ss;
-	DirectivesPtr dirs;
+	SelectionSet ss;
+	Directives dirs;
+
+	this(FragmentDefinitionEnum ruleSelection, Token name, TypeCondition tc, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.tc = tc;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(FragmentDefinitionEnum ruleSelection, Token name, TypeCondition tc, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.tc = tc;
+		this.ss = ss;
+	}
 
 }
 
-alias FragmentDefinitionPtr = RefCounted!(FragmentDefinition);
+enum DirectivesEnum {
+	Dir,
+	Dirs,
+}
+
+class Directives {
+	DirectivesEnum ruleSelection;
+	Directive dir;
+	Directives follow;
+
+	this(DirectivesEnum ruleSelection, Directive dir) {
+		this.ruleSelection = ruleSelection;
+		this.dir = dir;
+	}
+
+	this(DirectivesEnum ruleSelection, Directive dir, Directives follow) {
+		this.ruleSelection = ruleSelection;
+		this.dir = dir;
+		this.follow = follow;
+	}
+
+}
 
 enum DirectiveEnum {
 	NVV,
@@ -204,79 +453,163 @@ enum DirectiveEnum {
 	N,
 }
 
-struct Directive {
+class Directive {
 	DirectiveEnum ruleSelection;
-	ValueOrVariablePtr vv;
+	ValueOrVariable vv;
 	Token name;
-	ArgumentPtr arg;
+	Argument arg;
+
+	this(DirectiveEnum ruleSelection, Token name, ValueOrVariable vv) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.vv = vv;
+	}
+
+	this(DirectiveEnum ruleSelection, Token name, Argument arg) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.arg = arg;
+	}
+
+	this(DirectiveEnum ruleSelection, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
 
 }
-
-alias DirectivePtr = RefCounted!(Directive);
 
 enum TypeConditionEnum {
 	TN,
 }
 
-struct TypeCondition {
+class TypeCondition {
 	TypeConditionEnum ruleSelection;
 	Token tname;
 
+	this(TypeConditionEnum ruleSelection, Token tname) {
+		this.ruleSelection = ruleSelection;
+		this.tname = tname;
+	}
+
 }
 
-alias TypeConditionPtr = RefCounted!(TypeCondition);
+enum VariableDefinitionsEnum {
+	Empty,
+	Vars,
+}
+
+class VariableDefinitions {
+	VariableDefinitionsEnum ruleSelection;
+	VariableDefinitionList vars;
+
+	this(VariableDefinitionsEnum ruleSelection) {
+		this.ruleSelection = ruleSelection;
+	}
+
+	this(VariableDefinitionsEnum ruleSelection, VariableDefinitionList vars) {
+		this.ruleSelection = ruleSelection;
+		this.vars = vars;
+	}
+
+}
+
+enum VariableDefinitionListEnum {
+	Var,
+	Vars,
+}
+
+class VariableDefinitionList {
+	VariableDefinitionListEnum ruleSelection;
+	VariableDefinition var;
+	VariableDefinitionList follow;
+
+	this(VariableDefinitionListEnum ruleSelection, VariableDefinition var) {
+		this.ruleSelection = ruleSelection;
+		this.var = var;
+	}
+
+	this(VariableDefinitionListEnum ruleSelection, VariableDefinition var, VariableDefinitionList follow) {
+		this.ruleSelection = ruleSelection;
+		this.var = var;
+		this.follow = follow;
+	}
+
+}
 
 enum VariableDefinitionEnum {
 	VarD,
 	Var,
 }
 
-struct VariableDefinition {
+class VariableDefinition {
 	VariableDefinitionEnum ruleSelection;
-	TypePtr type;
-	DefaultValuePtr dvalue;
+	Type type;
+	DefaultValue dvalue;
+
+	this(VariableDefinitionEnum ruleSelection, Type type, DefaultValue dvalue) {
+		this.ruleSelection = ruleSelection;
+		this.type = type;
+		this.dvalue = dvalue;
+	}
+
+	this(VariableDefinitionEnum ruleSelection, Type type) {
+		this.ruleSelection = ruleSelection;
+		this.type = type;
+	}
 
 }
-
-alias VariableDefinitionPtr = RefCounted!(VariableDefinition);
 
 enum VariableEnum {
 	Var,
 }
 
-struct Variable {
+class Variable {
 	VariableEnum ruleSelection;
 	Token name;
 
-}
+	this(VariableEnum ruleSelection, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
 
-alias VariablePtr = RefCounted!(Variable);
+}
 
 enum DefaultValueEnum {
 	DV,
 }
 
-struct DefaultValue {
+class DefaultValue {
 	DefaultValueEnum ruleSelection;
-	ValuePtr value;
+	Value value;
+
+	this(DefaultValueEnum ruleSelection, Value value) {
+		this.ruleSelection = ruleSelection;
+		this.value = value;
+	}
 
 }
-
-alias DefaultValuePtr = RefCounted!(DefaultValue);
 
 enum ValueOrVariableEnum {
 	Val,
 	Var,
 }
 
-struct ValueOrVariable {
+class ValueOrVariable {
 	ValueOrVariableEnum ruleSelection;
-	ValuePtr val;
-	VariablePtr var;
+	Value val;
+	Variable var;
+
+	this(ValueOrVariableEnum ruleSelection, Value val) {
+		this.ruleSelection = ruleSelection;
+		this.val = val;
+	}
+
+	this(ValueOrVariableEnum ruleSelection, Variable var) {
+		this.ruleSelection = ruleSelection;
+		this.var = var;
+	}
 
 }
-
-alias ValueOrVariablePtr = RefCounted!(ValueOrVariable);
 
 enum ValueEnum {
 	STR,
@@ -288,66 +621,167 @@ enum ValueEnum {
 	O,
 }
 
-struct Value {
+class Value {
 	ValueEnum ruleSelection;
-	ArrayPtr arr;
+	Array arr;
 	Token tok;
-	ObjectTypePtr obj;
+	ObjectType obj;
+
+	this(ValueEnum ruleSelection, Token tok) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
+	}
+
+	this(ValueEnum ruleSelection, Array arr) {
+		this.ruleSelection = ruleSelection;
+		this.arr = arr;
+	}
+
+	this(ValueEnum ruleSelection, ObjectType obj) {
+		this.ruleSelection = ruleSelection;
+		this.obj = obj;
+	}
 
 }
-
-alias ValuePtr = RefCounted!(Value);
 
 enum TypeEnum {
 	TN,
 	T,
+	LN,
 	L,
 }
 
-struct Type {
+class Type {
 	TypeEnum ruleSelection;
 	Token tname;
-	ListTypePtr list;
+	ListType list;
+
+	this(TypeEnum ruleSelection, Token tname) {
+		this.ruleSelection = ruleSelection;
+		this.tname = tname;
+	}
+
+	this(TypeEnum ruleSelection, ListType list) {
+		this.ruleSelection = ruleSelection;
+		this.list = list;
+	}
 
 }
-
-alias TypePtr = RefCounted!(Type);
 
 enum ListTypeEnum {
 	T,
 }
 
-struct ListType {
+class ListType {
 	ListTypeEnum ruleSelection;
-	TypePtr type;
+	Type type;
+
+	this(ListTypeEnum ruleSelection, Type type) {
+		this.ruleSelection = ruleSelection;
+		this.type = type;
+	}
 
 }
 
-alias ListTypePtr = RefCounted!(ListType);
+enum ValuesEnum {
+	Val,
+	Vals,
+}
+
+class Values {
+	ValuesEnum ruleSelection;
+	Value val;
+	Values follow;
+
+	this(ValuesEnum ruleSelection, Value val) {
+		this.ruleSelection = ruleSelection;
+		this.val = val;
+	}
+
+	this(ValuesEnum ruleSelection, Value val, Values follow) {
+		this.ruleSelection = ruleSelection;
+		this.val = val;
+		this.follow = follow;
+	}
+
+}
 
 enum ArrayEnum {
 	Empty,
 	Value,
 }
 
-struct Array {
+class Array {
 	ArrayEnum ruleSelection;
-	ValuesPtr vals;
+	Values vals;
+
+	this(ArrayEnum ruleSelection) {
+		this.ruleSelection = ruleSelection;
+	}
+
+	this(ArrayEnum ruleSelection, Values vals) {
+		this.ruleSelection = ruleSelection;
+		this.vals = vals;
+	}
 
 }
 
-alias ArrayPtr = RefCounted!(Array);
+enum ObjectValuesEnum {
+	V,
+	Vsc,
+	Vs,
+}
+
+class ObjectValues {
+	ObjectValuesEnum ruleSelection;
+	Token name;
+	Value val;
+	ObjectValues follow;
+
+	this(ObjectValuesEnum ruleSelection, Token name, Value val) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.val = val;
+	}
+
+	this(ObjectValuesEnum ruleSelection, Token name, Value val, ObjectValues follow) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.val = val;
+		this.follow = follow;
+	}
+
+}
 
 enum ObjectValueEnum {
 	V,
 }
 
-struct ObjectValue {
+class ObjectValue {
 	ObjectValueEnum ruleSelection;
 	Token name;
-	ValuePtr val;
+	Value val;
+
+	this(ObjectValueEnum ruleSelection, Token name, Value val) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.val = val;
+	}
 
 }
 
-alias ObjectValuePtr = RefCounted!(ObjectValue);
+enum ObjectTypeEnum {
+	Var,
+}
+
+class ObjectType {
+	ObjectTypeEnum ruleSelection;
+	ObjectValues vals;
+
+	this(ObjectTypeEnum ruleSelection, ObjectValues vals) {
+		this.ruleSelection = ruleSelection;
+		this.vals = vals;
+	}
+
+}
 
