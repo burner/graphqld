@@ -33,7 +33,10 @@ struct Parser {
 		try {
 			return this.parseDocumentImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Document an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Document an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -88,7 +91,10 @@ struct Parser {
 		try {
 			return this.parseDefinitionsImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Definitions an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Definitions an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -127,7 +133,10 @@ struct Parser {
 		try {
 			return this.parseDefinitionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Definition an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Definition an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -165,7 +174,10 @@ struct Parser {
 		try {
 			return this.parseOperationDefinitionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a OperationDefinition an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a OperationDefinition an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -293,7 +305,10 @@ struct Parser {
 		try {
 			return this.parseSelectionSetImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a SelectionSet an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a SelectionSet an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -349,7 +364,10 @@ struct Parser {
 		try {
 			return this.parseOperationTypeImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a OperationType an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a OperationType an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -388,7 +406,10 @@ struct Parser {
 		try {
 			return this.parseSelectionsImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Selections an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Selections an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -447,7 +468,10 @@ struct Parser {
 		try {
 			return this.parseSelectionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Selection an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Selection an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -490,7 +514,10 @@ struct Parser {
 		try {
 			return this.parseFieldImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Field an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Field an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -576,7 +603,10 @@ struct Parser {
 		try {
 			return this.parseFieldNameImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a FieldName an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FieldName an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -615,7 +645,10 @@ struct Parser {
 		try {
 			return this.parseAliasImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Alias an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Alias an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -673,7 +706,10 @@ struct Parser {
 		try {
 			return this.parseArgumentsImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Arguments an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Arguments an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -759,7 +795,10 @@ struct Parser {
 		try {
 			return this.parseArgumentImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Argument an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Argument an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -815,7 +854,10 @@ struct Parser {
 		try {
 			return this.parseFragmentSpreadImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a FragmentSpread an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FragmentSpread an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -866,7 +908,10 @@ struct Parser {
 		try {
 			return this.parseInlineFragmentImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a InlineFragment an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InlineFragment an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -954,7 +999,10 @@ struct Parser {
 		try {
 			return this.parseFragmentDefinitionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a FragmentDefinition an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FragmentDefinition an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1057,7 +1105,10 @@ struct Parser {
 		try {
 			return this.parseDirectivesImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Directives an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Directives an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1095,7 +1146,10 @@ struct Parser {
 		try {
 			return this.parseDirectiveImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Directive an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Directive an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1189,7 +1243,10 @@ struct Parser {
 		try {
 			return this.parseTypeConditionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a TypeCondition an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a TypeCondition an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1221,7 +1278,10 @@ struct Parser {
 		try {
 			return this.parseVariableDefinitionsImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a VariableDefinitions an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a VariableDefinitions an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1281,7 +1341,10 @@ struct Parser {
 		try {
 			return this.parseVariableDefinitionListImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a VariableDefinitionList an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a VariableDefinitionList an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1331,7 +1394,10 @@ struct Parser {
 		try {
 			return this.parseVariableDefinitionImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a VariableDefinition an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a VariableDefinition an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1393,7 +1459,10 @@ struct Parser {
 		try {
 			return this.parseVariableImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Variable an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Variable an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1437,7 +1506,10 @@ struct Parser {
 		try {
 			return this.parseDefaultValueImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a DefaultValue an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a DefaultValue an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1481,7 +1553,10 @@ struct Parser {
 		try {
 			return this.parseValueOrVariableImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a ValueOrVariable an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ValueOrVariable an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1524,7 +1599,10 @@ struct Parser {
 		try {
 			return this.parseValueImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Value an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Value an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1597,7 +1675,10 @@ struct Parser {
 		try {
 			return this.parseTypeImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Type an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Type an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1647,7 +1728,10 @@ struct Parser {
 		try {
 			return this.parseListTypeImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a ListType an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ListType an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1702,7 +1786,10 @@ struct Parser {
 		try {
 			return this.parseValuesImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Values an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Values an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1752,7 +1839,10 @@ struct Parser {
 		try {
 			return this.parseArrayImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a Array an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a Array an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1812,7 +1902,10 @@ struct Parser {
 		try {
 			return this.parseObjectValuesImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a ObjectValues an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ObjectValues an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1897,7 +1990,10 @@ struct Parser {
 		try {
 			return this.parseObjectValueImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a ObjectValue an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ObjectValue an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
@@ -1954,7 +2050,10 @@ struct Parser {
 		try {
 			return this.parseObjectTypeImpl();
 		} catch(ParseException e) {
-			throw new ParseException("While parsing a ObjectType an Exception was thrown.", e);
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ObjectType an Exception was thrown.",
+				__FILE__, __LINE__
+			);
 		}
 	}
 
