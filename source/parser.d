@@ -480,8 +480,7 @@ struct Parser {
 
 	bool firstSelection() const {
 		return this.firstField()
-			 || this.firstFragmentSpread()
-			 || this.firstInlineFragment();
+			 || this.lex.front.type == TokenType.dots;
 	}
 
 	Selection parseSelection() {
@@ -502,22 +501,183 @@ struct Parser {
 			return this.alloc.make!Selection(SelectionEnum.Field
 				, field
 			);
-		} else if(this.firstFragmentSpread()) {
-			FragmentSpread frag = this.parseFragmentSpread();
+		} else if(this.lex.front.type == TokenType.dots) {
+			this.lex.popFront();
+			if(this.firstFragmentSpread()) {
+				FragmentSpread frag = this.parseFragmentSpread();
 
-			return this.alloc.make!Selection(SelectionEnum.Frag
-				, frag
+				return this.alloc.make!Selection(SelectionEnum.Frag
+					, frag
+				);
+			} else if(this.firstInlineFragment()) {
+				InlineFragment ifrag = this.parseInlineFragment();
+
+				return this.alloc.make!Selection(SelectionEnum.IFrag
+					, ifrag
+				);
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an FragmentSpread, or InlineFragment. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
 			);
-		} else if(this.firstInlineFragment()) {
-			InlineFragment ifrag = this.parseInlineFragment();
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
 
-			return this.alloc.make!Selection(SelectionEnum.IFrag
-				, ifrag
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an Field, or dots. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstFragmentSpread() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	FragmentSpread parseFragmentSpread() {
+		try {
+			return this.parseFragmentSpreadImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FragmentSpread an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	FragmentSpread parseFragmentSpreadImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.firstDirectives()) {
+				Directives dirs = this.parseDirectives();
+
+				return this.alloc.make!FragmentSpread(FragmentSpreadEnum.FD
+					, name
+					, dirs
+				);
+			}
+			return this.alloc.make!FragmentSpread(FragmentSpreadEnum.F
+				, name
 			);
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an Field, FragmentSpread, or InlineFragment. Found a '%s' at %s:%s.", 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInlineFragment() const {
+		return this.lex.front.type == TokenType.on_
+			 || this.firstDirectives()
+			 || this.firstSelectionSet();
+	}
+
+	InlineFragment parseInlineFragment() {
+		try {
+			return this.parseInlineFragmentImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InlineFragment an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InlineFragment parseInlineFragmentImpl() {
+		if(this.lex.front.type == TokenType.on_) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token tc = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dirs = this.parseDirectives();
+					if(this.firstSelectionSet()) {
+						SelectionSet ss = this.parseSelectionSet();
+
+						return this.alloc.make!InlineFragment(InlineFragmentEnum.TDS
+							, tc
+							, dirs
+							, ss
+						);
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.firstSelectionSet()) {
+					SelectionSet ss = this.parseSelectionSet();
+
+					return this.alloc.make!InlineFragment(InlineFragmentEnum.TS
+						, tc
+						, ss
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		} else if(this.firstDirectives()) {
+			Directives dirs = this.parseDirectives();
+			if(this.firstSelectionSet()) {
+				SelectionSet ss = this.parseSelectionSet();
+
+				return this.alloc.make!InlineFragment(InlineFragmentEnum.DS
+					, dirs
+					, ss
+				);
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		} else if(this.firstSelectionSet()) {
+			SelectionSet ss = this.parseSelectionSet();
+
+			return this.alloc.make!InlineFragment(InlineFragmentEnum.S
+				, ss
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an on_, Directives, or SelectionSet. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -687,49 +847,18 @@ struct Parser {
 	Arguments parseArgumentsImpl() {
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
-			if(this.firstArgument()) {
-				Argument arg = this.parseArgument();
+			if(this.firstArgumentList()) {
+				ArgumentList arg = this.parseArgumentList();
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
 					return this.alloc.make!Arguments(ArgumentsEnum.Arg
 						, arg
 					);
-				} else if(this.lex.front.type == TokenType.comma) {
-					this.lex.popFront();
-					if(this.firstArguments()) {
-						Arguments follow = this.parseArguments();
-						if(this.lex.front.type == TokenType.rparen) {
-							this.lex.popFront();
-
-							return this.alloc.make!Arguments(ArgumentsEnum.Args
-								, arg
-								, follow
-							);
-						}
-						auto app = AllocAppender!string(this.alloc);
-						formattedWrite(&app, 
-							"Was expecting an rparen. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
-						);
-						throw this.alloc.make!ParseException(app.data,
-							__FILE__, __LINE__
-						);
-
-					}
-					auto app = AllocAppender!string(this.alloc);
-					formattedWrite(&app, 
-						"Was expecting an Arguments. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
-					);
-					throw this.alloc.make!ParseException(app.data,
-						__FILE__, __LINE__
-					);
-
 				}
 				auto app = AllocAppender!string(this.alloc);
 				formattedWrite(&app, 
-					"Was expecting an rparen, or comma. Found a '%s' at %s:%s.", 
+					"Was expecting an rparen. Found a '%s' at %s:%s.", 
 					this.lex.front, this.lex.line, this.lex.column
 				);
 				throw this.alloc.make!ParseException(app.data,
@@ -739,7 +868,7 @@ struct Parser {
 			}
 			auto app = AllocAppender!string(this.alloc);
 			formattedWrite(&app, 
-				"Was expecting an Argument. Found a '%s' at %s:%s.", 
+				"Was expecting an ArgumentList. Found a '%s' at %s:%s.", 
 				this.lex.front, this.lex.line, this.lex.column
 			);
 			throw this.alloc.make!ParseException(app.data,
@@ -750,6 +879,66 @@ struct Parser {
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
 			"Was expecting an lparen. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstArgumentList() const {
+		return this.firstArgument();
+	}
+
+	ArgumentList parseArgumentList() {
+		try {
+			return this.parseArgumentListImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ArgumentList an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	ArgumentList parseArgumentListImpl() {
+		if(this.firstArgument()) {
+			Argument arg = this.parseArgument();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstArgumentList()) {
+					ArgumentList follow = this.parseArgumentList();
+
+					return this.alloc.make!ArgumentList(ArgumentListEnum.ACS
+						, arg
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an ArgumentList. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstArgumentList()) {
+				ArgumentList follow = this.parseArgumentList();
+
+				return this.alloc.make!ArgumentList(ArgumentListEnum.AS
+					, arg
+					, follow
+				);
+			}
+			return this.alloc.make!ArgumentList(ArgumentListEnum.A
+				, arg
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an Argument. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -818,151 +1007,6 @@ struct Parser {
 
 	}
 
-	bool firstFragmentSpread() const {
-		return this.lex.front.type == TokenType.dots;
-	}
-
-	FragmentSpread parseFragmentSpread() {
-		try {
-			return this.parseFragmentSpreadImpl();
-		} catch(ParseException e) {
-			throw this.alloc.make!(ParseException)(
-				"While parsing a FragmentSpread an Exception was thrown.",
-				e, __FILE__, __LINE__
-			);
-		}
-	}
-
-	FragmentSpread parseFragmentSpreadImpl() {
-		if(this.lex.front.type == TokenType.dots) {
-			this.lex.popFront();
-			if(this.lex.front.type == TokenType.name) {
-				Token name = this.lex.front;
-				this.lex.popFront();
-				if(this.firstDirectives()) {
-					Directives dirs = this.parseDirectives();
-
-					return this.alloc.make!FragmentSpread(FragmentSpreadEnum.FD
-						, name
-						, dirs
-					);
-				}
-				return this.alloc.make!FragmentSpread(FragmentSpreadEnum.F
-					, name
-				);
-			}
-			auto app = AllocAppender!string(this.alloc);
-			formattedWrite(&app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
-			);
-			throw this.alloc.make!ParseException(app.data,
-				__FILE__, __LINE__
-			);
-
-		}
-		auto app = AllocAppender!string(this.alloc);
-		formattedWrite(&app, 
-			"Was expecting an dots. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
-		);
-		throw this.alloc.make!ParseException(app.data,
-			__FILE__, __LINE__
-		);
-
-	}
-
-	bool firstInlineFragment() const {
-		return this.lex.front.type == TokenType.dots;
-	}
-
-	InlineFragment parseInlineFragment() {
-		try {
-			return this.parseInlineFragmentImpl();
-		} catch(ParseException e) {
-			throw this.alloc.make!(ParseException)(
-				"While parsing a InlineFragment an Exception was thrown.",
-				e, __FILE__, __LINE__
-			);
-		}
-	}
-
-	InlineFragment parseInlineFragmentImpl() {
-		if(this.lex.front.type == TokenType.dots) {
-			this.lex.popFront();
-			if(this.lex.front.type == TokenType.on_) {
-				this.lex.popFront();
-				if(this.firstTypeCondition()) {
-					TypeCondition tc = this.parseTypeCondition();
-					if(this.firstDirectives()) {
-						Directives dirs = this.parseDirectives();
-						if(this.firstSelectionSet()) {
-							SelectionSet ss = this.parseSelectionSet();
-
-							return this.alloc.make!InlineFragment(InlineFragmentEnum.TDS
-								, tc
-								, dirs
-								, ss
-							);
-						}
-						auto app = AllocAppender!string(this.alloc);
-						formattedWrite(&app, 
-							"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
-						);
-						throw this.alloc.make!ParseException(app.data,
-							__FILE__, __LINE__
-						);
-
-					} else if(this.firstSelectionSet()) {
-						SelectionSet ss = this.parseSelectionSet();
-
-						return this.alloc.make!InlineFragment(InlineFragmentEnum.TS
-							, tc
-							, ss
-						);
-					}
-					auto app = AllocAppender!string(this.alloc);
-					formattedWrite(&app, 
-						"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
-					);
-					throw this.alloc.make!ParseException(app.data,
-						__FILE__, __LINE__
-					);
-
-				}
-				auto app = AllocAppender!string(this.alloc);
-				formattedWrite(&app, 
-					"Was expecting an TypeCondition. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
-				);
-				throw this.alloc.make!ParseException(app.data,
-					__FILE__, __LINE__
-				);
-
-			}
-			auto app = AllocAppender!string(this.alloc);
-			formattedWrite(&app, 
-				"Was expecting an on_. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
-			);
-			throw this.alloc.make!ParseException(app.data,
-				__FILE__, __LINE__
-			);
-
-		}
-		auto app = AllocAppender!string(this.alloc);
-		formattedWrite(&app, 
-			"Was expecting an dots. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
-		);
-		throw this.alloc.make!ParseException(app.data,
-			__FILE__, __LINE__
-		);
-
-	}
-
 	bool firstFragmentDefinition() const {
 		return this.lex.front.type == TokenType.fragment;
 	}
@@ -986,8 +1030,9 @@ struct Parser {
 				this.lex.popFront();
 				if(this.lex.front.type == TokenType.on_) {
 					this.lex.popFront();
-					if(this.firstTypeCondition()) {
-						TypeCondition tc = this.parseTypeCondition();
+					if(this.lex.front.type == TokenType.name) {
+						Token tc = this.lex.front;
+						this.lex.popFront();
 						if(this.firstDirectives()) {
 							Directives dirs = this.parseDirectives();
 							if(this.firstSelectionSet()) {
@@ -1030,7 +1075,7 @@ struct Parser {
 					}
 					auto app = AllocAppender!string(this.alloc);
 					formattedWrite(&app, 
-						"Was expecting an TypeCondition. Found a '%s' at %s:%s.", 
+						"Was expecting an name. Found a '%s' at %s:%s.", 
 						this.lex.front, this.lex.line, this.lex.column
 					);
 					throw this.alloc.make!ParseException(app.data,
@@ -1156,41 +1201,6 @@ struct Parser {
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
 			"Was expecting an at. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
-		);
-		throw this.alloc.make!ParseException(app.data,
-			__FILE__, __LINE__
-		);
-
-	}
-
-	bool firstTypeCondition() const {
-		return this.lex.front.type == TokenType.name;
-	}
-
-	TypeCondition parseTypeCondition() {
-		try {
-			return this.parseTypeConditionImpl();
-		} catch(ParseException e) {
-			throw this.alloc.make!(ParseException)(
-				"While parsing a TypeCondition an Exception was thrown.",
-				e, __FILE__, __LINE__
-			);
-		}
-	}
-
-	TypeCondition parseTypeConditionImpl() {
-		if(this.lex.front.type == TokenType.name) {
-			Token tname = this.lex.front;
-			this.lex.popFront();
-
-			return this.alloc.make!TypeCondition(TypeConditionEnum.TN
-				, tname
-			);
-		}
-		auto app = AllocAppender!string(this.alloc);
-		formattedWrite(&app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,

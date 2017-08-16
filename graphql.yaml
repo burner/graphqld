@@ -33,8 +33,18 @@ Selections:
 
 Selection:
     Field: [Field#field]
-    Frag: [FragmentSpread#frag]
-    IFrag: [InlineFragment#ifrag]
+    Frag: [dots, FragmentSpread#frag]
+    IFrag: [dots, InlineFragment#ifrag]
+
+FragmentSpread:
+    FD: [name#name, Directives#dirs]
+    F: [name#name]
+
+InlineFragment:
+    TDS: [on_, name#tc, Directives#dirs, SelectionSet#ss]
+    TS: [on_, name#tc, SelectionSet#ss]
+    DS: [Directives#dirs, SelectionSet#ss]
+    S: [SelectionSet#ss]
 
 # Alias is build into FieldName
 Field:
@@ -55,23 +65,19 @@ FieldName:
     #    A: [name#from, colon, name#to]
 
 Arguments:
-    Arg: [lparen, Argument#arg, rparen]
-    Args: [lparen, Argument#arg, comma, Arguments#follow, rparen]
+    Arg: [lparen, ArgumentList#arg, rparen]
+
+ArgumentList:
+    A: [Argument#arg]
+    ACS: [Argument#arg, comma, ArgumentList#follow]
+    AS: [Argument#arg, ArgumentList#follow]
 
 Argument:
     Name: [name#name, colon, ValueOrVariable#vv]
 
-FragmentSpread:
-    FD: [dots, name#name, Directives#dirs]
-    F: [dots, name#name]
-
-InlineFragment:
-    TDS: [dots, on_, TypeCondition#tc, Directives#dirs, SelectionSet#ss]
-    TS: [dots, on_, TypeCondition#tc, SelectionSet#ss]
-
 FragmentDefinition:
-    FTDS: [fragment, name#name, on_, TypeCondition#tc, Directives#dirs, SelectionSet#ss]
-    FTS: [fragment, name#name, on_, TypeCondition#tc, SelectionSet#ss]
+    FTDS: [fragment, name#name, on_, name#tc, Directives#dirs, SelectionSet#ss]
+    FTS: [fragment, name#name, on_, name#tc, SelectionSet#ss]
 
 Directives:
    Dir: [Directive#dir]
@@ -81,8 +87,8 @@ Directive:
     NArg: [at, name#name, Arguments#arg]
     N: [at, name#name]
 
-TypeCondition:
-    TN: [name#tname]
+    #TypeCondition:
+    #    TN: [name#tname]
 
 VariableDefinitions:
     Empty: [lparen, rparen]

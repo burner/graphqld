@@ -365,10 +365,67 @@ unittest {
 query  hero {
     name
     # Queries can have comments!
+
+    # Queries can have comments Another!
     friends {
       name
     }
   }
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
+
+unittest {
+	string s = `{
+query HeroNameAndFriends($episode: Episode = "JEDI") {
+  hero(episode: $episode) {
+    name
+    friends {
+      name
+    }
+  }
+}
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
+
+unittest {
+	string s = `{
+mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
+  createReview(episode: $ep, review: $review) {
+    stars
+    commentary
+  }
+}
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
+
+unittest {
+	string s = `{
+query HeroForEpisode($ep: Episode!) {
+  hero(episode: $ep) {
+    name
+    ... on Droid {
+      primaryFunction
+    }
+    ... on Human {
+      height
+    }
+  }
+}
 }`;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);

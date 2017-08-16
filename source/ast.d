@@ -216,6 +216,68 @@ class Selection {
 
 }
 
+enum FragmentSpreadEnum {
+	FD,
+	F,
+}
+
+class FragmentSpread {
+	FragmentSpreadEnum ruleSelection;
+	Token name;
+	Directives dirs;
+
+	this(FragmentSpreadEnum ruleSelection, Token name, Directives dirs) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.dirs = dirs;
+	}
+
+	this(FragmentSpreadEnum ruleSelection, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
+
+}
+
+enum InlineFragmentEnum {
+	TDS,
+	TS,
+	DS,
+	S,
+}
+
+class InlineFragment {
+	InlineFragmentEnum ruleSelection;
+	Token tc;
+	SelectionSet ss;
+	Directives dirs;
+
+	this(InlineFragmentEnum ruleSelection, Token tc, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.tc = tc;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(InlineFragmentEnum ruleSelection, Token tc, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.tc = tc;
+		this.ss = ss;
+	}
+
+	this(InlineFragmentEnum ruleSelection, Directives dirs, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.dirs = dirs;
+		this.ss = ss;
+	}
+
+	this(InlineFragmentEnum ruleSelection, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ss = ss;
+	}
+
+}
+
 enum FieldEnum {
 	FADS,
 	FAS,
@@ -313,20 +375,36 @@ class FieldName {
 
 enum ArgumentsEnum {
 	Arg,
-	Args,
 }
 
 class Arguments {
 	ArgumentsEnum ruleSelection;
-	Argument arg;
-	Arguments follow;
+	ArgumentList arg;
 
-	this(ArgumentsEnum ruleSelection, Argument arg) {
+	this(ArgumentsEnum ruleSelection, ArgumentList arg) {
 		this.ruleSelection = ruleSelection;
 		this.arg = arg;
 	}
 
-	this(ArgumentsEnum ruleSelection, Argument arg, Arguments follow) {
+}
+
+enum ArgumentListEnum {
+	A,
+	ACS,
+	AS,
+}
+
+class ArgumentList {
+	ArgumentListEnum ruleSelection;
+	Argument arg;
+	ArgumentList follow;
+
+	this(ArgumentListEnum ruleSelection, Argument arg) {
+		this.ruleSelection = ruleSelection;
+		this.arg = arg;
+	}
+
+	this(ArgumentListEnum ruleSelection, Argument arg, ArgumentList follow) {
 		this.ruleSelection = ruleSelection;
 		this.arg = arg;
 		this.follow = follow;
@@ -351,55 +429,6 @@ class Argument {
 
 }
 
-enum FragmentSpreadEnum {
-	FD,
-	F,
-}
-
-class FragmentSpread {
-	FragmentSpreadEnum ruleSelection;
-	Token name;
-	Directives dirs;
-
-	this(FragmentSpreadEnum ruleSelection, Token name, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
-	}
-
-	this(FragmentSpreadEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-	}
-
-}
-
-enum InlineFragmentEnum {
-	TDS,
-	TS,
-}
-
-class InlineFragment {
-	InlineFragmentEnum ruleSelection;
-	TypeCondition tc;
-	SelectionSet ss;
-	Directives dirs;
-
-	this(InlineFragmentEnum ruleSelection, TypeCondition tc, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.tc = tc;
-		this.dirs = dirs;
-		this.ss = ss;
-	}
-
-	this(InlineFragmentEnum ruleSelection, TypeCondition tc, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.tc = tc;
-		this.ss = ss;
-	}
-
-}
-
 enum FragmentDefinitionEnum {
 	FTDS,
 	FTS,
@@ -407,12 +436,12 @@ enum FragmentDefinitionEnum {
 
 class FragmentDefinition {
 	FragmentDefinitionEnum ruleSelection;
-	TypeCondition tc;
+	Token tc;
 	Token name;
 	SelectionSet ss;
 	Directives dirs;
 
-	this(FragmentDefinitionEnum ruleSelection, Token name, TypeCondition tc, Directives dirs, SelectionSet ss) {
+	this(FragmentDefinitionEnum ruleSelection, Token name, Token tc, Directives dirs, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.tc = tc;
@@ -420,7 +449,7 @@ class FragmentDefinition {
 		this.ss = ss;
 	}
 
-	this(FragmentDefinitionEnum ruleSelection, Token name, TypeCondition tc, SelectionSet ss) {
+	this(FragmentDefinitionEnum ruleSelection, Token name, Token tc, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.tc = tc;
@@ -471,21 +500,6 @@ class Directive {
 	this(DirectiveEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
-	}
-
-}
-
-enum TypeConditionEnum {
-	TN,
-}
-
-class TypeCondition {
-	TypeConditionEnum ruleSelection;
-	Token tname;
-
-	this(TypeConditionEnum ruleSelection, Token tname) {
-		this.ruleSelection = ruleSelection;
-		this.tname = tname;
 	}
 
 }
