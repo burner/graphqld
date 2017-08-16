@@ -359,3 +359,20 @@ type QueryRoot {
 	auto d = p.parseDocument();
 	assert(p.lex.empty, format("%s", p.lex.front));
 }
+
+unittest {
+	string s = `{
+query  hero {
+    name
+    # Queries can have comments!
+    friends {
+      name
+    }
+  }
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}

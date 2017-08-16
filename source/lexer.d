@@ -36,9 +36,24 @@ struct Lexer {
 			|| c == ']' || c == ',' || c == '@' || c == '#' || c == '$';
 	}
 
+	private void eatComment() {
+		if(this.stringPos < this.input.length &&
+				this.input[this.stringPos] == '#')
+		{
+			while(this.stringPos < this.input.length &&
+				this.input[this.stringPos] != '\n')
+			{
+				++this.stringPos;	
+			}
+			++this.stringPos;
+			++this.line;
+		}
+	}
+
 	private void eatWhitespace() {
 		import std.ascii : isWhite;
 		while(this.stringPos < this.input.length) {
+			this.eatComment();
 			if(this.input[this.stringPos] == ' ') {
 				++this.column;
 			} else if(this.input[this.stringPos] == '\t') {
@@ -102,19 +117,6 @@ struct Lexer {
 			this.cur = Token(TokenType.at, this.line, this.column);
 			++this.column;
 			++this.stringPos;
-		} else if(this.input[this.stringPos] == '#') {
-			size_t b = this.stringPos;	
-			size_t e = this.stringPos;
-			do {
-				++this.stringPos;
-				++this.column;
-				++e;
-			} while(this.stringPos < this.input.length 
-					&& this.input[this.stringPos] != '\n');
-			++this.line;
-			++this.stringPos;
-			this.cur = Token(TokenType.comment, this.input[b .. e], this.line,
-					this.column);
 		} else if(this.input[this.stringPos] == ',') {
 			this.cur = Token(TokenType.comma, this.line, this.column);
 			++this.column;
@@ -781,10 +783,6 @@ friends(first: -10.3) {
 	assert(!l.empty);
 	assert(l.front.type == TokenType.rparen);
 	l.popFront();
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.comment);
-	assert(l.front.value == "# super cool comment");
 	l.popFront();
 	assert(!l.empty);
 	assert(l.front.type == TokenType.name);
