@@ -94,6 +94,10 @@ struct Lexer {
 			this.cur = Token(TokenType.lcurly, this.line, this.column);
 			++this.column;
 			++this.stringPos;
+		} else if(this.input[this.stringPos] == '|') {
+			this.cur = Token(TokenType.pipe, this.line, this.column);
+			++this.column;
+			++this.stringPos;
 		} else if(this.input[this.stringPos] == '@') {
 			this.cur = Token(TokenType.at, this.line, this.column);
 			++this.column;
@@ -344,12 +348,14 @@ struct Lexer {
 									}
 								}
 							}
-						} else if(this.testCharAndInc('m', e)) {
-							if(this.testCharAndInc('p', e)) {
-								if(this.testCharAndInc('l', e)) {
-									if(this.testCharAndInc('e', e)) {
-										if(this.testCharAndInc('m', e)) {
-											if(this.testCharAndInc('e', e)) {
+						}
+					} else if(this.testCharAndInc('m', e)) {
+						if(this.testCharAndInc('p', e)) {
+							if(this.testCharAndInc('l', e)) {
+								if(this.testCharAndInc('e', e)) {
+									if(this.testCharAndInc('m', e)) {
+										if(this.testCharAndInc('e', e)) {
+											if(this.testCharAndInc('n', e)) {
 												if(this.testCharAndInc('t', e)) {
 													if(this.testCharAndInc('s', e)) {
 														if(this.isTokenStop()) {
@@ -366,6 +372,7 @@ struct Lexer {
 							}
 						}
 					}
+					
 					goto default;
 				case 'f':
 					++this.stringPos;

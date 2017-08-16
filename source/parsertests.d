@@ -244,3 +244,118 @@ query myQuery($someTest: Boolean) {
 	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 }
+
+unittest {
+	string s = `type Person {
+  name: String
+  age: Int
+  picture: Url
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
+
+unittest {
+	string s = `
+interface NamedEntity {
+  name: String
+}
+
+type Person implements NamedEntity {
+  name: String
+  age: Int
+}
+
+type Business implements NamedEntity {
+  name: String
+  employeeCount: Int
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
+
+unittest {
+	string s = `
+union SearchResult = Photo | Person
+union SearchResult = Photo Person
+
+type Person {
+  name: String
+  age: Int
+}
+
+type Photo {
+  height: Int
+  width: Int
+}
+
+type SearchQuery {
+  firstSearchResult: SearchResult
+}
+`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, format("%s", p.lex.front));
+}
+
+unittest {
+	string s = `
+enum DogCommand { SIT, DOWN, HEEL }
+
+type Dog implements Pet {
+  name: String!
+  nickname: String
+  barkVolume: Int
+  doesKnowCommand(dogCommand: DogCommand!): Boolean!
+  isHousetrained(atOtherHomes: Boolean): Boolean!
+  owner: Human
+}
+
+interface Sentient {
+  name: String!
+}
+
+interface Pet {
+  name: String!
+}
+
+type Alien implements Sentient {
+  name: String!
+  homePlanet: String
+}
+
+type Human implements Sentient {
+  name: String!
+}
+
+enum CatCommand { JUMP }
+
+type Cat implements Pet {
+  name: String!
+  nickname: String
+  doesKnowCommand(catCommand: CatCommand!): Boolean!
+  meowVolume: Int
+}
+
+union CatOrDog = Cat | Dog
+union DogOrHuman = Dog | Human
+union HumanOrAlien = Human | Alien
+
+type QueryRoot {
+  dog: Dog
+}
+`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, format("%s", p.lex.front));
+}
