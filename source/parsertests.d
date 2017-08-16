@@ -152,15 +152,15 @@ unittest {
       ...comparisonFields
     }
   }
-  
-  fragment comparisonFields on Character {
+}  
+fragment comparisonFields on Character {
+  name
+  appearsIn
+  friends {
     name
-    appearsIn
-    friends {
-      name
-    }
   }
 }
+
 `;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
@@ -214,17 +214,19 @@ subscription sub {
     sender
   }
 }
+}
 fragment newMessageFields on Message {
   body
   sender
 }
 
+{
 subscription sub {
   newMessage {
     ... newMessageFields  
   }
-}
-}`;
+
+}}`;
 	auto l = Lexer(s);
 	IAllocator a = allocatorObject(Mallocator.instance);
 	auto p = Parser(l, a);

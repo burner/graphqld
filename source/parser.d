@@ -101,7 +101,9 @@ struct Parser {
 	}
 
 	bool firstDefinition() const {
-		return this.lex.front.type == TokenType.lcurly;
+		return this.lex.front.type == TokenType.lcurly
+			 || this.firstFragmentDefinition()
+			 || this.firstTypeSystemDefinition();
 	}
 
 	Definition parseDefinition() {
@@ -136,56 +138,32 @@ struct Parser {
 					__FILE__, __LINE__
 				);
 
-			} else if(this.firstFragmentDefinition()) {
-				FragmentDefinition frag = this.parseFragmentDefinition();
-				if(this.lex.front.type == TokenType.rcurly) {
-					this.lex.popFront();
-
-					return this.alloc.make!Definition(DefinitionEnum.F
-						, frag
-					);
-				}
-				auto app = AllocAppender!string(this.alloc);
-				formattedWrite(&app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
-				);
-				throw this.alloc.make!ParseException(app.data,
-					__FILE__, __LINE__
-				);
-
-			} else if(this.firstTypeSystemDefinition()) {
-				TypeSystemDefinition type = this.parseTypeSystemDefinition();
-				if(this.lex.front.type == TokenType.rcurly) {
-					this.lex.popFront();
-
-					return this.alloc.make!Definition(DefinitionEnum.T
-						, type
-					);
-				}
-				auto app = AllocAppender!string(this.alloc);
-				formattedWrite(&app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
-				);
-				throw this.alloc.make!ParseException(app.data,
-					__FILE__, __LINE__
-				);
-
 			}
 			auto app = AllocAppender!string(this.alloc);
 			formattedWrite(&app, 
-				"Was expecting an OperationDefinition, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
+				"Was expecting an OperationDefinition. Found a '%s' at %s:%s.", 
 				this.lex.front, this.lex.line, this.lex.column
 			);
 			throw this.alloc.make!ParseException(app.data,
 				__FILE__, __LINE__
 			);
 
+		} else if(this.firstFragmentDefinition()) {
+			FragmentDefinition frag = this.parseFragmentDefinition();
+
+			return this.alloc.make!Definition(DefinitionEnum.F
+				, frag
+			);
+		} else if(this.firstTypeSystemDefinition()) {
+			TypeSystemDefinition type = this.parseTypeSystemDefinition();
+
+			return this.alloc.make!Definition(DefinitionEnum.T
+				, type
+			);
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+			"Was expecting an lcurly, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,

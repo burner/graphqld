@@ -7,8 +7,8 @@ Definitions:
 
 Definition:
     O: [lcurly, OperationDefinition#op, rcurly] 
-    F: [lcurly, FragmentDefinition#frag, rcurly]
-    T: [lcurly, TypeSystemDefinition#type, rcurly]
+    F: [FragmentDefinition#frag]
+    T: [TypeSystemDefinition#type]
 
 OperationDefinition:
     SelSet: [SelectionSet#ss] 
