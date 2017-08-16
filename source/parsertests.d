@@ -433,3 +433,24 @@ query HeroForEpisode($ep: Episode!) {
 	auto d = p.parseDocument();
 	assert(p.lex.empty);
 }
+
+unittest {
+	string s = `{
+query inlineFragmentNoType($expandedInfo: Boolean) {
+  user(handle: "zuck") {
+    id
+    name
+    ... @include(if: $expandedInfo) {
+      firstName
+      lastName
+      birthday
+    }
+  }
+}
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+	assert(p.lex.empty);
+}
