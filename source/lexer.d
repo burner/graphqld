@@ -219,6 +219,30 @@ struct Lexer {
 								}
 							}
 						}
+					} else if(this.testCharAndInc('c', e)) {
+						if(this.testCharAndInc('a', e)) {
+							if(this.testCharAndInc('l', e)) {
+								if(this.testCharAndInc('a', e)) {
+									if(this.testCharAndInc('r', e)) {
+										if(this.isTokenStop()) {
+											this.cur = Token(TokenType.scalar, this.line, this.column);
+											return;
+										}
+									}
+								}
+							}
+						} else if(this.testCharAndInc('h', e)) {
+							if(this.testCharAndInc('e', e)) {
+								if(this.testCharAndInc('m', e)) {
+									if(this.testCharAndInc('a', e)) {
+										if(this.isTokenStop()) {
+											this.cur = Token(TokenType.schema, this.line, this.column);
+											return;
+										}
+									}
+								}
+							}
+						}
 					}
 					goto default;
 				case 'o':
@@ -230,6 +254,116 @@ struct Lexer {
 							this.cur = Token(TokenType.on_, this.line,
 									this.column);
 							return;
+						}
+					}
+					goto default;
+				case 'd':
+					++this.stringPos;
+					++this.column;
+					++e;
+					if(this.testCharAndInc('i', e)) {
+						if(this.testCharAndInc('r', e)) {
+							if(this.testCharAndInc('e', e)) {
+								if(this.testCharAndInc('t', e)) {
+									if(this.testCharAndInc('i', e)) {
+										if(this.testCharAndInc('v', e)) {
+											if(this.testCharAndInc('e', e)) {
+												if(this.isTokenStop()) {
+													this.cur = Token(TokenType.directive,
+															this.line, this.column);
+													return;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					goto default;
+				case 'e':
+					++this.stringPos;
+					++this.column;
+					++e;
+					if(this.testCharAndInc('n', e)) {
+						if(this.testCharAndInc('u', e)) {
+							if(this.testCharAndInc('m', e)) {
+								if(this.isTokenStop()) {
+									this.cur = Token(TokenType.enum_,
+											this.line, this.column);
+									return;
+								}
+							}
+						}
+					} else if(this.testCharAndInc('x', e)) {
+						if(this.testCharAndInc('t', e)) {
+							if(this.testCharAndInc('e', e)) {
+								if(this.testCharAndInc('n', e)) {
+									if(this.testCharAndInc('d', e)) {
+										if(this.isTokenStop()) {
+											this.cur = Token(TokenType.extend,
+													this.line, this.column);
+											return;
+										}
+									}
+								}
+							}
+						}
+					}
+					goto default;
+				case 'i':
+					++this.stringPos;
+					++this.column;
+					++e;
+					if(this.testCharAndInc('n', e)) {
+						if(this.testCharAndInc('p', e)) {
+							if(this.testCharAndInc('u', e)) {
+								if(this.testCharAndInc('t', e)) {
+									if(this.isTokenStop()) {
+										this.cur = Token(TokenType.input,
+												this.line, this.column);
+										return;
+									}
+								}
+							}
+						} else if(this.testCharAndInc('t', e)) {
+							if(this.testCharAndInc('e', e)) {
+								if(this.testCharAndInc('r', e)) {
+									if(this.testCharAndInc('f', e)) {
+										if(this.testCharAndInc('a', e)) {
+											if(this.testCharAndInc('c', e)) {
+												if(this.testCharAndInc('e', e)) {
+													if(this.isTokenStop()) {
+														this.cur = Token(TokenType.interface_,
+																this.line, this.column);
+														return;
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						} else if(this.testCharAndInc('m', e)) {
+							if(this.testCharAndInc('p', e)) {
+								if(this.testCharAndInc('l', e)) {
+									if(this.testCharAndInc('e', e)) {
+										if(this.testCharAndInc('m', e)) {
+											if(this.testCharAndInc('e', e)) {
+												if(this.testCharAndInc('t', e)) {
+													if(this.testCharAndInc('s', e)) {
+														if(this.isTokenStop()) {
+															this.cur = Token(TokenType.implements,
+																	this.line, this.column);
+															return;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 					goto default;
@@ -307,6 +441,16 @@ struct Lexer {
 							if(this.testCharAndInc('e', e)) {
 								if(this.isTokenStop()) {
 									this.cur = Token(TokenType.true_,
+											this.line, this.column);
+									return;
+								}
+							}
+						}
+					} else if(this.testCharAndInc('y', e)) {
+						if(this.testCharAndInc('p', e)) {
+							if(this.testCharAndInc('e', e)) {
+								if(this.isTokenStop()) {
+									this.cur = Token(TokenType.type,
 											this.line, this.column);
 									return;
 								}

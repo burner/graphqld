@@ -35,6 +35,14 @@ enum TokenType {
 	typename,
 	skip,
 	include_,
+	input,
+	scalar,
+	schema,
+	directive,
+	enum_,
+	interface_,
+	implements,
+	extend,
 }
 
 struct Token {

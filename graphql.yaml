@@ -1,13 +1,14 @@
 Document:
-    Defi: [lcurly, Definitions#defs, rcurly]
+    Defi: [Definitions#defs]
 
 Definitions:
     Def: [Definition#def]
     Defs: [Definition#def, Definitions#follow]
 
 Definition:
-    Op: [OperationDefinition#op] 
-    Frag: [FragmentDefinition#frag]
+    O: [lcurly, OperationDefinition#op, rcurly] 
+    F: [lcurly, FragmentDefinition#frag, rcurly]
+    T: [lcurly, TypeSystemDefinition#type, rcurly]
 
 OperationDefinition:
     SelSet: [SelectionSet#ss] 
@@ -35,6 +36,7 @@ Selection:
     Frag: [FragmentSpread#frag]
     IFrag: [InlineFragment#ifrag]
 
+# Alias is build into FieldName
 Field:
     FADS: [FieldName#name, Arguments#args, Directives#dirs, SelectionSet#ss]
     FAS: [FieldName#name, Arguments#args, SelectionSet#ss]
@@ -57,7 +59,7 @@ Arguments:
     Args: [lparen, Argument#arg, comma, Arguments#follow, rparen]
 
 Argument:
-    Name: [name#name, colon, ValueOrVariable]
+    Name: [name#name, colon, ValueOrVariable#vv]
 
 FragmentSpread:
     FD: [dots, name#name, Directives#dirs]
@@ -76,8 +78,7 @@ Directives:
    Dirs: [Directive#dir, Directives#follow]
 
 Directive:
-    NVV: [at, name#name, colon, ValueOrVariable#vv]
-    NArg: [at, name#name, lparen, Argument#arg, rparen]
+    NArg: [at, name#name, Arguments#arg]
     N: [at, name#name]
 
 TypeCondition:
@@ -116,9 +117,9 @@ Value:
 
 Type:
     TN: [name#tname, exclamation]
-    T: [name#tname]
     LN: [ListType#list, exclamation]
-    L: [ListType#list] #TODO Recursion with ListType
+    T: [name#tname]
+    L: [ListType#list]
 
 ListType:
     T: [lbrack, Type#type, rbrack]
@@ -140,4 +141,119 @@ ObjectValue:
     V: [name#name, colon, Value#val]
 
 ObjectType:
-        Var: [lcurly, ObjectValues#vals, rcurly]
+    Var: [lcurly, ObjectValues#vals, rcurly]
+ 
+TypeSystemDefinition:
+    S: [SchemaDefinition#sch]
+    T: [TypeDefinition#td]
+    TE: [TypeExtensionDefinition#ted]
+    D: [DirectiveDefinition#dd]
+
+TypeDefinition:
+    S: [ScalarTypeDefinition#std]
+    O: [ObjectTypeDefinition#otd]
+    I: [InterfaceTypeDefinition#itd]
+    U: [UnionTypeDefinition#utd]
+    E: [EnumTypeDefinition#etd]
+    IO: [InputObjectTypeDefinition#iod]
+
+SchemaDefinition: 
+    DO: [schema, Directives#dir, lcurly, OperationTypeDefinitions#otds, rcurly]
+    O: [schema, lcurly, OperationTypeDefinitions#otds, rcurly]
+
+OperationTypeDefinitions: 
+    O: [OperationTypeDefinition#otd]
+    OCS: [OperationTypeDefinition#otd, comma, OperationTypeDefinitions#follow]
+    OS: [OperationTypeDefinition#otd, OperationTypeDefinitions#follow]
+
+OperationTypeDefinition:
+    O: [OperationType#ot, colon, name#nt]
+
+ScalarTypeDefinition: 
+    D: [scalar, name#name, Directives#dir]
+    S: [scalar, name#name]
+
+ObjectTypeDefinition:
+    ID: [type, name#name, ImplementsInterfaces#ii, Directives#dir, lcurly, FieldDefinitions#fds, rcurly ]
+    I: [type, name#name, ImplementsInterfaces#ii, lcurly, FieldDefinitions#fds, rcurly ]
+    D: [type, name#name, Directives#dir, lcurly, FieldDefinitions#fds, rcurly ]
+    F: [type, name#name, lcurly, FieldDefinitions#fds, rcurly ]
+
+FieldDefinitions:
+    F: [FieldDefinition#fd]
+    FC: [FieldDefinition#fd, comma, FieldDefinitions#follow]
+    FNC: [FieldDefinition#fd, FieldDefinitions#follow]
+
+FieldDefinition:
+    AD: [name#name, ArgumentsDefinition#arg, colon, Type#typ, Directives#dir]
+    A: [name#name, ArgumentsDefinition#arg, colon, Type#typ]
+    D: [name#name, colon, Type#typ, Directives#dir]
+    T: [name#name, colon, Type#typ]
+
+ImplementsInterfaces: 
+    N: [implements, NamedTypes#nts]
+
+NamedTypes:
+    N: [name#name]
+    NCS: [name#name, comma, NamedTypes#follow]
+    NS: [name#name, NamedTypes#follow]
+
+ArgumentsDefinition:
+    A: [lparen, InputValueDefinitions, rparen]
+
+InputValueDefinitions:
+    I: [InputValueDefinition#iv]
+    ICF: [InputValueDefinition#iv, comma, InputValueDefinitions#follow]
+    IF: [InputValueDefinition#iv, InputValueDefinitions#follow]
+
+InputValueDefinition:
+    TVD: [name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
+    TD: [name#name, colon, Type#type, Directives#dirs]
+    TV: [name#name, colon, Type#type, DefaultValue#df]
+    T: [name#name, colon, Type#type]
+
+InterfaceTypeDefinition:
+    NDF: [interface_, name#name, Directives#dirs, lcurly, FieldDefinitions#fds, rcurly]
+    NF: [interface_, name#name, lcurly, FieldDefinitions#fds, rcurly]
+
+UnionTypeDefinition: 
+    NDU: [union_, name#name, Directives#dirs, equal, UnionMembers#um]
+    NU: [union_, name#name, equal, UnionMembers#um]
+
+UnionMembers:
+    S: [name#name]
+    SPF: [name#name, pipe, UnionMembers#follow]
+    SF: [name#name, UnionMembers#follow]
+
+EnumTypeDefinition: 
+    NDE: [enum_, name#name, Directives#dir, lcurly, EnumValueDefinitions#evds, rcurly]
+    NE: [enum_, name#name, lcurly, EnumValueDefinitions#evds, rcurly]
+
+EnumValueDefinitions: 
+    D: [EnumValueDefinition#evd]
+    DCE: [EnumValueDefinition#evd, comma, EnumValueDefinitions#follow]
+    DE: [EnumValueDefinition#evd, EnumValueDefinitions#follow]
+
+EnumValueDefinition: 
+    ED: [name#name, Directives#dirs]
+    E: [name#name]
+
+InputTypeDefinition: 
+    NDE: [input, name#name, Directives#dir, lcurly, InputValueDefinitions#ivds, rcurly]
+    NE: [input, name#name, lcurly, InputValueDefinitions#ivds, rcurly]
+    
+TypeExtensionDefinition:
+    O: [extend, ObjectTypeDefinition#otd]
+
+DirectiveDefinition:
+    AD: [directive, at, name#name, ArgumentsDefinition#ad, on_, DirectiveLocations#dl]
+    D: [directive, at, name#name, on_, DirectiveLocations#dl]
+
+DirectiveLocations:
+    N: [name#name]
+    NPF: [name#name, pipe, DirectiveLocations#follow]
+    NF: [name#name, DirectiveLocations#follow]
+
+InputObjectTypeDefinition: 
+    NDI: [input, name#name, Directives#dirs, lcurly, InputValueDefinitions, rcurly]
+    NI: [input, name#name, lcurly, InputValueDefinitions, rcurly]

@@ -26,7 +26,7 @@ struct Parser {
 	}
 
 	bool firstDocument() const {
-		return this.lex.front.type == TokenType.lcurly;
+		return this.firstDefinitions();
 	}
 
 	Document parseDocument() {
@@ -41,40 +41,16 @@ struct Parser {
 	}
 
 	Document parseDocumentImpl() {
-		if(this.lex.front.type == TokenType.lcurly) {
-			this.lex.popFront();
-			if(this.firstDefinitions()) {
-				Definitions defs = this.parseDefinitions();
-				if(this.lex.front.type == TokenType.rcurly) {
-					this.lex.popFront();
+		if(this.firstDefinitions()) {
+			Definitions defs = this.parseDefinitions();
 
-					return this.alloc.make!Document(DocumentEnum.Defi
-						, defs
-					);
-				}
-				auto app = AllocAppender!string(this.alloc);
-				formattedWrite(&app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
-				);
-				throw this.alloc.make!ParseException(app.data,
-					__FILE__, __LINE__
-				);
-
-			}
-			auto app = AllocAppender!string(this.alloc);
-			formattedWrite(&app, 
-				"Was expecting an Definitions. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+			return this.alloc.make!Document(DocumentEnum.Defi
+				, defs
 			);
-			throw this.alloc.make!ParseException(app.data,
-				__FILE__, __LINE__
-			);
-
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+			"Was expecting an Definitions. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -125,8 +101,7 @@ struct Parser {
 	}
 
 	bool firstDefinition() const {
-		return this.firstOperationDefinition()
-			 || this.firstFragmentDefinition();
+		return this.lex.front.type == TokenType.lcurly;
 	}
 
 	Definition parseDefinition() {
@@ -141,22 +116,76 @@ struct Parser {
 	}
 
 	Definition parseDefinitionImpl() {
-		if(this.firstOperationDefinition()) {
-			OperationDefinition op = this.parseOperationDefinition();
+		if(this.lex.front.type == TokenType.lcurly) {
+			this.lex.popFront();
+			if(this.firstOperationDefinition()) {
+				OperationDefinition op = this.parseOperationDefinition();
+				if(this.lex.front.type == TokenType.rcurly) {
+					this.lex.popFront();
 
-			return this.alloc.make!Definition(DefinitionEnum.Op
-				, op
-			);
-		} else if(this.firstFragmentDefinition()) {
-			FragmentDefinition frag = this.parseFragmentDefinition();
+					return this.alloc.make!Definition(DefinitionEnum.O
+						, op
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
 
-			return this.alloc.make!Definition(DefinitionEnum.Frag
-				, frag
+			} else if(this.firstFragmentDefinition()) {
+				FragmentDefinition frag = this.parseFragmentDefinition();
+				if(this.lex.front.type == TokenType.rcurly) {
+					this.lex.popFront();
+
+					return this.alloc.make!Definition(DefinitionEnum.F
+						, frag
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstTypeSystemDefinition()) {
+				TypeSystemDefinition type = this.parseTypeSystemDefinition();
+				if(this.lex.front.type == TokenType.rcurly) {
+					this.lex.popFront();
+
+					return this.alloc.make!Definition(DefinitionEnum.T
+						, type
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an OperationDefinition, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
 			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an OperationDefinition, or FragmentDefinition. Found a '%s' at %s:%s.", 
+			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -773,10 +802,11 @@ struct Parser {
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
 				if(this.firstValueOrVariable()) {
-					this.parseValueOrVariable();
+					ValueOrVariable vv = this.parseValueOrVariable();
 
 					return this.alloc.make!Argument(ArgumentEnum.Name
 						, name
+						, vv
 					);
 				}
 				auto app = AllocAppender!string(this.alloc);
@@ -1123,56 +1153,13 @@ struct Parser {
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				if(this.lex.front.type == TokenType.colon) {
-					this.lex.popFront();
-					if(this.firstValueOrVariable()) {
-						ValueOrVariable vv = this.parseValueOrVariable();
+				if(this.firstArguments()) {
+					Arguments arg = this.parseArguments();
 
-						return this.alloc.make!Directive(DirectiveEnum.NVV
-							, name
-							, vv
-						);
-					}
-					auto app = AllocAppender!string(this.alloc);
-					formattedWrite(&app, 
-						"Was expecting an ValueOrVariable. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+					return this.alloc.make!Directive(DirectiveEnum.NArg
+						, name
+						, arg
 					);
-					throw this.alloc.make!ParseException(app.data,
-						__FILE__, __LINE__
-					);
-
-				} else if(this.lex.front.type == TokenType.lparen) {
-					this.lex.popFront();
-					if(this.firstArgument()) {
-						Argument arg = this.parseArgument();
-						if(this.lex.front.type == TokenType.rparen) {
-							this.lex.popFront();
-
-							return this.alloc.make!Directive(DirectiveEnum.NArg
-								, name
-								, arg
-							);
-						}
-						auto app = AllocAppender!string(this.alloc);
-						formattedWrite(&app, 
-							"Was expecting an rparen. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
-						);
-						throw this.alloc.make!ParseException(app.data,
-							__FILE__, __LINE__
-						);
-
-					}
-					auto app = AllocAppender!string(this.alloc);
-					formattedWrite(&app, 
-						"Was expecting an Argument. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
-					);
-					throw this.alloc.make!ParseException(app.data,
-						__FILE__, __LINE__
-					);
-
 				}
 				return this.alloc.make!Directive(DirectiveEnum.N
 					, name
@@ -2056,6 +2043,2112 @@ struct Parser {
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
 			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstTypeSystemDefinition() const {
+		return this.firstSchemaDefinition()
+			 || this.firstTypeDefinition()
+			 || this.firstTypeExtensionDefinition()
+			 || this.firstDirectiveDefinition();
+	}
+
+	TypeSystemDefinition parseTypeSystemDefinition() {
+		try {
+			return this.parseTypeSystemDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a TypeSystemDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	TypeSystemDefinition parseTypeSystemDefinitionImpl() {
+		if(this.firstSchemaDefinition()) {
+			SchemaDefinition sch = this.parseSchemaDefinition();
+
+			return this.alloc.make!TypeSystemDefinition(TypeSystemDefinitionEnum.S
+				, sch
+			);
+		} else if(this.firstTypeDefinition()) {
+			TypeDefinition td = this.parseTypeDefinition();
+
+			return this.alloc.make!TypeSystemDefinition(TypeSystemDefinitionEnum.T
+				, td
+			);
+		} else if(this.firstTypeExtensionDefinition()) {
+			TypeExtensionDefinition ted = this.parseTypeExtensionDefinition();
+
+			return this.alloc.make!TypeSystemDefinition(TypeSystemDefinitionEnum.TE
+				, ted
+			);
+		} else if(this.firstDirectiveDefinition()) {
+			DirectiveDefinition dd = this.parseDirectiveDefinition();
+
+			return this.alloc.make!TypeSystemDefinition(TypeSystemDefinitionEnum.D
+				, dd
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an SchemaDefinition, TypeDefinition, TypeExtensionDefinition, or DirectiveDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstTypeDefinition() const {
+		return this.firstScalarTypeDefinition()
+			 || this.firstObjectTypeDefinition()
+			 || this.firstInterfaceTypeDefinition()
+			 || this.firstUnionTypeDefinition()
+			 || this.firstEnumTypeDefinition()
+			 || this.firstInputObjectTypeDefinition();
+	}
+
+	TypeDefinition parseTypeDefinition() {
+		try {
+			return this.parseTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a TypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	TypeDefinition parseTypeDefinitionImpl() {
+		if(this.firstScalarTypeDefinition()) {
+			ScalarTypeDefinition std = this.parseScalarTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.S
+				, std
+			);
+		} else if(this.firstObjectTypeDefinition()) {
+			ObjectTypeDefinition otd = this.parseObjectTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.O
+				, otd
+			);
+		} else if(this.firstInterfaceTypeDefinition()) {
+			InterfaceTypeDefinition itd = this.parseInterfaceTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.I
+				, itd
+			);
+		} else if(this.firstUnionTypeDefinition()) {
+			UnionTypeDefinition utd = this.parseUnionTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.U
+				, utd
+			);
+		} else if(this.firstEnumTypeDefinition()) {
+			EnumTypeDefinition etd = this.parseEnumTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.E
+				, etd
+			);
+		} else if(this.firstInputObjectTypeDefinition()) {
+			InputObjectTypeDefinition iod = this.parseInputObjectTypeDefinition();
+
+			return this.alloc.make!TypeDefinition(TypeDefinitionEnum.IO
+				, iod
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an ScalarTypeDefinition, ObjectTypeDefinition, InterfaceTypeDefinition, UnionTypeDefinition, EnumTypeDefinition, or InputObjectTypeDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstSchemaDefinition() const {
+		return this.lex.front.type == TokenType.schema;
+	}
+
+	SchemaDefinition parseSchemaDefinition() {
+		try {
+			return this.parseSchemaDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a SchemaDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	SchemaDefinition parseSchemaDefinitionImpl() {
+		if(this.lex.front.type == TokenType.schema) {
+			this.lex.popFront();
+			if(this.firstDirectives()) {
+				Directives dir = this.parseDirectives();
+				if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstOperationTypeDefinitions()) {
+						OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!SchemaDefinition(SchemaDefinitionEnum.DO
+								, dir
+								, otds
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.lex.front.type == TokenType.lcurly) {
+				this.lex.popFront();
+				if(this.firstOperationTypeDefinitions()) {
+					OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+					if(this.lex.front.type == TokenType.rcurly) {
+						this.lex.popFront();
+
+						return this.alloc.make!SchemaDefinition(SchemaDefinitionEnum.O
+							, otds
+						);
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an schema. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstOperationTypeDefinitions() const {
+		return this.firstOperationTypeDefinition();
+	}
+
+	OperationTypeDefinitions parseOperationTypeDefinitions() {
+		try {
+			return this.parseOperationTypeDefinitionsImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a OperationTypeDefinitions an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	OperationTypeDefinitions parseOperationTypeDefinitionsImpl() {
+		if(this.firstOperationTypeDefinition()) {
+			OperationTypeDefinition otd = this.parseOperationTypeDefinition();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstOperationTypeDefinitions()) {
+					OperationTypeDefinitions follow = this.parseOperationTypeDefinitions();
+
+					return this.alloc.make!OperationTypeDefinitions(OperationTypeDefinitionsEnum.OCS
+						, otd
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstOperationTypeDefinitions()) {
+				OperationTypeDefinitions follow = this.parseOperationTypeDefinitions();
+
+				return this.alloc.make!OperationTypeDefinitions(OperationTypeDefinitionsEnum.OS
+					, otd
+					, follow
+				);
+			}
+			return this.alloc.make!OperationTypeDefinitions(OperationTypeDefinitionsEnum.O
+				, otd
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an OperationTypeDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstOperationTypeDefinition() const {
+		return this.firstOperationType();
+	}
+
+	OperationTypeDefinition parseOperationTypeDefinition() {
+		try {
+			return this.parseOperationTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a OperationTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	OperationTypeDefinition parseOperationTypeDefinitionImpl() {
+		if(this.firstOperationType()) {
+			OperationType ot = this.parseOperationType();
+			if(this.lex.front.type == TokenType.colon) {
+				this.lex.popFront();
+				if(this.lex.front.type == TokenType.name) {
+					Token nt = this.lex.front;
+					this.lex.popFront();
+
+					return this.alloc.make!OperationTypeDefinition(OperationTypeDefinitionEnum.O
+						, ot
+						, nt
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an name. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an colon. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an OperationType. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstScalarTypeDefinition() const {
+		return this.lex.front.type == TokenType.scalar;
+	}
+
+	ScalarTypeDefinition parseScalarTypeDefinition() {
+		try {
+			return this.parseScalarTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ScalarTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	ScalarTypeDefinition parseScalarTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.scalar) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dir = this.parseDirectives();
+
+					return this.alloc.make!ScalarTypeDefinition(ScalarTypeDefinitionEnum.D
+						, name
+						, dir
+					);
+				}
+				return this.alloc.make!ScalarTypeDefinition(ScalarTypeDefinitionEnum.S
+					, name
+				);
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an scalar. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstObjectTypeDefinition() const {
+		return this.lex.front.type == TokenType.type;
+	}
+
+	ObjectTypeDefinition parseObjectTypeDefinition() {
+		try {
+			return this.parseObjectTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ObjectTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	ObjectTypeDefinition parseObjectTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.type) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstImplementsInterfaces()) {
+					ImplementsInterfaces ii = this.parseImplementsInterfaces();
+					if(this.firstDirectives()) {
+						Directives dir = this.parseDirectives();
+						if(this.lex.front.type == TokenType.lcurly) {
+							this.lex.popFront();
+							if(this.firstFieldDefinitions()) {
+								FieldDefinitions fds = this.parseFieldDefinitions();
+								if(this.lex.front.type == TokenType.rcurly) {
+									this.lex.popFront();
+
+									return this.alloc.make!ObjectTypeDefinition(ObjectTypeDefinitionEnum.ID
+										, name
+										, ii
+										, dir
+										, fds
+									);
+								}
+								auto app = AllocAppender!string(this.alloc);
+								formattedWrite(&app, 
+									"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+									this.lex.front, this.lex.line, this.lex.column
+								);
+								throw this.alloc.make!ParseException(app.data,
+									__FILE__, __LINE__
+								);
+
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					} else if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstFieldDefinitions()) {
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!ObjectTypeDefinition(ObjectTypeDefinitionEnum.I
+									, name
+									, ii
+									, fds
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.firstDirectives()) {
+					Directives dir = this.parseDirectives();
+					if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstFieldDefinitions()) {
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!ObjectTypeDefinition(ObjectTypeDefinitionEnum.D
+									, name
+									, dir
+									, fds
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstFieldDefinitions()) {
+						FieldDefinitions fds = this.parseFieldDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!ObjectTypeDefinition(ObjectTypeDefinitionEnum.F
+								, name
+								, fds
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an ImplementsInterfaces, Directives, or lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an type. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstFieldDefinitions() const {
+		return this.firstFieldDefinition();
+	}
+
+	FieldDefinitions parseFieldDefinitions() {
+		try {
+			return this.parseFieldDefinitionsImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FieldDefinitions an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	FieldDefinitions parseFieldDefinitionsImpl() {
+		if(this.firstFieldDefinition()) {
+			FieldDefinition fd = this.parseFieldDefinition();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstFieldDefinitions()) {
+					FieldDefinitions follow = this.parseFieldDefinitions();
+
+					return this.alloc.make!FieldDefinitions(FieldDefinitionsEnum.FC
+						, fd
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstFieldDefinitions()) {
+				FieldDefinitions follow = this.parseFieldDefinitions();
+
+				return this.alloc.make!FieldDefinitions(FieldDefinitionsEnum.FNC
+					, fd
+					, follow
+				);
+			}
+			return this.alloc.make!FieldDefinitions(FieldDefinitionsEnum.F
+				, fd
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an FieldDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstFieldDefinition() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	FieldDefinition parseFieldDefinition() {
+		try {
+			return this.parseFieldDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a FieldDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	FieldDefinition parseFieldDefinitionImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.firstArgumentsDefinition()) {
+				ArgumentsDefinition arg = this.parseArgumentsDefinition();
+				if(this.lex.front.type == TokenType.colon) {
+					this.lex.popFront();
+					if(this.firstType()) {
+						Type typ = this.parseType();
+						if(this.firstDirectives()) {
+							Directives dir = this.parseDirectives();
+
+							return this.alloc.make!FieldDefinition(FieldDefinitionEnum.AD
+								, name
+								, arg
+								, typ
+								, dir
+							);
+						}
+						return this.alloc.make!FieldDefinition(FieldDefinitionEnum.A
+							, name
+							, arg
+							, typ
+						);
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an Type. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an colon. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.lex.front.type == TokenType.colon) {
+				this.lex.popFront();
+				if(this.firstType()) {
+					Type typ = this.parseType();
+					if(this.firstDirectives()) {
+						Directives dir = this.parseDirectives();
+
+						return this.alloc.make!FieldDefinition(FieldDefinitionEnum.D
+							, name
+							, typ
+							, dir
+						);
+					}
+					return this.alloc.make!FieldDefinition(FieldDefinitionEnum.T
+						, name
+						, typ
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Type. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an ArgumentsDefinition, or colon. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstImplementsInterfaces() const {
+		return this.lex.front.type == TokenType.implements;
+	}
+
+	ImplementsInterfaces parseImplementsInterfaces() {
+		try {
+			return this.parseImplementsInterfacesImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ImplementsInterfaces an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	ImplementsInterfaces parseImplementsInterfacesImpl() {
+		if(this.lex.front.type == TokenType.implements) {
+			this.lex.popFront();
+			if(this.firstNamedTypes()) {
+				NamedTypes nts = this.parseNamedTypes();
+
+				return this.alloc.make!ImplementsInterfaces(ImplementsInterfacesEnum.N
+					, nts
+				);
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an NamedTypes. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an implements. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstNamedTypes() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	NamedTypes parseNamedTypes() {
+		try {
+			return this.parseNamedTypesImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a NamedTypes an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	NamedTypes parseNamedTypesImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstNamedTypes()) {
+					NamedTypes follow = this.parseNamedTypes();
+
+					return this.alloc.make!NamedTypes(NamedTypesEnum.NCS
+						, name
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an NamedTypes. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstNamedTypes()) {
+				NamedTypes follow = this.parseNamedTypes();
+
+				return this.alloc.make!NamedTypes(NamedTypesEnum.NS
+					, name
+					, follow
+				);
+			}
+			return this.alloc.make!NamedTypes(NamedTypesEnum.N
+				, name
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstArgumentsDefinition() const {
+		return this.lex.front.type == TokenType.lparen;
+	}
+
+	ArgumentsDefinition parseArgumentsDefinition() {
+		try {
+			return this.parseArgumentsDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a ArgumentsDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	ArgumentsDefinition parseArgumentsDefinitionImpl() {
+		if(this.lex.front.type == TokenType.lparen) {
+			this.lex.popFront();
+			if(this.firstInputValueDefinitions()) {
+				this.parseInputValueDefinitions();
+				if(this.lex.front.type == TokenType.rparen) {
+					this.lex.popFront();
+
+					return this.alloc.make!ArgumentsDefinition(ArgumentsDefinitionEnum.A
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an rparen. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an lparen. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInputValueDefinitions() const {
+		return this.firstInputValueDefinition();
+	}
+
+	InputValueDefinitions parseInputValueDefinitions() {
+		try {
+			return this.parseInputValueDefinitionsImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InputValueDefinitions an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InputValueDefinitions parseInputValueDefinitionsImpl() {
+		if(this.firstInputValueDefinition()) {
+			InputValueDefinition iv = this.parseInputValueDefinition();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstInputValueDefinitions()) {
+					InputValueDefinitions follow = this.parseInputValueDefinitions();
+
+					return this.alloc.make!InputValueDefinitions(InputValueDefinitionsEnum.ICF
+						, iv
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstInputValueDefinitions()) {
+				InputValueDefinitions follow = this.parseInputValueDefinitions();
+
+				return this.alloc.make!InputValueDefinitions(InputValueDefinitionsEnum.IF
+					, iv
+					, follow
+				);
+			}
+			return this.alloc.make!InputValueDefinitions(InputValueDefinitionsEnum.I
+				, iv
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an InputValueDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInputValueDefinition() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	InputValueDefinition parseInputValueDefinition() {
+		try {
+			return this.parseInputValueDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InputValueDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InputValueDefinition parseInputValueDefinitionImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.colon) {
+				this.lex.popFront();
+				if(this.firstType()) {
+					Type type = this.parseType();
+					if(this.firstDefaultValue()) {
+						DefaultValue df = this.parseDefaultValue();
+						if(this.firstDirectives()) {
+							Directives dirs = this.parseDirectives();
+
+							return this.alloc.make!InputValueDefinition(InputValueDefinitionEnum.TVD
+								, name
+								, type
+								, df
+								, dirs
+							);
+						}
+						return this.alloc.make!InputValueDefinition(InputValueDefinitionEnum.TV
+							, name
+							, type
+							, df
+						);
+					} else if(this.firstDirectives()) {
+						Directives dirs = this.parseDirectives();
+
+						return this.alloc.make!InputValueDefinition(InputValueDefinitionEnum.TD
+							, name
+							, type
+							, dirs
+						);
+					}
+					return this.alloc.make!InputValueDefinition(InputValueDefinitionEnum.T
+						, name
+						, type
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Type. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an colon. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInterfaceTypeDefinition() const {
+		return this.lex.front.type == TokenType.interface_;
+	}
+
+	InterfaceTypeDefinition parseInterfaceTypeDefinition() {
+		try {
+			return this.parseInterfaceTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InterfaceTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InterfaceTypeDefinition parseInterfaceTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.interface_) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dirs = this.parseDirectives();
+					if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstFieldDefinitions()) {
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!InterfaceTypeDefinition(InterfaceTypeDefinitionEnum.NDF
+									, name
+									, dirs
+									, fds
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstFieldDefinitions()) {
+						FieldDefinitions fds = this.parseFieldDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!InterfaceTypeDefinition(InterfaceTypeDefinitionEnum.NF
+								, name
+								, fds
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an interface_. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstUnionTypeDefinition() const {
+		return this.lex.front.type == TokenType.union_;
+	}
+
+	UnionTypeDefinition parseUnionTypeDefinition() {
+		try {
+			return this.parseUnionTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a UnionTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	UnionTypeDefinition parseUnionTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.union_) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dirs = this.parseDirectives();
+					if(this.lex.front.type == TokenType.equal) {
+						this.lex.popFront();
+						if(this.firstUnionMembers()) {
+							UnionMembers um = this.parseUnionMembers();
+
+							return this.alloc.make!UnionTypeDefinition(UnionTypeDefinitionEnum.NDU
+								, name
+								, dirs
+								, um
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an equal. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.equal) {
+					this.lex.popFront();
+					if(this.firstUnionMembers()) {
+						UnionMembers um = this.parseUnionMembers();
+
+						return this.alloc.make!UnionTypeDefinition(UnionTypeDefinitionEnum.NU
+							, name
+							, um
+						);
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or equal. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an union_. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstUnionMembers() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	UnionMembers parseUnionMembers() {
+		try {
+			return this.parseUnionMembersImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a UnionMembers an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	UnionMembers parseUnionMembersImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.pipe) {
+				this.lex.popFront();
+				if(this.firstUnionMembers()) {
+					UnionMembers follow = this.parseUnionMembers();
+
+					return this.alloc.make!UnionMembers(UnionMembersEnum.SPF
+						, name
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstUnionMembers()) {
+				UnionMembers follow = this.parseUnionMembers();
+
+				return this.alloc.make!UnionMembers(UnionMembersEnum.SF
+					, name
+					, follow
+				);
+			}
+			return this.alloc.make!UnionMembers(UnionMembersEnum.S
+				, name
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstEnumTypeDefinition() const {
+		return this.lex.front.type == TokenType.enum_;
+	}
+
+	EnumTypeDefinition parseEnumTypeDefinition() {
+		try {
+			return this.parseEnumTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a EnumTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	EnumTypeDefinition parseEnumTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.enum_) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dir = this.parseDirectives();
+					if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstEnumValueDefinitions()) {
+							EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!EnumTypeDefinition(EnumTypeDefinitionEnum.NDE
+									, name
+									, dir
+									, evds
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstEnumValueDefinitions()) {
+						EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!EnumTypeDefinition(EnumTypeDefinitionEnum.NE
+								, name
+								, evds
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an enum_. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstEnumValueDefinitions() const {
+		return this.firstEnumValueDefinition();
+	}
+
+	EnumValueDefinitions parseEnumValueDefinitions() {
+		try {
+			return this.parseEnumValueDefinitionsImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a EnumValueDefinitions an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	EnumValueDefinitions parseEnumValueDefinitionsImpl() {
+		if(this.firstEnumValueDefinition()) {
+			EnumValueDefinition evd = this.parseEnumValueDefinition();
+			if(this.lex.front.type == TokenType.comma) {
+				this.lex.popFront();
+				if(this.firstEnumValueDefinitions()) {
+					EnumValueDefinitions follow = this.parseEnumValueDefinitions();
+
+					return this.alloc.make!EnumValueDefinitions(EnumValueDefinitionsEnum.DCE
+						, evd
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstEnumValueDefinitions()) {
+				EnumValueDefinitions follow = this.parseEnumValueDefinitions();
+
+				return this.alloc.make!EnumValueDefinitions(EnumValueDefinitionsEnum.DE
+					, evd
+					, follow
+				);
+			}
+			return this.alloc.make!EnumValueDefinitions(EnumValueDefinitionsEnum.D
+				, evd
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an EnumValueDefinition. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstEnumValueDefinition() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	EnumValueDefinition parseEnumValueDefinition() {
+		try {
+			return this.parseEnumValueDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a EnumValueDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	EnumValueDefinition parseEnumValueDefinitionImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.firstDirectives()) {
+				Directives dirs = this.parseDirectives();
+
+				return this.alloc.make!EnumValueDefinition(EnumValueDefinitionEnum.ED
+					, name
+					, dirs
+				);
+			}
+			return this.alloc.make!EnumValueDefinition(EnumValueDefinitionEnum.E
+				, name
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInputTypeDefinition() const {
+		return this.lex.front.type == TokenType.input;
+	}
+
+	InputTypeDefinition parseInputTypeDefinition() {
+		try {
+			return this.parseInputTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InputTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InputTypeDefinition parseInputTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.input) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dir = this.parseDirectives();
+					if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstInputValueDefinitions()) {
+							InputValueDefinitions ivds = this.parseInputValueDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!InputTypeDefinition(InputTypeDefinitionEnum.NDE
+									, name
+									, dir
+									, ivds
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstInputValueDefinitions()) {
+						InputValueDefinitions ivds = this.parseInputValueDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!InputTypeDefinition(InputTypeDefinitionEnum.NE
+								, name
+								, ivds
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an input. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstTypeExtensionDefinition() const {
+		return this.lex.front.type == TokenType.extend;
+	}
+
+	TypeExtensionDefinition parseTypeExtensionDefinition() {
+		try {
+			return this.parseTypeExtensionDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a TypeExtensionDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	TypeExtensionDefinition parseTypeExtensionDefinitionImpl() {
+		if(this.lex.front.type == TokenType.extend) {
+			this.lex.popFront();
+			if(this.firstObjectTypeDefinition()) {
+				ObjectTypeDefinition otd = this.parseObjectTypeDefinition();
+
+				return this.alloc.make!TypeExtensionDefinition(TypeExtensionDefinitionEnum.O
+					, otd
+				);
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an ObjectTypeDefinition. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an extend. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstDirectiveDefinition() const {
+		return this.lex.front.type == TokenType.directive;
+	}
+
+	DirectiveDefinition parseDirectiveDefinition() {
+		try {
+			return this.parseDirectiveDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a DirectiveDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	DirectiveDefinition parseDirectiveDefinitionImpl() {
+		if(this.lex.front.type == TokenType.directive) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.at) {
+				this.lex.popFront();
+				if(this.lex.front.type == TokenType.name) {
+					Token name = this.lex.front;
+					this.lex.popFront();
+					if(this.firstArgumentsDefinition()) {
+						ArgumentsDefinition ad = this.parseArgumentsDefinition();
+						if(this.lex.front.type == TokenType.on_) {
+							this.lex.popFront();
+							if(this.firstDirectiveLocations()) {
+								DirectiveLocations dl = this.parseDirectiveLocations();
+
+								return this.alloc.make!DirectiveDefinition(DirectiveDefinitionEnum.AD
+									, name
+									, ad
+									, dl
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an on_. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					} else if(this.lex.front.type == TokenType.on_) {
+						this.lex.popFront();
+						if(this.firstDirectiveLocations()) {
+							DirectiveLocations dl = this.parseDirectiveLocations();
+
+							return this.alloc.make!DirectiveDefinition(DirectiveDefinitionEnum.D
+								, name
+								, dl
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an ArgumentsDefinition, or on_. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an name. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an at. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an directive. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstDirectiveLocations() const {
+		return this.lex.front.type == TokenType.name;
+	}
+
+	DirectiveLocations parseDirectiveLocations() {
+		try {
+			return this.parseDirectiveLocationsImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a DirectiveLocations an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	DirectiveLocations parseDirectiveLocationsImpl() {
+		if(this.lex.front.type == TokenType.name) {
+			Token name = this.lex.front;
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.pipe) {
+				this.lex.popFront();
+				if(this.firstDirectiveLocations()) {
+					DirectiveLocations follow = this.parseDirectiveLocations();
+
+					return this.alloc.make!DirectiveLocations(DirectiveLocationsEnum.NPF
+						, name
+						, follow
+					);
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			} else if(this.firstDirectiveLocations()) {
+				DirectiveLocations follow = this.parseDirectiveLocations();
+
+				return this.alloc.make!DirectiveLocations(DirectiveLocationsEnum.NF
+					, name
+					, follow
+				);
+			}
+			return this.alloc.make!DirectiveLocations(DirectiveLocationsEnum.N
+				, name
+			);
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an name. Found a '%s' at %s:%s.", 
+			this.lex.front, this.lex.line, this.lex.column
+		);
+		throw this.alloc.make!ParseException(app.data,
+			__FILE__, __LINE__
+		);
+
+	}
+
+	bool firstInputObjectTypeDefinition() const {
+		return this.lex.front.type == TokenType.input;
+	}
+
+	InputObjectTypeDefinition parseInputObjectTypeDefinition() {
+		try {
+			return this.parseInputObjectTypeDefinitionImpl();
+		} catch(ParseException e) {
+			throw this.alloc.make!(ParseException)(
+				"While parsing a InputObjectTypeDefinition an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	InputObjectTypeDefinition parseInputObjectTypeDefinitionImpl() {
+		if(this.lex.front.type == TokenType.input) {
+			this.lex.popFront();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					Directives dirs = this.parseDirectives();
+					if(this.lex.front.type == TokenType.lcurly) {
+						this.lex.popFront();
+						if(this.firstInputValueDefinitions()) {
+							this.parseInputValueDefinitions();
+							if(this.lex.front.type == TokenType.rcurly) {
+								this.lex.popFront();
+
+								return this.alloc.make!InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NDI
+									, name
+									, dirs
+								);
+							}
+							auto app = AllocAppender!string(this.alloc);
+							formattedWrite(&app, 
+								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+								this.lex.front, this.lex.line, this.lex.column
+							);
+							throw this.alloc.make!ParseException(app.data,
+								__FILE__, __LINE__
+							);
+
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				} else if(this.lex.front.type == TokenType.lcurly) {
+					this.lex.popFront();
+					if(this.firstInputValueDefinitions()) {
+						this.parseInputValueDefinitions();
+						if(this.lex.front.type == TokenType.rcurly) {
+							this.lex.popFront();
+
+							return this.alloc.make!InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NI
+								, name
+							);
+						}
+						auto app = AllocAppender!string(this.alloc);
+						formattedWrite(&app, 
+							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
+							this.lex.front, this.lex.line, this.lex.column
+						);
+						throw this.alloc.make!ParseException(app.data,
+							__FILE__, __LINE__
+						);
+
+					}
+					auto app = AllocAppender!string(this.alloc);
+					formattedWrite(&app, 
+						"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
+						this.lex.front, this.lex.line, this.lex.column
+					);
+					throw this.alloc.make!ParseException(app.data,
+						__FILE__, __LINE__
+					);
+
+				}
+				auto app = AllocAppender!string(this.alloc);
+				formattedWrite(&app, 
+					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
+					this.lex.front, this.lex.line, this.lex.column
+				);
+				throw this.alloc.make!ParseException(app.data,
+					__FILE__, __LINE__
+				);
+
+			}
+			auto app = AllocAppender!string(this.alloc);
+			formattedWrite(&app, 
+				"Was expecting an name. Found a '%s' at %s:%s.", 
+				this.lex.front, this.lex.line, this.lex.column
+			);
+			throw this.alloc.make!ParseException(app.data,
+				__FILE__, __LINE__
+			);
+
+		}
+		auto app = AllocAppender!string(this.alloc);
+		formattedWrite(&app, 
+			"Was expecting an input. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
