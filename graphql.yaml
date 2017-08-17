@@ -95,8 +95,9 @@ VariableDefinitions:
     Vars: [lparen, VariableDefinitionList#vars, rparen]
 
 VariableDefinitionList:
-    Var: [VariableDefinition#var]
-    Vars: [VariableDefinition#var, comma, VariableDefinitionList#follow]
+    V: [VariableDefinition#var]
+    VCF: [VariableDefinition#var, comma, VariableDefinitionList#follow]
+    VF: [VariableDefinition#var, VariableDefinitionList#follow]
 
 VariableDefinition:
     VarD: [Variable, colon, Type#type, DefaultValue#dvalue]

@@ -525,8 +525,9 @@ class VariableDefinitions {
 }
 
 enum VariableDefinitionListEnum {
-	Var,
-	Vars,
+	V,
+	VCF,
+	VF,
 }
 
 class VariableDefinitionList {

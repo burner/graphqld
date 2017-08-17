@@ -1295,7 +1295,7 @@ struct Parser {
 				if(this.firstVariableDefinitionList()) {
 					VariableDefinitionList follow = this.parseVariableDefinitionList();
 
-					return this.alloc.make!VariableDefinitionList(VariableDefinitionListEnum.Vars
+					return this.alloc.make!VariableDefinitionList(VariableDefinitionListEnum.VCF
 						, var
 						, follow
 					);
@@ -1309,8 +1309,15 @@ struct Parser {
 					__FILE__, __LINE__
 				);
 
+			} else if(this.firstVariableDefinitionList()) {
+				VariableDefinitionList follow = this.parseVariableDefinitionList();
+
+				return this.alloc.make!VariableDefinitionList(VariableDefinitionListEnum.VF
+					, var
+					, follow
+				);
 			}
-			return this.alloc.make!VariableDefinitionList(VariableDefinitionListEnum.Var
+			return this.alloc.make!VariableDefinitionList(VariableDefinitionListEnum.V
 				, var
 			);
 		}
