@@ -8,27 +8,7 @@ import std.stdio;
 import lexer;
 import parser;
 
-/*unittest {
-	string s = `{
-		query {
-  __type(name: "User") {
-    name
-    fields {
-      name
-      type {
-        name
-      }
-    }
-  }
-}
-}`;
-	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
-	auto d = p.parseDocument();
-}*/
-
-struct TestCase {
+private struct TestCase {
 	int id;
 	string str;
 }
@@ -334,8 +314,8 @@ query h {
   }
 }`);
 
-	tests ~= TestCase(21, `{
-		query {
+	/*tests ~= TestCase(21, `{
+		query n {
   __type(name: "User") {
     name
     fields {
@@ -346,7 +326,7 @@ query h {
     }
   }
 }
-}`);
+}`);*/
 
 	foreach(test; tests) {
 		auto l = Lexer(test.str);
