@@ -1,28 +1,28 @@
-/**
- * Document : Definition+
- */
-function parseDocument(lexer: Lexer<*>): DocumentNode {
-  const start = lexer.token;
-  expect(lexer, TokenKind.SOF);
-  const definitions = [];
-  do {
-    definitions.push(parseDefinition(lexer));
-  } while (!skip(lexer, TokenKind.EOF));
+	/**
+	 * Document : Definition+
+	 */
+	function parseDocument(lexer: Lexer<*>): DocumentNode {
+	  const start = lexer.token;
+	  expect(lexer, TokenKind.SOF);
+	  const definitions = [];
+	  do {
+		definitions.push(parseDefinition(lexer));
+	  } while (!skip(lexer, TokenKind.EOF));
 
-  return {
-    kind: DOCUMENT,
-    definitions,
-    loc: loc(lexer, start)
-  };
-}
+	  return {
+		kind: DOCUMENT,
+		definitions,
+		loc: loc(lexer, start)
+	  };
+	}
 
-/**
- * Definition :
- *   - OperationDefinition
- *   - FragmentDefinition
- *   - TypeSystemDefinition
- */
-function parseDefinition(lexer: Lexer<*>): DefinitionNode {
+	/**
+	 * Definition :
+	 *   - OperationDefinition
+	 *   - FragmentDefinition
+	 *   - TypeSystemDefinition
+	 */
+	function parseDefinition(lexer: Lexer<*>): DefinitionNode {
   if (peek(lexer, TokenKind.BRACE_L)) {
     return parseOperationDefinition(lexer);
   }

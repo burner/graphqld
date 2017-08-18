@@ -4,7 +4,8 @@
 		"burner"
 	],
 	"dependencies" : {
-		"vibe-d:utils": ">=0.8.1-rc.2"
+		"vibe-d:utils": ">=0.8.1-rc.2",
+		"fixedsizearray": ">=1.0.3"
 	},
 	"description": "A vibe.d library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2017, burner",

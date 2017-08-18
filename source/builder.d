@@ -3,6 +3,8 @@ module builder;
 import std.experimental.allocator;
 import std.experimental.allocator.mallocator : Mallocator;
 
+import fixedsizearray;
+
 import ast;
 import parser;
 import lexer;
@@ -24,6 +26,20 @@ void parse() {
 	this.document = this.parser.parseDocument();
 }
 `;
+
+struct Fragment {
+	string name;
+	string tc;
+	Directives dirs;
+	Selections sels;
+}
+
+Selections resolveFragments(ref FixedSizeArray!(Selections,32) stack) {
+	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
+		return stack.back;
+	}
+	assert(false);
+}
 
 struct ArgumentRangeItem {
 	Argument arg;
@@ -59,6 +75,7 @@ struct ArgumentRange {
 
 struct FieldRangeItem {
 	Field f;
+	Definitions defs;
 
 	@property string name() {
 		return f.name.name.value;
@@ -81,36 +98,46 @@ struct FieldRangeItem {
 	}
 
 	FieldRange getSelectionSet() {
-		return fieldRange(this.f);
+		return FieldRange(this.f.ss.sel, this.defs);
 	}
 }
 
 struct FieldRange {
-	Selections cur;
+	FixedSizeArray!(Selections,32) cur;
+	Definitions defs;
+
+	this(Selections cur, Definitions defs) {
+		this.defs = defs;
+		this.cur.insertBack(cur);
+	}
+
+	this(ref FieldRange old) {
+		this.cur = old.cur;
+		this.defs = defs;
+	}
 
 	@property bool empty() const pure {
-		return this.cur is null;
+		return this.cur.length == 0;
 	}
 
 	@property FieldRangeItem front() {
-		return FieldRangeItem(this.cur.sel.field);
+		return FieldRangeItem(this.cur.back.sel.field, this.defs);
 	}
 
 	void popFront() {
-		this.cur = this.cur.follow;
+		this.cur.back = this.cur.back.follow;
+		if(this.cur.back is null) {
+			this.cur.removeBack();
+		}
 	}
 
 	@property FieldRange save() {
-		return FieldRange(this.cur);
+		return FieldRange(this);
 	}
 }
 
-FieldRange fieldRange(OperationDefinition od) {
-	return FieldRange(od.ss.sel);
-}
-
-FieldRange fieldRange(Field field) {
-	return FieldRange(field.ss.sel);
+FieldRange fieldRange(OperationDefinition od, Definitions defs) {
+	return FieldRange(od.ss.sel, defs);
 }
 
 unittest {
@@ -128,7 +155,7 @@ unittest {
 	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 
-	FieldRange r = fieldRange(d.defs.def.op);
+	FieldRange r = fieldRange(d.defs.def.op, d.defs);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();

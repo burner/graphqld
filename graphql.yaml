@@ -18,7 +18,6 @@ OperationDefinition:
     OT: [OperationType#ot, name#name, SelectionSet#ss]
 
 SelectionSet:
-   Empty: [lcurly, rcurly]
    SS: [lcurly, Selections#sel, rcurly]
 
 OperationType:
