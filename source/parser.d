@@ -101,7 +101,7 @@ struct Parser {
 	}
 
 	bool firstDefinition() const {
-		return this.lex.front.type == TokenType.lcurly
+		return this.firstOperationDefinition()
 			 || this.firstFragmentDefinition()
 			 || this.firstTypeSystemDefinition();
 	}
@@ -118,36 +118,12 @@ struct Parser {
 	}
 
 	Definition parseDefinitionImpl() {
-		if(this.lex.front.type == TokenType.lcurly) {
-			this.lex.popFront();
-			if(this.firstOperationDefinition()) {
-				OperationDefinition op = this.parseOperationDefinition();
-				if(this.lex.front.type == TokenType.rcurly) {
-					this.lex.popFront();
+		if(this.firstOperationDefinition()) {
+			OperationDefinition op = this.parseOperationDefinition();
 
-					return this.alloc.make!Definition(DefinitionEnum.O
-						, op
-					);
-				}
-				auto app = AllocAppender!string(this.alloc);
-				formattedWrite(&app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
-				);
-				throw this.alloc.make!ParseException(app.data,
-					__FILE__, __LINE__
-				);
-
-			}
-			auto app = AllocAppender!string(this.alloc);
-			formattedWrite(&app, 
-				"Was expecting an OperationDefinition. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+			return this.alloc.make!Definition(DefinitionEnum.O
+				, op
 			);
-			throw this.alloc.make!ParseException(app.data,
-				__FILE__, __LINE__
-			);
-
 		} else if(this.firstFragmentDefinition()) {
 			FragmentDefinition frag = this.parseFragmentDefinition();
 
@@ -163,7 +139,7 @@ struct Parser {
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an lcurly, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
+			"Was expecting an OperationDefinition, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,
@@ -791,7 +767,7 @@ struct Parser {
 
 	FieldName parseFieldNameImpl() {
 		if(this.lex.front.type == TokenType.name) {
-			Token tok = this.lex.front;
+			Token name = this.lex.front;
 			this.lex.popFront();
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
@@ -800,7 +776,7 @@ struct Parser {
 					this.lex.popFront();
 
 					return this.alloc.make!FieldName(FieldNameEnum.A
-						, tok
+						, name
 						, aka
 					);
 				}
@@ -815,7 +791,7 @@ struct Parser {
 
 			}
 			return this.alloc.make!FieldName(FieldNameEnum.N
-				, tok
+				, name
 			);
 		}
 		auto app = AllocAppender!string(this.alloc);

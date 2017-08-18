@@ -357,18 +357,18 @@ enum FieldNameEnum {
 
 class FieldName {
 	FieldNameEnum ruleSelection;
-	Token tok;
+	Token name;
 	Token aka;
 
-	this(FieldNameEnum ruleSelection, Token tok, Token aka) {
+	this(FieldNameEnum ruleSelection, Token name, Token aka) {
 		this.ruleSelection = ruleSelection;
-		this.tok = tok;
+		this.name = name;
 		this.aka = aka;
 	}
 
-	this(FieldNameEnum ruleSelection, Token tok) {
+	this(FieldNameEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
-		this.tok = tok;
+		this.name = name;
 	}
 
 }

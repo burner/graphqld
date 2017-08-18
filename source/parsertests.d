@@ -16,15 +16,15 @@ private struct TestCase {
 unittest {
 	TestCase[] tests;
 	tests ~= TestCase(0, 
-	`{
+	`
 mutation updateUser($userId: String! $name: String!) {  
   updateUser(id: $userId name: $name) {
     name
   }
 }
-}`);
+`);
 
-	tests ~= TestCase(1,`{
+	tests ~= TestCase(1,`
 query inlineFragmentNoType($expandedInfo: Boolean) {
   user(handle: "zuck") {
     id
@@ -36,9 +36,9 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
     }
   }
 }
-}`);
+`);
 
-	tests ~= TestCase(2, `{
+	tests ~= TestCase(2, `
 query HeroForEpisode($ep: Episode!) {
   hero(episode: $ep) {
     name
@@ -50,18 +50,18 @@ query HeroForEpisode($ep: Episode!) {
     }
   }
 }
-}`);
+`);
 
-	tests ~= TestCase(3, `{
+	tests ~= TestCase(3, `
 mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
   createReview(episode: $ep, review: $review) {
     stars
     commentary
   }
 }
-}`);
+`);
 
-	tests ~= TestCase(4, `{
+	tests ~= TestCase(4, `
 query HeroNameAndFriends($episode: Episode = "JEDI") {
   hero(episode: $episode) {
     name
@@ -69,10 +69,9 @@ query HeroNameAndFriends($episode: Episode = "JEDI") {
       name
     }
   }
-}
 }`);
 
-	tests ~= TestCase(5, `{
+	tests ~= TestCase(5, `
 query  hero {
     name
     # Queries can have comments!
@@ -81,7 +80,6 @@ query  hero {
     friends {
       name
     }
-  }
 }`);
 
 	tests ~= TestCase(6, `
@@ -170,34 +168,32 @@ type Business implements NamedEntity {
   picture: Url
 }`);
 
-	tests ~= TestCase(10, `{
+	tests ~= TestCase(10, `
 query myQuery($someTest: Boolean) {
   experimentalField @skip(if: $someTest)
-}
 }`);
 
-	tests ~= TestCase(11, `{
+	tests ~= TestCase(11, `
 subscription sub {
   newMessage {
     body
     sender
   }
 }
-}
+
 fragment newMessageFields on Message {
   body
   sender
 }
 
-{
 subscription sub {
   newMessage {
     ... newMessageFields  
   }
 
-}}`);
+}`);
 
-	tests ~= TestCase(11, `{
+	tests ~= TestCase(11, `
 query HeroNameAndFriends($episode: Episode) {
   hero(episode: $episode) {
     name,
@@ -205,21 +201,17 @@ query HeroNameAndFriends($episode: Episode) {
       name
     }
   }
-}
-}
-`);
+}`);
 
 	tests ~= TestCase(12, `
-{
-  query name {
-    leftComparison: hero(episode: $EMPIRE) {
-      ...comparisonFields
-    }
-    rightComparison: hero(episode: $JEDI) {
-      ...comparisonFields
-    }
+query name {
+  leftComparison: hero(episode: $EMPIRE) {
+    ...comparisonFields
   }
-}  
+  rightComparison: hero(episode: $JEDI) {
+    ...comparisonFields
+  }
+}
 fragment comparisonFields on Character {
   name
   appearsIn
@@ -231,17 +223,14 @@ fragment comparisonFields on Character {
 `);
 
 	tests ~= TestCase(13, `
-{
 query name{
  builds(first: 54) {
 	all: number
  }
 }
-}
 `);
 
 	tests ~= TestCase(14, `
-	{
 		query foo {
 			viewer {
 				user {
@@ -258,29 +247,24 @@ query name{
 				}
 			}
 		}
-	}
 `);
 
-	tests ~= TestCase(15, `{
+	tests ~= TestCase(15, `
 query foo {
 	name
     builds(first: 1) {
 		abc
   }
- }
-}
-`);
+ }`);
 
-	tests ~= TestCase(16, `{
+	tests ~= TestCase(16, `
 query h {
 	name
     builds
   }
- }
 `);
 
 	tests ~= TestCase(17, `
-{
   query human($id: H, $limit: lim, $gender: Gen) {
     name
     height
@@ -289,30 +273,24 @@ query h {
 		gender
 		income
 	}
-  }
-}` );
+  }` );
 
 	tests ~= TestCase(18, `
-{
   query human($id: Var) {
     name
     height
-  }
-}`);
+  }`);
 
 	tests ~= TestCase(19, `
-{
   query human() {
     name
     height
-  }
-}`);
+  }`);
 
-	tests ~= TestCase(20, `{
+	tests ~= TestCase(20, `
   query name {
 	  foo
-  }
-}`);
+}`); 
 
 	/*tests ~= TestCase(21, `{
 		query n {
@@ -328,6 +306,14 @@ query h {
 }
 }`);*/
 
+	tests ~= TestCase(21, `{
+ user(id: 1) {
+   friends {
+     name
+   }
+ }
+}`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str);
 		IAllocator a = allocatorObject(Mallocator.instance);
@@ -340,7 +326,7 @@ query h {
 				writeln(e.next.toString());
 				e = e.next;
 			}
-			assert(false, format("%d", test.id));
+			assert(false, format("Test %d", test.id));
 		}
 		assert(p.lex.empty, format("%d", test.id));
 	}

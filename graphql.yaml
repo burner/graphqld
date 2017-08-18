@@ -6,7 +6,7 @@ Definitions:
     Defs: [Definition#def, Definitions#follow]
 
 Definition:
-    O: [lcurly, OperationDefinition#op, rcurly] 
+    O: [OperationDefinition#op] 
     F: [FragmentDefinition#frag]
     T: [TypeSystemDefinition#type]
 
@@ -58,14 +58,15 @@ Field:
     F: [FieldName#name]
 
 FieldName:
-    A: [name#tok, colon, name#aka]
-    N: [name#tok]
+    A: [name#name, colon, name#aka]
+    N: [name#name]
 
     #Alias:
     #    A: [name#from, colon, name#to]
 
 Arguments:
     Arg: [lparen, ArgumentList#arg, rparen]
+    Arg: [lparen, rparen]
 
 ArgumentList:
     A: [Argument#arg]
