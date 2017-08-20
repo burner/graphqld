@@ -2,6 +2,7 @@ module builder;
 
 import std.experimental.allocator;
 import std.experimental.allocator.mallocator : Mallocator;
+import std.exception : enforce;
 
 import fixedsizearray;
 
@@ -34,9 +35,67 @@ struct Fragment {
 	Selections sels;
 }
 
-Selections resolveFragments(ref FixedSizeArray!(Selections,32) stack) {
+FragmentDefinition findFragment(Document doc, string name) {
+	Definitions cur = doc.defs;
+	while(cur !is null) {
+		if(cur.def.ruleSelection == DefinitionEnum.F) {
+			if(cur.def.frag.name.value == name) {
+				return cur.def.frag;
+			}
+		}
+		cur = cur.follow;
+	}
+
+	return null;
+}
+
+unittest {
+	string s = `{
+ user(id: 1) {
+   friends {
+     name
+   }
+   name
+   age
+ }
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+
+	auto f = findFragment(d, "fooo");
+	assert(f is null);
+}
+
+unittest {
+	string s = `
+fragment fooo on Hero {
+  name
+}`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+
+	auto f = findFragment(d, "fooo");
+	assert(f !is null);
+	assert(f.ss.sel.sel.field.name.name.value == "name");
+}
+
+Selections resolveFragments(ref FixedSizeArray!(Selections,32) stack, 
+		Document doc) 
+{
 	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
 		return stack.back;
+	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
+		Fragment f = findFragment(doc, stack.back.sel.frag.name);
+		enforce(f !is null);
+		Selections fs = f.ss.sel;
+		stack.insertBack(fs);
+
+		Selections ret = resolveFragments(stack, doc);
+		return ret;
 	}
 	assert(false);
 }

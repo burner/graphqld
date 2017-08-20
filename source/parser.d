@@ -298,12 +298,7 @@ struct Parser {
 	SelectionSet parseSelectionSetImpl() {
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
-			if(this.lex.front.type == TokenType.rcurly) {
-				this.lex.popFront();
-
-				return this.alloc.make!SelectionSet(SelectionSetEnum.Empty
-				);
-			} else if(this.firstSelections()) {
+			if(this.firstSelections()) {
 				Selections sel = this.parseSelections();
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
@@ -324,7 +319,7 @@ struct Parser {
 			}
 			auto app = AllocAppender!string(this.alloc);
 			formattedWrite(&app, 
-				"Was expecting an rcurly, or Selections. Found a '%s' at %s:%s.", 
+				"Was expecting an Selections. Found a '%s' at %s:%s.", 
 				this.lex.front, this.lex.line, this.lex.column
 			);
 			throw this.alloc.make!ParseException(app.data,
@@ -482,7 +477,7 @@ struct Parser {
 			if(this.firstFragmentSpread()) {
 				FragmentSpread frag = this.parseFragmentSpread();
 
-				return this.alloc.make!Selection(SelectionEnum.Frag
+				return this.alloc.make!Selection(SelectionEnum.Spread
 					, frag
 				);
 			} else if(this.firstInlineFragment()) {

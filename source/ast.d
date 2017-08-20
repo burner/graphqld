@@ -127,17 +127,12 @@ class OperationDefinition {
 }
 
 enum SelectionSetEnum {
-	Empty,
 	SS,
 }
 
 class SelectionSet {
 	SelectionSetEnum ruleSelection;
 	Selections sel;
-
-	this(SelectionSetEnum ruleSelection) {
-		this.ruleSelection = ruleSelection;
-	}
 
 	this(SelectionSetEnum ruleSelection, Selections sel) {
 		this.ruleSelection = ruleSelection;
@@ -189,7 +184,7 @@ class Selections {
 
 enum SelectionEnum {
 	Field,
-	Frag,
+	Spread,
 	IFrag,
 }
 

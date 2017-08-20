@@ -32,7 +32,7 @@ Selections:
 
 Selection:
     Field: [Field#field]
-    Frag: [dots, FragmentSpread#frag]
+    Spread: [dots, FragmentSpread#frag]
     IFrag: [dots, InlineFragment#ifrag]
 
 FragmentSpread:
