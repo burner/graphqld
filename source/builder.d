@@ -89,10 +89,14 @@ Selections resolveFragments(ref FixedSizeArray!(Selections,32) stack,
 	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
 		return stack.back;
 	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
-		Fragment f = findFragment(doc, stack.back.sel.frag.name);
+		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value);
 		enforce(f !is null);
+
 		Selections fs = f.ss.sel;
-		stack.insertBack(fs);
+		fs = fs.follow;
+		if(fs !is null) {
+			stack.insertBack(fs);
+		}
 
 		Selections ret = resolveFragments(stack, doc);
 		return ret;
@@ -134,7 +138,7 @@ struct ArgumentRange {
 
 struct FieldRangeItem {
 	Field f;
-	Definitions defs;
+	Document doc;
 
 	@property string name() {
 		return f.name.name.value;
@@ -157,22 +161,22 @@ struct FieldRangeItem {
 	}
 
 	FieldRange getSelectionSet() {
-		return FieldRange(this.f.ss.sel, this.defs);
+		return FieldRange(this.f.ss.sel, this.doc);
 	}
 }
 
 struct FieldRange {
 	FixedSizeArray!(Selections,32) cur;
-	Definitions defs;
+	Document doc;
 
-	this(Selections cur, Definitions defs) {
-		this.defs = defs;
+	this(Selections cur, Document doc) {
+		this.doc = doc;
 		this.cur.insertBack(cur);
 	}
 
 	this(ref FieldRange old) {
 		this.cur = old.cur;
-		this.defs = defs;
+		this.doc = doc;
 	}
 
 	@property bool empty() const pure {
@@ -180,13 +184,20 @@ struct FieldRange {
 	}
 
 	@property FieldRangeItem front() {
-		return FieldRangeItem(this.cur.back.sel.field, this.defs);
+		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 
 	void popFront() {
-		this.cur.back = this.cur.back.follow;
-		if(this.cur.back is null) {
-			this.cur.removeBack();
+		while(this.cur.length > 0) {
+			this.cur.back = this.cur.back.follow;
+			if(this.cur.back is null) {
+				this.cur.removeBack();
+			} else if(cur.back.sel.ruleSelection == SelectionEnum.Spread) {
+				resolveFragments(this.cur, this.doc);
+				break;
+			} else {
+				break;
+			}
 		}
 	}
 
@@ -195,8 +206,8 @@ struct FieldRange {
 	}
 }
 
-FieldRange fieldRange(OperationDefinition od, Definitions defs) {
-	return FieldRange(od.ss.sel, defs);
+FieldRange fieldRange(OperationDefinition od, Document doc) {
+	return FieldRange(od.ss.sel, doc);
 }
 
 unittest {
@@ -214,7 +225,7 @@ unittest {
 	auto p = Parser(l, a);
 	auto d = p.parseDocument();
 
-	FieldRange r = fieldRange(d.defs.def.op, d.defs);
+	FieldRange r = fieldRange(d.defs.def.op, d);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -235,4 +246,6 @@ unittest {
 	assert(fss.front.name == "age");
 	fss.popFront();
 	assert(fss.empty);
+	r.popFront();
+	assert(r.empty);
 }
