@@ -83,25 +83,25 @@ fragment fooo on Hero {
 	assert(f.ss.sel.sel.field.name.name.value == "name");
 }
 
-Selections resolveFragments(ref FixedSizeArray!(Selections,32) stack, 
-		Document doc) 
+void resolveFragments(ref FixedSizeArray!(Selections,32) stack, 
+		Selections sels, Document doc) 
 {
-	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
-		return stack.back;
-	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
-		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value);
+	if(sels.sel.ruleSelection == SelectionEnum.Field) {
+		stack.insertBack(sels);
+		return;
+	}
+	while(sels !is null && sels.sel.ruleSelection == SelectionEnum.Spread) {
+		FragmentDefinition f = findFragment(doc, sels.sel.frag.name.value);
 		enforce(f !is null);
 
 		Selections fs = f.ss.sel;
-		fs = fs.follow;
-		if(fs !is null) {
-			stack.insertBack(fs);
-		}
+		resolveFragments(stack, fs, doc);
 
-		Selections ret = resolveFragments(stack, doc);
-		return ret;
+		sels = sels.follow;
 	}
-	assert(false);
+	if(sels !is null) {
+		stack.insertBack(sels);
+	}
 }
 
 struct ArgumentRangeItem {
@@ -169,9 +169,9 @@ struct FieldRange {
 	FixedSizeArray!(Selections,32) cur;
 	Document doc;
 
-	this(Selections cur, Document doc) {
+	this(Selections sels, Document doc) {
 		this.doc = doc;
-		this.cur.insertBack(cur);
+		resolveFragments(this.cur, sels, this.doc);
 	}
 
 	this(ref FieldRange old) {
@@ -241,6 +241,48 @@ unittest {
 	fss.popFront();
 	assert(!fss.empty);
 	assert(fss.front.name == "name");
+	fss.popFront();
+	assert(!fss.empty);
+	assert(fss.front.name == "age");
+	fss.popFront();
+	assert(fss.empty);
+	r.popFront();
+	assert(r.empty);
+}
+
+unittest {
+	string s = `{
+ user(id: 1) {
+	 ...foo
+ }
+}
+
+fragment foo on User {
+	name
+	age
+}
+`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+
+	auto f = findFragment(d, "foo");
+	assert(f !is null);
+
+	FieldRange r = fieldRange(d.defs.def.op, d);
+	assert(!r.empty);
+	assert(r.front.name == "user");
+	ArgumentRange argL = r.front.arguments();
+	assert(!argL.empty);
+	auto ari = argL.front;
+	assert(ari.name == "id");
+	argL.popFront();
+	assert(argL.empty);
+	assert(r.front.hasSelectionSet());
+	auto fss = r.front.getSelectionSet();
+	assert(!fss.empty);
+	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
 	assert(!fss.empty);
 	assert(fss.front.name == "age");
