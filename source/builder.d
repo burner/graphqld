@@ -155,7 +155,7 @@ struct FieldRangeItem {
 		return f.ss !is null;
 	}
 
-	FieldRange getSelectionSet() {
+	FieldRange selectionSet() {
 		return FieldRange(this.f.ss.sel, this.doc);
 	}
 }
@@ -205,6 +205,62 @@ FieldRange fieldRange(OperationDefinition od, Document doc) {
 	return FieldRange(od.ss.sel, doc);
 }
 
+FieldRange fieldRange(SelectionSet ss, Document doc) {
+	return FieldRange(ss.sel, doc);
+}
+
+struct OpDefRangeItem {
+	Document doc;
+	Definition def;
+
+	FieldRange fieldRange() {
+		return .fieldRange(this.def.op.ss, this.doc);
+	}
+}
+
+struct OpDefRange {
+	Document doc;
+	Definitions defs;
+
+	this(Document doc) {
+		this.doc = doc;
+		this.defs = doc.defs;
+		this.advance();
+	}
+
+	private void advance() {
+		while(this.defs !is null 
+				&& this.defs.def.ruleSelection != DefinitionEnum.O)
+		{
+			this.defs = this.defs.follow;
+		}
+	}
+
+	@property bool empty() const {
+		return this.defs is null;
+	}
+
+	@property OpDefRangeItem front() {
+		return OpDefRangeItem(this.doc, this.defs.def);
+	}
+
+	void popFront() {
+		this.defs = this.defs.follow;
+		this.advance();
+	}
+
+	@property typeof(this) save() {
+		OpDefRange ret;
+		ret.doc = this.doc;
+		ret.defs = this.defs;
+		return ret;
+	}
+}
+
+OpDefRange opDefRange(Document doc) {
+	return OpDefRange(doc);
+}
+
 unittest {
 	string s = `{
  user(id: 1) {
@@ -230,7 +286,7 @@ unittest {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "friends");
 	fss.popFront();
@@ -275,7 +331,7 @@ fragment foo on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -324,7 +380,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -374,7 +430,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -427,7 +483,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -485,7 +541,7 @@ fragment baz on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -547,7 +603,7 @@ fragment baz on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.getSelectionSet();
+	auto fss = r.front.selectionSet();
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -566,4 +622,51 @@ fragment baz on User {
 	assert(fss.empty);
 	r.popFront();
 	assert(r.empty);
+}
+
+unittest {
+	import std.format : format;
+	import std.stdio;
+
+	string s = `{
+ user(id: 1) {
+	 hello
+	 ...foo
+	 zzzz
+	 ...bar
+ }
+}
+
+fragment foo on User {
+	name
+}
+
+fragment bar on User {
+	age
+	...baz
+}
+
+fragment baz on User {
+	args
+}
+`;
+	auto l = Lexer(s);
+	IAllocator a = allocatorObject(Mallocator.instance);
+	auto p = Parser(l, a);
+	auto d = p.parseDocument();
+
+	auto nn = ["hello", "name", "zzzz", "age", "args"];
+	size_t cnt = 0;
+	foreach(it; opDefRange(d)) {
+		++cnt;
+		foreach(jt; it.fieldRange()) {
+			writeln(jt.name);
+			foreach(kt; jt.selectionSet()) {
+				writeln("\t", kt.name);
+			}
+		//	assert(jt.name == nn[idx], format("%s == %s", jt.name, nn[idx]));
+		//	++idx;
+		}
+	}
+	assert(cnt == 1);
 }
