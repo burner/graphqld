@@ -348,12 +348,14 @@ class Field {
 enum FieldNameEnum {
 	A,
 	N,
+	T,
 }
 
 class FieldName {
 	FieldNameEnum ruleSelection;
 	Token name;
 	Token aka;
+	Token type;
 
 	this(FieldNameEnum ruleSelection, Token name, Token aka) {
 		this.ruleSelection = ruleSelection;

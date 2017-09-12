@@ -746,7 +746,8 @@ struct Parser {
 	}
 
 	bool firstFieldName() const {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.lex.front.type == TokenType.type;
 	}
 
 	FieldName parseFieldName() {
@@ -788,10 +789,17 @@ struct Parser {
 			return this.alloc.make!FieldName(FieldNameEnum.N
 				, name
 			);
+		} else if(this.lex.front.type == TokenType.type) {
+			Token type = this.lex.front;
+			this.lex.popFront();
+
+			return this.alloc.make!FieldName(FieldNameEnum.T
+				, type
+			);
 		}
 		auto app = AllocAppender!string(this.alloc);
 		formattedWrite(&app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
+			"Was expecting an name, or type. Found a '%s' at %s:%s.", 
 			this.lex.front, this.lex.line, this.lex.column
 		);
 		throw this.alloc.make!ParseException(app.data,

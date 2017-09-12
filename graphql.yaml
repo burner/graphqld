@@ -59,9 +59,7 @@ Field:
 FieldName:
     A: [name#name, colon, name#aka]
     N: [name#name]
-
-    #Alias:
-    #    A: [name#from, colon, name#to]
+    T: [type#type]
 
 Arguments:
     Arg: [lparen, ArgumentList#arg, rparen]

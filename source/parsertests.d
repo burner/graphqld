@@ -314,6 +314,87 @@ query h {
  }
 }`);
 
+	tests ~= TestCase(22, `query IntrospectionQueryTypeQuery {
+          __schema {
+            queryType {
+              fields {
+                name
+                args {
+                  name
+                  description
+                  type {
+                    name
+                    kind
+                    ofType {
+                      name
+                      kind
+                    }
+                  }
+                  defaultValue
+                }
+              }
+            }
+          }
+        }`);
+
+	tests ~= TestCase(23, `query IntrospectionDroidFieldsQuery {
+          __type(name: "Droid") {
+            name
+            fields {
+              name
+              type {
+                name
+                kind
+              }
+            }
+          }
+        }`);
+
+	tests ~= TestCase(24, `
+        query IntrospectionCharacterKindQuery {
+          __type(name: "Character") {
+            name
+            kind
+          }
+        }`);
+
+
+	tests ~= TestCase(25, `query IntrospectionDroidKindQuery {
+          __type(name: "Droid") {
+            name
+            kind
+          }
+        }`);
+
+	tests ~= TestCase(26, `query IntrospectionDroidTypeQuery {
+          __type(name: "Droid") {
+            name
+          }
+        }`);
+
+	tests ~= TestCase(27, `query IntrospectionQueryTypeQuery {
+          __schema {
+            queryType {
+              name
+            }
+          }
+        }`);
+
+	tests ~= TestCase(28, `query IntrospectionTypeQuery {
+          __schema {
+            types {
+              name
+            }
+          }
+        }`);
+
+	tests ~= TestCase(29, `query IntrospectionDroidDescriptionQuery {
+          __type(name: "Droid") {
+            name
+            description
+          }
+        }`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str);
 		IAllocator a = allocatorObject(Mallocator.instance);
