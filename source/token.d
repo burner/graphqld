@@ -38,6 +38,7 @@ enum TokenType {
 	input,
 	scalar,
 	schema,
+	schema__,
 	directive,
 	enum_,
 	interface_,

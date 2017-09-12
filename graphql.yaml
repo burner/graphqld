@@ -60,6 +60,7 @@ FieldName:
     A: [name#name, colon, name#aka]
     N: [name#name]
     T: [type#type]
+    S: [schema__#schema]
 
 Arguments:
     Arg: [lparen, ArgumentList#arg, rparen]

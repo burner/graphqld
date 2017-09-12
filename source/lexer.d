@@ -190,6 +190,24 @@ struct Lexer {
 									}
 								}
 							}
+						} else if(this.testCharAndInc('s', e)) {
+							if(this.testCharAndInc('c', e)) {
+								if(this.testCharAndInc('h', e)) {
+									if(this.testCharAndInc('e', e)) {
+										if(this.testCharAndInc('m', e)) {
+											if(this.testCharAndInc('a', e)) {
+												if(this.isTokenStop()) {
+													this.cur =
+														Token(TokenType.schema__,
+																this.line,
+																this.column);
+													return;
+												}
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 					goto default;
@@ -600,6 +618,7 @@ struct Lexer {
 					//	++this.column;
 					//	++e;
 					//} while(!this.isTokenStop());
+					//writefln("%s %s", TokenType.name, this.input[b .. e]);
 					this.cur = Token(TokenType.name, this.input[b .. e],
 							this.line, this.column
 						);

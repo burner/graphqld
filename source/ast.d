@@ -349,6 +349,7 @@ enum FieldNameEnum {
 	A,
 	N,
 	T,
+	S,
 }
 
 class FieldName {
@@ -356,6 +357,7 @@ class FieldName {
 	Token name;
 	Token aka;
 	Token type;
+	Token schema;
 
 	this(FieldNameEnum ruleSelection, Token name, Token aka) {
 		this.ruleSelection = ruleSelection;
