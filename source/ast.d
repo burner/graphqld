@@ -4,6 +4,8 @@ import std.typecons : RefCounted, refCounted;
 
 import tokenmodule;
 
+import visitor;
+
 enum DocumentEnum {
 	Defi,
 }
@@ -17,6 +19,13 @@ class Document {
 		this.defs = defs;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DefinitionsEnum {
@@ -40,6 +49,13 @@ class Definitions {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DefinitionEnum {
@@ -69,6 +85,13 @@ class Definition {
 		this.type = type;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum OperationDefinitionEnum {
@@ -124,6 +147,13 @@ class OperationDefinition {
 		this.ss = ss;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum SelectionSetEnum {
@@ -139,6 +169,13 @@ class SelectionSet {
 		this.sel = sel;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum OperationTypeEnum {
@@ -156,6 +193,13 @@ class OperationType {
 		this.tok = tok;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum SelectionsEnum {
@@ -180,6 +224,13 @@ class Selections {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum SelectionEnum {
@@ -209,6 +260,13 @@ class Selection {
 		this.ifrag = ifrag;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FragmentSpreadEnum {
@@ -232,6 +290,13 @@ class FragmentSpread {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InlineFragmentEnum {
@@ -271,6 +336,13 @@ class InlineFragment {
 		this.ss = ss;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FieldEnum {
@@ -343,6 +415,13 @@ class Field {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FieldNameEnum {
@@ -370,6 +449,13 @@ class FieldName {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ArgumentsEnum {
@@ -385,6 +471,13 @@ class Arguments {
 		this.arg = arg;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ArgumentListEnum {
@@ -409,6 +502,13 @@ class ArgumentList {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ArgumentEnum {
@@ -426,6 +526,13 @@ class Argument {
 		this.vv = vv;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FragmentDefinitionEnum {
@@ -455,6 +562,13 @@ class FragmentDefinition {
 		this.ss = ss;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DirectivesEnum {
@@ -478,6 +592,13 @@ class Directives {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DirectiveEnum {
@@ -501,6 +622,13 @@ class Directive {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum VariableDefinitionsEnum {
@@ -521,6 +649,13 @@ class VariableDefinitions {
 		this.vars = vars;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum VariableDefinitionListEnum {
@@ -545,6 +680,13 @@ class VariableDefinitionList {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum VariableDefinitionEnum {
@@ -568,6 +710,13 @@ class VariableDefinition {
 		this.type = type;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum VariableEnum {
@@ -583,6 +732,13 @@ class Variable {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DefaultValueEnum {
@@ -598,6 +754,13 @@ class DefaultValue {
 		this.value = value;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ValueOrVariableEnum {
@@ -620,6 +783,13 @@ class ValueOrVariable {
 		this.var = var;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ValueEnum {
@@ -653,6 +823,13 @@ class Value {
 		this.obj = obj;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum TypeEnum {
@@ -677,6 +854,13 @@ class Type {
 		this.list = list;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ListTypeEnum {
@@ -692,6 +876,13 @@ class ListType {
 		this.type = type;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ValuesEnum {
@@ -715,6 +906,13 @@ class Values {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ArrayEnum {
@@ -735,6 +933,13 @@ class Array {
 		this.vals = vals;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ObjectValuesEnum {
@@ -762,6 +967,13 @@ class ObjectValues {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ObjectValueEnum {
@@ -779,6 +991,13 @@ class ObjectValue {
 		this.val = val;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ObjectTypeEnum {
@@ -794,6 +1013,13 @@ class ObjectType {
 		this.vals = vals;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum TypeSystemDefinitionEnum {
@@ -830,6 +1056,13 @@ class TypeSystemDefinition {
 		this.dd = dd;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum TypeDefinitionEnum {
@@ -880,6 +1113,13 @@ class TypeDefinition {
 		this.iod = iod;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum SchemaDefinitionEnum {
@@ -903,6 +1143,13 @@ class SchemaDefinition {
 		this.otds = otds;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum OperationTypeDefinitionsEnum {
@@ -927,6 +1174,13 @@ class OperationTypeDefinitions {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum OperationTypeDefinitionEnum {
@@ -944,6 +1198,13 @@ class OperationTypeDefinition {
 		this.nt = nt;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ScalarTypeDefinitionEnum {
@@ -967,6 +1228,13 @@ class ScalarTypeDefinition {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ObjectTypeDefinitionEnum {
@@ -1011,6 +1279,13 @@ class ObjectTypeDefinition {
 		this.fds = fds;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FieldDefinitionsEnum {
@@ -1035,6 +1310,13 @@ class FieldDefinitions {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum FieldDefinitionEnum {
@@ -1079,6 +1361,13 @@ class FieldDefinition {
 		this.typ = typ;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ImplementsInterfacesEnum {
@@ -1094,6 +1383,13 @@ class ImplementsInterfaces {
 		this.nts = nts;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum NamedTypesEnum {
@@ -1118,6 +1414,13 @@ class NamedTypes {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum ArgumentsDefinitionEnum {
@@ -1131,6 +1434,13 @@ class ArgumentsDefinition {
 		this.ruleSelection = ruleSelection;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InputValueDefinitionsEnum {
@@ -1155,6 +1465,13 @@ class InputValueDefinitions {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InputValueDefinitionEnum {
@@ -1199,6 +1516,13 @@ class InputValueDefinition {
 		this.type = type;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InterfaceTypeDefinitionEnum {
@@ -1225,6 +1549,13 @@ class InterfaceTypeDefinition {
 		this.fds = fds;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum UnionTypeDefinitionEnum {
@@ -1251,6 +1582,13 @@ class UnionTypeDefinition {
 		this.um = um;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum UnionMembersEnum {
@@ -1275,6 +1613,13 @@ class UnionMembers {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum EnumTypeDefinitionEnum {
@@ -1301,6 +1646,13 @@ class EnumTypeDefinition {
 		this.evds = evds;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum EnumValueDefinitionsEnum {
@@ -1325,6 +1677,13 @@ class EnumValueDefinitions {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum EnumValueDefinitionEnum {
@@ -1348,6 +1707,13 @@ class EnumValueDefinition {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InputTypeDefinitionEnum {
@@ -1374,6 +1740,13 @@ class InputTypeDefinition {
 		this.ivds = ivds;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum TypeExtensionDefinitionEnum {
@@ -1389,6 +1762,13 @@ class TypeExtensionDefinition {
 		this.otd = otd;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DirectiveDefinitionEnum {
@@ -1415,6 +1795,13 @@ class DirectiveDefinition {
 		this.dl = dl;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum DirectiveLocationsEnum {
@@ -1439,6 +1826,13 @@ class DirectiveLocations {
 		this.follow = follow;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 
 enum InputObjectTypeDefinitionEnum {
@@ -1462,5 +1856,12 @@ class InputObjectTypeDefinition {
 		this.name = name;
 	}
 
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
 }
 

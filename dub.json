@@ -4,7 +4,6 @@
 		"burner"
 	],
 	"dependencies" : {
-		"vibe-d:utils": ">=0.8.1-rc.2",
 		"fixedsizearray": ">=1.0.3",
 		"taggedalgebraic": ">=0.10.7"
 	},

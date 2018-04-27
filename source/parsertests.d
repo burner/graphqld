@@ -397,8 +397,7 @@ query h {
 
 	foreach(test; tests) {
 		auto l = Lexer(test.str);
-		IAllocator a = allocatorObject(Mallocator.instance);
-		auto p = Parser(l, a);
+		auto p = Parser(l);
 		try {
 			auto d = p.parseDocument();
 		} catch(Throwable e) {

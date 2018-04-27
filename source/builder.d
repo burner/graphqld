@@ -16,11 +16,11 @@ HTTPServerRequest __request;
 HTTPServerResponse __response;
 Document document;
 Parser parser;
-this(HTTPServerRequest req, HTTPServerResponse res, IAllocator alloc) {
+this(HTTPServerRequest req, HTTPServerResponse res) {
 	this.__resquest = req;
 	this.__response = res;
 
-	this.parser = Parser(Lexer(req.bodyReader.readAllUTF8(), alloc));
+	this.parser = Parser(Lexer(req.bodyReader.readAllUTF8()));
 }
 
 void parse() {
@@ -60,8 +60,7 @@ unittest {
  }
 }`;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "fooo");
@@ -74,8 +73,7 @@ fragment fooo on Hero {
   name
 }`;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "fooo");
@@ -272,8 +270,7 @@ unittest {
  }
 }`;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	FieldRange r = fieldRange(d.defs.def.op, d);
@@ -314,8 +311,7 @@ fragment foo on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -360,8 +356,7 @@ fragment bar on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -410,8 +405,7 @@ fragment bar on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -463,8 +457,7 @@ fragment bar on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -521,8 +514,7 @@ fragment baz on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -583,8 +575,7 @@ fragment baz on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto f = findFragment(d, "foo");
@@ -651,8 +642,7 @@ fragment baz on User {
 }
 `;
 	auto l = Lexer(s);
-	IAllocator a = allocatorObject(Mallocator.instance);
-	auto p = Parser(l, a);
+	auto p = Parser(l);
 	auto d = p.parseDocument();
 
 	auto nn = ["hello", "name", "zzzz", "age", "args"];

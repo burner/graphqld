@@ -1,5 +1,7 @@
 module tokenmodule;
 
+import visitor;
+
 enum TokenType {
 	undefined,
 	exclamation,
@@ -71,6 +73,12 @@ struct Token {
 	this(TokenType type, string value, size_t line, size_t column) {
 		this(type, line, column);
 		this.value = value;
+	}
+
+	void visit(Visitor vis) {
+	}
+
+	void visit(Visitor vis) const {
 	}
 }
 
