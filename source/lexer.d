@@ -69,7 +69,7 @@ struct Lexer {
 	}
 
 	private void buildToken() {
-		import std.uni : isAlphaNum;
+		import std.ascii : isAlphaNum;
 		this.eatWhitespace();
 
 		if(this.stringPos >= this.input.length) {
@@ -645,7 +645,7 @@ struct Lexer {
 			&& this.cur.type == TokenType.undefined;
 	}
 
-	@property ref Token front() {
+	Token front() @property {
 		return this.cur;
 	}
 
