@@ -63,8 +63,8 @@ FieldName:
     S: [schema__#schema]
 
 Arguments:
-    Arg: [lparen, ArgumentList#arg, rparen]
-    Arg: [lparen, rparen]
+    List: [lparen, ArgumentList#arg, rparen]
+    Empty: [lparen, rparen]
 
 ArgumentList:
     A: [Argument#arg]

@@ -1,7 +1,5 @@
 module ast;
 
-import std.typecons : RefCounted, refCounted;
-
 import tokenmodule;
 
 import visitor;
@@ -66,9 +64,9 @@ enum DefinitionEnum {
 
 class Definition {
 	DefinitionEnum ruleSelection;
-	OperationDefinition op;
 	FragmentDefinition frag;
 	TypeSystemDefinition type;
+	OperationDefinition op;
 
 	this(DefinitionEnum ruleSelection, OperationDefinition op) {
 		this.ruleSelection = ruleSelection;
@@ -104,11 +102,11 @@ enum OperationDefinitionEnum {
 
 class OperationDefinition {
 	OperationDefinitionEnum ruleSelection;
-	Token name;
-	SelectionSet ss;
-	Directives d;
-	OperationType ot;
 	VariableDefinitions vd;
+	OperationType ot;
+	Directives d;
+	SelectionSet ss;
+	Token name;
 
 	this(OperationDefinitionEnum ruleSelection, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
@@ -241,9 +239,9 @@ enum SelectionEnum {
 
 class Selection {
 	SelectionEnum ruleSelection;
-	InlineFragment ifrag;
 	FragmentSpread frag;
 	Field field;
+	InlineFragment ifrag;
 
 	this(SelectionEnum ruleSelection, Field field) {
 		this.ruleSelection = ruleSelection;
@@ -276,8 +274,8 @@ enum FragmentSpreadEnum {
 
 class FragmentSpread {
 	FragmentSpreadEnum ruleSelection;
-	Token name;
 	Directives dirs;
+	Token name;
 
 	this(FragmentSpreadEnum ruleSelection, Token name, Directives dirs) {
 		this.ruleSelection = ruleSelection;
@@ -309,8 +307,8 @@ enum InlineFragmentEnum {
 class InlineFragment {
 	InlineFragmentEnum ruleSelection;
 	Token tc;
-	SelectionSet ss;
 	Directives dirs;
+	SelectionSet ss;
 
 	this(InlineFragmentEnum ruleSelection, Token tc, Directives dirs, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
@@ -358,10 +356,10 @@ enum FieldEnum {
 
 class Field {
 	FieldEnum ruleSelection;
-	Arguments args;
-	FieldName name;
 	SelectionSet ss;
+	Arguments args;
 	Directives dirs;
+	FieldName name;
 
 	this(FieldEnum ruleSelection, FieldName name, Arguments args, Directives dirs, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
@@ -433,10 +431,10 @@ enum FieldNameEnum {
 
 class FieldName {
 	FieldNameEnum ruleSelection;
-	Token name;
-	Token aka;
 	Token type;
 	Token schema;
+	Token aka;
+	Token name;
 
 	this(FieldNameEnum ruleSelection, Token name, Token aka) {
 		this.ruleSelection = ruleSelection;
@@ -459,7 +457,8 @@ class FieldName {
 }
 
 enum ArgumentsEnum {
-	Arg,
+	List,
+	Empty,
 }
 
 class Arguments {
@@ -469,6 +468,10 @@ class Arguments {
 	this(ArgumentsEnum ruleSelection, ArgumentList arg) {
 		this.ruleSelection = ruleSelection;
 		this.arg = arg;
+	}
+
+	this(ArgumentsEnum ruleSelection) {
+		this.ruleSelection = ruleSelection;
 	}
 
 	void visit(Visitor vis) {
@@ -542,10 +545,10 @@ enum FragmentDefinitionEnum {
 
 class FragmentDefinition {
 	FragmentDefinitionEnum ruleSelection;
-	Token tc;
-	Token name;
 	SelectionSet ss;
+	Token tc;
 	Directives dirs;
+	Token name;
 
 	this(FragmentDefinitionEnum ruleSelection, Token name, Token tc, Directives dirs, SelectionSet ss) {
 		this.ruleSelection = ruleSelection;
@@ -608,8 +611,8 @@ enum DirectiveEnum {
 
 class Directive {
 	DirectiveEnum ruleSelection;
-	Token name;
 	Arguments arg;
+	Token name;
 
 	this(DirectiveEnum ruleSelection, Token name, Arguments arg) {
 		this.ruleSelection = ruleSelection;
@@ -666,8 +669,8 @@ enum VariableDefinitionListEnum {
 
 class VariableDefinitionList {
 	VariableDefinitionListEnum ruleSelection;
-	VariableDefinition var;
 	VariableDefinitionList follow;
+	VariableDefinition var;
 
 	this(VariableDefinitionListEnum ruleSelection, VariableDefinition var) {
 		this.ruleSelection = ruleSelection;
@@ -804,8 +807,8 @@ enum ValueEnum {
 
 class Value {
 	ValueEnum ruleSelection;
-	Array arr;
 	Token tok;
+	Array arr;
 	ObjectType obj;
 
 	this(ValueEnum ruleSelection, Token tok) {
@@ -841,8 +844,8 @@ enum TypeEnum {
 
 class Type {
 	TypeEnum ruleSelection;
-	Token tname;
 	ListType list;
+	Token tname;
 
 	this(TypeEnum ruleSelection, Token tname) {
 		this.ruleSelection = ruleSelection;
@@ -950,9 +953,9 @@ enum ObjectValuesEnum {
 
 class ObjectValues {
 	ObjectValuesEnum ruleSelection;
-	Token name;
 	Value val;
 	ObjectValues follow;
+	Token name;
 
 	this(ObjectValuesEnum ruleSelection, Token name, Value val) {
 		this.ruleSelection = ruleSelection;
@@ -982,8 +985,8 @@ enum ObjectValueEnum {
 
 class ObjectValue {
 	ObjectValueEnum ruleSelection;
-	Token name;
 	Value val;
+	Token name;
 
 	this(ObjectValueEnum ruleSelection, Token name, Value val) {
 		this.ruleSelection = ruleSelection;
@@ -1031,9 +1034,9 @@ enum TypeSystemDefinitionEnum {
 
 class TypeSystemDefinition {
 	TypeSystemDefinitionEnum ruleSelection;
+	DirectiveDefinition dd;
 	TypeExtensionDefinition ted;
 	SchemaDefinition sch;
-	DirectiveDefinition dd;
 	TypeDefinition td;
 
 	this(TypeSystemDefinitionEnum ruleSelection, SchemaDefinition sch) {
@@ -1076,12 +1079,12 @@ enum TypeDefinitionEnum {
 
 class TypeDefinition {
 	TypeDefinitionEnum ruleSelection;
-	ScalarTypeDefinition std;
 	ObjectTypeDefinition otd;
+	ScalarTypeDefinition std;
 	UnionTypeDefinition utd;
-	InputObjectTypeDefinition iod;
 	InterfaceTypeDefinition itd;
 	EnumTypeDefinition etd;
+	InputObjectTypeDefinition iod;
 
 	this(TypeDefinitionEnum ruleSelection, ScalarTypeDefinition std) {
 		this.ruleSelection = ruleSelection;
@@ -1189,8 +1192,8 @@ enum OperationTypeDefinitionEnum {
 
 class OperationTypeDefinition {
 	OperationTypeDefinitionEnum ruleSelection;
-	Token nt;
 	OperationType ot;
+	Token nt;
 
 	this(OperationTypeDefinitionEnum ruleSelection, OperationType ot, Token nt) {
 		this.ruleSelection = ruleSelection;
@@ -1214,8 +1217,8 @@ enum ScalarTypeDefinitionEnum {
 
 class ScalarTypeDefinition {
 	ScalarTypeDefinitionEnum ruleSelection;
-	Token name;
 	Directives dir;
+	Token name;
 
 	this(ScalarTypeDefinitionEnum ruleSelection, Token name, Directives dir) {
 		this.ruleSelection = ruleSelection;
@@ -1246,10 +1249,10 @@ enum ObjectTypeDefinitionEnum {
 
 class ObjectTypeDefinition {
 	ObjectTypeDefinitionEnum ruleSelection;
-	Token name;
 	Directives dir;
-	FieldDefinitions fds;
 	ImplementsInterfaces ii;
+	FieldDefinitions fds;
+	Token name;
 
 	this(ObjectTypeDefinitionEnum ruleSelection, Token name, ImplementsInterfaces ii, Directives dir, FieldDefinitions fds) {
 		this.ruleSelection = ruleSelection;
@@ -1328,10 +1331,10 @@ enum FieldDefinitionEnum {
 
 class FieldDefinition {
 	FieldDefinitionEnum ruleSelection;
-	Token name;
-	Directives dir;
 	ArgumentsDefinition arg;
 	Type typ;
+	Directives dir;
+	Token name;
 
 	this(FieldDefinitionEnum ruleSelection, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
 		this.ruleSelection = ruleSelection;
@@ -1400,8 +1403,8 @@ enum NamedTypesEnum {
 
 class NamedTypes {
 	NamedTypesEnum ruleSelection;
-	Token name;
 	NamedTypes follow;
+	Token name;
 
 	this(NamedTypesEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
@@ -1451,8 +1454,8 @@ enum InputValueDefinitionsEnum {
 
 class InputValueDefinitions {
 	InputValueDefinitionsEnum ruleSelection;
-	InputValueDefinition iv;
 	InputValueDefinitions follow;
+	InputValueDefinition iv;
 
 	this(InputValueDefinitionsEnum ruleSelection, InputValueDefinition iv) {
 		this.ruleSelection = ruleSelection;
@@ -1483,10 +1486,10 @@ enum InputValueDefinitionEnum {
 
 class InputValueDefinition {
 	InputValueDefinitionEnum ruleSelection;
-	Token name;
 	Type type;
-	Directives dirs;
 	DefaultValue df;
+	Directives dirs;
+	Token name;
 
 	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, DefaultValue df, Directives dirs) {
 		this.ruleSelection = ruleSelection;
@@ -1532,9 +1535,9 @@ enum InterfaceTypeDefinitionEnum {
 
 class InterfaceTypeDefinition {
 	InterfaceTypeDefinitionEnum ruleSelection;
-	Token name;
-	Directives dirs;
 	FieldDefinitions fds;
+	Directives dirs;
+	Token name;
 
 	this(InterfaceTypeDefinitionEnum ruleSelection, Token name, Directives dirs, FieldDefinitions fds) {
 		this.ruleSelection = ruleSelection;
@@ -1565,9 +1568,9 @@ enum UnionTypeDefinitionEnum {
 
 class UnionTypeDefinition {
 	UnionTypeDefinitionEnum ruleSelection;
-	Token name;
-	Directives dirs;
 	UnionMembers um;
+	Directives dirs;
+	Token name;
 
 	this(UnionTypeDefinitionEnum ruleSelection, Token name, Directives dirs, UnionMembers um) {
 		this.ruleSelection = ruleSelection;
@@ -1599,8 +1602,8 @@ enum UnionMembersEnum {
 
 class UnionMembers {
 	UnionMembersEnum ruleSelection;
-	Token name;
 	UnionMembers follow;
+	Token name;
 
 	this(UnionMembersEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
@@ -1629,9 +1632,9 @@ enum EnumTypeDefinitionEnum {
 
 class EnumTypeDefinition {
 	EnumTypeDefinitionEnum ruleSelection;
-	Token name;
-	Directives dir;
 	EnumValueDefinitions evds;
+	Directives dir;
+	Token name;
 
 	this(EnumTypeDefinitionEnum ruleSelection, Token name, Directives dir, EnumValueDefinitions evds) {
 		this.ruleSelection = ruleSelection;
@@ -1693,8 +1696,8 @@ enum EnumValueDefinitionEnum {
 
 class EnumValueDefinition {
 	EnumValueDefinitionEnum ruleSelection;
-	Token name;
 	Directives dirs;
+	Token name;
 
 	this(EnumValueDefinitionEnum ruleSelection, Token name, Directives dirs) {
 		this.ruleSelection = ruleSelection;
@@ -1723,9 +1726,9 @@ enum InputTypeDefinitionEnum {
 
 class InputTypeDefinition {
 	InputTypeDefinitionEnum ruleSelection;
-	Token name;
-	Directives dir;
 	InputValueDefinitions ivds;
+	Directives dir;
+	Token name;
 
 	this(InputTypeDefinitionEnum ruleSelection, Token name, Directives dir, InputValueDefinitions ivds) {
 		this.ruleSelection = ruleSelection;
@@ -1778,9 +1781,9 @@ enum DirectiveDefinitionEnum {
 
 class DirectiveDefinition {
 	DirectiveDefinitionEnum ruleSelection;
-	Token name;
-	ArgumentsDefinition ad;
 	DirectiveLocations dl;
+	ArgumentsDefinition ad;
+	Token name;
 
 	this(DirectiveDefinitionEnum ruleSelection, Token name, ArgumentsDefinition ad, DirectiveLocations dl) {
 		this.ruleSelection = ruleSelection;
@@ -1812,8 +1815,8 @@ enum DirectiveLocationsEnum {
 
 class DirectiveLocations {
 	DirectiveLocationsEnum ruleSelection;
-	Token name;
 	DirectiveLocations follow;
+	Token name;
 
 	this(DirectiveLocationsEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
@@ -1842,8 +1845,8 @@ enum InputObjectTypeDefinitionEnum {
 
 class InputObjectTypeDefinition {
 	InputObjectTypeDefinitionEnum ruleSelection;
-	Token name;
 	Directives dirs;
+	Token name;
 
 	this(InputObjectTypeDefinitionEnum ruleSelection, Token name, Directives dirs) {
 		this.ruleSelection = ruleSelection;

@@ -15,7 +15,7 @@ struct Lexer {
 
 	Token cur;
 
-	this(string input) {
+	this(string input) @safe {
 		this.input = input;
 		this.stringPos = 0;
 		this.line = 1;
@@ -23,12 +23,12 @@ struct Lexer {
 		this.buildToken();
 	}
 
-	private bool isTokenStop() const {
+	private bool isTokenStop() const @safe {
 		return this.stringPos >= this.input.length 
 			|| this.isTokenStop(this.input[this.stringPos]);
 	}
 
-	private bool isTokenStop(const(char) c) const {
+	private bool isTokenStop(const(char) c) const @safe {
 		return 
 			c == ' ' || c == '\t' || c == '\n' || c == ';' || c == '(' 
 			|| c == ')' || c == '{' || c == '}' || c == '!' || c == '=' 
@@ -36,7 +36,7 @@ struct Lexer {
 			|| c == ']' || c == ',' || c == '@' || c == '#' || c == '$';
 	}
 
-	private void eatComment() {
+	private void eatComment() @safe {
 		if(this.stringPos < this.input.length &&
 				this.input[this.stringPos] == '#')
 		{
@@ -50,7 +50,7 @@ struct Lexer {
 		}
 	}
 
-	private void eatWhitespace() {
+	private void eatWhitespace() @safe {
 		import std.ascii : isWhite;
 		while(this.stringPos < this.input.length) {
 			this.eatComment();
@@ -68,7 +68,7 @@ struct Lexer {
 		}
 	}
 
-	private void buildToken() {
+	private void buildToken() @safe {
 		import std.ascii : isAlphaNum;
 		this.eatWhitespace();
 
@@ -627,7 +627,7 @@ struct Lexer {
 		}
 	}
 
-	bool testCharAndInc(const(char) c, ref size_t e) {
+	bool testCharAndInc(const(char) c, ref size_t e) @safe {
 		if(this.stringPos < this.input.length 
 				&& this.input[this.stringPos] == c)
 		{
@@ -640,20 +640,20 @@ struct Lexer {
 		}
 	}
 
-	@property bool empty() const {
+	@property bool empty() const @safe {
 		return this.stringPos >= this.input.length
 			&& this.cur.type == TokenType.undefined;
 	}
 
-	Token front() @property {
+	Token front() @property @safe {
 		return this.cur;
 	}
 
-	@property Token front() const {
+	@property Token front() const @safe @nogc pure {
 		return this.cur;
 	}
 
-	void popFront() {
+	void popFront() @safe {
 		this.buildToken();		
 	}
 }

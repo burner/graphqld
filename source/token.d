@@ -49,6 +49,7 @@ enum TokenType {
 }
 
 struct Token {
+@safe:
 	size_t line;
 	size_t column;
 	string value;

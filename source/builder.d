@@ -6,6 +6,7 @@ import std.exception : enforce;
 
 import fixedsizearray;
 
+import helper;
 import ast;
 import parser;
 import lexer;
@@ -38,7 +39,9 @@ struct Fragment {
 FragmentDefinition findFragment(Document doc, string name) {
 	Definitions cur = doc.defs;
 	while(cur !is null) {
+		enforce(cur.def !is null);
 		if(cur.def.ruleSelection == DefinitionEnum.F) {
+			enforce(cur.def.frag !is null);
 			if(cur.def.frag.name.value == name) {
 				return cur.def.frag;
 			}
@@ -200,7 +203,7 @@ struct FieldRange {
 }
 
 FieldRange fieldRange(OperationDefinition od, Document doc) {
-	return FieldRange(od.ss.sel, doc);
+	return FieldRange(od.accessNN!(["ss", "sel"]), doc);
 }
 
 FieldRange fieldRange(SelectionSet ss, Document doc) {
@@ -212,7 +215,7 @@ struct OpDefRangeItem {
 	Definition def;
 
 	FieldRange fieldRange() {
-		return .fieldRange(this.def.op.ss, this.doc);
+		return .fieldRange(accessNN!(["op", "ss"])(this.def), this.doc);
 	}
 }
 

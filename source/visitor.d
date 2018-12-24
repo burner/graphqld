@@ -1,9 +1,9 @@
-import std.typecons : RefCounted, refCounted;
+module visitor;
 
 import ast;
 import tokenmodule;
 
-struct Visitor {
+class Visitor {
 
 	void accept(Document obj) {
 		final switch(obj.ruleSelection) {
@@ -427,16 +427,20 @@ struct Visitor {
 
 	void accept(Arguments obj) {
 		final switch(obj.ruleSelection) {
-			case ArgumentsEnum.Arg:
+			case ArgumentsEnum.List:
 				obj.arg.visit(this);
+				break;
+			case ArgumentsEnum.Empty:
 				break;
 		}
 	}
 
 	void accept(const(Arguments) obj) {
 		final switch(obj.ruleSelection) {
-			case ArgumentsEnum.Arg:
+			case ArgumentsEnum.List:
 				obj.arg.visit(this);
+				break;
+			case ArgumentsEnum.Empty:
 				break;
 		}
 	}

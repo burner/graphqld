@@ -20,7 +20,7 @@ struct Parser {
 		this.lex = lex;
 	}
 
-	bool firstDocument() const {
+	bool firstDocument() const pure @nogc @safe {
 		return this.firstDefinitions();
 	}
 
@@ -54,7 +54,7 @@ struct Parser {
 
 	}
 
-	bool firstDefinitions() const {
+	bool firstDefinitions() const pure @nogc @safe {
 		return this.firstDefinition();
 	}
 
@@ -95,7 +95,7 @@ struct Parser {
 
 	}
 
-	bool firstDefinition() const {
+	bool firstDefinition() const pure @nogc @safe {
 		return this.firstOperationDefinition()
 			 || this.firstFragmentDefinition()
 			 || this.firstTypeSystemDefinition();
@@ -143,7 +143,7 @@ struct Parser {
 
 	}
 
-	bool firstOperationDefinition() const {
+	bool firstOperationDefinition() const pure @nogc @safe {
 		return this.firstSelectionSet()
 			 || this.firstOperationType();
 	}
@@ -275,7 +275,7 @@ struct Parser {
 
 	}
 
-	bool firstSelectionSet() const {
+	bool firstSelectionSet() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lcurly;
 	}
 
@@ -333,7 +333,7 @@ struct Parser {
 
 	}
 
-	bool firstOperationType() const {
+	bool firstOperationType() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.query
 			 || this.lex.front.type == TokenType.mutation
 			 || this.lex.front.type == TokenType.subscription;
@@ -384,7 +384,7 @@ struct Parser {
 
 	}
 
-	bool firstSelections() const {
+	bool firstSelections() const pure @nogc @safe {
 		return this.firstSelection();
 	}
 
@@ -444,7 +444,7 @@ struct Parser {
 
 	}
 
-	bool firstSelection() const {
+	bool firstSelection() const pure @nogc @safe {
 		return this.firstField()
 			 || this.lex.front.type == TokenType.dots;
 	}
@@ -503,7 +503,7 @@ struct Parser {
 
 	}
 
-	bool firstFragmentSpread() const {
+	bool firstFragmentSpread() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -545,7 +545,7 @@ struct Parser {
 
 	}
 
-	bool firstInlineFragment() const {
+	bool firstInlineFragment() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.on_
 			 || this.firstDirectives()
 			 || this.firstSelectionSet();
@@ -652,7 +652,7 @@ struct Parser {
 
 	}
 
-	bool firstField() const {
+	bool firstField() const pure @nogc @safe {
 		return this.firstFieldName();
 	}
 
@@ -740,7 +740,7 @@ struct Parser {
 
 	}
 
-	bool firstFieldName() const {
+	bool firstFieldName() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name
 			 || this.lex.front.type == TokenType.type
 			 || this.lex.front.type == TokenType.schema__;
@@ -811,7 +811,7 @@ struct Parser {
 
 	}
 
-	bool firstArguments() const {
+	bool firstArguments() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
@@ -834,7 +834,7 @@ struct Parser {
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
-					return new Arguments(ArgumentsEnum.Arg
+					return new Arguments(ArgumentsEnum.List
 						, arg
 					);
 				}
@@ -847,10 +847,15 @@ struct Parser {
 					__FILE__, __LINE__
 				);
 
+			} else if(this.lex.front.type == TokenType.rparen) {
+				this.lex.popFront();
+
+				return new Arguments(ArgumentsEnum.Empty
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an ArgumentList. Found a '%s' at %s:%s.", 
+				"Was expecting an ArgumentList, or rparen. Found a '%s' at %s:%s.", 
 				this.lex.front, this.lex.line, this.lex.column
 			);
 			throw new ParseException(app.data,
@@ -869,7 +874,7 @@ struct Parser {
 
 	}
 
-	bool firstArgumentList() const {
+	bool firstArgumentList() const pure @nogc @safe {
 		return this.firstArgument();
 	}
 
@@ -929,7 +934,7 @@ struct Parser {
 
 	}
 
-	bool firstArgument() const {
+	bool firstArgument() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -989,7 +994,7 @@ struct Parser {
 
 	}
 
-	bool firstFragmentDefinition() const {
+	bool firstFragmentDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.fragment;
 	}
 
@@ -1096,7 +1101,7 @@ struct Parser {
 
 	}
 
-	bool firstDirectives() const {
+	bool firstDirectives() const pure @nogc @safe {
 		return this.firstDirective();
 	}
 
@@ -1137,7 +1142,7 @@ struct Parser {
 
 	}
 
-	bool firstDirective() const {
+	bool firstDirective() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.at;
 	}
 
@@ -1191,7 +1196,7 @@ struct Parser {
 
 	}
 
-	bool firstVariableDefinitions() const {
+	bool firstVariableDefinitions() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
@@ -1254,7 +1259,7 @@ struct Parser {
 
 	}
 
-	bool firstVariableDefinitionList() const {
+	bool firstVariableDefinitionList() const pure @nogc @safe {
 		return this.firstVariableDefinition();
 	}
 
@@ -1314,7 +1319,7 @@ struct Parser {
 
 	}
 
-	bool firstVariableDefinition() const {
+	bool firstVariableDefinition() const pure @nogc @safe {
 		return this.firstVariable();
 	}
 
@@ -1379,7 +1384,7 @@ struct Parser {
 
 	}
 
-	bool firstVariable() const {
+	bool firstVariable() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.dollar;
 	}
 
@@ -1426,7 +1431,7 @@ struct Parser {
 
 	}
 
-	bool firstDefaultValue() const {
+	bool firstDefaultValue() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.equal;
 	}
 
@@ -1472,7 +1477,7 @@ struct Parser {
 
 	}
 
-	bool firstValueOrVariable() const {
+	bool firstValueOrVariable() const pure @nogc @safe {
 		return this.firstValue()
 			 || this.firstVariable();
 	}
@@ -1513,7 +1518,7 @@ struct Parser {
 
 	}
 
-	bool firstValue() const {
+	bool firstValue() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.stringValue
 			 || this.lex.front.type == TokenType.intValue
 			 || this.lex.front.type == TokenType.floatValue
@@ -1594,7 +1599,7 @@ struct Parser {
 
 	}
 
-	bool firstType() const {
+	bool firstType() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name
 			 || this.firstListType();
 	}
@@ -1648,7 +1653,7 @@ struct Parser {
 
 	}
 
-	bool firstListType() const {
+	bool firstListType() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lbrack;
 	}
 
@@ -1706,7 +1711,7 @@ struct Parser {
 
 	}
 
-	bool firstValues() const {
+	bool firstValues() const pure @nogc @safe {
 		return this.firstValue();
 	}
 
@@ -1759,7 +1764,7 @@ struct Parser {
 
 	}
 
-	bool firstArray() const {
+	bool firstArray() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lbrack;
 	}
 
@@ -1822,7 +1827,7 @@ struct Parser {
 
 	}
 
-	bool firstObjectValues() const {
+	bool firstObjectValues() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -1910,7 +1915,7 @@ struct Parser {
 
 	}
 
-	bool firstObjectValue() const {
+	bool firstObjectValue() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -1970,7 +1975,7 @@ struct Parser {
 
 	}
 
-	bool firstObjectType() const {
+	bool firstObjectType() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lcurly;
 	}
 
@@ -2028,7 +2033,7 @@ struct Parser {
 
 	}
 
-	bool firstTypeSystemDefinition() const {
+	bool firstTypeSystemDefinition() const pure @nogc @safe {
 		return this.firstSchemaDefinition()
 			 || this.firstTypeDefinition()
 			 || this.firstTypeExtensionDefinition()
@@ -2083,7 +2088,7 @@ struct Parser {
 
 	}
 
-	bool firstTypeDefinition() const {
+	bool firstTypeDefinition() const pure @nogc @safe {
 		return this.firstScalarTypeDefinition()
 			 || this.firstObjectTypeDefinition()
 			 || this.firstInterfaceTypeDefinition()
@@ -2152,7 +2157,7 @@ struct Parser {
 
 	}
 
-	bool firstSchemaDefinition() const {
+	bool firstSchemaDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.schema;
 	}
 
@@ -2265,7 +2270,7 @@ struct Parser {
 
 	}
 
-	bool firstOperationTypeDefinitions() const {
+	bool firstOperationTypeDefinitions() const pure @nogc @safe {
 		return this.firstOperationTypeDefinition();
 	}
 
@@ -2325,7 +2330,7 @@ struct Parser {
 
 	}
 
-	bool firstOperationTypeDefinition() const {
+	bool firstOperationTypeDefinition() const pure @nogc @safe {
 		return this.firstOperationType();
 	}
 
@@ -2385,7 +2390,7 @@ struct Parser {
 
 	}
 
-	bool firstScalarTypeDefinition() const {
+	bool firstScalarTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.scalar;
 	}
 
@@ -2439,7 +2444,7 @@ struct Parser {
 
 	}
 
-	bool firstObjectTypeDefinition() const {
+	bool firstObjectTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.type;
 	}
 
@@ -2656,7 +2661,7 @@ struct Parser {
 
 	}
 
-	bool firstFieldDefinitions() const {
+	bool firstFieldDefinitions() const pure @nogc @safe {
 		return this.firstFieldDefinition();
 	}
 
@@ -2716,7 +2721,7 @@ struct Parser {
 
 	}
 
-	bool firstFieldDefinition() const {
+	bool firstFieldDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -2825,7 +2830,7 @@ struct Parser {
 
 	}
 
-	bool firstImplementsInterfaces() const {
+	bool firstImplementsInterfaces() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.implements;
 	}
 
@@ -2871,7 +2876,7 @@ struct Parser {
 
 	}
 
-	bool firstNamedTypes() const {
+	bool firstNamedTypes() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -2932,7 +2937,7 @@ struct Parser {
 
 	}
 
-	bool firstArgumentsDefinition() const {
+	bool firstArgumentsDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
@@ -2989,7 +2994,7 @@ struct Parser {
 
 	}
 
-	bool firstInputValueDefinitions() const {
+	bool firstInputValueDefinitions() const pure @nogc @safe {
 		return this.firstInputValueDefinition();
 	}
 
@@ -3049,7 +3054,7 @@ struct Parser {
 
 	}
 
-	bool firstInputValueDefinition() const {
+	bool firstInputValueDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -3134,7 +3139,7 @@ struct Parser {
 
 	}
 
-	bool firstInterfaceTypeDefinition() const {
+	bool firstInterfaceTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.interface_;
 	}
 
@@ -3262,7 +3267,7 @@ struct Parser {
 
 	}
 
-	bool firstUnionTypeDefinition() const {
+	bool firstUnionTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.union_;
 	}
 
@@ -3366,7 +3371,7 @@ struct Parser {
 
 	}
 
-	bool firstUnionMembers() const {
+	bool firstUnionMembers() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -3427,7 +3432,7 @@ struct Parser {
 
 	}
 
-	bool firstEnumTypeDefinition() const {
+	bool firstEnumTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.enum_;
 	}
 
@@ -3555,7 +3560,7 @@ struct Parser {
 
 	}
 
-	bool firstEnumValueDefinitions() const {
+	bool firstEnumValueDefinitions() const pure @nogc @safe {
 		return this.firstEnumValueDefinition();
 	}
 
@@ -3615,7 +3620,7 @@ struct Parser {
 
 	}
 
-	bool firstEnumValueDefinition() const {
+	bool firstEnumValueDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -3657,7 +3662,7 @@ struct Parser {
 
 	}
 
-	bool firstInputTypeDefinition() const {
+	bool firstInputTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.input;
 	}
 
@@ -3785,7 +3790,7 @@ struct Parser {
 
 	}
 
-	bool firstTypeExtensionDefinition() const {
+	bool firstTypeExtensionDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.extend;
 	}
 
@@ -3831,7 +3836,7 @@ struct Parser {
 
 	}
 
-	bool firstDirectiveDefinition() const {
+	bool firstDirectiveDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.directive;
 	}
 
@@ -3947,7 +3952,7 @@ struct Parser {
 
 	}
 
-	bool firstDirectiveLocations() const {
+	bool firstDirectiveLocations() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.name;
 	}
 
@@ -4008,7 +4013,7 @@ struct Parser {
 
 	}
 
-	bool firstInputObjectTypeDefinition() const {
+	bool firstInputObjectTypeDefinition() const pure @nogc @safe {
 		return this.lex.front.type == TokenType.input;
 	}
 

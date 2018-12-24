@@ -1,2 +1,2 @@
 gen:
-	../Darser/darser -i graphql.yaml -a source/ast.d -p source/parser.d -e source/exception.d -v source/visitor.d
+	../Darser/darser -i graphql.yaml -a source/ast.d -p source/parser.d -e source/exception.d -v source/visitor.d -t source/treevisitor.d
