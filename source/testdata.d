@@ -1,592 +1,274 @@
 module testdata;
 
+import std.stdio;
 import std.array : array, back;
-import std.algorithm : map;
+import std.format : format;
+import std.algorithm : each, map, joiner;
+import std.range : tee;
 
 import types;
 
-const schemaString = `
-schema {
-	query: Query
-	mutation: Mutation
-	subscription: Subscription
+union SearchResult {
+	Character character;
+	Starship ship;
 }
 
-// The query type, represents all of the entry points into our object graph
-type Query {
-	hero(episode: Episode): Character
-	reviews(episode: Episode!): [Review]
-	search(text: String): [SearchResult]
-	character(id: ID!): Character
-	droid(id: ID!): Droid
-	human(id: ID!): Human
-	starship(id: ID!): Starship
-}
-// The mutation type, represents all updates we can make to our data
-type Mutation {
-	createReview(episode: Episode, review: ReviewInput!): Review
-}
-// The subscription type, represents all subscriptions we can make to our data
-type Subscription {
-	reviewAdded(episode: Episode): Review
-}
-`;
-
-// The episodes in the Star Wars trilogy
-enum Episode {
-	// Star Wars Episode IV: A New Hope, released in 1977.
-	NEWHOPE,
-
-	// Star Wars Episode V: The Empire Strikes Back, released in 1980.
-	EMPIRE,
-
-	// Star Wars Episode VI: Return of the Jedi, released in 1983.
-	JEDI
+interface Query {
+	Character captain(Series series);
+	SearchResult search(string name);
+	Starship starship(long id);
+	Starship[] starships();
+	Character character(long id);
+	Character[] character(Series series);
 }
 
-// A character from the Star Wars universe
-abstract class Character {
-	// The ID of the character
-	@GraphQLType(NotNull.yes)
+interface Mutation {
+	Character addCrewman(Series series, string name, string species);
+}
+
+interface Subscription {
+	Character crewmanAdded(Series series);
+}
+
+class Interface {
+	Query query;
+	Mutation mutation;
+	Subscription subscription;
+}
+
+enum Series {
+	TheOriginalSeries,
+	TheNextGeneration,
+	DeepSpaceNine,
+	Voyager,
+	Enterprise,
+	Discovery
+}
+
+class Character {
 	long id;
-
-	// The name of the character
-	@GraphQLType(NotNull.yes)
 	string name;
+	Series[] series;
+	Character[] commands;
+	Starship ship;
+	Character[] commanders;
 
-	// The friends of the character, or an empty list if they have none
-	long[] friends;
-
-	// The friends of the character exposed as a connection with edges
-	@GraphQLType(NotNull.yes)
-	FriendsConnection friendsConnection(int first, long after);
-
-	// The movies this character appears in
-	@GraphQLType(NotNull.yes)
-	string[] appearsIn;
+	this(long id, string name) {
+		this.id = id;
+		this.name = name;
+	}
 }
 
-// Units of height
-enum LengthUnit {
-	// The standard unit around the world
-	METER,
+class Humanoid : Character {
+	string species;
+	this(long id, string name, string species) {
+		super(id, name);
+		this.species = species;
+	}
 
-	// Primarily used in the United States
-	FOOT
+	override string toString() const @safe {
+		return format!("Humanoid(id(%d), name(%s), species(%s), "
+					~ " series[%(%s,%)], commands[%(%s,%)], ship(%s)),"
+					~ " commanders[%(%s,%)]")
+			(
+				id, name, species, series, commands.map!(a => a.name), 
+				ship ? ship.designation : "", commanders.map!(a => a.name)
+			);
+	}
 }
 
-// A humanoid creature from the Star Wars universe
-class Human : Character {
-	// The home planet of the human, or null if unknown
-	string homePlanet;
-
-	// Height in the preferred unit, default is meters
-	float height;
-
-	// Mass in kilograms, or null if unknown
-	float mass;
-
-	// A list of starships this person has piloted, or an empty list if none
-	long[] starships;
-}
-
-// An autonomous mechanical character in the Star Wars universe
-class Droid : Character {
-	// This droid's primary function
+class Android : Character {
 	string primaryFunction;
-}
 
-// A connection object for a character's friends
-class FriendsConnection {
-	// The total number of friends
-	int totalCount;
+	this(long id, string name, string pfunc) {
+		super(id, name);
+		this.primaryFunction = pfunc;
+	}
 
-	// The edges for each of the character's friends.
-	FriendsEdge[] edges;
-
-	// A list of the friends, as a convenience when edges are not needed.
-	Character[] friends;
-
-	// Information for paginating this connection
-	@GraphQLType(NotNull.yes)
-	PageInfo pageInfo;
-}
-
-// An edge object for a character's friends
-class FriendsEdge {
-	// A cursor used for pagination
-	@GraphQLType(NotNull.yes)
-	long cursor;
-
-	// The character represented by this friendship edge
-	Character node;
-}
-
-// Information for paginating this connection
-class PageInfo {
-	long startCursor;
-	long endCursor;
-	@GraphQLType(NotNull.yes)
-	bool hasNextPage;
-}
-
-// Represents a review for a movie
-class Review {
-	// The movie
-	Episode episode;
-
-	// The number of stars this review gave, 1-5
-	@GraphQLType(NotNull.yes)
-	int stars;
-
-	// Comment about the movie
-	string commentary;
-}
-
-// The input object sent when someone is creating a new review
-struct ReviewInput {
-	// 0-5 stars
-	@GraphQLType(NotNull.yes)
-	int stars;
-
-	// Comment about the movie, optional
-	string commentary;
-
-	// Favorite color, optional
-	ColorInput favoriteColor;
-}
-
-// The input object sent when passing in a color
-struct ColorInput {
-	@GraphQLType(NotNull.yes)
-	int red;
-
-	@GraphQLType(NotNull.yes)
-	int green;
-
-	@GraphQLType(NotNull.yes)
-	int blue;
+	override string toString() const @safe {
+		return format!("Android(id(%d), name(%s), function(%s), series[%(%s,%)], "
+					~ " commands[%(%s,%)], ship(%s)), commanders[%(%s,%)]")
+			(
+				id, name, primaryFunction, series, commands.map!(a => a.name), 
+				ship ? ship.designation : "", commanders.map!(a => a.name)
+			);
+	}
 }
 
 class Starship {
-	// The ID of the starship
-	@GraphQLType(NotNull.yes)
 	long id;
+	string designation;
+	double size;
 
-	// The name of the starship
-	@GraphQLType(NotNull.yes)
-	string name;
+	Character commander;
+	Series[] series;
+	Character[] crew;
 
-	// Length of the starship, along the longest axis
-	float length;
+	this(long id, string designation, double size) {
+		this.id = id;
+		this.designation = designation;
+		this.size = size;
+	}
 
-	@GraphQLType(NotNull.yes)
-	float[][] coordinates;
+	override string toString() const @safe {
+		return format!("Ship(id(%d), designation(%s), size(%.2f), "
+					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
+			(
+				 id, designation, size, commander.name, series, 
+				 crew.map!(a => a.name)
+			);
+	}
 }
 
-union SearchResult {
-	Human human;
-	Droid droid;
-	Starship starship;
-}
+class Data {
+	Character[] chars;
+	Starship[] ships;
 
-Human[] getHumans() {
-	Human[] ret;
-	ret ~= new Human;
-	ret.back.id = 1000;
-	ret.back.name = "Luke Skywalker";
-	ret.back.friends = [ 1002, 1003, 2000, 2001 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.homePlanet = "Tatooine";
-	ret.back.height = 1.72;
-	ret.back.mass = 77;
-	ret.back.starships = [ 3001, 3003 ];
+	this() {
+		long i;
+		auto picard = new Humanoid(i++, "Jean-Luc Picard", "Human");
+		picard.series ~= Series.TheNextGeneration;
+		auto tng = [
+			new Humanoid(i++, "William Riker", "Human"),
+			new Humanoid(i++, "Deanna Troi", "Betazoid "),
+			new Humanoid(i++, "Dr. Beverly Crusher", "Human"),
+			new Humanoid(i++, "Worf", "Klingon"),
+			new Android(i++, "Data", "Becoming Human"),
+			new Humanoid(i++, "Geordi La Forge", "Human"),
+			new Humanoid(i++, "Miles O'Brien", "Human")
+		];
+		picard.commands = tng;
+		picard.series ~= Series.DeepSpaceNine;
+		tng.map!(a => a.series ~= Series.TheNextGeneration).each;
+		tng.map!(a => a.commanders ~= picard).each;
+		tng[0].series ~= Series.Enterprise;
+		tng[1].series ~= Series.Voyager;
+		tng[1].series ~= Series.Enterprise;
+		tng[3].series ~= Series.DeepSpaceNine;
+		tng[6].series ~= Series.DeepSpaceNine;
 
-	ret ~= new Human;
-	ret.back.id = 1001;
-	ret.back.name = "Darth Vader";
-	ret.back.friends = [ 1004 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.homePlanet = "Tatooine";
-	ret.back.height = 2.02;
-	ret.back.mass = 136;
-	ret.back.starships = [ 3002 ];
+		auto sisko = new Humanoid(i++, "Benjamin Sisko", "Human");
+		auto ds9 = [
+			new Humanoid(i++, "Odo", "Changeling"),
+			new Humanoid(i++, "Jadzia Dax", "Trill"),
+			new Humanoid(i++, "Dr. Julian Bashir", "Human"),
+			new Humanoid(i++, "Kira Nerys", "Bajoran"),
+			new Humanoid(i++, "Elim Garak", "Cardassian")
+		];
+		sisko.commands = cast(Character[])ds9;
+		ds9.map!(a => a.series ~= Series.DeepSpaceNine).each;
+		ds9.map!(a => a.commanders ~= sisko).each;
 
-	ret ~= new Human;
-	ret.back.id = 1002;
-	ret.back.name = "Han Solo";
-	ret.back.friends = [ 1000, 1003, 2001 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.height = 1.8;
-	ret.back.mass = 80;
-	ret.back.starships = [ 3000, 3003 ];
+		tng[6].commanders ~= sisko;
 
-	ret ~= new Human;
-	ret.back.id = 1003;
-	ret.back.name = "Leia Organa";
-	ret.back.friends = [ 1000, 1002, 2000, 2001 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.homePlanet = "Alderaan";
-	ret.back.height = 1.5;
-	ret.back.mass = 49;
-	ret.back.starships = [];
+		auto janeway = new Humanoid(i++, "Kathryn Janeway", "Human");
+		auto voyager = [
+			new Humanoid(i++, "Chakotay", "Human"),
+			new Humanoid(i++, "Tuvok", "Vulcan"),
+			new Humanoid(i++, "Neelix", "Talaxian"),
+			new Humanoid(i++, "Seven of Nine", "Human"),
+			new Humanoid(i++, "B'Elanna Torres", "Klingon"),
+			new Humanoid(i++, "Tom Paris", "Human"),
+			new Humanoid(i++, "Harry Kim", "Human"),
+		];
+		janeway.commands = cast(Character[])voyager;
+		voyager.map!(a => a.series ~= Series.Voyager).each;
+		voyager.map!(a => a.commanders ~= janeway).each;
 
-	ret ~= new Human;
-	ret.back.id = 1004;
-	ret.back.name = "Wilhuff Tarkin";
-	ret.back.friends = [ 1001 ];
-	ret.back.appearsIn = [ "NEWHOPE" ];
-	ret.back.height = 1.8;
-	ret.back.starships = [];
+		auto archer = new Humanoid(i++, "Jonathan Archer", "Human");
+		auto enterprise = [
+			new Humanoid(i++, "Charles Tucer III", "Human"),
+			new Humanoid(i++, "Hoshi Sato", "Human"),
+			new Humanoid(i++, "Dr. Phlox", "Denobulan"),
+			new Humanoid(i++, "Malcolm Reed", "Human"),
+			new Humanoid(i++, "Travis Mayweather", "Human"),
+			new Humanoid(i++, "T'Pol", "Vulcan")
+		];
+		archer.commands = cast(Character[])enterprise;
+		enterprise.map!(a => a.series ~= Series.Enterprise).each;
 
-	return ret;
-}
+		auto kirk = new Humanoid(i++, "James T. Kirk", "Human");
+		auto tos = [
+			new Humanoid(i++, "Hikaru Sulu", "Human"),
+			new Humanoid(i++, "Uhura", "Human"),
+			new Humanoid(i++, "Montgomery Scott", "Human"),
+			new Humanoid(i++, "Dr. Leonard McCoy", "Human"),
+			new Humanoid(i++, "Spock", "Vulcan"),
+			new Humanoid(i++, "Spock", "Vulcan"),
+		];
+		kirk.commands = cast(Character[])tos;
+		tos.map!(a => a.series ~= Series.TheOriginalSeries).each;
+		tos.map!(a => a.commanders ~= kirk).each;
 
-Droid[] getDroids() {
-	Droid[] ret;
+		auto georgiou = new Humanoid(i++, "Philippa Georgiou", "Human");
+		auto discovery = [
+			new Humanoid(i++, "Michael Burnham", "Human"),
+			new Humanoid(i++, "Paum Stamets", "Human"),
+			new Humanoid(i++, "Sylvia Tilly", "Human"),
+			new Humanoid(i++, "Ash Tyler", "Klingon"),
+			new Humanoid(i++, "Saru", "Kelpien"),
+			new Humanoid(i++, "Hugh Culber", "Human"),
+		];
+		georgiou.commands = cast(Character[])discovery;
+		discovery.map!(a => a.series ~= Series.Discovery).each;
+		discovery.map!(a => a.commanders ~= georgiou).each;
 
-	ret ~= new Droid;
-	ret.back.id = 2000;
-	ret.back.name = "C-3PO";
-	ret.back.friends = [ 1000, 1002, 1003, 2001 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.primaryFunction = "Protocol";
+		this.ships ~= new Starship(i++, "NCC-1701E", 685.7);
+		this.ships.back.series ~= Series.TheNextGeneration;
+		this.ships.back.commander = picard;
+		this.ships.back.crew ~= picard;
+		this.ships.back.crew ~= tng;
+		tng.map!(a => a.ship = this.ships.back).each;
 
-	ret ~= new Droid;
-	ret.back.id = 2001;
-	ret.back.name = "R2-D2";
-	ret.back.friends = [ 1000, 1002, 1003 ];
-	ret.back.appearsIn = [ "NEWHOPE", "EMPIRE", "JEDI" ];
-	ret.back.primaryFunction = "Astromech";
+		this.ships ~= new Starship(i++, "NX-74205", 130.0);
+		this.ships.back.series ~= Series.DeepSpaceNine;
+		this.ships.back.series ~= Series.TheOriginalSeries;
+		this.ships.back.commander = sisko;
+		this.ships.back.crew ~= picard;
+		this.ships.back.crew ~= sisko;
+		this.ships.back.crew ~= ds9;
+		ds9.map!(a => a.ship = this.ships.back).each;
 
-	return ret;
-}
+		this.ships ~= new Starship(i++, "NCC-74656", 343.0);
+		this.ships.back.series ~= Series.Voyager;
+		this.ships.back.commander = janeway;
+		this.ships.back.crew ~= janeway;
+		this.ships.back.crew ~= voyager;
+		voyager.map!(a => a.ship = this.ships.back).each;
 
-Starship[] getStarships() {
-	Starship[] ret;
+		this.ships ~= new Starship(i++, "NX-01", 225.0);
+		this.ships.back.series ~= Series.Enterprise;
+		this.ships.back.commander = archer;
+		this.ships.back.crew ~= archer;
+		this.ships.back.crew ~= enterprise;
+		enterprise.map!(a => a.ship = this.ships.back).each;
 
-	ret ~= new Starship;
-	ret.back.id = 3000;
-	ret.back.name = "Millenium Falcon";
-	ret.back.length = 34.37;
+		this.ships ~= new Starship(i++, "NCC-1701", 288.64);
+		this.ships.back.series ~= Series.TheOriginalSeries;
+		this.ships.back.series ~= Series.Discovery;
+		this.ships.back.commander = kirk;
+		this.ships.back.crew ~= kirk;
+		this.ships.back.crew ~= tos;
+		tos.map!(a => a.ship = this.ships.back).each;
 
-	ret ~= new Starship;
-	ret.back.id = 3001;
-	ret.back.name = "X-Wing";
-	ret.back.length = 12.5;
+		this.ships ~= new Starship(i++, "NCC-1031", 244.00);
+		this.ships.back.series ~= Series.Discovery;
+		this.ships.back.commander = georgiou;
+		this.ships.back.crew ~= georgiou;
+		this.ships.back.crew ~= discovery;
+		discovery.map!(a => a.ship = this.ships.back).each;
 
-	ret ~= new Starship;
-	ret.back.id = 3002;
-	ret.back.name = "TIE Advanced x1";
-	ret.back.length = 9.2;
-
-	ret ~= new Starship;
-	ret.back.id = 3003;
-	ret.back.name = "Imperial shuttle";
-	ret.back.length = 20;
-
-	return ret;
-}
-
-Review[][string] getReviews() {
-	Review[][string] ret;
-	ret["NEWHOPE"] = new Review[0];
-	ret["EMPIRE"] = new Review[0];
-	ret["JEDI"] = new Review[0];
-
-	return ret;
-}
-
-struct Data {
-	Human[] humans;
-	Droid[] droids;
-	Starship[] starships;
-	Review[][string] reviews;
-
-	static Data opCall() {
-		Data ret;
-		ret.humans = getHumans();
-		ret.droids = getDroids();
-		ret.starships = getStarships();
-		ret.reviews = getReviews();
-		return ret;
-	}
-
-	Character getHero(string episode) {
-		if(episode == "EMPIRE") {
-			// Luke is the hero of Episode V.
-			foreach(h; this.humans) {
-				if(h.id == 1000) {
-					return h;
-				}
-			}
-		}
-		foreach(d; this.droids) {
-			if(d.id == 2001) {
-				return d;
-			}
-		}
-		return null;
-	}
-
-	Character getCharacter(long id) {
-		foreach(h; this.humans) {
-			if(h.id == id) {
-				return h;
-			}
-		}
-		
-		foreach(d; this.droids) {
-			if(d.id == id) {
-				return d;
-			}
-		}
-		return null;
-	}
-
-	Character[] getFriends(Character character) {
-		return character.friends.map!(id => this.getCharacter(id)).array;
-	}
-
-	Review[] getReview(string episode) {
-		return this.reviews[episode];
-	}
-
-	Human getHuman(long id) {
-		foreach(h; this.humans) {
-			if(h.id == id) {
-				return h;
-			}
-		}
-		return null;
-	}
-
-	Droid getDroid(long id) {
-		foreach(d; this.droids) {
-			if(d.id == id) {
-				return d;
-			}
-		}
-		return null;
-	}
-
-	Starship getStarship(long id) {
-		foreach(s; this.starships) {
-			if(s.id == id) {
-				return s;
-			}
-		}
-		return null;
+		this.chars = 
+			joiner([
+				cast(Character[])[picard, sisko, janeway, archer, kirk, georgiou], 
+				cast(Character[])tng, cast(Character[])ds9, 
+				cast(Character[])voyager, cast(Character[])enterprise, 
+				cast(Character[])tos, cast(Character[])discovery
+			])
+			.array;
 	}
 }
 
 unittest {
-	Data d = Data();
+	auto d = new Data();
 }
-
-__EOF__
-
-/**
- * Helper function to get a character by ID.
- */
-function getCharacter(id) {
-	// Returning a promise just to illustrate GraphQL.js's support.
-	return Promise.resolve(humanData[id] || droidData[id]);
-}
-
-/**
- * Allows us to query for a character's friends.
- */
-function getFriends(character) {
-	return character.friends.map(id => getCharacter(id));
-}
-
-/**
- * Allows us to fetch the undisputed hero of the Star Wars trilogy, R2-D2.
- */
-function getHero(episode) {
-}
-
-/**
- * Allows us to fetch the ephemeral reviews for each episode
- */
-function getReviews(episode) {
-	return reviews[episode];
-}
-
-/**
- * Allows us to query for the human with the given id.
- */
-function getHuman(id) {
-	return humanData[id];
-}
-
-/**
- * Allows us to query for the droid with the given id.
- */
-function getDroid(id) {
-	return droidData[id];
-}
-
-function getStarship(id) {
-	return starshipData[id];
-}
-
-function toCursor(str) {
-	return Buffer("cursor" + str).toString('base64');
-}
-
-function fromCursor(str) {
-	return Buffer.from(str, 'base64').toString().slice(6);
-}
-
-const resolvers = {
-	Query: {
-		hero: (root, { episode }) => getHero(episode),
-		character: (root, { id }) => getCharacter(id),
-		human: (root, { id }) => getHuman(id),
-		droid: (root, { id }) => getDroid(id),
-		starship: (root, { id }) => getStarship(id),
-		reviews: (root, { episode }) => getReviews(episode),
-		search: (root, { text }) => {
-			const re = new RegExp(text, 'i');
-
-			const allData = [
-				...humans,
-				...droids,
-				...starships,
-			];
-
-			return allData.filter((obj) => re.test(obj.name));
-		},
-	},
-	Mutation: {
-		createReview: (root, { episode, review }) => {
-			reviews[episode].push(review);
-			review.episode = episode;
-			pubsub.publish(ADDED_REVIEW_TOPIC, {reviewAdded: review});
-			return review;
-		},
-	},
-	Subscription: {
-		reviewAdded: {
-				subscribe: withFilter(
-						() => pubsub.asyncIterator(ADDED_REVIEW_TOPIC),
-						(payload, variables) => {
-								return (payload !== undefined) && 
-								((variables.episode === null) || (payload.reviewAdded.episode === variables.episode));
-						}
-				),
-		},
-	},
-	Character: {
-		__resolveType(data, context, info){
-			if(humanData[data.id]){
-				return info.schema.getType('Human');
-			}
-			if(droidData[data.id]){
-				return info.schema.getType('Droid');
-			}
-			return null;
-		},
-	},
-	Human: {
-		height: ({ height }, { unit }) => {
-			if (unit === 'FOOT') {
-				return height * 3.28084;
-			}
-
-			return height;
-		},
-		friends: ({ friends }) => friends.map(getCharacter),
-		friendsConnection: ({ friends }, { first, after }) => {
-			first = first || friends.length;
-			after = after ? parseInt(fromCursor(after), 10) : 0;
-			const edges = friends.map((friend, i) => ({
-				cursor: toCursor(i+1),
-				node: getCharacter(friend)
-			})).slice(after, first + after);
-			const slicedFriends = edges.map(({ node }) => node);
-			return {
-				edges,
-				friends: slicedFriends,
-				pageInfo: {
-					startCursor: edges.length > 0 ? edges[0].cursor : null,
-					hasNextPage: first + after < friends.length,
-					endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null
-				},
-				totalCount: friends.length
-			};
-		},
-		starships: ({ starships }) => starships.map(getStarship),
-		appearsIn: ({ appearsIn }) => appearsIn,
-	},
-	Droid: {
-		friends: ({ friends }) => friends.map(getCharacter),
-		friendsConnection: ({ friends }, { first, after }) => {
-			first = first || friends.length;
-			after = after ? parseInt(fromCursor(after), 10) : 0;
-			const edges = friends.map((friend, i) => ({
-				cursor: toCursor(i+1),
-				node: getCharacter(friend)
-			})).slice(after, first + after);
-			const slicedFriends = edges.map(({ node }) => node);
-			return {
-				edges,
-				friends: slicedFriends,
-				pageInfo: {
-					startCursor: edges.length > 0 ? edges[0].cursor : null,
-					hasNextPage: first + after < friends.length,
-					endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null
-				},
-				totalCount: friends.length
-			};
-		},
-		appearsIn: ({ appearsIn }) => appearsIn,
-	},
-	FriendsConnection: {
-		edges: ({ edges }) => edges,
-		friends: ({ friends }) => friends,
-		pageInfo: ({ pageInfo }) => pageInfo,
-		totalCount: ({ totalCount }) => totalCount,
-	},
-	FriendsEdge: {
-		node: ({ node }) => node,
-		cursor: ({ cursor }) => cursor,
-	},
-	Starship: {
-		length: ({ length }, { unit }) => {
-			if (unit === 'FOOT') {
-				return length * 3.28084;
-			}
-
-			return length;
-		},
-		coordinates: () => {
-			return [[1, 2], [3, 4]];
-		}
-	},
-	SearchResult: {
-		__resolveType(data, context, info){
-			if(humanData[data.id]){
-				return info.schema.getType('Human');
-			}
-			if(droidData[data.id]){
-				return info.schema.getType('Droid');
-			}
-			if(starshipData[data.id]){
-				return info.schema.getType('Starship');
-			}
-			return null;
-		},
-	},
-}
-
-/**
- * Finally, we construct our schema (whose starting query type is the query
- * type we defined above) and export it.
- */
-export const StarWarsSchema = makeExecutableSchema({
-	typeDefs: [schemaString],
-	resolvers
-});
