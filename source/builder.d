@@ -159,6 +159,7 @@ struct FieldRangeItem {
 	FieldRange selectionSet() {
 		return FieldRange(this.f.ss.sel, this.doc);
 	}
+
 }
 
 struct FieldRange {
@@ -652,13 +653,20 @@ fragment baz on User {
 	size_t cnt = 0;
 	foreach(it; opDefRange(d)) {
 		++cnt;
+		long idx;
 		foreach(jt; it.fieldRange()) {
-			writeln(jt.name);
+			writef("%s(", jt.name);
+			foreach(var; jt.arguments()) {
+				writef("%s, ", var.name());
+			}
+			writeln(")");
 			foreach(kt; jt.selectionSet()) {
 				writeln("\t", kt.name);
+				assert(kt.name == nn[idx], 
+						format("%s == %d(%s)", kt.name, idx, nn[idx])
+					);
+				++idx;
 			}
-		//	assert(jt.name == nn[idx], format("%s == %s", jt.name, nn[idx]));
-		//	++idx;
 		}
 	}
 	assert(cnt == 1);
