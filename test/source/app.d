@@ -1,6 +1,12 @@
 import vibe.vibe;
 
+import std.algorithm;
+import testdata;
+
+Data database;
+
 void main() {
+ 	database = new Data();
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;
 	settings.bindAddresses = ["::1", "127.0.0.1"];
@@ -45,12 +51,30 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	auto dr = opDefRange(d);
 	writeln(dr.empty);
 	foreach(it; dr) {
-		writeln(it.fieldRange().empty);
+		writeln("Def range ", it.fieldRange().empty);
 		foreach(jt; it.fieldRange()) {
-			writeln(jt.hasSelectionSet());
+			writeln("\tField Range ", jt.name, " ", jt.hasSelectionSet());
+			switch(jt.name) {
+				case "starships":
+					string retMsg = "{\"data\" : { \"starships\" :[" ~ database.ships.map!(
+						delegate(Starship s) {
+							Json ret = Json.emptyObject;
+							ret["id"] = s.id;
+							ret["designation"] = s.designation;
+							return ret.toString();
+						}
+					).joiner(", ").to!string() ~ "]}}";
+					writeln(retMsg);
+					res.writeBody(retMsg);
+					//res.writePrettyJsonBody(database.ships);
+					return;
+				default:
+					writeln(jt.name);
+					break;
+			}
 			if(jt.hasSelectionSet()) {
 				foreach(kt; jt.selectionSet()) {
-					writeln(kt.name());
+					writeln("\t\tSelection Set ", kt.name());
 				}
 			}
 		}
