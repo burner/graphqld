@@ -1,12 +1,11 @@
 module testdata;
 
-__EOF__
-
 import std.stdio;
 import std.array : array, back;
 import std.format : format;
 import std.algorithm : each, map, joiner;
 import std.range : tee;
+import std.typecons : nullable, Nullable;
 
 import types;
 
@@ -18,9 +17,9 @@ union SearchResult {
 interface Query {
 	Character captain(Series series);
 	SearchResult search(string name);
-	Starship starship(long id);
+	Nullable!Starship starship(long id);
 	Starship[] starships();
-	Character character(long id);
+	Nullable!Character character(long id);
 	Character[] character(Series series);
 }
 
@@ -52,7 +51,7 @@ class Character {
 	string name;
 	Series[] series;
 	Character[] commands;
-	Starship ship;
+	Nullable!Starship ship;
 	Character[] commanders;
 
 	this(long id, string name) {
@@ -220,7 +219,7 @@ class Data {
 		this.ships.back.commander = picard;
 		this.ships.back.crew ~= picard;
 		this.ships.back.crew ~= tng;
-		tng.map!(a => a.ship = this.ships.back).each;
+		tng.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NX-74205", 130.0);
 		this.ships.back.series ~= Series.DeepSpaceNine;
@@ -229,21 +228,21 @@ class Data {
 		this.ships.back.crew ~= picard;
 		this.ships.back.crew ~= sisko;
 		this.ships.back.crew ~= ds9;
-		ds9.map!(a => a.ship = this.ships.back).each;
+		ds9.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NCC-74656", 343.0);
 		this.ships.back.series ~= Series.Voyager;
 		this.ships.back.commander = janeway;
 		this.ships.back.crew ~= janeway;
 		this.ships.back.crew ~= voyager;
-		voyager.map!(a => a.ship = this.ships.back).each;
+		voyager.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NX-01", 225.0);
 		this.ships.back.series ~= Series.Enterprise;
 		this.ships.back.commander = archer;
 		this.ships.back.crew ~= archer;
 		this.ships.back.crew ~= enterprise;
-		enterprise.map!(a => a.ship = this.ships.back).each;
+		enterprise.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NCC-1701", 288.64);
 		this.ships.back.series ~= Series.TheOriginalSeries;
@@ -251,14 +250,14 @@ class Data {
 		this.ships.back.commander = kirk;
 		this.ships.back.crew ~= kirk;
 		this.ships.back.crew ~= tos;
-		tos.map!(a => a.ship = this.ships.back).each;
+		tos.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NCC-1031", 244.00);
 		this.ships.back.series ~= Series.Discovery;
 		this.ships.back.commander = georgiou;
 		this.ships.back.crew ~= georgiou;
 		this.ships.back.crew ~= discovery;
-		discovery.map!(a => a.ship = this.ships.back).each;
+		discovery.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.chars = 
 			joiner([
