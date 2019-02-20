@@ -1,0 +1,17 @@
+{
+	"authors": [
+		"burner"
+	],
+	"copyright": "Copyright © 2019, burner",
+	"dependencies": {
+		"vibe-d": "~>0.8.2",
+		"vibe-d:tls": "~>0.8.2",
+		"graphqld" : { "path": "../"}
+	},
+    "subConfigurations": {
+        "vibe-d:tls": "notls"
+    },
+	"description": "A simple vibe.d server application.",
+	"license": "GPL3",
+	"name": "test"
+}

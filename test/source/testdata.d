@@ -1,5 +1,7 @@
 module testdata;
 
+__EOF__
+
 import std.stdio;
 import std.array : array, back;
 import std.format : format;

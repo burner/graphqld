@@ -36,6 +36,8 @@ struct Parser {
 	}
 
 	Document parseDocumentImpl() {
+		string[] subRules;
+		subRules = ["Defi"];
 		if(this.firstDefinitions()) {
 			Definitions defs = this.parseDefinitions();
 
@@ -45,11 +47,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Definitions. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["directive -> Definition","enum_ -> Definition","extend -> Definition","fragment -> Definition","input -> Definition","interface_ -> Definition","lcurly -> Definition","mutation -> Definition","query -> Definition","scalar -> Definition","schema -> Definition","subscription -> Definition","type -> Definition","union_ -> Definition"]
 		);
 
 	}
@@ -70,8 +74,11 @@ struct Parser {
 	}
 
 	Definitions parseDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["Def", "Defs"];
 		if(this.firstDefinition()) {
 			Definition def = this.parseDefinition();
+			subRules = ["Defs"];
 			if(this.firstDefinitions()) {
 				Definitions follow = this.parseDefinitions();
 
@@ -86,11 +93,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Definition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["directive -> TypeSystemDefinition","enum_ -> TypeSystemDefinition","extend -> TypeSystemDefinition","fragment -> FragmentDefinition","input -> TypeSystemDefinition","interface_ -> TypeSystemDefinition","lcurly -> OperationDefinition","mutation -> OperationDefinition","query -> OperationDefinition","scalar -> TypeSystemDefinition","schema -> TypeSystemDefinition","subscription -> OperationDefinition","type -> TypeSystemDefinition","union_ -> TypeSystemDefinition"]
 		);
 
 	}
@@ -113,6 +122,8 @@ struct Parser {
 	}
 
 	Definition parseDefinitionImpl() {
+		string[] subRules;
+		subRules = ["O"];
 		if(this.firstOperationDefinition()) {
 			OperationDefinition op = this.parseOperationDefinition();
 
@@ -134,11 +145,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an OperationDefinition, FragmentDefinition, or TypeSystemDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lcurly -> SelectionSet","mutation -> OperationType","query -> OperationType","subscription -> OperationType","fragment","directive -> DirectiveDefinition","enum_ -> TypeDefinition","extend -> TypeExtensionDefinition","input -> TypeDefinition","interface_ -> TypeDefinition","scalar -> TypeDefinition","schema -> SchemaDefinition","type -> TypeDefinition","union_ -> TypeDefinition"]
 		);
 
 	}
@@ -160,6 +173,8 @@ struct Parser {
 	}
 
 	OperationDefinition parseOperationDefinitionImpl() {
+		string[] subRules;
+		subRules = ["SelSet"];
 		if(this.firstSelectionSet()) {
 			SelectionSet ss = this.parseSelectionSet();
 
@@ -168,13 +183,17 @@ struct Parser {
 			);
 		} else if(this.firstOperationType()) {
 			OperationType ot = this.parseOperationType();
+			subRules = ["OT", "OT_D", "OT_V", "OT_VD"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["OT_V", "OT_VD"];
 				if(this.firstVariableDefinitions()) {
 					VariableDefinitions vd = this.parseVariableDefinitions();
+					subRules = ["OT_VD"];
 					if(this.firstDirectives()) {
 						Directives d = this.parseDirectives();
+						subRules = ["OT_VD"];
 						if(this.firstSelectionSet()) {
 							SelectionSet ss = this.parseSelectionSet();
 
@@ -188,11 +207,13 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["lcurly"]
 						);
 
 					} else if(this.firstSelectionSet()) {
@@ -207,15 +228,18 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["at -> Directive","lcurly"]
 					);
 
 				} else if(this.firstDirectives()) {
 					Directives d = this.parseDirectives();
+					subRules = ["OT_D"];
 					if(this.firstSelectionSet()) {
 						SelectionSet ss = this.parseSelectionSet();
 
@@ -228,11 +252,13 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.firstSelectionSet()) {
@@ -246,31 +272,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an VariableDefinitions, Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["lparen","at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an SelectionSet, or OperationType. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lcurly","mutation","query","subscription"]
 		);
 
 	}
@@ -291,10 +323,14 @@ struct Parser {
 	}
 
 	SelectionSet parseSelectionSetImpl() {
+		string[] subRules;
+		subRules = ["SS"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
+			subRules = ["SS"];
 			if(this.firstSelections()) {
 				Selections sel = this.parseSelections();
+				subRules = ["SS"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
@@ -304,31 +340,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an Selections. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["dots -> Selection","name -> Selection","schema__ -> Selection","type -> Selection"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lcurly"]
 		);
 
 	}
@@ -351,6 +393,8 @@ struct Parser {
 	}
 
 	OperationType parseOperationTypeImpl() {
+		string[] subRules;
+		subRules = ["Query"];
 		if(this.lex.front.type == TokenType.query) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
@@ -375,11 +419,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an query, mutation, or subscription. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["query","mutation","subscription"]
 		);
 
 	}
@@ -400,8 +446,11 @@ struct Parser {
 	}
 
 	Selections parseSelectionsImpl() {
+		string[] subRules;
+		subRules = ["Sel", "Sels", "Selsc"];
 		if(this.firstSelection()) {
 			Selection sel = this.parseSelection();
+			subRules = ["Sels"];
 			if(this.firstSelections()) {
 				Selections follow = this.parseSelections();
 
@@ -411,6 +460,7 @@ struct Parser {
 				);
 			} else if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["Selsc"];
 				if(this.firstSelections()) {
 					Selections follow = this.parseSelections();
 
@@ -421,11 +471,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Selections. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["dots -> Selection","name -> Selection","schema__ -> Selection","type -> Selection"]
 				);
 
 			}
@@ -435,11 +487,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Selection. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["dots","name -> Field","schema__ -> Field","type -> Field"]
 		);
 
 	}
@@ -461,6 +515,8 @@ struct Parser {
 	}
 
 	Selection parseSelectionImpl() {
+		string[] subRules;
+		subRules = ["Field"];
 		if(this.firstField()) {
 			Field field = this.parseField();
 
@@ -469,6 +525,7 @@ struct Parser {
 			);
 		} else if(this.lex.front.type == TokenType.dots) {
 			this.lex.popFront();
+			subRules = ["Spread"];
 			if(this.firstFragmentSpread()) {
 				FragmentSpread frag = this.parseFragmentSpread();
 
@@ -484,21 +541,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an FragmentSpread, or InlineFragment. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name","at -> Directives","lcurly -> SelectionSet","on_"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Field, or dots. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name -> FieldName","schema__ -> FieldName","type -> FieldName","dots"]
 		);
 
 	}
@@ -519,9 +580,12 @@ struct Parser {
 	}
 
 	FragmentSpread parseFragmentSpreadImpl() {
+		string[] subRules;
+		subRules = ["F", "FD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["FD"];
 			if(this.firstDirectives()) {
 				Directives dirs = this.parseDirectives();
 
@@ -536,11 +600,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -563,13 +629,18 @@ struct Parser {
 	}
 
 	InlineFragment parseInlineFragmentImpl() {
+		string[] subRules;
+		subRules = ["TDS", "TS"];
 		if(this.lex.front.type == TokenType.on_) {
 			this.lex.popFront();
+			subRules = ["TDS", "TS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token tc = this.lex.front;
 				this.lex.popFront();
+				subRules = ["TDS"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
+					subRules = ["TDS"];
 					if(this.firstSelectionSet()) {
 						SelectionSet ss = this.parseSelectionSet();
 
@@ -581,11 +652,13 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.firstSelectionSet()) {
@@ -598,25 +671,30 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		} else if(this.firstDirectives()) {
 			Directives dirs = this.parseDirectives();
+			subRules = ["DS"];
 			if(this.firstSelectionSet()) {
 				SelectionSet ss = this.parseSelectionSet();
 
@@ -627,11 +705,13 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["lcurly"]
 			);
 
 		} else if(this.firstSelectionSet()) {
@@ -643,11 +723,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an on_, Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["on_","at -> Directive","lcurly"]
 		);
 
 	}
@@ -668,12 +750,17 @@ struct Parser {
 	}
 
 	Field parseFieldImpl() {
+		string[] subRules;
+		subRules = ["F", "FA", "FAD", "FADS", "FAS", "FD", "FDS", "FS"];
 		if(this.firstFieldName()) {
 			FieldName name = this.parseFieldName();
+			subRules = ["FA", "FAD", "FADS", "FAS"];
 			if(this.firstArguments()) {
 				Arguments args = this.parseArguments();
+				subRules = ["FAD", "FADS"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
+					subRules = ["FADS"];
 					if(this.firstSelectionSet()) {
 						SelectionSet ss = this.parseSelectionSet();
 
@@ -704,6 +791,7 @@ struct Parser {
 				);
 			} else if(this.firstDirectives()) {
 				Directives dirs = this.parseDirectives();
+				subRules = ["FDS"];
 				if(this.firstSelectionSet()) {
 					SelectionSet ss = this.parseSelectionSet();
 
@@ -731,11 +819,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an FieldName. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name","schema__","type"]
 		);
 
 	}
@@ -758,11 +848,15 @@ struct Parser {
 	}
 
 	FieldName parseFieldNameImpl() {
+		string[] subRules;
+		subRules = ["A", "N"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["A"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["A"];
 				if(this.lex.front.type == TokenType.name) {
 					Token aka = this.lex.front;
 					this.lex.popFront();
@@ -774,11 +868,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an name. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			}
@@ -802,11 +898,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name, type, or schema__. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name","type","schema__"]
 		);
 
 	}
@@ -827,10 +925,14 @@ struct Parser {
 	}
 
 	Arguments parseArgumentsImpl() {
+		string[] subRules;
+		subRules = ["Empty", "List"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["List"];
 			if(this.firstArgumentList()) {
 				ArgumentList arg = this.parseArgumentList();
+				subRules = ["List"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -840,11 +942,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rparen. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rparen"]
 				);
 
 			} else if(this.lex.front.type == TokenType.rparen) {
@@ -855,21 +959,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an ArgumentList, or rparen. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name -> Argument","rparen"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lparen. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lparen"]
 		);
 
 	}
@@ -890,10 +998,14 @@ struct Parser {
 	}
 
 	ArgumentList parseArgumentListImpl() {
+		string[] subRules;
+		subRules = ["A", "ACS", "AS"];
 		if(this.firstArgument()) {
 			Argument arg = this.parseArgument();
+			subRules = ["ACS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["ACS"];
 				if(this.firstArgumentList()) {
 					ArgumentList follow = this.parseArgumentList();
 
@@ -904,11 +1016,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an ArgumentList. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name -> Argument"]
 				);
 
 			} else if(this.firstArgumentList()) {
@@ -925,11 +1039,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Argument. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -950,11 +1066,15 @@ struct Parser {
 	}
 
 	Argument parseArgumentImpl() {
+		string[] subRules;
+		subRules = ["Name"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["Name"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["Name"];
 				if(this.firstValueOrVariable()) {
 					ValueOrVariable vv = this.parseValueOrVariable();
 
@@ -965,31 +1085,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an ValueOrVariable. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -1010,18 +1136,25 @@ struct Parser {
 	}
 
 	FragmentDefinition parseFragmentDefinitionImpl() {
+		string[] subRules;
+		subRules = ["FTDS", "FTS"];
 		if(this.lex.front.type == TokenType.fragment) {
 			this.lex.popFront();
+			subRules = ["FTDS", "FTS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["FTDS", "FTS"];
 				if(this.lex.front.type == TokenType.on_) {
 					this.lex.popFront();
+					subRules = ["FTDS", "FTS"];
 					if(this.lex.front.type == TokenType.name) {
 						Token tc = this.lex.front;
 						this.lex.popFront();
+						subRules = ["FTDS"];
 						if(this.firstDirectives()) {
 							Directives dirs = this.parseDirectives();
+							subRules = ["FTDS"];
 							if(this.firstSelectionSet()) {
 								SelectionSet ss = this.parseSelectionSet();
 
@@ -1034,11 +1167,13 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an SelectionSet. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["lcurly"]
 							);
 
 						} else if(this.firstSelectionSet()) {
@@ -1052,51 +1187,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an Directives, or SelectionSet. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["at -> Directive","lcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an name. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an on_. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["on_"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an fragment. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["fragment"]
 		);
 
 	}
@@ -1117,8 +1262,11 @@ struct Parser {
 	}
 
 	Directives parseDirectivesImpl() {
+		string[] subRules;
+		subRules = ["Dir", "Dirs"];
 		if(this.firstDirective()) {
 			Directive dir = this.parseDirective();
+			subRules = ["Dirs"];
 			if(this.firstDirectives()) {
 				Directives follow = this.parseDirectives();
 
@@ -1133,11 +1281,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Directive. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["at"]
 		);
 
 	}
@@ -1158,11 +1308,15 @@ struct Parser {
 	}
 
 	Directive parseDirectiveImpl() {
+		string[] subRules;
+		subRules = ["N", "NArg"];
 		if(this.lex.front.type == TokenType.at) {
 			this.lex.popFront();
+			subRules = ["N", "NArg"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NArg"];
 				if(this.firstArguments()) {
 					Arguments arg = this.parseArguments();
 
@@ -1177,21 +1331,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an at. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["at"]
 		);
 
 	}
@@ -1212,8 +1370,11 @@ struct Parser {
 	}
 
 	VariableDefinitions parseVariableDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["Empty", "Vars"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rparen) {
 				this.lex.popFront();
 
@@ -1221,6 +1382,7 @@ struct Parser {
 				);
 			} else if(this.firstVariableDefinitionList()) {
 				VariableDefinitionList vars = this.parseVariableDefinitionList();
+				subRules = ["Vars"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -1230,31 +1392,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rparen. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rparen"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an rparen, or VariableDefinitionList. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["rparen","dollar -> VariableDefinition"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lparen. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lparen"]
 		);
 
 	}
@@ -1275,10 +1443,14 @@ struct Parser {
 	}
 
 	VariableDefinitionList parseVariableDefinitionListImpl() {
+		string[] subRules;
+		subRules = ["V", "VCF", "VF"];
 		if(this.firstVariableDefinition()) {
 			VariableDefinition var = this.parseVariableDefinition();
+			subRules = ["VCF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["VCF"];
 				if(this.firstVariableDefinitionList()) {
 					VariableDefinitionList follow = this.parseVariableDefinitionList();
 
@@ -1289,11 +1461,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an VariableDefinitionList. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["dollar -> VariableDefinition"]
 				);
 
 			} else if(this.firstVariableDefinitionList()) {
@@ -1310,11 +1484,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an VariableDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["dollar -> Variable"]
 		);
 
 	}
@@ -1335,12 +1511,17 @@ struct Parser {
 	}
 
 	VariableDefinition parseVariableDefinitionImpl() {
+		string[] subRules;
+		subRules = ["Var", "VarD"];
 		if(this.firstVariable()) {
 			this.parseVariable();
+			subRules = ["Var", "VarD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["Var", "VarD"];
 				if(this.firstType()) {
 					Type type = this.parseType();
+					subRules = ["VarD"];
 					if(this.firstDefaultValue()) {
 						DefaultValue dvalue = this.parseDefaultValue();
 
@@ -1355,31 +1536,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Type. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["lbrack -> ListType","name"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Variable. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["dollar"]
 		);
 
 	}
@@ -1400,8 +1587,11 @@ struct Parser {
 	}
 
 	Variable parseVariableImpl() {
+		string[] subRules;
+		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.dollar) {
 			this.lex.popFront();
+			subRules = ["Var"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
@@ -1412,21 +1602,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an dollar. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["dollar"]
 		);
 
 	}
@@ -1447,8 +1641,11 @@ struct Parser {
 	}
 
 	DefaultValue parseDefaultValueImpl() {
+		string[] subRules;
+		subRules = ["DV"];
 		if(this.lex.front.type == TokenType.equal) {
 			this.lex.popFront();
+			subRules = ["DV"];
 			if(this.firstValue()) {
 				Value value = this.parseValue();
 
@@ -1458,21 +1655,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an Value. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an equal. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["equal"]
 		);
 
 	}
@@ -1494,6 +1695,8 @@ struct Parser {
 	}
 
 	ValueOrVariable parseValueOrVariableImpl() {
+		string[] subRules;
+		subRules = ["Val"];
 		if(this.firstValue()) {
 			Value val = this.parseValue();
 
@@ -1509,11 +1712,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Value, or Variable. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_","dollar"]
 		);
 
 	}
@@ -1540,6 +1745,8 @@ struct Parser {
 	}
 
 	Value parseValueImpl() {
+		string[] subRules;
+		subRules = ["STR"];
 		if(this.lex.front.type == TokenType.stringValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
@@ -1590,11 +1797,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an stringValue, intValue, floatValue, true_, false_, Array, or ObjectType. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly"]
 		);
 
 	}
@@ -1616,9 +1825,12 @@ struct Parser {
 	}
 
 	Type parseTypeImpl() {
+		string[] subRules;
+		subRules = ["T", "TN"];
 		if(this.lex.front.type == TokenType.name) {
 			Token tname = this.lex.front;
 			this.lex.popFront();
+			subRules = ["TN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
@@ -1631,6 +1843,7 @@ struct Parser {
 			);
 		} else if(this.firstListType()) {
 			ListType list = this.parseListType();
+			subRules = ["LN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
@@ -1644,11 +1857,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name, or ListType. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name","lbrack"]
 		);
 
 	}
@@ -1669,10 +1884,14 @@ struct Parser {
 	}
 
 	ListType parseListTypeImpl() {
+		string[] subRules;
+		subRules = ["T"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
+			subRules = ["T"];
 			if(this.firstType()) {
 				Type type = this.parseType();
+				subRules = ["T"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
@@ -1682,31 +1901,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rbrack. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rbrack"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an Type. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["lbrack -> ListType","name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lbrack. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lbrack"]
 		);
 
 	}
@@ -1727,10 +1952,14 @@ struct Parser {
 	}
 
 	Values parseValuesImpl() {
+		string[] subRules;
+		subRules = ["Val", "Vals"];
 		if(this.firstValue()) {
 			Value val = this.parseValue();
+			subRules = ["Vals"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["Vals"];
 				if(this.firstValues()) {
 					Values follow = this.parseValues();
 
@@ -1741,11 +1970,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Values. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -1755,11 +1986,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an Value. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
 		);
 
 	}
@@ -1780,8 +2013,11 @@ struct Parser {
 	}
 
 	Array parseArrayImpl() {
+		string[] subRules;
+		subRules = ["Empty", "Value"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
+			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rbrack) {
 				this.lex.popFront();
 
@@ -1789,6 +2025,7 @@ struct Parser {
 				);
 			} else if(this.firstValues()) {
 				Values vals = this.parseValues();
+				subRules = ["Value"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
@@ -1798,31 +2035,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rbrack. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rbrack"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an rbrack, or Values. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lbrack. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lbrack"]
 		);
 
 	}
@@ -1843,15 +2086,21 @@ struct Parser {
 	}
 
 	ObjectValues parseObjectValuesImpl() {
+		string[] subRules;
+		subRules = ["V", "Vs", "Vsc"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["V", "Vs", "Vsc"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["V", "Vs", "Vsc"];
 				if(this.firstValue()) {
 					Value val = this.parseValue();
+					subRules = ["Vsc"];
 					if(this.lex.front.type == TokenType.comma) {
 						this.lex.popFront();
+						subRules = ["Vsc"];
 						if(this.firstObjectValues()) {
 							ObjectValues follow = this.parseObjectValues();
 
@@ -1863,11 +2112,13 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an ObjectValues. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name"]
 						);
 
 					} else if(this.firstObjectValues()) {
@@ -1886,31 +2137,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Value. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -1931,11 +2188,15 @@ struct Parser {
 	}
 
 	ObjectValue parseObjectValueImpl() {
+		string[] subRules;
+		subRules = ["V"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["V"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["V"];
 				if(this.firstValue()) {
 					Value val = this.parseValue();
 
@@ -1946,31 +2207,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Value. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -1991,10 +2258,14 @@ struct Parser {
 	}
 
 	ObjectType parseObjectTypeImpl() {
+		string[] subRules;
+		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
+			subRules = ["Var"];
 			if(this.firstObjectValues()) {
 				ObjectValues vals = this.parseObjectValues();
+				subRules = ["Var"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
@@ -2004,31 +2275,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an ObjectValues. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lcurly"]
 		);
 
 	}
@@ -2052,6 +2329,8 @@ struct Parser {
 	}
 
 	TypeSystemDefinition parseTypeSystemDefinitionImpl() {
+		string[] subRules;
+		subRules = ["S"];
 		if(this.firstSchemaDefinition()) {
 			SchemaDefinition sch = this.parseSchemaDefinition();
 
@@ -2079,11 +2358,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an SchemaDefinition, TypeDefinition, TypeExtensionDefinition, or DirectiveDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive"]
 		);
 
 	}
@@ -2109,6 +2390,8 @@ struct Parser {
 	}
 
 	TypeDefinition parseTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["S"];
 		if(this.firstScalarTypeDefinition()) {
 			ScalarTypeDefinition std = this.parseScalarTypeDefinition();
 
@@ -2148,11 +2431,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an ScalarTypeDefinition, ObjectTypeDefinition, InterfaceTypeDefinition, UnionTypeDefinition, EnumTypeDefinition, or InputObjectTypeDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["scalar","type","interface_","union_","enum_","input"]
 		);
 
 	}
@@ -2173,14 +2458,20 @@ struct Parser {
 	}
 
 	SchemaDefinition parseSchemaDefinitionImpl() {
+		string[] subRules;
+		subRules = ["DO", "O"];
 		if(this.lex.front.type == TokenType.schema) {
 			this.lex.popFront();
+			subRules = ["DO"];
 			if(this.firstDirectives()) {
 				Directives dir = this.parseDirectives();
+				subRules = ["DO"];
 				if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["DO"];
 					if(this.firstOperationTypeDefinitions()) {
 						OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+						subRules = ["DO"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -2191,37 +2482,45 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["mutation -> OperationTypeDefinition","query -> OperationTypeDefinition","subscription -> OperationTypeDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["lcurly"]
 				);
 
 			} else if(this.lex.front.type == TokenType.lcurly) {
 				this.lex.popFront();
+				subRules = ["O"];
 				if(this.firstOperationTypeDefinitions()) {
 					OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+					subRules = ["O"];
 					if(this.lex.front.type == TokenType.rcurly) {
 						this.lex.popFront();
 
@@ -2231,41 +2530,49 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["rcurly"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["mutation -> OperationTypeDefinition","query -> OperationTypeDefinition","subscription -> OperationTypeDefinition"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["at -> Directive","lcurly"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an schema. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["schema"]
 		);
 
 	}
@@ -2286,10 +2593,14 @@ struct Parser {
 	}
 
 	OperationTypeDefinitions parseOperationTypeDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["O", "OCS", "OS"];
 		if(this.firstOperationTypeDefinition()) {
 			OperationTypeDefinition otd = this.parseOperationTypeDefinition();
+			subRules = ["OCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["OCS"];
 				if(this.firstOperationTypeDefinitions()) {
 					OperationTypeDefinitions follow = this.parseOperationTypeDefinitions();
 
@@ -2300,11 +2611,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an OperationTypeDefinitions. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["mutation -> OperationTypeDefinition","query -> OperationTypeDefinition","subscription -> OperationTypeDefinition"]
 				);
 
 			} else if(this.firstOperationTypeDefinitions()) {
@@ -2321,11 +2634,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an OperationTypeDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["mutation -> OperationType","query -> OperationType","subscription -> OperationType"]
 		);
 
 	}
@@ -2346,10 +2661,14 @@ struct Parser {
 	}
 
 	OperationTypeDefinition parseOperationTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["O"];
 		if(this.firstOperationType()) {
 			OperationType ot = this.parseOperationType();
+			subRules = ["O"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["O"];
 				if(this.lex.front.type == TokenType.name) {
 					Token nt = this.lex.front;
 					this.lex.popFront();
@@ -2361,31 +2680,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an name. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an OperationType. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["mutation","query","subscription"]
 		);
 
 	}
@@ -2406,11 +2731,15 @@ struct Parser {
 	}
 
 	ScalarTypeDefinition parseScalarTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["D", "S"];
 		if(this.lex.front.type == TokenType.scalar) {
 			this.lex.popFront();
+			subRules = ["D", "S"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["D"];
 				if(this.firstDirectives()) {
 					Directives dir = this.parseDirectives();
 
@@ -2425,21 +2754,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an scalar. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["scalar"]
 		);
 
 	}
@@ -2460,19 +2793,27 @@ struct Parser {
 	}
 
 	ObjectTypeDefinition parseObjectTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["D", "F", "I", "ID"];
 		if(this.lex.front.type == TokenType.type) {
 			this.lex.popFront();
+			subRules = ["D", "F", "I", "ID"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["I", "ID"];
 				if(this.firstImplementsInterfaces()) {
 					ImplementsInterfaces ii = this.parseImplementsInterfaces();
+					subRules = ["ID"];
 					if(this.firstDirectives()) {
 						Directives dir = this.parseDirectives();
+						subRules = ["ID"];
 						if(this.lex.front.type == TokenType.lcurly) {
 							this.lex.popFront();
+							subRules = ["ID"];
 							if(this.firstFieldDefinitions()) {
 								FieldDefinitions fds = this.parseFieldDefinitions();
+								subRules = ["ID"];
 								if(this.lex.front.type == TokenType.rcurly) {
 									this.lex.popFront();
 
@@ -2485,37 +2826,45 @@ struct Parser {
 								}
 								auto app = appender!string();
 								formattedWrite(app, 
-									"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-									this.lex.front, this.lex.line, this.lex.column
+									"Found a '%s' while looking for", 
+									this.lex.front
 								);
 								throw new ParseException(app.data,
-									__FILE__, __LINE__
+									__FILE__, __LINE__,
+									subRules,
+									["rcurly"]
 								);
 
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["name -> FieldDefinition"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["lcurly"]
 						);
 
 					} else if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["I"];
 						if(this.firstFieldDefinitions()) {
 							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["I"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -2527,39 +2876,48 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["at -> Directive","lcurly"]
 					);
 
 				} else if(this.firstDirectives()) {
 					Directives dir = this.parseDirectives();
+					subRules = ["D"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["D"];
 						if(this.firstFieldDefinitions()) {
 							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["D"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -2571,37 +2929,45 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["F"];
 					if(this.firstFieldDefinitions()) {
 						FieldDefinitions fds = this.parseFieldDefinitions();
+						subRules = ["F"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -2612,51 +2978,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name -> FieldDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an ImplementsInterfaces, Directives, or lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["implements","at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an type. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["type"]
 		);
 
 	}
@@ -2677,10 +3053,14 @@ struct Parser {
 	}
 
 	FieldDefinitions parseFieldDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["F", "FC", "FNC"];
 		if(this.firstFieldDefinition()) {
 			FieldDefinition fd = this.parseFieldDefinition();
+			subRules = ["FC"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["FC"];
 				if(this.firstFieldDefinitions()) {
 					FieldDefinitions follow = this.parseFieldDefinitions();
 
@@ -2691,11 +3071,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name -> FieldDefinition"]
 				);
 
 			} else if(this.firstFieldDefinitions()) {
@@ -2712,11 +3094,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an FieldDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -2737,15 +3121,21 @@ struct Parser {
 	}
 
 	FieldDefinition parseFieldDefinitionImpl() {
+		string[] subRules;
+		subRules = ["A", "AD", "D", "T"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["A", "AD"];
 			if(this.firstArgumentsDefinition()) {
 				ArgumentsDefinition arg = this.parseArgumentsDefinition();
+				subRules = ["A", "AD"];
 				if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
+					subRules = ["A", "AD"];
 					if(this.firstType()) {
 						Type typ = this.parseType();
+						subRules = ["AD"];
 						if(this.firstDirectives()) {
 							Directives dir = this.parseDirectives();
 
@@ -2764,27 +3154,33 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an Type. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lbrack -> ListType","name"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an colon. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["colon"]
 				);
 
 			} else if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["D", "T"];
 				if(this.firstType()) {
 					Type typ = this.parseType();
+					subRules = ["D"];
 					if(this.firstDirectives()) {
 						Directives dir = this.parseDirectives();
 
@@ -2801,31 +3197,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Type. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["lbrack -> ListType","name"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an ArgumentsDefinition, or colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["lparen","colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -2846,8 +3248,11 @@ struct Parser {
 	}
 
 	ImplementsInterfaces parseImplementsInterfacesImpl() {
+		string[] subRules;
+		subRules = ["N"];
 		if(this.lex.front.type == TokenType.implements) {
 			this.lex.popFront();
+			subRules = ["N"];
 			if(this.firstNamedTypes()) {
 				NamedTypes nts = this.parseNamedTypes();
 
@@ -2857,21 +3262,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an NamedTypes. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an implements. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["implements"]
 		);
 
 	}
@@ -2892,11 +3301,15 @@ struct Parser {
 	}
 
 	NamedTypes parseNamedTypesImpl() {
+		string[] subRules;
+		subRules = ["N", "NCS", "NS"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["NCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["NCS"];
 				if(this.firstNamedTypes()) {
 					NamedTypes follow = this.parseNamedTypes();
 
@@ -2907,11 +3320,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an NamedTypes. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			} else if(this.firstNamedTypes()) {
@@ -2928,11 +3343,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -2953,10 +3370,14 @@ struct Parser {
 	}
 
 	ArgumentsDefinition parseArgumentsDefinitionImpl() {
+		string[] subRules;
+		subRules = ["A"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["A"];
 			if(this.firstInputValueDefinitions()) {
 				this.parseInputValueDefinitions();
+				subRules = ["A"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -2965,31 +3386,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an rparen. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["rparen"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name -> InputValueDefinition"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an lparen. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["lparen"]
 		);
 
 	}
@@ -3010,10 +3437,14 @@ struct Parser {
 	}
 
 	InputValueDefinitions parseInputValueDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["I", "ICF", "IF"];
 		if(this.firstInputValueDefinition()) {
 			InputValueDefinition iv = this.parseInputValueDefinition();
+			subRules = ["ICF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["ICF"];
 				if(this.firstInputValueDefinitions()) {
 					InputValueDefinitions follow = this.parseInputValueDefinitions();
 
@@ -3024,11 +3455,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name -> InputValueDefinition"]
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
@@ -3045,11 +3478,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an InputValueDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -3070,15 +3505,21 @@ struct Parser {
 	}
 
 	InputValueDefinition parseInputValueDefinitionImpl() {
+		string[] subRules;
+		subRules = ["T", "TD", "TV", "TVD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["T", "TD", "TV", "TVD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["T", "TD", "TV", "TVD"];
 				if(this.firstType()) {
 					Type type = this.parseType();
+					subRules = ["TV", "TVD"];
 					if(this.firstDefaultValue()) {
 						DefaultValue df = this.parseDefaultValue();
+						subRules = ["TVD"];
 						if(this.firstDirectives()) {
 							Directives dirs = this.parseDirectives();
 
@@ -3110,31 +3551,37 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Type. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["lbrack -> ListType","name"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an colon. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["colon"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -3155,17 +3602,24 @@ struct Parser {
 	}
 
 	InterfaceTypeDefinition parseInterfaceTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["NDF", "NF"];
 		if(this.lex.front.type == TokenType.interface_) {
 			this.lex.popFront();
+			subRules = ["NDF", "NF"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDF"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
+					subRules = ["NDF"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDF"];
 						if(this.firstFieldDefinitions()) {
 							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["NDF"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -3177,37 +3631,45 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> FieldDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NF"];
 					if(this.firstFieldDefinitions()) {
 						FieldDefinitions fds = this.parseFieldDefinitions();
+						subRules = ["NF"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -3218,51 +3680,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an FieldDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name -> FieldDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an interface_. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["interface_"]
 		);
 
 	}
@@ -3283,15 +3755,21 @@ struct Parser {
 	}
 
 	UnionTypeDefinition parseUnionTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["NDU", "NU"];
 		if(this.lex.front.type == TokenType.union_) {
 			this.lex.popFront();
+			subRules = ["NDU", "NU"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDU"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
+					subRules = ["NDU"];
 					if(this.lex.front.type == TokenType.equal) {
 						this.lex.popFront();
+						subRules = ["NDU"];
 						if(this.firstUnionMembers()) {
 							UnionMembers um = this.parseUnionMembers();
 
@@ -3303,25 +3781,30 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an equal. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["equal"]
 					);
 
 				} else if(this.lex.front.type == TokenType.equal) {
 					this.lex.popFront();
+					subRules = ["NU"];
 					if(this.firstUnionMembers()) {
 						UnionMembers um = this.parseUnionMembers();
 
@@ -3332,41 +3815,49 @@ struct Parser {
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or equal. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","equal"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an union_. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["union_"]
 		);
 
 	}
@@ -3387,11 +3878,15 @@ struct Parser {
 	}
 
 	UnionMembers parseUnionMembersImpl() {
+		string[] subRules;
+		subRules = ["S", "SF", "SPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["SPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
+				subRules = ["SPF"];
 				if(this.firstUnionMembers()) {
 					UnionMembers follow = this.parseUnionMembers();
 
@@ -3402,11 +3897,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an UnionMembers. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			} else if(this.firstUnionMembers()) {
@@ -3423,11 +3920,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -3448,17 +3947,24 @@ struct Parser {
 	}
 
 	EnumTypeDefinition parseEnumTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.enum_) {
 			this.lex.popFront();
+			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDE"];
 				if(this.firstDirectives()) {
 					Directives dir = this.parseDirectives();
+					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDE"];
 						if(this.firstEnumValueDefinitions()) {
 							EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -3470,37 +3976,45 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> EnumValueDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NE"];
 					if(this.firstEnumValueDefinitions()) {
 						EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -3511,51 +4025,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name -> EnumValueDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an enum_. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["enum_"]
 		);
 
 	}
@@ -3576,10 +4100,14 @@ struct Parser {
 	}
 
 	EnumValueDefinitions parseEnumValueDefinitionsImpl() {
+		string[] subRules;
+		subRules = ["D", "DCE", "DE"];
 		if(this.firstEnumValueDefinition()) {
 			EnumValueDefinition evd = this.parseEnumValueDefinition();
+			subRules = ["DCE"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["DCE"];
 				if(this.firstEnumValueDefinitions()) {
 					EnumValueDefinitions follow = this.parseEnumValueDefinitions();
 
@@ -3590,11 +4118,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an EnumValueDefinitions. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name -> EnumValueDefinition"]
 				);
 
 			} else if(this.firstEnumValueDefinitions()) {
@@ -3611,11 +4141,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an EnumValueDefinition. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -3636,9 +4168,12 @@ struct Parser {
 	}
 
 	EnumValueDefinition parseEnumValueDefinitionImpl() {
+		string[] subRules;
+		subRules = ["E", "ED"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["ED"];
 			if(this.firstDirectives()) {
 				Directives dirs = this.parseDirectives();
 
@@ -3653,11 +4188,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -3678,17 +4215,24 @@ struct Parser {
 	}
 
 	InputTypeDefinition parseInputTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
+			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDE"];
 				if(this.firstDirectives()) {
 					Directives dir = this.parseDirectives();
+					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDE"];
 						if(this.firstInputValueDefinitions()) {
 							InputValueDefinitions ivds = this.parseInputValueDefinitions();
+							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -3700,37 +4244,45 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> InputValueDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NE"];
 					if(this.firstInputValueDefinitions()) {
 						InputValueDefinitions ivds = this.parseInputValueDefinitions();
+						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -3741,51 +4293,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name -> InputValueDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an input. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["input"]
 		);
 
 	}
@@ -3806,8 +4368,11 @@ struct Parser {
 	}
 
 	TypeExtensionDefinition parseTypeExtensionDefinitionImpl() {
+		string[] subRules;
+		subRules = ["O"];
 		if(this.lex.front.type == TokenType.extend) {
 			this.lex.popFront();
+			subRules = ["O"];
 			if(this.firstObjectTypeDefinition()) {
 				ObjectTypeDefinition otd = this.parseObjectTypeDefinition();
 
@@ -3817,21 +4382,25 @@ struct Parser {
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an ObjectTypeDefinition. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["type"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an extend. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["extend"]
 		);
 
 	}
@@ -3852,17 +4421,24 @@ struct Parser {
 	}
 
 	DirectiveDefinition parseDirectiveDefinitionImpl() {
+		string[] subRules;
+		subRules = ["AD", "D"];
 		if(this.lex.front.type == TokenType.directive) {
 			this.lex.popFront();
+			subRules = ["AD", "D"];
 			if(this.lex.front.type == TokenType.at) {
 				this.lex.popFront();
+				subRules = ["AD", "D"];
 				if(this.lex.front.type == TokenType.name) {
 					Token name = this.lex.front;
 					this.lex.popFront();
+					subRules = ["AD"];
 					if(this.firstArgumentsDefinition()) {
 						ArgumentsDefinition ad = this.parseArgumentsDefinition();
+						subRules = ["AD"];
 						if(this.lex.front.type == TokenType.on_) {
 							this.lex.popFront();
+							subRules = ["AD"];
 							if(this.firstDirectiveLocations()) {
 								DirectiveLocations dl = this.parseDirectiveLocations();
 
@@ -3874,25 +4450,30 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["name"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an on_. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["on_"]
 						);
 
 					} else if(this.lex.front.type == TokenType.on_) {
 						this.lex.popFront();
+						subRules = ["D"];
 						if(this.firstDirectiveLocations()) {
 							DirectiveLocations dl = this.parseDirectiveLocations();
 
@@ -3903,51 +4484,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an ArgumentsDefinition, or on_. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lparen","on_"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an name. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an at. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["at"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an directive. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["directive"]
 		);
 
 	}
@@ -3968,11 +4559,15 @@ struct Parser {
 	}
 
 	DirectiveLocations parseDirectiveLocationsImpl() {
+		string[] subRules;
+		subRules = ["N", "NF", "NPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["NPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
+				subRules = ["NPF"];
 				if(this.firstDirectiveLocations()) {
 					DirectiveLocations follow = this.parseDirectiveLocations();
 
@@ -3983,11 +4578,13 @@ struct Parser {
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an DirectiveLocations. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["name"]
 				);
 
 			} else if(this.firstDirectiveLocations()) {
@@ -4004,11 +4601,13 @@ struct Parser {
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an name. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["name"]
 		);
 
 	}
@@ -4029,17 +4628,24 @@ struct Parser {
 	}
 
 	InputObjectTypeDefinition parseInputObjectTypeDefinitionImpl() {
+		string[] subRules;
+		subRules = ["NDI", "NI"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
+			subRules = ["NDI", "NI"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDI"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
+					subRules = ["NDI"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDI"];
 						if(this.firstInputValueDefinitions()) {
 							this.parseInputValueDefinitions();
+							subRules = ["NDI"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -4050,37 +4656,45 @@ struct Parser {
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
-								"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-								this.lex.front, this.lex.line, this.lex.column
+								"Found a '%s' while looking for", 
+								this.lex.front
 							);
 							throw new ParseException(app.data,
-								__FILE__, __LINE__
+								__FILE__, __LINE__,
+								subRules,
+								["rcurly"]
 							);
 
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["name -> InputValueDefinition"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an lcurly. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
 					);
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NI"];
 					if(this.firstInputValueDefinitions()) {
 						this.parseInputValueDefinitions();
+						subRules = ["NI"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -4090,51 +4704,61 @@ struct Parser {
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
-							"Was expecting an rcurly. Found a '%s' at %s:%s.", 
-							this.lex.front, this.lex.line, this.lex.column
+							"Found a '%s' while looking for", 
+							this.lex.front
 						);
 						throw new ParseException(app.data,
-							__FILE__, __LINE__
+							__FILE__, __LINE__,
+							subRules,
+							["rcurly"]
 						);
 
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
-						"Was expecting an InputValueDefinitions. Found a '%s' at %s:%s.", 
-						this.lex.front, this.lex.line, this.lex.column
+						"Found a '%s' while looking for", 
+						this.lex.front
 					);
 					throw new ParseException(app.data,
-						__FILE__, __LINE__
+						__FILE__, __LINE__,
+						subRules,
+						["name -> InputValueDefinition"]
 					);
 
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
-					"Was expecting an Directives, or lcurly. Found a '%s' at %s:%s.", 
-					this.lex.front, this.lex.line, this.lex.column
+					"Found a '%s' while looking for", 
+					this.lex.front
 				);
 				throw new ParseException(app.data,
-					__FILE__, __LINE__
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
 				);
 
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
-				"Was expecting an name. Found a '%s' at %s:%s.", 
-				this.lex.front, this.lex.line, this.lex.column
+				"Found a '%s' while looking for", 
+				this.lex.front
 			);
 			throw new ParseException(app.data,
-				__FILE__, __LINE__
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
 			);
 
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
-			"Was expecting an input. Found a '%s' at %s:%s.", 
-			this.lex.front, this.lex.line, this.lex.column
+			"Found a '%s' while looking for", 
+			this.lex.front
 		);
 		throw new ParseException(app.data,
-			__FILE__, __LINE__
+			__FILE__, __LINE__,
+			subRules,
+			["input"]
 		);
 
 	}

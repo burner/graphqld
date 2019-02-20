@@ -4,10 +4,8 @@
 		"burner"
 	],
 	"dependencies" : {
-		"fixedsizearray": ">=1.0.3",
-		"taggedalgebraic": ">=0.10.7"
+		"fixedsizearray": ">=1.2.0"
 	},
-	"dflags": ["-dip1000", "-dip25"],
 	"description": "A vibe.d library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2017, burner",
 	"license": "LGPL3"

@@ -1,5 +1,7 @@
 module types;
 
+__EOF__
+
 import std.typecons : Flag;
 public import taggedalgebraic;
 

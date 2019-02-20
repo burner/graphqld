@@ -172,20 +172,6 @@ struct Lexer {
 											this.cur = Token(TokenType.type,
 													this.line, this.column);
 											return;
-										} else if(this.testCharAndInc('n', e)) {
-											if(this.testCharAndInc('a', e)) {
-												if(this.testCharAndInc('m', e)) {
-													if(this.testCharAndInc('e', e)) {
-														if(this.isTokenStop()) {
-															this.cur =
-																Token(TokenType.typename,
-																		this.line,
-																		this.column);
-															return;
-														}
-													}
-												}
-											}
 										}
 									}
 								}
