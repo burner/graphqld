@@ -1,5 +1,7 @@
 import vibe.vibe;
+import vibe.data.json;
 
+import std.traits;
 import std.algorithm;
 import testdata;
 
@@ -59,8 +61,16 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 					string retMsg = "{\"data\" : { \"starships\" :[" ~ database.ships.map!(
 						delegate(Starship s) {
 							Json ret = Json.emptyObject;
-							ret["id"] = s.id;
-							ret["designation"] = s.designation;
+							foreach(ss; jt.selectionSet()) {
+								static foreach(shipF; FieldNameTuple!(Starship)) {{
+									alias Type = typeof(__traits(getMember, s, shipF));
+									static if(isSomeString!(Type) || !isArray!(Type)) {
+										if(ss.name() == shipF) {
+											ret[ss.name()] = serializeToJson(__traits(getMember, s, shipF));
+										}
+									}
+								}}
+							}
 							return ret.toString();
 						}
 					).joiner(", ").to!string() ~ "]}}";
