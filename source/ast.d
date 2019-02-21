@@ -94,6 +94,10 @@ class Definition {
 
 enum OperationDefinitionEnum {
 	SelSet,
+	OT_N_VD,
+	OT_N_V,
+	OT_N_D,
+	OT_N,
 	OT_VD,
 	OT_V,
 	OT_D,
@@ -142,6 +146,34 @@ class OperationDefinition {
 		this.ruleSelection = ruleSelection;
 		this.ot = ot;
 		this.name = name;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, VariableDefinitions vd, Directives d, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.vd = vd;
+		this.d = d;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, VariableDefinitions vd, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.vd = vd;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, Directives d, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
+		this.d = d;
+		this.ss = ss;
+	}
+
+	this(OperationDefinitionEnum ruleSelection, OperationType ot, SelectionSet ss) {
+		this.ruleSelection = ruleSelection;
+		this.ot = ot;
 		this.ss = ss;
 	}
 

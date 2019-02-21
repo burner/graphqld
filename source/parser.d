@@ -183,21 +183,21 @@ struct Parser {
 			);
 		} else if(this.firstOperationType()) {
 			OperationType ot = this.parseOperationType();
-			subRules = ["OT", "OT_D", "OT_V", "OT_VD"];
+			subRules = ["OT_N", "OT_N_D", "OT_N_V", "OT_N_VD"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["OT_V", "OT_VD"];
+				subRules = ["OT_N_V", "OT_N_VD"];
 				if(this.firstVariableDefinitions()) {
 					VariableDefinitions vd = this.parseVariableDefinitions();
-					subRules = ["OT_VD"];
+					subRules = ["OT_N_VD"];
 					if(this.firstDirectives()) {
 						Directives d = this.parseDirectives();
-						subRules = ["OT_VD"];
+						subRules = ["OT_N_VD"];
 						if(this.firstSelectionSet()) {
 							SelectionSet ss = this.parseSelectionSet();
 
-							return new OperationDefinition(OperationDefinitionEnum.OT_VD
+							return new OperationDefinition(OperationDefinitionEnum.OT_N_VD
 								, ot
 								, name
 								, vd
@@ -219,7 +219,7 @@ struct Parser {
 					} else if(this.firstSelectionSet()) {
 						SelectionSet ss = this.parseSelectionSet();
 
-						return new OperationDefinition(OperationDefinitionEnum.OT_V
+						return new OperationDefinition(OperationDefinitionEnum.OT_N_V
 							, ot
 							, name
 							, vd
@@ -239,11 +239,11 @@ struct Parser {
 
 				} else if(this.firstDirectives()) {
 					Directives d = this.parseDirectives();
-					subRules = ["OT_D"];
+					subRules = ["OT_N_D"];
 					if(this.firstSelectionSet()) {
 						SelectionSet ss = this.parseSelectionSet();
 
-						return new OperationDefinition(OperationDefinitionEnum.OT_D
+						return new OperationDefinition(OperationDefinitionEnum.OT_N_D
 							, ot
 							, name
 							, d
@@ -264,7 +264,7 @@ struct Parser {
 				} else if(this.firstSelectionSet()) {
 					SelectionSet ss = this.parseSelectionSet();
 
-					return new OperationDefinition(OperationDefinitionEnum.OT
+					return new OperationDefinition(OperationDefinitionEnum.OT_N
 						, ot
 						, name
 						, ss
@@ -281,6 +281,83 @@ struct Parser {
 					["lparen","at -> Directive","lcurly"]
 				);
 
+			} else if(this.firstVariableDefinitions()) {
+				VariableDefinitions vd = this.parseVariableDefinitions();
+				subRules = ["OT_VD"];
+				if(this.firstDirectives()) {
+					Directives d = this.parseDirectives();
+					subRules = ["OT_VD"];
+					if(this.firstSelectionSet()) {
+						SelectionSet ss = this.parseSelectionSet();
+
+						return new OperationDefinition(OperationDefinitionEnum.OT_VD
+							, ot
+							, vd
+							, d
+							, ss
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"Found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["lcurly"]
+					);
+
+				} else if(this.firstSelectionSet()) {
+					SelectionSet ss = this.parseSelectionSet();
+
+					return new OperationDefinition(OperationDefinitionEnum.OT_V
+						, ot
+						, vd
+						, ss
+					);
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"Found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["at -> Directive","lcurly"]
+				);
+
+			} else if(this.firstDirectives()) {
+				Directives d = this.parseDirectives();
+				subRules = ["OT_D"];
+				if(this.firstSelectionSet()) {
+					SelectionSet ss = this.parseSelectionSet();
+
+					return new OperationDefinition(OperationDefinitionEnum.OT_D
+						, ot
+						, d
+						, ss
+					);
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"Found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["lcurly"]
+				);
+
+			} else if(this.firstSelectionSet()) {
+				SelectionSet ss = this.parseSelectionSet();
+
+				return new OperationDefinition(OperationDefinitionEnum.OT
+					, ot
+					, ss
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -290,7 +367,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name"]
+				["name","lparen","at -> Directive","lcurly"]
 			);
 
 		}

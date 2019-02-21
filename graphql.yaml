@@ -12,10 +12,14 @@ Definition:
 
 OperationDefinition:
     SelSet: [SelectionSet#ss] 
-    OT_VD: [OperationType#ot, name#name, VariableDefinitions#vd, Directives#d, SelectionSet#ss]
-    OT_V: [OperationType#ot, name#name, VariableDefinitions#vd, SelectionSet#ss]
-    OT_D: [OperationType#ot, name#name, Directives#d, SelectionSet#ss]
-    OT: [OperationType#ot, name#name, SelectionSet#ss]
+    OT_N_VD: [OperationType#ot, name#name, VariableDefinitions#vd, Directives#d, SelectionSet#ss]
+    OT_N_V: [OperationType#ot, name#name, VariableDefinitions#vd, SelectionSet#ss]
+    OT_N_D: [OperationType#ot, name#name, Directives#d, SelectionSet#ss]
+    OT_N: [OperationType#ot, name#name, SelectionSet#ss]
+    OT_VD: [OperationType#ot, VariableDefinitions#vd, Directives#d, SelectionSet#ss]
+    OT_V: [OperationType#ot, VariableDefinitions#vd, SelectionSet#ss]
+    OT_D: [OperationType#ot, Directives#d, SelectionSet#ss]
+    OT: [OperationType#ot, SelectionSet#ss]
 
 SelectionSet:
    SS: [lcurly, Selections#sel, rcurly]
