@@ -1,6 +1,7 @@
 module schema;
 
 import std.stdio;
+import std.format;
 import std.traits;
 import std.typecons;
 import std.range;
@@ -99,21 +100,26 @@ Json toSchema(Type)() {
 		tmp["operations"] = Json.emptyArray();
 		static foreach(mem; __traits(allMembers, QMSType)) {{
 			alias MemType = typeof(__traits(getMember, QMSType, mem));
-			static if(isCallable!(MemType)) {
+			static if(isCallable!(MemType)) {{
 				Json op = Json.emptyObject();
 				op["name"] = mem;
 				op["returnType"] = typeToJson!(ReturnType!(MemType))(ret);
 				op["arguments"] = Json.emptyArray();
 
 				enum pIds = ParameterIdentifierTuple!(MemType);
+				writeln(pIds);
     			alias ps = Parameters!(MemType);
     			static foreach(idx, p; ps) {{
-					Json p = Json.emptyObject();
-					p["name"] = pIds[idx];
-					op["arguments"] ~= p;
+					assert(!pIds[idx].empty,
+						format("%s [%(%s,%)] %s", mem, pIds, ps.length)
+					);
+					Json args = Json.emptyObject();
+					args["name"] = pIds[idx];
+					args["type"] = typeToJson!(p)(ret);
+					op["arguments"] ~= args;
     			}}
 				tmp["operations"] ~= op;
-			}
+			}}
 		}}
 		ret[qms] = tmp;
 	}}
