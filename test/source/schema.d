@@ -123,7 +123,7 @@ Json toSchema(Type)() {
 				op["name"] = mem;
 				op["returnType"] = typeToJson!(ReturnType!(MemType))(ret);
 				op["arguments"] = funcParams!(QMSType, mem)(ret);
-				tmp["opereations"] ~= op;
+				tmp["operations"] ~= op;
 			}}
 		}}
 		ret[qms] = tmp;
