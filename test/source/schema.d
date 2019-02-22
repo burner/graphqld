@@ -86,6 +86,24 @@ Json typeToJson(T)(ref Json toStoreNewTypes) {
 	return ret;
 }
 
+Json funcParams(Type, string mem)(ref Json toStoreNewTypes) {
+	Json op = Json.emptyArray();
+	enum pIds = ParameterIdentifierTuple!(__traits(getMember, Type, mem));
+	writeln(pIds);
+    alias ps = Parameters!(__traits(getMember, Type, mem));
+    static foreach(idx, p; ps) {{
+		assert(!pIds[idx].empty,
+			format("%s [%(%s,%)] %s", Type.stringof, pIds,
+				ps.length)
+		);
+		Json args = Json.emptyObject();
+		args["name"] = pIds[idx];
+		args["type"] = typeToJson!(p)(toStoreNewTypes);
+		op ~= args;
+    }}
+	return op;
+}
+
 Json toSchema(Type)() {
 	Json ret = Json.emptyObject();
 	ret["types"] = Json.emptyObject();
@@ -104,21 +122,8 @@ Json toSchema(Type)() {
 				Json op = Json.emptyObject();
 				op["name"] = mem;
 				op["returnType"] = typeToJson!(ReturnType!(MemType))(ret);
-				op["arguments"] = Json.emptyArray();
-
-				enum pIds = ParameterIdentifierTuple!(MemType);
-				writeln(pIds);
-    			alias ps = Parameters!(MemType);
-    			static foreach(idx, p; ps) {{
-					assert(!pIds[idx].empty,
-						format("%s [%(%s,%)] %s", mem, pIds, ps.length)
-					);
-					Json args = Json.emptyObject();
-					args["name"] = pIds[idx];
-					args["type"] = typeToJson!(p)(ret);
-					op["arguments"] ~= args;
-    			}}
-				tmp["operations"] ~= op;
+				op["arguments"] = funcParams!(QMSType, mem)(ret);
+				tmp["opereations"] ~= op;
 			}}
 		}}
 		ret[qms] = tmp;
