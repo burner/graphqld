@@ -20,6 +20,18 @@ import testdata;
 
 Data database;
 
+struct StackElem {
+	Json json;
+	const(Field) field;
+}
+
+string pathStackToResolve(StackElem[] stack) {
+	return stack .map!(e => to!string(e.field.name.name.value))
+			.joiner(".")
+			.to!string();
+}
+
+
 class Resolver(Impl) : Visitor {
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -31,13 +43,6 @@ class Resolver(Impl) : Visitor {
 
 	this(Impl impl) {
 		this.impl = impl;
-	}
-
-	string pathStackToResolve() {
-		return pathStack
-				.map!(f => to!string(f.name.name.value))
-				.joiner(".")
-				.to!string();
 	}
 
 	override void enter(const(OperationDefinition) op) {
