@@ -31,7 +31,7 @@ interface Subscription {
 	Character crewmanAdded(Series series);
 }
 
-class Interface {
+class Schema {
 	Query query;
 	Mutation mutation;
 	Subscription subscription;
@@ -72,7 +72,7 @@ class Humanoid : Character {
 					~ " series[%(%s,%)], commands[%(%s,%)], ship(%s)),"
 					~ " commanders[%(%s,%)]")
 			(
-				id, name, species, series, commands.map!(a => a.name), 
+				id, name, species, series, commands.map!(a => a.name),
 				ship ? ship.designation : "", commanders.map!(a => a.name)
 			);
 	}
@@ -90,7 +90,7 @@ class Android : Character {
 		return format!("Android(id(%d), name(%s), function(%s), series[%(%s,%)], "
 					~ " commands[%(%s,%)], ship(%s)), commanders[%(%s,%)]")
 			(
-				id, name, primaryFunction, series, commands.map!(a => a.name), 
+				id, name, primaryFunction, series, commands.map!(a => a.name),
 				ship ? ship.designation : "", commanders.map!(a => a.name)
 			);
 	}
@@ -115,7 +115,7 @@ class Starship {
 		return format!("Ship(id(%d), designation(%s), size(%.2f), "
 					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
 			(
-				 id, designation, size, commander.name, series, 
+				 id, designation, size, commander.name, series,
 				 crew.map!(a => a.name)
 			);
 	}
@@ -259,11 +259,11 @@ class Data {
 		this.ships.back.crew ~= discovery;
 		discovery.map!(a => a.ship = nullable(this.ships.back)).each;
 
-		this.chars = 
+		this.chars =
 			joiner([
-				cast(Character[])[picard, sisko, janeway, archer, kirk, georgiou], 
-				cast(Character[])tng, cast(Character[])ds9, 
-				cast(Character[])voyager, cast(Character[])enterprise, 
+				cast(Character[])[picard, sisko, janeway, archer, kirk, georgiou],
+				cast(Character[])tng, cast(Character[])ds9,
+				cast(Character[])voyager, cast(Character[])enterprise,
 				cast(Character[])tos, cast(Character[])discovery
 			])
 			.array;

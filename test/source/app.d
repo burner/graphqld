@@ -17,66 +17,98 @@ import visitor;
 import treevisitor;
 
 import testdata;
+import schema;
 
 Data database;
 
 struct StackElem {
 	Json json;
-	const(Field) field;
+	string name;
+	bool isQuery;
+	//const(Field) field;
+
+	bool isArray() const {
+		return this.json.type == Json.Type.object
+			&& "data" in this.json
+			&& this.json["data"].type == Json.Type.array;
+	}
+
+	void makeSureExists() {
+		if(this.json.type != Json.Type.object) {
+			this.json = Json.emptyObject();
+		}
+	}
+
+	void putData(Json data) {
+		this.makeSureExists();
+		this.json["data"] = data;
+	}
+
+	void putError(Json data) {
+		this.makeSureExists();
+		this.json["error"] = data;
+	}
 }
 
 string pathStackToResolve(StackElem[] stack) {
-	return stack .map!(e => to!string(e.field.name.name.value))
+	return stack.map!(e => to!string(e.name))
+			.filter!(e => !e.empty)
 			.joiner(".")
 			.to!string();
 }
 
+void push(ref StackElem[] stack) {
+	StackElem elem;
+	stack ~= elem;
+}
+
+Json getParentData(ref StackElem[] stack) {
+	return (stack.length > 1) ? stack[$ - 1].json : Json.emptyObject;
+}
 
 class Resolver(Impl) : Visitor {
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
 
 	Impl impl;
-	bool isQuery;
-	Json[] dataStack;
-	const(Field)[] pathStack;
+	StackElem[] stack;
+	Json ret;
 
 	this(Impl impl) {
 		this.impl = impl;
 	}
 
-	override void enter(const(OperationDefinition) op) {
-		writefln("Entering operation definition %s", op.ruleSelection);
-		this.isQuery = op.ruleSelection == OperationDefinitionEnum.SelSet;
+	Json resolve(Document doc) {
+		return this.resolve(cast(const(Document))doc);
 	}
 
-	override void exit(const(OperationDefinition) op) {
-		writefln("Exiting operation definition %s was query %s",
-				op.ruleSelection, this.isQuery);
-	}
+	Json resolve(const(Document) doc) {
+		this.ret = Json.emptyObject();
+		this.ret["data"] = Json.emptyObject();
+		this.ret["error"] = Json.emptyObject();
 
-	override void enter(const(OperationType) opType) {
-		this.isQuery = opType.ruleSelection == OperationTypeEnum.Query 
-			? true
-			: this.isQuery;
+		this.accept(doc);
+		return ret;
 	}
 
 	override void enter(const(Selection) sel) {
-		if(this.isQuery && sel.ruleSelection == SelectionEnum.Field) {
-			this.pathStack ~= sel.field;
-			string path = this.pathStackToResolve();
-			writefln("Resolving %s", path);
-			QueryReturnValue value = 
-				this.impl.executeQuery(path,
-					this.dataStack, Json.emptyObject()
-				);
-			writeln(value);
-		}
+		this.stack.push();
 	}
 
 	override void exit(const(Selection) sel) {
-		if(this.isQuery && sel.ruleSelection == SelectionEnum.Field) {
-			this.pathStack.popBack();
+		this.stack.popBack();
+	}
+
+	override void enter(const(Field) sel) {
+		this.stack.back.name = sel.name.name.value;
+		string p = this.stack.pathStackToResolve();
+		QueryReturnValue qrv =
+			this.impl.executeQuery(p, this.stack.getParentData(),
+				Json.emptyObject
+			);
+		writefln("%s %s",p, qrv);
+		if(qrv.data.type != Json.Type.undefined) {
+			this.stack.back.putData(qrv.data["data"]);
 		}
 	}
 }
@@ -107,7 +139,7 @@ Document parseGraph(HTTPServerRequest req) {
 
 class GraphqlServerImpl(QContext) {
 	alias QueryContext = QContext;
-	alias QueryResolver = QueryReturnValue delegate(Json[] parentStack, 
+	alias QueryResolver = QueryReturnValue delegate(Json parent,
 			Json args, QueryContext context);
 
 	Resolver!(typeof(this)) resolver;
@@ -118,11 +150,11 @@ class GraphqlServerImpl(QContext) {
 		this.resolver = new Resolver!(typeof(this))(this);
 	}
 
-	QueryReturnValue executeQuery(string path, Json[] parentStack, Json args) 
+	QueryReturnValue executeQuery(string path, Json parent, Json args)
 	{
 		QueryReturnValue value;
 		if(path in this.queryResolver) {
-			value = this.queryResolver[path](parentStack, args, context);
+			value = this.queryResolver[path](parent, args, context);
 		}
 		return value;
 	}
@@ -160,11 +192,15 @@ void main() {
 	server = new GraphqlServer();
  	database = new Data();
 
+	Json sch = toSchema!Schema();
+	writeln(sch.toPrettyString());
+
 	// starships resolver
-	server.queryResolver["starships"] = delegate(Json[] parentStack, 
-			Json args, GraphqlServer.QueryContext context) 
+	server.queryResolver["starships"] = delegate(Json parent,
+			Json args, GraphqlServer.QueryContext context)
 	{
-		auto ret = QueryReturnValue();
+		QueryReturnValue ret;
+		ret.data = Json.emptyObject;
 		ret.data["data"] = Json.emptyArray;
 		foreach(ship; database.ships) {
 			Json tmp = Json.emptyObject;
