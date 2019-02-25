@@ -13,6 +13,7 @@ import parser;
 import builder;
 import lexer;
 import ast;
+import tokenmodule;
 import visitor;
 import treevisitor;
 
@@ -188,14 +189,274 @@ alias GraphqlServer = GraphqlServerImpl!(DefaultContext);
 
 GraphqlServer server;
 
+class GraphQLD(T, QContext = DefaultContext) {
+	alias QueryContext = QContext;
+	alias QueryResolver = Json delegate(Json parent,
+			Json args, QueryContext context);
+
+	QueryResolver[string][string] resolver;
+
+	Json jsonSchema;
+	Document doc;
+
+	QueryContext dummy;
+
+	this() {
+		this.jsonSchema = toSchema!T();
+		writeln(this.jsonSchema.toPrettyString());
+	}
+
+	Json execute(Document doc) {
+		this.doc = doc;
+		OperationDefinition opDef = this.getOperation(this.doc, "");
+		return this.executeRequest(opDef, Json.emptyObject(),
+				Json.emptyObject()
+			);
+	}
+
+	void setResolver(string type, string field, QueryResolver qr) {
+		if(type !in this.resolver) {
+			this.resolver[type] = QueryResolver[string].init;
+		}
+		this.resolver[type][field] = qr;
+	}
+
+	OperationDefinition[] getOperations(Document doc) {
+		return opDefRange(doc).map!(op => op.def.op).array;
+	}
+
+	OperationDefinition getOperation(Document doc, string name) {
+		OperationDefinition[] ops = this.getOperations(doc);
+		if(name.empty) {
+			if(ops.length == 1) {
+				return ops.front;
+			}
+			throw new Exception("name required");
+		}
+		auto ret = ops.find!(op => op.name.value == name)();
+		if(ret.empty) {
+			throw new Exception("operation not found");
+		}
+		return ret.front;
+	}
+
+	Json executeRequest(OperationDefinition op, Json coervedVariablesValues,
+			Json initialValue)
+	{
+		if(op.ruleSelection == OperationDefinitionEnum.SelSet
+				|| op.ot.tok.type == TokenType.query)
+		{
+			return this.executeQuery(op, coervedVariablesValues, initialValue);
+		} else if(op.ot.tok.type == TokenType.mutation) {
+			assert(false, "Mutation not supported yet");
+		} else if(op.ot.tok.type == TokenType.subscription) {
+			assert(false, "Subscription not supported yet");
+		}
+		assert(false, "Unexpected");
+	}
+
+	Json executeQuery(OperationDefinition op, Json coervedVariablesValues,
+			Json initialValue)
+	{
+		Json ret = Json.emptyObject();
+		ret["data"] = Json.emptyObject();
+		ret["error"] = Json.emptyArray();
+		assert("query" in jsonSchema);
+		Json queryType = jsonSchema["query"];
+
+		FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
+		Json selSetRet = this.executeSelectionSet(selSet, queryType,
+				coervedVariablesValues, initialValue);
+		ret["data"] = selSetRet;
+
+		return ret;
+	}
+
+	Json executeSelectionSet(FieldRangeItem[] selectionSet, Json objectType,
+			Json coervedVariablesValues, Json initialValue)
+	{
+		Json ret = Json.emptyObject;
+		foreach(FieldRangeItem field; selectionSet) {
+			string fieldName = field.aka.empty ? field.name : field.aka;
+
+			string objectTypeName = objectType["name"].get!string();
+			if(field.name in this.resolver[objectTypeName]) {
+				Json responseValue = this.executeField(objectType, initialValue,
+						field, coervedVariablesValues);
+				ret[fieldName] = responseValue;
+			}
+		}
+		return ret;
+	}
+
+	Json executeField(Json objectType, Json objectValue, FieldRangeItem field,
+			Json coervedVariablesValues)
+	{
+		Json arguments = Json.emptyObject(); // this.coerceArgumentValue
+		Json resolvedValue = this.resolveFieldValue(field, objectValue,
+				objectType, arguments);
+		return this.completeValue(field, resolvedValue,
+				objectType["members"][field.name]["type"],
+				coervedVariablesValues);
+	}
+
+	// Calling the callback in here
+	Json resolveFieldValue(FieldRangeItem field, Json objectValue,
+			Json objectType, Json arguments)
+	{
+		string objectTypeName = objectType["name"].get!string();
+		writefln("%s %s %s", __LINE__, objectTypeName,
+				objectType.toPrettyString()
+			);
+		assert(objectTypeName in this.resolver);
+		assert(field.name in this.resolver[objectTypeName]);
+		Json tmp = this.resolver[objectTypeName][field.name]
+			(objectValue, arguments, this.dummy);
+		return this.completeValue(field, tmp["data"],
+				objectType["members"][field.name]["type"],
+				arguments
+			);
+	}
+
+	Json completeValue(FieldRangeItem field, Json objectValue,
+			Json objectType, Json coervedVariablesValues)
+	{
+		/*if(!objectType.isNullable()) {
+			Json completed = this.completeValue(field, objectValue,
+					objectType.removeNullable(), coervedVariablesValues
+				);
+			if(completed.type == Json.Type.undefined
+					|| completed.type == Json.Type.null_)
+			{
+				throw new Exception(
+						"Can not return null value for non-nullable"
+					);
+			}
+			return completed;
+		}
+
+		if(objectValue.type == Json.Type.undefined
+				|| objectValue.type == Json.Type.null_)
+		{
+			return objectValue;
+		}
+
+		if(objectType.isList()) {
+			return this.completeListValue(field, objectValue,
+					objectType, coervedVariablesValues
+				);
+		}
+
+		if(objectType.isLeaf()) {
+			return objectValue;
+		}
+
+		if(objectType.isObject()) {
+			return this.completeObjectValue(field, objectType, objectValue,
+					coervedVariablesValues
+				);
+		}
+		assert(false, "Should never happen");
+		*/
+		if(objectType.isList()) {
+			Json ret = Json.emptyArray();
+			Json subObjectType = this.schema.getTypeByName(
+					objectType.typeName()
+				);
+			foreach(item; objectValue.array()) {
+				ret ~= completeValue(field, item, subObjectType,
+							coervedVariablesValues
+						);
+			}
+			return ret;
+		}
+	}
+
+	Json completeObjectValue(FieldRangeItem field, Json objectValue,
+			Json objectType, Json coervedVariablesValues)
+	{
+		writefln("%s %s %s", __LINE__, objectType.toPrettyString(),
+				objectValue.toPrettyString());
+
+		return this.collectAndExecuteSubfields(field, objectValue, objectType,
+				coervedVariablesValues
+			);
+
+	}
+
+	Json collectAndExecuteSubfields(FieldRangeItem field, Json objectValue,
+			Json objectType, Json coervedVariablesValues)
+	{
+	}
+
+	/*Json completeValue(FieldRangeItem field, Json objectValue,
+			Json objectType, Json coervedVariablesValues)
+	{
+		writefln("<<<%s %s %s>>>", __LINE__, objectValue.toPrettyString(),
+				objectType.toPrettyString());
+		Json ret;
+		if(objectType.isList()) {
+			string innerTypeName = objectType.typeName();
+			Json innerType = this.jsonSchema.getTypeByName(innerTypeName);
+			writefln("%s %s %s", __LINE__, innerTypeName,
+					innerType.toPrettyString()
+				);
+			ret = Json.emptyArray();
+			if(field.hasSelectionSet()) {
+				foreach(item; objectValue.array()) {
+					writefln("%s %s", __LINE__, item.toPrettyString());
+					Json tmp = Json.emptyObject();
+					foreach(FieldRangeItem s; field.selectionSet()) {
+						writefln("%s %s %s %s", __LINE__, s.name,
+								innerType["members"].type,
+								innerType["members"].toPrettyString());
+						if(s.name in innerType["members"]) {
+							writefln("%s %s %s", __LINE__, item.toPrettyString(),
+									item[s.name]);
+							tmp[s.name] = item[s.name];
+						}
+					}
+					ret ~= tmp;
+				}
+			}
+		}
+		writefln("%s %s", __LINE__, ret.toPrettyString());
+		return ret;
+	}*/
+
+}
+
+GraphQLD!(Schema) graphqld;
+
 void main() {
 	server = new GraphqlServer();
+	graphqld = new GraphQLD!Schema();
  	database = new Data();
 
-	Json sch = toSchema!Schema();
-	writeln(sch.toPrettyString());
+	//Json sch = toSchema!Schema();
+	//writeln(sch.toPrettyString());
 
 	// starships resolver
+	graphqld.setResolver("query", "starships", delegate(Json parent,
+			Json args, GraphqlServer.QueryContext context)
+	{
+		Json ret = Json.emptyObject;
+		ret["data"] = Json.emptyObject;
+		ret["data"] = Json.emptyArray;
+		foreach(ship; database.ships) {
+			Json tmp = Json.emptyObject;
+			static foreach(mem; [ "id", "designation", "size"]) {
+				tmp[mem] = __traits(getMember, ship, mem);
+			}
+			tmp["commanderId"] = ship.commander.id;
+			tmp["crewIds"] = serializeToJson(ship.crew.map!(c => c.id).array);
+			tmp["series"] = serializeToJson(ship.series);
+
+			ret["data"] ~= tmp;
+		}
+		return ret;
+	});
+
 	server.queryResolver["starships"] = delegate(Json parent,
 			Json args, GraphqlServer.QueryContext context)
 	{
@@ -252,7 +513,10 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	auto tv = new TreeVisitor(0);
 	tv.accept(cast(const(Document))d);
 
-	auto dr = opDefRange(d);
+	Json gqld = graphqld.execute(d);
+	writeln(gqld.toPrettyString());
+
+	/*auto dr = opDefRange(d);
 	foreach(it; dr) {
 		//writeln("Def range ", it.fieldRange().empty);
 		foreach(jt; it.fieldRange()) {
@@ -289,8 +553,8 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 				}
 			}
 		}
-	}
+	}*/
 	//writeln(ret);
 
-	res.writeJsonBody(ret);
+	res.writeJsonBody(gqld);
 }

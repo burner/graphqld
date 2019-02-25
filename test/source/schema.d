@@ -27,15 +27,14 @@ void dtypeToGraphql(T)(ref Json toStoreNewTypes) {
 		ret["name"] = buildInToGraphql!(T);
 	} else {
 		toStoreNewTypes["types"][T.stringof] = Json.emptyObject();
-		writeln(T.stringof);
 		ret["name"] = T.stringof;
-		ret["members"] = Json.emptyArray;
+		ret["members"] = Json.emptyObject;
 		enum fieldNames = FieldNameTuple!(T);
 		static foreach(idx, field; Fields!(T)) {{
 			Json t = Json.emptyObject();
 			t["name"] = fieldNames[idx];
 			t["type"] = typeToJson!(field)(toStoreNewTypes);
-			ret["members"] ~= t;
+			ret["members"][fieldNames[idx]] = t;
 		}}
 	}
 
@@ -79,6 +78,7 @@ Json typeToJson(T)(ref Json toStoreNewTypes) {
 	ret["isArray"] = isArr;
 	ret["nullableArray"] = firstNull;
 	ret["nullableElement"] = secondNull;
+	ret["isBasicType"] = isBasicType!ElemT;
 
 	if(!isBasicType!ElemT && ElemT.stringof !in toStoreNewTypes["types"]) {
 		dtypeToGraphql!ElemT(toStoreNewTypes);
@@ -86,10 +86,72 @@ Json typeToJson(T)(ref Json toStoreNewTypes) {
 	return ret;
 }
 
+enum typeKeys = ["name", "isArray", "nullableArray",
+		"nullableElement", "isBasicType"];
+
+string typeName(Json j) {
+	foreach(k; typeKeys) {
+		assert(k in j, k);
+	}
+	assert(j["name"].type == Json.Type.string);
+	return j["name"].get!string();
+}
+
+Json removeNullable(Json j) {
+	Json ret = Json(j);
+	ret["nullableArray"] = false;
+	ret["nullableElement"] = false;
+	return ret;
+}
+
+bool isList(Json type) {
+	foreach(k; typeKeys) {
+		assert(k in type, k);
+	}
+	return type["isArray"].get!bool() || type["nullableArray"].get!bool();
+}
+
+bool isNullable(Json type) {
+	foreach(k; typeKeys) {
+		assert(k in type, k);
+	}
+	return type["nullableElement"].get!bool()
+		|| type["nullableArray"].get!bool();
+}
+
+
+bool isObject(Json type) {
+	foreach(k; typeKeys) {
+		assert(k in type, k);
+	}
+	return !type["isBasicType"].get!bool();
+}
+
+bool isScalar(Json type) {
+	foreach(k; typeKeys) {
+		assert(k in type, k);
+	}
+	return !type["isArray"].get!bool() && !type["nullableArray"].get!bool();
+}
+
+bool isLeaf(Json type) {
+	foreach(k; typeKeys) {
+		assert(k in type, k);
+	}
+
+	return type["isBasicType"].get!bool();
+		//|| type["isEnum"].get!bool();
+}
+
+Json getTypeByName(Json schema, string name) {
+	assert("types" in schema);
+	assert(name in schema["types"]);
+	return schema["types"][name];
+}
+
 Json funcParams(Type, string mem)(ref Json toStoreNewTypes) {
 	Json op = Json.emptyArray();
 	enum pIds = ParameterIdentifierTuple!(__traits(getMember, Type, mem));
-	writeln(pIds);
     alias ps = Parameters!(__traits(getMember, Type, mem));
     static foreach(idx, p; ps) {{
 		assert(!pIds[idx].empty,
@@ -115,15 +177,15 @@ Json toSchema(Type)() {
 		Json tmp = Json.emptyObject();
 		tmp["name"] = qms;
 		tmp["type"] = "operation";
-		tmp["operations"] = Json.emptyArray();
+		tmp["members"] = Json.emptyObject();
 		static foreach(mem; __traits(allMembers, QMSType)) {{
 			alias MemType = typeof(__traits(getMember, QMSType, mem));
 			static if(isCallable!(MemType)) {{
 				Json op = Json.emptyObject();
 				op["name"] = mem;
-				op["returnType"] = typeToJson!(ReturnType!(MemType))(ret);
+				op["type"] = typeToJson!(ReturnType!(MemType))(ret);
 				op["arguments"] = funcParams!(QMSType, mem)(ret);
-				tmp["operations"] ~= op;
+				tmp["members"][mem] = op;
 			}}
 		}}
 		ret[qms] = tmp;
