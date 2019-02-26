@@ -21,6 +21,7 @@ import treevisitor;
 
 import testdata;
 import schema;
+import schema2;
 
 Data database;
 
@@ -150,11 +151,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json jsonSchema;
 	Document doc;
 
+	GQLDType!(QueryContext)[string] schema2;
+
 	QueryContext dummy;
 
 	this() {
 		this.jsonSchema = toSchema!T();
-		writeln(this.jsonSchema.toPrettyString());
+		this.schema2 = toSchema2!(T,QueryContext)();
+		//writeln(this.jsonSchema.toPrettyString());
+		writeln(this.schema2.toString());
 	}
 
 	Json execute(Document doc) {

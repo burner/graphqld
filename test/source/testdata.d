@@ -21,6 +21,8 @@ interface Query {
 	Starship[] starships();
 	Nullable!Character character(long id);
 	Character[] character(Series series);
+	Humanoid[] humanoids();
+	Android[] androids();
 }
 
 interface Mutation {
