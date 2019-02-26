@@ -183,7 +183,14 @@ class GQLDOperation(Con) : GQLDType!(Con) {
 	}
 
 	override string toString() {
-		return format("%s %s", super.kind, returnType.toShortString());
+		return format("%s %s(%s)", super.kind, returnType.toShortString(),
+				this.parameters
+					.byKeyValue
+					.map!(kv =>
+						format("%s %s", kv.key, kv.value.toShortString())
+					)
+					.joiner(", ")
+				);
 	}
 }
 
@@ -331,6 +338,20 @@ GQLDType!(Con)[string] toSchema2(Type, Con)() {
 				GQLDOperation!(Con) op = cast(GQLDOperation!Con)ret[mem];
 				assert(op !is null);
 				op.returnType = typeToGQLDType!(ReturnType!(MemType), Con)(ret);
+
+				alias paraNames = ParameterIdentifierTuple!(
+						__traits(getMember, QMSType, mem)
+					);
+				alias paraTypes = Parameters!(
+						__traits(getMember, QMSType, mem)
+					);
+				pragma(msg, "\n ", mem);
+				pragma(msg, "names ", paraNames);
+				pragma(msg, "types ", paraTypes);
+				static foreach(idx; 0 .. paraNames.length) {
+					op.parameters[paraNames[idx]] =
+						typeToGQLDType!(paraTypes[idx], Con)(ret);
+				}
 			}}
 		}}
 		//ret[qms] = tmp;
