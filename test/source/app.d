@@ -369,6 +369,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 						);
 			}
 			return ret;
+		} else if(objectType.isObject()) {
+			assert(field.hasSelectionSet());
+			Json ret = Json.emptyObject();
+			ret["data"] = Json.emptyObject();
+			ret["error"] = Json.emptyObject();
+			foreach(FieldRangeItem s; field.selectionSet()) {
+				ret["data"][s.name] = this.completeValue(s, objectValue,
+						objectType, coervedVariablesValues
+					);
+			}
+			return ret;
 		}
 	}
 
