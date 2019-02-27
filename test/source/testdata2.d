@@ -1,8 +1,14 @@
 module testdata2;
 
+class SmallChild {
+	long id;
+	string name;
+}
+
 class Small {
 	long id;
 	string name;
+	SmallChild child;
 }
 
 interface Query2 {

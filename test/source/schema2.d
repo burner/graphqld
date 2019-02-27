@@ -286,16 +286,19 @@ GQLDList!(Con) toList(Con)(GQLDType!Con t) {
 GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 	if(auto s = t.toScalar()) {
 		return s;
-	}
-	if(auto op = t.toOperation()) {
+	} else if(auto op = t.toOperation()) {
 		return op.returnType;
-	}
-	if(auto map = t.toMap()) {
+	} else if(auto map = t.toMap()) {
 		if(field in map.member) {
 			return map.member[field];
+		} else {
+			//logf("%s %s", t.toString(), field);
+			return null;
 		}
+	} else {
+		logf("%s", t.toString());
+		return null;
 	}
-	return null;
 }
 
 string toShortString(Con)(GQLDType!(Con) e) {

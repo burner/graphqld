@@ -207,14 +207,24 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeSelection(FieldRangeItem[] fields, GQLDType!Con objectType,
 			Json objectValue)
 	{
-		log();
+		logf("%s", objectType.toString());
 		Json ret = Json.emptyObject();
 		ret["data"] = Json.emptyObject();
 		ret["error"] = Json.emptyArray();
 		auto map = objectType.toMap();
+		if(map is null) {
+			ret["error"] ~= Json(format("%s does not convert to map",
+									objectType.toString())
+								);
+			return ret;
+		}
 		foreach(FieldRangeItem f; fields) {
+			logf("field %s", f.name);
 			if(map !is null && f.name in map.member) {
-				logf("field %s", f.name);
+				auto fType = map.member[f.name];
+				logf("found field %s %s", f.name,
+						fType ? fType.toString() : "Unknown Type"
+					);
 				Json tmp = this.executeFieldSelection(f,
 								map.member[f.name],
 								objectValue
@@ -226,13 +236,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 				foreach(err; tmp["error"].array()) {
 					ret["error"] ~= err;
 				}
-
+			} else {
+				ret["error"] ~= Json(format("field %s not present in type %s",
+										f.name, objectType.toString())
+									);
 			}
-			/*Json tmp = this.executeFieldSelection(f,
-					objectType.member[f.name],
-					objectValue
-				);
-				*/
 		}
 		return ret;
 	}
@@ -263,13 +271,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 		} else if(GQLDMap!Con map =
 				objectType.getReturnType(field.name).toMap())
 		{
-			logf("map");
+			logf("map %s", map.toString());
 			if(!field.hasSelectionSet()) {
 				ret["error"] ~= Json("No selection set found for "
 										~ field.name
 									);
 			} else {
 				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("selSet [%(%s, %)]", selSet.map!(a => a.name));
 				Json tmp = this.executeSelection(selSet, map,
 								"data" in de ? de["data"] : Json.emptyObject
 							);
@@ -309,35 +318,28 @@ class GraphQLD(T, QContext = DefaultContext) {
 				return ret;
 			}
 		} else {
-			auto rt = objectType.getReturnType(field.name);
-			assert(rt);
-			assert(false, rt.toString());
-		}
-		/*Json de;
-		if(field.name in objectType.member) {
-			de = objectType.member[field.name].resolver(field.name, objectValue,
-					Json.emptyObject(), this.dummy);
-		} else {
-			de = Json.emptyObject();
-			de["error"] = Json.emptyArray();
-			de["error"] ~= format("No field named %s in current schema",
-								field.name
+			logf("else de %s", de);
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("selSet [%(%s, %)]", selSet.map!(a => a.name));
+				Json tmp = this.executeSelection(selSet, objectType,
+								"data" in de ? de["data"] : Json.emptyObject
 							);
-			return de;
+				if("data" in tmp) {
+					ret["data"][field.name] = tmp["data"];
+				}
+				if("error" in de) {
+					ret["error"] ~= tmp["error"];
+				}
+				return ret;
+			}
 		}
-		*/
 		return ret;
 	}
-
-	/*Json executeSelectionSet(FieldRangeItem[] fields, Json objectType,
-			Json objectValue)
-	{
-	}
-
-	Json executeList(FieldRangeItem[] fields, Json objectType,
-			Json objectValue)
-	{
-	}*/
 }
 
 GraphQLD!(Schema2) graphqld;
@@ -380,6 +382,25 @@ void main() {
 				tmp["name"] = format("Hello %s", i);
 				ret["data"] ~= tmp;
 			}
+			return ret;
+		};
+	alias GCon = typeof(graphqld).Con;
+	GQLDMap!(GCon) smallChildType = cast(GQLDMap!GCon)
+			(cast(GQLDSchema!(GCon))graphqld.schema).types["Small"];
+	assert(smallChildType);
+
+	smallChildType.member["child"].resolver =
+		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
+		{
+			logf("Small child resolver %s", parent);
+			Json ret = Json.emptyObject;
+			ret["error"] = Json.emptyArray();
+			ret["data"] = Json.emptyObject();
+			assert("id" in parent);
+			ret["data"]["id"] = parent["id"].get!long() * 1000;
+
+			assert("name" in parent);
+			ret["data"]["name"] = parent["name"].get!string() ~ " child";
 			return ret;
 		};
  	//database = new Data();
