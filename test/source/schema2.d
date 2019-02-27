@@ -1,10 +1,12 @@
 module schema2;
 
+import std.array;
 import std.traits;
 import std.typecons;
 import std.algorithm : map, joiner;
 import std.range : ElementEncodingType;
 import std.format;
+import std.experimental.logger;
 
 import vibe.data.json;
 
@@ -19,11 +21,13 @@ enum GQLDKind {
 	Object_,
 	List,
 	Enum,
+	Map,
 	Nullable,
 	Union,
 	Query,
 	Mutation,
-	Subscription
+	Subscription,
+	Schema
 }
 
 
@@ -41,16 +45,29 @@ abstract class GQLDType(Con) {
 		this.resolver = delegate(string name, Json parent, Json args,
 							ref Context context)
 			{
+				import std.format;
+				Json ret = Json.emptyObject();
+				ret["data"] = Json.emptyObject();
+				ret["error"] = Json.emptyArray();
 				if(name in parent) {
-					return parent;
+					ret["data"] = parent[name];
 				} else {
-					return Json.emptyObject();
+					ret["error"] = Json(format("no field name '%s' found",
+										name)
+									);
 				}
+				return ret;
 			};
 	}
 }
 
-class GQLDString(Con) : GQLDType!(Con) {
+class GQLDScalar(Con) : GQLDType!(Con) {
+	this(GQLDKind kind) {
+		super(kind);
+	}
+}
+
+class GQLDString(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.String);
 	}
@@ -60,7 +77,7 @@ class GQLDString(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDFloat(Con) : GQLDType!(Con) {
+class GQLDFloat(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Float);
 	}
@@ -70,7 +87,7 @@ class GQLDFloat(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDInt(Con) : GQLDType!(Con) {
+class GQLDInt(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Int);
 	}
@@ -80,7 +97,7 @@ class GQLDInt(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDEnum(Con) : GQLDType!(Con) {
+class GQLDEnum(Con) : GQLDScalar!(Con) {
 	string enumName;
 	this(string enumName) {
 		super(GQLDKind.Enum);
@@ -92,7 +109,7 @@ class GQLDEnum(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDBool(Con) : GQLDType!(Con) {
+class GQLDBool(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Bool);
 	}
@@ -102,9 +119,26 @@ class GQLDBool(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDObject(Con) : GQLDType!(Con) {
+class GQLDMap(Con) : GQLDType!(Con) {
+	GQLDType!(Con)[string] member;
+	this() {
+		super(GQLDKind.Map);
+	}
+	this(GQLDKind kind) {
+		super(kind);
+	}
+
+	override string toString() {
+		auto app = appender!string();
+		foreach(key, value; this.member) {
+			formattedWrite(app, "%s: %s\n", key, value.toString());
+		}
+		return app.data;
+	}
+}
+
+class GQLDObject(Con) : GQLDMap!(Con) {
 	string name;
-	GQLDType!(Con)[string] fields;
 	GQLDObject!(Con) base;
 
 	this(string name) {
@@ -115,7 +149,7 @@ class GQLDObject(Con) : GQLDType!(Con) {
 	override string toString() {
 		return format("Object %s(%s))\n\t\t\t\tBase(%s)",
 				this.name,
-				this.fields
+				this.member
 					.byKeyValue
 					.map!(kv => format("%s %s", kv.key,
 							kv.value.toShortString()))
@@ -125,9 +159,8 @@ class GQLDObject(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDUnion(Con) : GQLDType!(Con) {
+class GQLDUnion(Con) : GQLDMap!(Con) {
 	string name;
-	GQLDType!(Con)[string] members;
 
 	this(string name) {
 		super(GQLDKind.Union);
@@ -137,7 +170,7 @@ class GQLDUnion(Con) : GQLDType!(Con) {
 	override string toString() {
 		return format("Union %s(%s))",
 				this.name,
-				this.members
+				this.member
 					.byKeyValue
 					.map!(kv => format("%s %s", kv.key,
 							kv.value.toShortString()))
@@ -212,6 +245,55 @@ class GQLDSubscription(Con) : GQLDOperation!(Con) {
 	}
 }
 
+class GQLDSchema(Con) : GQLDMap!(Con) {
+	GQLDType!(Con)[string] types;
+
+	this() {
+		super(GQLDKind.Schema);
+	}
+
+	override string toString() {
+		auto app = appender!string();
+		formattedWrite(app, "Operation\n");
+		foreach(key, value; super.member) {
+			formattedWrite(app, "%s: %s\n", key, value.toString());
+		}
+
+		formattedWrite(app, "Types\n");
+		foreach(key, value; this.types) {
+			formattedWrite(app, "%s: %s\n", key, value.toString());
+		}
+		return app.data;
+	}
+}
+
+GQLDMap!(Con) toMap(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
+}
+
+GQLDScalar!(Con) toScalar(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
+}
+
+GQLDOperation!(Con) toOperation(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
+}
+
+GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
+	if(auto s = t.toScalar()) {
+		return s;
+	}
+	if(auto op = t.toOperation()) {
+		return op.returnType;
+	}
+	if(auto map = t.toMap()) {
+		if(field in map.member) {
+			return map.member[field];
+		}
+	}
+	return null;
+}
+
 string toShortString(Con)(GQLDType!(Con) e) {
 	if(auto o = cast(GQLDObject!(Con))e) {
 		return o.name;
@@ -222,66 +304,66 @@ string toShortString(Con)(GQLDType!(Con) e) {
 	}
 }
 
-GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDType!(Con)[string] ret) {
+GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
 	pragma(msg, Type.stringof, " ", isIntegral!Type);
 	static if(is(Type == bool)) {
 		GQLDBool!(Con) r;
-		if("bool" in ret) {
-			r = cast(GQLDBool!(Con))ret["bool"];
+		if("bool" in ret.types) {
+			r = cast(GQLDBool!(Con))ret.types["bool"];
 		} else {
 			r = new GQLDBool!(Con)();
-			ret["bool"] = r;
+			ret.types["bool"] = r;
 		}
 		return r;
 	} else static if(isFloatingPoint!(Type)) {
 		GQLDFloat!(Con) r;
-		if("float" in ret) {
-			r = cast(GQLDFloat!(Con))ret["float"];
+		if("float" in ret.types) {
+			r = cast(GQLDFloat!(Con))ret.types["float"];
 		} else {
 			r = new GQLDFloat!(Con)();
-			ret["float"] = r;
+			ret.types["float"] = r;
 		}
 		return r;
 	} else static if(isIntegral!(Type)) {
 		GQLDInt!(Con) r;
-		if("int" in ret) {
-			r = cast(GQLDInt!(Con))ret["int"];
+		if("int" in ret.types) {
+			r = cast(GQLDInt!(Con))ret.types["int"];
 		} else {
 			r = new GQLDInt!(Con)();
-			ret["int"] = r;
+			ret.types["int"] = r;
 		}
 		pragma(msg, "166 ", Type.stringof, " int");
 		return r;
 	} else static if(isSomeString!Type) {
 		GQLDString!(Con) r;
-		if("string" in ret) {
-			r = cast(GQLDString!(Con))ret["string"];
+		if("string" in ret.types) {
+			r = cast(GQLDString!(Con))ret.types["string"];
 		} else {
 			r = new GQLDString!(Con)();
-			ret["string"] = r;
+			ret.types["string"] = r;
 		}
 		return r;
 	} else static if(is(Type == enum)) {
 		GQLDEnum!(Con) r;
-		if(Type.stringof in ret) {
-			r = cast(GQLDEnum!(Con))ret[Type.stringof];
+		if(Type.stringof in ret.types) {
+			r = cast(GQLDEnum!(Con))ret.types[Type.stringof];
 		} else {
 			r = new GQLDEnum!(Con)();
-			ret[Type.stringof] = r;
+			ret.types[Type.stringof] = r;
 		}
 		return r;
 	} else static if(is(Type == union)) {
 		GQLDUnion!(Con) r;
-		if(Type.stringof in ret) {
-			r = cast(GQLDUnion!(Con))ret[Type.stringof];
+		if(Type.stringof in ret.types) {
+			r = cast(GQLDUnion!(Con))ret.types[Type.stringof];
 		} else {
 			r = new GQLDUnion!(Con)(Type.stringof);
-			ret[Type.stringof] = r;
+			ret.types[Type.stringof] = r;
 
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				r.members[fieldNames[idx]] =
+				r.member[fieldNames[idx]] =
 					typeToGQLDType!(fieldTypes[idx], Con)(ret);
 			}}
 		}
@@ -295,16 +377,16 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDType!(Con)[string] ret) {
 			);
 	} else static if(isAggregateType!Type) {
 		GQLDObject!(Con) r;
-		if(Type.stringof in ret) {
-			r = cast(GQLDObject!(Con))ret[Type.stringof];
+		if(Type.stringof in ret.types) {
+			r = cast(GQLDObject!(Con))ret.types[Type.stringof];
 		} else {
 			r = new GQLDObject!(Con)(Type.stringof);
-			ret[Type.stringof] = r;
+			ret.types[Type.stringof] = r;
 
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				r.fields[fieldNames[idx]] =
+				r.member[fieldNames[idx]] =
 					typeToGQLDType!(fieldTypes[idx], Con)(ret);
 			}}
 
@@ -321,21 +403,23 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDType!(Con)[string] ret) {
 	}
 }
 
-GQLDType!(Con)[string] toSchema2(Type, Con)() {
-	GQLDType!(Con)[string] ret;
+GQLDSchema!(Con) toSchema2(Type, Con)() {
+	typeof(return) ret = new typeof(return)();
 
 	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["query", "mutation", "subscription"]) {{
+		GQLDMap!(Con) cur = new GQLDMap!Con();
+		ret.member[qms] = cur;
 		static assert(__traits(hasMember, Type, qms));
 		alias QMSType = typeof(__traits(getMember, Type, qms));
 		static foreach(mem; __traits(allMembers, QMSType)) {{
 			alias MemType = typeof(__traits(getMember, QMSType, mem));
 			static if(isCallable!(MemType)) {{
-				ret[mem] = qms == "query" ? new GQLDQuery!Con()
+				GQLDOperation!(Con) op = qms == "query" ? new GQLDQuery!Con()
 					: qms == "mutation" ? new GQLDMutation!Con()
 					: qms == "subscription" ? new GQLDSubscription!Con()
 					: null;
-				GQLDOperation!(Con) op = cast(GQLDOperation!Con)ret[mem];
+				cur.member[mem] = op;
 				assert(op !is null);
 				op.returnType = typeToGQLDType!(ReturnType!(MemType), Con)(ret);
 
@@ -345,22 +429,17 @@ GQLDType!(Con)[string] toSchema2(Type, Con)() {
 				alias paraTypes = Parameters!(
 						__traits(getMember, QMSType, mem)
 					);
-				pragma(msg, "\n ", mem);
-				pragma(msg, "names ", paraNames);
-				pragma(msg, "types ", paraTypes);
 				static foreach(idx; 0 .. paraNames.length) {
 					op.parameters[paraNames[idx]] =
 						typeToGQLDType!(paraTypes[idx], Con)(ret);
 				}
 			}}
 		}}
-		//ret[qms] = tmp;
 	}}
 	return ret;
 }
 
 string toString(Con)(ref GQLDType!(Con)[string] all) {
-	import std.array;
 	auto app = appender!string();
 	foreach(key, value; all) {
 		formattedWrite(app, "%20s: %s\n", key, value.toString());

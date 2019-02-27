@@ -20,6 +20,7 @@ import visitor;
 import treevisitor;
 
 import testdata;
+import testdata2;
 import schema;
 import schema2;
 
@@ -142,69 +143,49 @@ Document parseGraph(HTTPServerRequest req) {
 }
 
 class GraphQLD(T, QContext = DefaultContext) {
-	alias QueryContext = QContext;
+	alias Con = QContext;
 	alias QueryResolver = Json delegate(Json parent,
-			Json args, QueryContext context);
+			Json args, Con context);
 
-	QueryResolver[string][string] resolver;
-
-	Json jsonSchema;
 	Document doc;
 
-	GQLDType!(QueryContext)[string] schema2;
+	alias Schema = GQLDSchema!(Con);
+	Schema schema;
 
-	QueryContext dummy;
+	Con dummy;
 
 	this() {
-		this.jsonSchema = toSchema!T();
-		this.schema2 = toSchema2!(T,QueryContext)();
-		//writeln(this.jsonSchema.toPrettyString());
-		writeln(this.schema2.toString());
+		this.schema = toSchema2!(T,Con)();
+		writeln(this.schema.toString());
 	}
 
 	Json execute(Document doc) {
 		this.doc = doc;
-		OperationDefinition opDef = this.getOperation(this.doc, "");
-		return this.executeRequest(opDef, Json.emptyObject(),
-				Json.emptyObject()
-			);
-	}
+		OperationDefinition[] ops = this.getOperations(this.doc);
 
-	void setResolver(string type, string field, QueryResolver qr) {
-		if(type !in this.resolver) {
-			this.resolver[type] = QueryResolver[string].init;
+		auto selSet = ops
+			.find!(op => op.ruleSelection == OperationDefinitionEnum.SelSet);
+		if(!selSet.empty) {
+			if(ops.length > 1) {
+				throw new Exception(
+					"If SelectionSet the number of Operations must be 1"
+					);
+			}
+			return this.executeOperation(selSet.front);
 		}
-		this.resolver[type][field] = qr;
+		assert(false);
 	}
 
-	OperationDefinition[] getOperations(Document doc) {
+	static OperationDefinition[] getOperations(Document doc) {
 		return opDefRange(doc).map!(op => op.def.op).array;
 	}
 
-	OperationDefinition getOperation(Document doc, string name) {
-		OperationDefinition[] ops = this.getOperations(doc);
-		if(name.empty) {
-			if(ops.length == 1) {
-				return ops.front;
-			}
-			throw new Exception("name required");
-		}
-		auto ret = ops.find!(op => op.name.value == name)();
-		if(ret.empty) {
-			throw new Exception("operation not found");
-		}
-		return ret.front;
-	}
-
-	Json executeRequest(OperationDefinition op, Json coervedVariablesValues,
-			Json initialValue)
+	Json executeOperation(OperationDefinition op)
 	{
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{
-			return this.executeQuery(op, this.jsonSchema["query"],
-					Json.emptyObject()
-				);
+			return this.executeQuery(op);
 		} else if(op.ot.tok.type == TokenType.mutation) {
 			assert(false, "Mutation not supported yet");
 		} else if(op.ot.tok.type == TokenType.subscription) {
@@ -213,156 +194,159 @@ class GraphQLD(T, QContext = DefaultContext) {
 		assert(false, "Unexpected");
 	}
 
-	Json executeQuery(OperationDefinition op, Json objectType,
-			Json objectValue)
-	{
-		logf("%s", objectType["name"]);
+	Json executeQuery(OperationDefinition op) {
+		log();
 		FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
-		Json tmp = this.executeSelection(selSet, objectType, objectValue);
+		Json tmp = this.executeSelection(selSet,
+						cast(GQLDMap!Con)this.schema.member["query"],
+						Json.emptyObject()
+					);
+		return tmp;
+	}
+
+	Json executeSelection(FieldRangeItem[] fields, GQLDType!Con objectType,
+			Json objectValue)
+	{
+		log();
 		Json ret = Json.emptyObject();
-		ret["data"] = tmp;
+		ret["data"] = Json.emptyObject();
 		ret["error"] = Json.emptyArray();
-		return ret;
-	}
-
-	Json executeSelection(FieldRangeItem[] fields, Json objectType,
-			Json objectValue)
-	{
-		logf("%s", objectType.jsonTypeToString());
-		Json ret = Json.emptyObject();
+		auto map = objectType.toMap();
 		foreach(FieldRangeItem f; fields) {
-			logf("field %s", f.name);
-			Json tmp = executeFieldSelection(f, objectType, objectValue);
-			ret[f.name] = tmp[f.name];
+			if(map !is null && f.name in map.member) {
+				logf("field %s", f.name);
+				Json tmp = this.executeFieldSelection(f,
+								map.member[f.name],
+								objectValue
+							);
+				logf("%s", tmp);
+				foreach(key, value; tmp["data"].byKeyValue) {
+					ret["data"][key] = value;
+				}
+				foreach(err; tmp["error"].array()) {
+					ret["error"] ~= err;
+				}
+
+			}
+			/*Json tmp = this.executeFieldSelection(f,
+					objectType.member[f.name],
+					objectValue
+				);
+				*/
 		}
 		return ret;
 	}
 
-	Json executeFieldSelection(FieldRangeItem field, Json objectType,
+	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
 			Json objectValue)
 	{
-		string objectTypeName = objectType["name"].get!string();
-		logf("%s %s %s", objectTypeName, field.name,
-				objectType.jsonTypeToString()
-			);
-		Json value;
-		if(objectTypeName in this.resolver
-				&& field.name in this.resolver[objectTypeName])
-		{
-			value = this.resolver[objectTypeName][field.name]
-						(objectValue, Json.emptyObject, this.dummy);
-		} else if(field.name in objectValue) {
-			value = objectValue[field.name];
-		} else {
-			writeln("error");
-			Json ret = Json.emptyObject();
-			ret["error"] = Json.emptyArray();
-			ret["error"] ~=
-				format("%s %s", objectType.jsonTypeToString(), field.name);
-			return ret;
-		}
-		if(field.hasSelectionSet()) {
-			FieldRangeItem[] fsa = field.selectionSet().array;
-			assert(objectTypeName in this.jsonSchema);
-			assert("members" in this.jsonSchema[objectTypeName]);
-			assert(field.name in this.jsonSchema[objectTypeName]["members"]);
-			assert("type" in
-					this.jsonSchema[objectTypeName]["members"][field.name]
-				);
-			assert("data" in value);
-			value = this.executeSelectionSet(fsa,
-					this.jsonSchema.getTypeByName(
-						this.jsonSchema[objectTypeName]["members"][field.name]["type"]
-							["name"].get!string()
-					),
-					value["data"]
-				);
-		}
-
+		logf("%s %s", field.name, objectType.toString());
+		Json de = objectType.resolver(field.name, objectValue,
+						Json.emptyObject(), this.dummy
+					);
+		logf("%s", de);
 		Json ret = Json.emptyObject();
-		ret[field.name] = value;
+		ret["data"] = Json.emptyObject();
+		ret["error"] = Json.emptyArray();
+		if(GQLDScalar!Con scalar =
+				objectType.getReturnType(field.name).toScalar())
+		{
+			logf("scalar");
+			if("data" in de) {
+				ret["data"][field.name] = de["data"];
+			}
+			if("error" in de) {
+				ret["error"] ~= de["error"];
+			}
+			logf("%s", ret);
+			return ret;
+		} else if(GQLDMap!Con map =
+				objectType.getReturnType(field.name).toMap())
+		{
+			logf("map");
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				Json tmp = this.executeSelection(selSet, map,
+								"data" in de ? de["data"] : Json.emptyObject
+							);
+				if("data" in tmp) {
+					ret["data"][field.name] = tmp["data"];
+				}
+				if("error" in de) {
+					ret["error"] ~= tmp["error"];
+				}
+				return ret;
+			}
+		} else {
+			auto rt = objectType.getReturnType(field.name);
+			assert(rt);
+			assert(false, rt.toString());
+		}
+		/*Json de;
+		if(field.name in objectType.member) {
+			de = objectType.member[field.name].resolver(field.name, objectValue,
+					Json.emptyObject(), this.dummy);
+		} else {
+			de = Json.emptyObject();
+			de["error"] = Json.emptyArray();
+			de["error"] ~= format("No field named %s in current schema",
+								field.name
+							);
+			return de;
+		}
+		*/
 		return ret;
 	}
 
-	Json executeSelectionSet(FieldRangeItem[] fields, Json objectType,
+	/*Json executeSelectionSet(FieldRangeItem[] fields, Json objectType,
 			Json objectValue)
 	{
-		logf("%s %s", objectType.jsonTypeToString(), objectType);
-		if(objectType.isList()) {
-			logf("list");
-			return this.executeList(fields, objectType, objectValue);
-		} else if(objectType.isObject()) {
-			logf("object");
-			return this.executeSelection(fields, objectType, objectValue);
-		} else if(objectType.isLeaf()) {
-			return objectValue;
-		}
-		assert(false);
 	}
 
 	Json executeList(FieldRangeItem[] fields, Json objectType,
 			Json objectValue)
 	{
-		assert(objectValue.type == Json.Type.array);
-		string objectTypeName = objectType["name"].get!string();
-		Json itemType = this.jsonSchema.getTypeByName(objectTypeName);
-		logf("%s", itemType.jsonTypeToString());
-
-		Json ret = Json.emptyArray();
-		foreach(Json item; objectValue) {
-			ret ~= this.executeSelectionSet(fields, itemType, item);
-		}
-		return ret;
-	}
+	}*/
 }
 
-GraphQLD!(Schema) graphqld;
+GraphQLD!(Schema2) graphqld;
 
 void main() {
-	graphqld = new GraphQLD!Schema();
- 	database = new Data();
+	graphqld = new GraphQLD!Schema2();
+	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["foo"].resolver =
+		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
+		{
+			Json ret = Json.emptyObject;
+			ret["data"] = 1337;
+			return ret;
+		};
+	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["bar"].resolver =
+		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
+		{
+			Json ret = Json.emptyObject;
+			ret["data"] = 7331;
+			return ret;
+		};
+	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["small"].resolver =
+		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
+		{
+			logf("small resolver");
+			Json ret = Json.emptyObject;
+			ret["data"] = Json.emptyObject;
+			ret["data"]["id"] = 13;
+			ret["data"]["name"] = "Hello Graphql";
+			return ret;
+		};
+ 	//database = new Data();
 
 	//Json sch = toSchema!Schema();
 	//writeln(sch.toPrettyString());
 
 	// starships resolver
-	graphqld.setResolver("query", "starships", delegate(Json parent,
-			Json args, typeof(graphqld).QueryContext context)
-	{
-		Json ret = Json.emptyObject;
-		ret["data"] = Json.emptyArray;
-		ret["error"] = Json.emptyArray;
-		foreach(ship; database.ships) {
-			Json tmp = Json.emptyObject;
-			static foreach(mem; [ "id", "designation", "size"]) {
-				tmp[mem] = __traits(getMember, ship, mem);
-			}
-			tmp["commanderId"] = ship.commander.id;
-			tmp["crewIds"] = serializeToJson(ship.crew.map!(c => c.id).array);
-			tmp["series"] = serializeToJson(ship.series);
-
-			ret["data"] ~= tmp;
-		}
-		return ret;
-	});
-
-	graphqld.setResolver("Starship", "commander", delegate(Json parent,
-			Json args, typeof(graphqld).QueryContext context)
-	{
-		Json ret = Json.emptyObject;
-		ret["data"] = Json.emptyObject;
-		ret["error"] = Json.emptyArray;
-		foreach(c; database.chars) {
-			if(c.id == parent["commanderId"]) {
-				ret["data"]["id"] = c.id;
-				ret["data"]["name"] = c.name;
-				ret["data"]["series"] = serializeToJson(c.series);
-				ret["data"]["commandsIds"] =
-					serializeToJson(c.commands.map!(crew => crew.id).array);
-			}
-		}
-		return ret;
-	});
 
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;
