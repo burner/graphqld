@@ -342,17 +342,21 @@ class GraphQLD(T, QContext = DefaultContext) {
 										~ field.name
 									);
 			} else {
-				auto elemType = nullType.elementType;
-				FieldRangeItem[] selSet = field.selectionSet().array;
-				Json tmp = this.executeSelection(selSet, elemType,
-								"data" in de ? de["data"] : Json.emptyObject,
-								arguments
-							);
-				if("data" in tmp) {
-					ret["data"][field.name] = tmp["data"];
-				}
-				if("error" in de) {
-					ret["error"] ~= tmp["error"];
+				if("data" !in de || de["data"].length == 0) {
+					ret["data"][field.name] = null;
+				} else {
+					auto elemType = nullType.elementType;
+					FieldRangeItem[] selSet = field.selectionSet().array;
+					Json tmp = this.executeSelection(selSet, elemType,
+									"data" in de ? de["data"] : Json.emptyObject,
+									arguments
+								);
+					if("data" in tmp) {
+						ret["data"][field.name] = tmp["data"];
+					}
+					if("error" in de) {
+						ret["error"] ~= tmp["error"];
+					}
 				}
 			}
 			return ret;
