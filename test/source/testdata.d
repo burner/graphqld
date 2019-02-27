@@ -19,6 +19,7 @@ interface Query {
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
 	Starship[] starships();
+	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);
 	Character[] character(Series series);
 	Humanoid[] humanoids();

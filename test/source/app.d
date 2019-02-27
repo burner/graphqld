@@ -426,19 +426,35 @@ class ArgumentExtractor : Visitor {
 	Json arguments;
 	Json variables;
 
-	string curName;
+	string[] curNames;
 
 	this(Json variables) {
 		this.variables = variables;
 		this.arguments = Json.emptyObject();
 	}
 
+	void assign(Json toAssign) {
+		Json* arg = &this.arguments;
+		assert(!this.curNames.empty);
+		foreach(idx; 0 .. this.curNames.length - 1) {
+			arg = &((*arg)[this.curNames[idx]]);
+		}
+
+		if(this.curNames.back in (*arg)
+				&& ((*arg)[this.curNames.back]).type == Json.Type.array)
+		{
+			((*arg)[this.curNames.back]) ~= toAssign;
+		} else {
+			((*arg)[this.curNames.back]) = toAssign;
+		}
+	}
+
 	override void enter(const(Argument) arg) {
-		this.curName = arg.name.value;
+		this.curNames ~= arg.name.value;
 	}
 
 	override void exit(const(Argument) arg) {
-		this.curName = "";
+		this.curNames.popBack();
 	}
 
 	override void enter(const(Variable) var) {
@@ -446,33 +462,34 @@ class ArgumentExtractor : Visitor {
 		enforce(varName in this.variables,
 				format("Variable with name %s required", varName)
 			);
-		this.arguments[this.curName] = this.variables[varName];
-		this.curName = "";
+		this.assign(this.variables[varName]);
 	}
 
 	override void enter(const(Value) val) {
 		switch(val.ruleSelection) {
 			case ValueEnum.STR:
-				this.arguments[this.curName] = Json(val.tok.value);
+				this.assign(Json(val.tok.value));
 				break;
 			case ValueEnum.INT:
-				this.arguments[this.curName] = Json(to!long(val.tok.value));
+				this.assign(Json(to!long(val.tok.value)));
 				break;
 			case ValueEnum.FLOAT:
-				this.arguments[this.curName] = Json(to!double(val.tok.value));
+				this.assign(Json(to!double(val.tok.value)));
 				break;
 			case ValueEnum.T:
-				this.arguments[this.curName] = Json(true);
+				this.assign(Json(true));
 				break;
 			case ValueEnum.F:
-				this.arguments[this.curName] = Json(false);
+				this.assign(Json(false));
+				break;
+			case ValueEnum.ARR:
+				this.assign(Json.emptyArray());
 				break;
 			default:
 				throw new Exception(format("Value type %s not supported",
 							val.ruleSelection
 						));
 		}
-		this.curName = "";
 	}
 }
 
@@ -505,18 +522,18 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("query", "starship",
+	graphqld.setResolver("query", "shipsselection",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
 			{
-				assert("id" in args);
-				long id = args["id"].get!long();
+				assert("ids" in args);
+				Json[] jArr = args["ids"].array();
+				long[] ids = jArr.map!(j => j.get!long()).array;
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyArray;
 				ret["error"] = Json.emptyArray;
-				auto theShip = database.ships.find!(s => s.id == id);
-				if(!theShip.empty) {
-					Starship ship = theShip.front;
+				auto theShips = database.ships.filter!(s => canFind(ids, s.id));
+				foreach(ship; theShips) {
 					Json tmp = Json.emptyObject;
 					static foreach(mem; [ "id", "designation", "size"]) {
 						tmp[mem] = __traits(getMember, ship, mem);
@@ -527,12 +544,9 @@ void main() {
 										);
 					tmp["series"] = serializeToJson(ship.series);
 
-					ret["data"] = tmp;
-				} else {
-					ret["error"] = Json(
-										format("No ship with id %d exists", id)
-									);
+					ret["data"] ~= tmp;
 				}
+				logf("%s", ret);
 				return ret;
 			}
 		);
