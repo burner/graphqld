@@ -144,8 +144,8 @@ Document parseGraph(HTTPServerRequest req) {
 
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
-	alias QueryResolver = Json delegate(Json parent,
-			Json args, Con context);
+	alias QueryResolver = Json delegate(string name, Json parent,
+			Json args, ref Con context);
 
 	Document doc;
 
@@ -157,6 +157,22 @@ class GraphQLD(T, QContext = DefaultContext) {
 	this() {
 		this.schema = toSchema2!(T,Con)();
 		writeln(this.schema.toString());
+	}
+
+	void setResolver(string first, string second, QueryResolver resolver) {
+		GQLDMap!(Con) fMap;
+		if(first in this.schema.member) {
+			fMap = this.schema.member[first].toMap();
+		} else if(first in this.schema.types) {
+			fMap = this.schema.types[first].toMap();
+		}
+
+		if(fMap is null || second !in fMap.member) {
+			throw new Exception(format("Schema has no entry for %s %s",
+							first, second)
+						);
+		}
+		fMap.member[second].resolver = resolver;
 	}
 
 	Json execute(Document doc) {
@@ -346,63 +362,67 @@ GraphQLD!(Schema2) graphqld;
 
 void main() {
 	graphqld = new GraphQLD!Schema2();
-	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["foo"].resolver =
-		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
-		{
-			Json ret = Json.emptyObject;
-			ret["data"] = 1337;
-			return ret;
-		};
-	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["bar"].resolver =
-		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
-		{
-			Json ret = Json.emptyObject;
-			ret["data"] = 7331;
-			return ret;
-		};
-	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["small"].resolver =
-		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
-		{
-			logf("small resolver");
-			Json ret = Json.emptyObject;
-			ret["data"] = Json.emptyObject;
-			ret["data"]["id"] = 13;
-			ret["data"]["name"] = "Hello Graphql";
-			return ret;
-		};
-	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["manysmall"].resolver =
-		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
-		{
-			logf("many small resolver");
-			Json ret = Json.emptyObject;
-			ret["data"] = Json.emptyArray();
-			foreach(i; 0 .. 3) {
-				Json tmp = Json.emptyObject();
-				tmp["id"] = i;
-				tmp["name"] = format("Hello %s", i);
-				ret["data"] ~= tmp;
+	graphqld.setResolver("query", "foo",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = Json.emptyObject;
+				ret["data"] = 1337;
+				return ret;
 			}
-			return ret;
-		};
-	alias GCon = typeof(graphqld).Con;
-	GQLDMap!(GCon) smallChildType = cast(GQLDMap!GCon)
-			(cast(GQLDSchema!(GCon))graphqld.schema).types["Small"];
-	assert(smallChildType);
+		);
+	graphqld.setResolver("query", "bar",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = Json.emptyObject;
+				ret["data"] = 7331;
+				return ret;
+			}
+		);
+	graphqld.setResolver("query", "small",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyObject;
+				ret["data"]["id"] = 13;
+				ret["data"]["name"] = "Hello Graphql";
+				return ret;
+			}
+		);
+	graphqld.setResolver("query", "manysmall",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				logf("many small resolver");
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyArray();
+				foreach(i; 0 .. 3) {
+					Json tmp = Json.emptyObject();
+					tmp["id"] = i;
+					tmp["name"] = format("Hello %s", i);
+					ret["data"] ~= tmp;
+				}
+				return ret;
+			}
+		);
+	graphqld.setResolver("Small", "child",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				logf("Small child resolver %s", parent);
+				Json ret = Json.emptyObject;
+				ret["error"] = Json.emptyArray();
+				ret["data"] = Json.emptyObject();
+				assert("id" in parent);
+				ret["data"]["id"] = parent["id"].get!long() * 1000;
 
-	smallChildType.member["child"].resolver =
-		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
-		{
-			logf("Small child resolver %s", parent);
-			Json ret = Json.emptyObject;
-			ret["error"] = Json.emptyArray();
-			ret["data"] = Json.emptyObject();
-			assert("id" in parent);
-			ret["data"]["id"] = parent["id"].get!long() * 1000;
-
-			assert("name" in parent);
-			ret["data"]["name"] = parent["name"].get!string() ~ " child";
-			return ret;
-		};
+				assert("name" in parent);
+				ret["data"]["name"] = parent["name"].get!string() ~ " child";
+				return ret;
+			}
+		);
  	//database = new Data();
 
 	//Json sch = toSchema!Schema();
