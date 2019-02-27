@@ -283,6 +283,10 @@ GQLDList!(Con) toList(Con)(GQLDType!Con t) {
 	return cast(typeof(return))t;
 }
 
+GQLDNullable!(Con) toNullable(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
+}
+
 GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 	if(auto s = t.toScalar()) {
 		return s;

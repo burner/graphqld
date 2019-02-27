@@ -182,9 +182,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 		fMap.member[second].resolver = resolver;
 	}
 
-	Json execute(Document doc) {
+	Json execute(Document doc, Json variables) {
 		this.doc = doc;
 		OperationDefinition[] ops = this.getOperations(this.doc);
+		logf("Vars %s", variables);
 
 		auto selSet = ops
 			.find!(op => op.ruleSelection == OperationDefinitionEnum.SelSet);
@@ -194,12 +195,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 					"If SelectionSet the number of Operations must be 1"
 					);
 			}
-			return this.executeOperation(selSet.front);
+			return this.executeOperation(selSet.front, variables);
 		}
 
 		Json ret = returnTemplate();
 		foreach(op; ops) {
-			Json tmp = this.executeOperation(op);
+			Json tmp = this.executeOperation(op, variables);
 			logf("%s\n%s", ret, tmp);
 			if(canFind([OperationDefinitionEnum.OT_N,
 					OperationDefinitionEnum.OT_N_D,
@@ -220,12 +221,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return opDefRange(doc).map!(op => op.def.op).array;
 	}
 
-	Json executeOperation(OperationDefinition op)
+	Json executeOperation(OperationDefinition op, Json variables)
 	{
+		//Json variables = this.collectVariables(op,
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{
-			return this.executeQuery(op);
+			return this.executeQuery(op, variables);
 		} else if(op.ot.tok.type == TokenType.mutation) {
 			assert(false, "Mutation not supported yet");
 		} else if(op.ot.tok.type == TokenType.subscription) {
@@ -234,23 +236,22 @@ class GraphQLD(T, QContext = DefaultContext) {
 		assert(false, "Unexpected");
 	}
 
-	Json executeQuery(OperationDefinition op) {
+	Json executeQuery(OperationDefinition op, Json variables) {
 		log();
 		FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
 		Json tmp = this.executeSelection(selSet,
 						cast(GQLDMap!Con)this.schema.member["query"],
-						Json.emptyObject()
+						Json.emptyObject(), variables
 					);
 		return tmp;
 	}
 
 	Json executeSelection(FieldRangeItem[] fields, GQLDType!Con objectType,
-			Json objectValue)
+			Json objectValue, Json variables)
 	{
 		logf("%s", objectType.toString());
-		Json ret = Json.emptyObject();
-		ret["data"] = Json.emptyObject();
-		ret["error"] = Json.emptyArray();
+		Json ret = returnTemplate();
+
 		auto map = objectType.toMap();
 		if(map is null) {
 			ret["error"] ~= Json(format("%s does not convert to map",
@@ -265,9 +266,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				logf("found field %s %s", f.name,
 						fType ? fType.toString() : "Unknown Type"
 					);
-				Json tmp = this.executeFieldSelection(f,
-								map.member[f.name],
-								objectValue
+				Json tmp = this.executeFieldSelection(f, map.member[f.name],
+								objectValue, variables
 							);
 				logf("%s", tmp);
 				foreach(key, value; tmp["data"].byKeyValue) {
@@ -286,11 +286,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
-			Json objectValue)
+			Json objectValue, Json variables)
 	{
 		logf("%s %s", field.name, objectType.toString());
+		Json arguments = getArguments(field, variables);
+		logf("args %s", arguments);
 		Json de = objectType.resolver(field.name, objectValue,
-						Json.emptyObject(), this.dummy
+						arguments, this.dummy
 					);
 		logf("%s", de);
 		Json ret = Json.emptyObject();
@@ -320,7 +322,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				FieldRangeItem[] selSet = field.selectionSet().array;
 				logf("selSet [%(%s, %)]", selSet.map!(a => a.name));
 				Json tmp = this.executeSelection(selSet, map,
-								"data" in de ? de["data"] : Json.emptyObject
+								"data" in de ? de["data"] : Json.emptyObject,
+								arguments
 							);
 				if("data" in tmp) {
 					ret["data"][field.name] = tmp["data"];
@@ -330,6 +333,29 @@ class GraphQLD(T, QContext = DefaultContext) {
 				}
 				return ret;
 			}
+		} else if(GQLDNullable!Con nullType =
+				objectType.getReturnType(field.name).toNullable())
+		{
+			logf("nullable");
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				auto elemType = nullType.elementType;
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				Json tmp = this.executeSelection(selSet, elemType,
+								"data" in de ? de["data"] : Json.emptyObject,
+								arguments
+							);
+				if("data" in tmp) {
+					ret["data"][field.name] = tmp["data"];
+				}
+				if("error" in de) {
+					ret["error"] ~= tmp["error"];
+				}
+			}
+			return ret;
 		} else if(GQLDList!Con list =
 				objectType.getReturnType(field.name).toList())
 		{
@@ -345,7 +371,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				Json tmp = Json.emptyArray();
 				foreach(Json item; de["data"]) {
 					Json itemRet = this.executeSelection(selSet, elemType,
-										item
+										item, arguments
 									);
 					if("data" in itemRet) {
 						tmp ~= itemRet["data"];
@@ -367,7 +393,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				FieldRangeItem[] selSet = field.selectionSet().array;
 				logf("selSet [%(%s, %)]", selSet.map!(a => a.name));
 				Json tmp = this.executeSelection(selSet, objectType,
-								"data" in de ? de["data"] : Json.emptyObject
+								"data" in de ? de["data"] : Json.emptyObject,
+								arguments
 							);
 				if("data" in tmp) {
 					ret["data"][field.name] = tmp["data"];
@@ -379,6 +406,69 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		return ret;
+	}
+
+	Json getArguments(FieldRangeItem item, Json variables) {
+		auto ae = new ArgumentExtractor(variables);
+		ae.accept(cast(const(Field))item.f);
+		return ae.arguments;
+	}
+}
+
+class ArgumentExtractor : Visitor {
+	alias enter = Visitor.enter;
+	alias exit = Visitor.exit;
+
+	Json arguments;
+	Json variables;
+
+	string curName;
+
+	this(Json variables) {
+		this.variables = variables;
+		this.arguments = Json.emptyObject();
+	}
+
+	override void enter(const(Argument) arg) {
+		this.curName = arg.name.value;
+	}
+
+	override void exit(const(Argument) arg) {
+		this.curName = "";
+	}
+
+	override void enter(const(Variable) var) {
+		string varName = var.name.value;
+		enforce(varName in this.variables,
+				format("Variable with name %s required", varName)
+			);
+		this.arguments[this.curName] = this.variables[varName];
+		this.curName = "";
+	}
+
+	override void enter(const(Value) val) {
+		switch(val.ruleSelection) {
+			case ValueEnum.STR:
+				this.arguments[this.curName] = Json(val.tok.value);
+				break;
+			case ValueEnum.INT:
+				this.arguments[this.curName] = Json(to!long(val.tok.value));
+				break;
+			case ValueEnum.FLOAT:
+				this.arguments[this.curName] = Json(to!double(val.tok.value));
+				break;
+			case ValueEnum.T:
+				this.arguments[this.curName] = Json(true);
+				break;
+			case ValueEnum.F:
+				this.arguments[this.curName] = Json(false);
+				break;
+			default:
+				throw new Exception(format("Value type %s not supported",
+							val.ruleSelection
+						));
+		}
+		this.curName = "";
 	}
 }
 
@@ -410,6 +500,39 @@ void main() {
 				return ret;
 			}
 		);
+
+	graphqld.setResolver("query", "starship",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				assert("id" in args);
+				long id = args["id"].get!long();
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyArray;
+				ret["error"] = Json.emptyArray;
+				auto theShip = database.ships.find!(s => s.id == id);
+				if(!theShip.empty) {
+					Starship ship = theShip.front;
+					Json tmp = Json.emptyObject;
+					static foreach(mem; [ "id", "designation", "size"]) {
+						tmp[mem] = __traits(getMember, ship, mem);
+					}
+					tmp["commanderId"] = ship.commander.id;
+					tmp["crewIds"] = serializeToJson(
+											ship.crew.map!(c => c.id).array
+										);
+					tmp["series"] = serializeToJson(ship.series);
+
+					ret["data"] = tmp;
+				} else {
+					ret["error"] = Json(
+										format("No ship with id %d exists", id)
+									);
+				}
+				return ret;
+			}
+		);
+
 	graphqld.setResolver("Starship", "commander",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
@@ -429,74 +552,6 @@ void main() {
 				return ret;
 			}
 		);
-	/*graphqld.setResolver("query", "foo",
-			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
-			{
-				Json ret = Json.emptyObject;
-				ret["data"] = 1337;
-				return ret;
-			}
-		);
-	graphqld.setResolver("query", "bar",
-			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
-			{
-				Json ret = Json.emptyObject;
-				ret["data"] = 7331;
-				return ret;
-			}
-		);
-	graphqld.setResolver("query", "small",
-			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
-			{
-				Json ret = Json.emptyObject;
-				ret["data"] = Json.emptyObject;
-				ret["data"]["id"] = 13;
-				ret["data"]["name"] = "Hello Graphql";
-				return ret;
-			}
-		);
-	graphqld.setResolver("query", "manysmall",
-			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
-			{
-				logf("many small resolver");
-				Json ret = Json.emptyObject;
-				ret["data"] = Json.emptyArray();
-				foreach(i; 0 .. 3) {
-					Json tmp = Json.emptyObject();
-					tmp["id"] = i;
-					tmp["name"] = format("Hello %s", i);
-					ret["data"] ~= tmp;
-				}
-				return ret;
-			}
-		);
-	graphqld.setResolver("Small", "child",
-			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
-			{
-				logf("Small child resolver %s", parent);
-				Json ret = Json.emptyObject;
-				ret["error"] = Json.emptyArray();
-				ret["data"] = Json.emptyObject();
-				assert("id" in parent);
-				ret["data"]["id"] = parent["id"].get!long() * 1000;
-
-				assert("name" in parent);
-				ret["data"]["name"] = parent["name"].get!string() ~ " child";
-				return ret;
-			}
-		);
-	*/
-
-	//Json sch = toSchema!Schema();
-	//writeln(sch.toPrettyString());
-
-	// starships resolver
-
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;
 	settings.bindAddresses = ["::1", "127.0.0.1"];
@@ -514,6 +569,11 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	} else {
 		toParse = j["mutation"].get!string();
 	}
+	Json vars = Json.emptyObject();
+	if("variables" in j) {
+		vars = j["variables"];
+	}
+	writeln(j.toPrettyString());
 	auto l = Lexer(toParse);
 	auto p = Parser(l);
 	Document d;
@@ -536,7 +596,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	auto tv = new TreeVisitor(0);
 	tv.accept(cast(const(Document))d);
 
-	Json gqld = graphqld.execute(d);
+	Json gqld = graphqld.execute(d, vars);
 	writeln(gqld.toPrettyString());
 
 	res.writeJsonBody(gqld);
