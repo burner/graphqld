@@ -358,11 +358,54 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 }
 
-GraphQLD!(Schema2) graphqld;
+GraphQLD!(Schema) graphqld;
 
 void main() {
-	graphqld = new GraphQLD!Schema2();
-	graphqld.setResolver("query", "foo",
+ 	database = new Data();
+	graphqld = new GraphQLD!Schema();
+	graphqld.setResolver("query", "starships",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyArray;
+				ret["error"] = Json.emptyArray;
+				foreach(ship; database.ships) {
+					Json tmp = Json.emptyObject;
+					static foreach(mem; [ "id", "designation", "size"]) {
+						tmp[mem] = __traits(getMember, ship, mem);
+					}
+					tmp["commanderId"] = ship.commander.id;
+					tmp["crewIds"] = serializeToJson(
+											ship.crew.map!(c => c.id).array
+										);
+					tmp["series"] = serializeToJson(ship.series);
+
+					ret["data"] ~= tmp;
+				}
+				return ret;
+			}
+		);
+	graphqld.setResolver("Starship", "commander",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyObject;
+				ret["error"] = Json.emptyArray;
+				foreach(c; database.chars) {
+					if(c.id == parent["commanderId"]) {
+						ret["data"]["id"] = c.id;
+						ret["data"]["name"] = c.name;
+						ret["data"]["series"] = serializeToJson(c.series);
+						ret["data"]["commandsIds"] =
+							serializeToJson(c.commands.map!(crew => crew.id).array);
+					}
+				}
+				return ret;
+			}
+		);
+	/*graphqld.setResolver("query", "foo",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
 			{
@@ -423,7 +466,7 @@ void main() {
 				return ret;
 			}
 		);
- 	//database = new Data();
+	*/
 
 	//Json sch = toSchema!Schema();
 	//writeln(sch.toPrettyString());
