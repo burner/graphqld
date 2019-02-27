@@ -9,6 +9,7 @@ interface Query2 {
 	long foo();
 	long bar();
 	Small small();
+	Small[] manysmall();
 }
 
 interface Mutation2 {

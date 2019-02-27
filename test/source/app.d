@@ -281,6 +281,33 @@ class GraphQLD(T, QContext = DefaultContext) {
 				}
 				return ret;
 			}
+		} else if(GQLDList!Con list =
+				objectType.getReturnType(field.name).toList())
+		{
+			logf("list");
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				auto elemType = list.elementType;
+				assert(de["data"].type == Json.Type.array);
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				Json tmp = Json.emptyArray();
+				foreach(Json item; de["data"]) {
+					Json itemRet = this.executeSelection(selSet, elemType,
+										item
+									);
+					if("data" in itemRet) {
+						tmp ~= itemRet["data"];
+					}
+					if("error" in de) {
+						ret["error"] ~= itemRet["error"];
+					}
+				}
+				ret["data"][field.name] = tmp;
+				return ret;
+			}
 		} else {
 			auto rt = objectType.getReturnType(field.name);
 			assert(rt);
@@ -339,6 +366,20 @@ void main() {
 			ret["data"] = Json.emptyObject;
 			ret["data"]["id"] = 13;
 			ret["data"]["name"] = "Hello Graphql";
+			return ret;
+		};
+	(cast(GQLDMap!(typeof(graphqld).Con))graphqld.schema.member["query"]).member["manysmall"].resolver =
+		delegate(string name, Json parent, Json args, ref typeof(graphqld).Con con)
+		{
+			logf("many small resolver");
+			Json ret = Json.emptyObject;
+			ret["data"] = Json.emptyArray();
+			foreach(i; 0 .. 3) {
+				Json tmp = Json.emptyObject();
+				tmp["id"] = i;
+				tmp["name"] = format("Hello %s", i);
+				ret["data"] ~= tmp;
+			}
 			return ret;
 		};
  	//database = new Data();
