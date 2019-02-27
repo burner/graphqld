@@ -142,6 +142,13 @@ Document parseGraph(HTTPServerRequest req) {
 	return p.parseDocument();
 }
 
+Json returnTemplate() {
+	Json ret = Json.emptyObject();
+	ret["data"] = Json.emptyObject();
+	ret["error"] = Json.emptyArray();
+	return ret;
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
@@ -189,7 +196,24 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 			return this.executeOperation(selSet.front);
 		}
-		assert(false);
+
+		Json ret = returnTemplate();
+		foreach(op; ops) {
+			Json tmp = this.executeOperation(op);
+			logf("%s\n%s", ret, tmp);
+			if(canFind([OperationDefinitionEnum.OT_N,
+					OperationDefinitionEnum.OT_N_D,
+					OperationDefinitionEnum.OT_N_V,
+					OperationDefinitionEnum.OT_N_VD], op.ruleSelection))
+			{
+				logf("%s", op.name.value);
+				ret["data"][op.name.value] = tmp["data"];
+				foreach(err; tmp["error"]) {
+					ret["error"] ~= err;
+				}
+			}
+		}
+		return ret;
 	}
 
 	static OperationDefinition[] getOperations(Document doc) {
