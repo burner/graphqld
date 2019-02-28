@@ -159,45 +159,6 @@ struct Lexer {
 						}
 					}
 					goto default;
-				/*case '_':
-					++this.stringPos;
-					++this.column;
-					++e;
-					if(this.testCharAndInc('_', e)) {
-						if(this.testCharAndInc('t', e)) {
-							if(this.testCharAndInc('y', e)) {
-								if(this.testCharAndInc('p', e)) {
-									if(this.testCharAndInc('e', e)) {
-										if(this.isTokenStop()) {
-											this.cur = Token(TokenType.type,
-													this.line, this.column);
-											return;
-										}
-									}
-								}
-							}
-						} else if(this.testCharAndInc('s', e)) {
-							if(this.testCharAndInc('c', e)) {
-								if(this.testCharAndInc('h', e)) {
-									if(this.testCharAndInc('e', e)) {
-										if(this.testCharAndInc('m', e)) {
-											if(this.testCharAndInc('a', e)) {
-												if(this.isTokenStop()) {
-													this.cur =
-														Token(TokenType.schema__,
-																this.line,
-																this.column);
-													return;
-												}
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-					goto default;
-					*/
 				case 's':
 					++this.stringPos;
 					++this.column;
