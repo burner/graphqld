@@ -236,8 +236,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return opDefRange(doc).map!(op => op.def.op).array;
 	}
 
-	Json executeOperation(OperationDefinition op, Json variables)
-	{
+	Json executeOperation(OperationDefinition op, Json variables) {
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{

@@ -36,10 +36,11 @@ enum GQLDKind {
 abstract class GQLDType(Con) {
 	alias Context = Con;
 
-	const GQLDKind kind;
 	alias Resolver = Json delegate(string name, Json parent,
 			Json args, ref Context context);
 
+	const GQLDKind kind;
+	string name;
 	Resolver resolver;
 
 	this(GQLDKind kind) {
@@ -76,6 +77,7 @@ class GQLDScalar(Con) : GQLDType!(Con) {
 class GQLDString(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.String);
+		super.name = "String";
 	}
 
 	override string toString() const {
@@ -86,6 +88,7 @@ class GQLDString(Con) : GQLDScalar!(Con) {
 class GQLDFloat(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Float);
+		super.name = "Float";
 	}
 
 	override string toString() const {
@@ -96,6 +99,7 @@ class GQLDFloat(Con) : GQLDScalar!(Con) {
 class GQLDInt(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Int);
+		super.name = "Int";
 	}
 
 	override string toString() const {
@@ -108,6 +112,7 @@ class GQLDEnum(Con) : GQLDScalar!(Con) {
 	this(string enumName) {
 		super(GQLDKind.Enum);
 		this.enumName = enumName;
+		super.name = enumName;
 	}
 
 	override string toString() const {
@@ -118,6 +123,7 @@ class GQLDEnum(Con) : GQLDScalar!(Con) {
 class GQLDBool(Con) : GQLDScalar!(Con) {
 	this() {
 		super(GQLDKind.Bool);
+		super.name = "Bool";
 	}
 
 	override string toString() const {
@@ -144,7 +150,6 @@ class GQLDMap(Con) : GQLDType!(Con) {
 }
 
 class GQLDObject(Con) : GQLDMap!(Con) {
-	string name;
 	GQLDObject!(Con) _base;
 
 	@property const(GQLDObject!(Con)) base() const {
@@ -157,7 +162,7 @@ class GQLDObject(Con) : GQLDMap!(Con) {
 
 	this(string name) {
 		super(GQLDKind.Object_);
-		this.name = name;
+		super.name = name;
 	}
 
 	override string toString() const {
@@ -174,11 +179,9 @@ class GQLDObject(Con) : GQLDMap!(Con) {
 }
 
 class GQLDUnion(Con) : GQLDMap!(Con) {
-	string name;
-
 	this(string name) {
 		super(GQLDKind.Union);
-		this.name = name;
+		super.name = name;
 	}
 
 	override string toString() const {
@@ -198,6 +201,7 @@ class GQLDList(Con) : GQLDType!(Con) {
 
 	this(GQLDType!(Con) elemType) {
 		super(GQLDKind.List);
+		super.name = "List";
 		this.elementType = elemType;
 	}
 
@@ -211,6 +215,7 @@ class GQLDNullable(Con) : GQLDType!(Con) {
 
 	this(GQLDType!(Con) elemType) {
 		super(GQLDKind.Nullable);
+		super.name = "Nullable";
 		this.elementType = elemType;
 	}
 
@@ -244,18 +249,21 @@ class GQLDOperation(Con) : GQLDType!(Con) {
 class GQLDQuery(Con) : GQLDOperation!(Con) {
 	this() {
 		super(GQLDKind.Query);
+		super.name = "Query";
 	}
 }
 
 class GQLDMutation(Con) : GQLDOperation!(Con) {
 	this() {
 		super(GQLDKind.Mutation);
+		super.name = "Mutation";
 	}
 }
 
 class GQLDSubscription(Con) : GQLDOperation!(Con) {
 	this() {
 		super(GQLDKind.Subscription);
+		super.name = "Subscription";
 	}
 }
 
@@ -264,6 +272,7 @@ class GQLDSchema(Con) : GQLDMap!(Con) {
 
 	this() {
 		super(GQLDKind.Schema);
+		super.name = "Schema";
 	}
 
 	override string toString() const {
@@ -434,6 +443,7 @@ GQLDSchema!(Con) toSchema2(Type, Con)() {
 	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["query", "mutation", "subscription"]) {{
 		GQLDMap!(Con) cur = new GQLDMap!Con();
+		cur.name = qms;
 		ret.member[qms] = cur;
 		static assert(__traits(hasMember, Type, qms));
 		alias QMSType = typeof(__traits(getMember, Type, qms));
