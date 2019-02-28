@@ -282,6 +282,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 								);
 			return ret;
 		}
+		logf("%(%s, %)", fields.map!(a => a.name));
 		foreach(FieldRangeItem f; fields) {
 			logf("field %s", f.name);
 			if(map !is null && f.name in map.member) {
@@ -299,6 +300,18 @@ class GraphQLD(T, QContext = DefaultContext) {
 				foreach(err; tmp["error"].array()) {
 					ret["error"] ~= err;
 				}
+			} else if(map !is null && map.name == "query"
+					&& f.name == "__schema")
+			{
+				Json tmp = this.executeFieldSelection(f, this.schema.__schema,
+								objectValue, variables
+							);
+			} else if(map !is null && map.name == "query"
+					&& f.name == "__type")
+			{
+				Json tmp = this.executeFieldSelection(f, this.schema.__type,
+								objectValue, variables
+							);
 			} else {
 				ret["error"] ~= Json(format("field %s not present in type %s",
 										f.name, objectType.toString())
@@ -322,14 +335,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 		ret["data"] = Json.emptyObject();
 		ret["error"] = Json.emptyArray();
 		if(GQLDScalar!Con scalar =
-				objectType.getReturnType(field.name).toScalar())
+				this.schema.getReturnType(objectType, field.name).toScalar())
 		{
 			logf("scalar");
 			ret.insertPayload(field.name, de);
 			logf("%s", ret);
 			return ret;
 		} else if(GQLDMap!Con map =
-				objectType.getReturnType(field.name).toMap())
+				this.schema.getReturnType(objectType, field.name).toMap())
 		{
 			logf("map %s", map.toString());
 			if(!field.hasSelectionSet()) {
@@ -347,7 +360,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				return ret;
 			}
 		} else if(GQLDNullable!Con nullType =
-				objectType.getReturnType(field.name).toNullable())
+				this.schema.getReturnType(objectType, field.name).toNullable())
 		{
 			logf("nullable");
 			if(!field.hasSelectionSet()) {
@@ -369,7 +382,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 			return ret;
 		} else if(GQLDList!Con list =
-				objectType.getReturnType(field.name).toList())
+				this.schema.getReturnType(objectType, field.name).toList())
 		{
 			logf("list");
 			if(!field.hasSelectionSet()) {

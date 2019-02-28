@@ -24,14 +24,14 @@ struct Lexer {
 	}
 
 	private bool isTokenStop() const @safe {
-		return this.stringPos >= this.input.length 
+		return this.stringPos >= this.input.length
 			|| this.isTokenStop(this.input[this.stringPos]);
 	}
 
 	private bool isTokenStop(const(char) c) const @safe {
-		return 
-			c == ' ' || c == '\t' || c == '\n' || c == ';' || c == '(' 
-			|| c == ')' || c == '{' || c == '}' || c == '!' || c == '=' 
+		return
+			c == ' ' || c == '\t' || c == '\n' || c == ';' || c == '('
+			|| c == ')' || c == '{' || c == '}' || c == '!' || c == '='
 			|| c == '|' || c == '*' || c == '/' || c == '[' || c == ':'
 			|| c == ']' || c == ',' || c == '@' || c == '#' || c == '$';
 	}
@@ -43,7 +43,7 @@ struct Lexer {
 			while(this.stringPos < this.input.length &&
 				this.input[this.stringPos] != '\n')
 			{
-				++this.stringPos;	
+				++this.stringPos;
 			}
 			++this.stringPos;
 			++this.line;
@@ -130,7 +130,7 @@ struct Lexer {
 			++this.column;
 			++this.stringPos;
 		} else {
-			size_t b = this.stringPos;	
+			size_t b = this.stringPos;
 			size_t e = this.stringPos;
 			switch(this.input[this.stringPos]) {
 				case 'm':
@@ -159,7 +159,7 @@ struct Lexer {
 						}
 					}
 					goto default;
-				case '_':
+				/*case '_':
 					++this.stringPos;
 					++this.column;
 					++e;
@@ -197,6 +197,7 @@ struct Lexer {
 						}
 					}
 					goto default;
+					*/
 				case 's':
 					++this.stringPos;
 					++this.column;
@@ -378,7 +379,7 @@ struct Lexer {
 							}
 						}
 					}
-					
+
 					goto default;
 				case 'f':
 					++this.stringPos;
@@ -511,13 +512,13 @@ struct Lexer {
 					++e;
 					if(this.testCharAndInc('.', e)) {
 						if(this.testCharAndInc('.', e)) {
-							//if(this.stringPos < this.input.length 
-							//	&& isAlphaNum(this.input[this.stringPos])) 
-							if(this.isTokenStop() 
-									|| (this.stringPos < this.input.length 
+							//if(this.stringPos < this.input.length
+							//	&& isAlphaNum(this.input[this.stringPos]))
+							if(this.isTokenStop()
+									|| (this.stringPos < this.input.length
 										&& isAlphaNum(this.input[this.stringPos])
 										)
-								) 
+								)
 							{
 								this.cur = Token(TokenType.dots, this.line,
 										this.column);
@@ -544,12 +545,12 @@ struct Lexer {
 						++this.stringPos;
 						++this.column;
 						++e;
-					} while(this.stringPos < this.input.length 
+					} while(this.stringPos < this.input.length
 							&& this.input[this.stringPos] >= '0'
 							&& this.input[this.stringPos] <= '9');
-					
+
 					if(this.stringPos >= this.input.length
-							|| this.input[this.stringPos] != '.') 
+							|| this.input[this.stringPos] != '.')
 					{
 						this.cur = Token(TokenType.intValue, this.input[b ..
 								e], this.line, this.column);
@@ -561,7 +562,7 @@ struct Lexer {
 							++this.stringPos;
 							++this.column;
 							++e;
-						} while(this.stringPos < this.input.length 
+						} while(this.stringPos < this.input.length
 								&& this.input[this.stringPos] >= '0'
 								&& this.input[this.stringPos] <= '9');
 
@@ -576,7 +577,7 @@ struct Lexer {
 					++e;
 					while(this.stringPos < this.input.length
 							&& (this.input[this.stringPos] != '"'
-								|| (this.input[this.stringPos] == '"' 
+								|| (this.input[this.stringPos] == '"'
 									&& this.input[this.stringPos - 1U] == '\\')
 						 		)
 						)
@@ -614,7 +615,7 @@ struct Lexer {
 	}
 
 	bool testCharAndInc(const(char) c, ref size_t e) @safe {
-		if(this.stringPos < this.input.length 
+		if(this.stringPos < this.input.length
 				&& this.input[this.stringPos] == c)
 		{
 			++this.column;
@@ -640,7 +641,7 @@ struct Lexer {
 	}
 
 	void popFront() @safe {
-		this.buildToken();		
+		this.buildToken();
 	}
 }
 
@@ -754,7 +755,7 @@ friends(first: -10.3) {
 		    }
 		  }
 		}
-		
+
 		fragment friendFields on User {
 		  id
 		  name

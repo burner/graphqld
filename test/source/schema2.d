@@ -270,6 +270,29 @@ class GQLDSubscription(Con) : GQLDOperation!(Con) {
 class GQLDSchema(Con) : GQLDMap!(Con) {
 	GQLDType!(Con)[string] types;
 
+	GQLDObject!(Con) __schema;
+	GQLDObject!(Con) __type;
+	GQLDObject!(Con) __field;
+	GQLDObject!(Con) __inputValue;
+	GQLDObject!(Con) __enumValue;
+
+	GQLDList!(Con) __listType;
+	GQLDList!(Con) __listField;
+	GQLDList!(Con) __listInputValue;
+	GQLDList!(Con) __listEnumValue;
+
+	GQLDNullable!(Con) __nullableType;
+	GQLDNullable!(Con) __nullableField;
+	GQLDNullable!(Con) __nullableInputValue;
+
+	GQLDList!(Con) __listNullableType;
+	GQLDList!(Con) __listNullableField;
+	GQLDList!(Con) __listNullableInputValue;
+
+	GQLDNullable!(Con) __nullableListNullableType;
+	GQLDNullable!(Con) __nullableListNullableField;
+	GQLDNullable!(Con) __nullableListNullableInputValue;
+
 	this() {
 		super(GQLDKind.Schema);
 		super.name = "Schema";
@@ -288,6 +311,51 @@ class GQLDSchema(Con) : GQLDMap!(Con) {
 		}
 		return app.data;
 	}
+
+	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
+		if(auto op = t.toObject()) {
+			if(op.name == "__schema") {
+				switch(field) {
+					case "types":
+						return this.__listType;
+					case "queryTypes":
+						return this.__type;
+					case "mutationTypes":
+						return this.__nullableType;
+					case "subscriptionType":
+						return this.__nullableType;
+					default:
+						assert(false,
+								"introspecting directive not yet supported"
+							);
+				}
+			} else if(op.name == "__type") {
+			} else if(op.name == "__field") {
+			} else if(op.name == "__inputValue") {
+			} else if(op.name == "__enumValue") {
+			}
+		}
+		if(auto s = t.toScalar()) {
+			return s;
+		} else if(auto op = t.toOperation()) {
+			return op.returnType;
+		} else if(auto map = t.toMap()) {
+			if(field in map.member) {
+				return map.member[field];
+			} else {
+				//logf("%s %s", t.toString(), field);
+				return null;
+			}
+		} else {
+			logf("%s", t.toString());
+			return null;
+		}
+	}
+
+}
+
+GQLDObject!(Con) toObject(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
 }
 
 GQLDMap!(Con) toMap(Con)(GQLDType!Con t) {
@@ -308,24 +376,6 @@ GQLDList!(Con) toList(Con)(GQLDType!Con t) {
 
 GQLDNullable!(Con) toNullable(Con)(GQLDType!Con t) {
 	return cast(typeof(return))t;
-}
-
-GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
-	if(auto s = t.toScalar()) {
-		return s;
-	} else if(auto op = t.toOperation()) {
-		return op.returnType;
-	} else if(auto map = t.toMap()) {
-		if(field in map.member) {
-			return map.member[field];
-		} else {
-			//logf("%s %s", t.toString(), field);
-			return null;
-		}
-	} else {
-		logf("%s", t.toString());
-		return null;
-	}
 }
 
 string toShortString(Con)(const(GQLDType!(Con)) e) {
@@ -437,14 +487,58 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
 	}
 }
 
+alias QueryResolver(Con) = Json delegate(string name, Json parent,
+		Json args, ref Con context) @safe;
+
+QueryResolver!(Con) buildTypeResolver(Type, Con)() {
+	QueryResolver!(Con) ret = delegate(string name, Json parent,
+			Json args, ref Con context) @safe
+		{
+			logf("%s", args);
+			Json ret;
+			return ret;
+		};
+	return ret;
+}
+
 GQLDSchema!(Con) toSchema2(Type, Con)() {
 	typeof(return) ret = new typeof(return)();
+	ret.__schema = new GQLDObject!Con("__schema");
+	ret.__type = new GQLDObject!Con("__type");
+	ret.__type.resolver = buildTypeResolver!(Type, Con)();
+	ret.__field = new GQLDObject!Con("__field");
+	ret.__inputValue = new GQLDObject!Con("__inputValue");
+	ret.__enumValue = new GQLDObject!Con("__enumValue");
+
+	ret.__listType = new GQLDList!Con(ret.__type);
+	ret.__listField = new GQLDList!Con(ret.__field);
+	ret.__listInputValue = new GQLDList!Con(ret.__inputValue);
+	ret.__listEnumValue = new GQLDList!Con(ret.__enumValue);
+
+	ret.__nullableType = new GQLDNullable!Con(ret.__type);
+	ret.__nullableField = new GQLDNullable!Con(ret.__field);
+	ret.__nullableInputValue = new GQLDNullable!Con(ret.__inputValue);
+
+	ret.__listNullableType = new GQLDList!Con(ret.__nullableType);
+	ret.__listNullableField = new GQLDList!Con(ret.__nullableField);
+	ret.__listNullableInputValue = new GQLDList!Con(ret.__nullableInputValue);
+
+	ret.__nullableListNullableType =
+			new GQLDNullable!Con(ret.__listNullableType);
+	ret.__nullableListNullableField =
+			new GQLDNullable!Con(ret.__listNullableField);
+	ret.__nullableListNullableInputValue =
+			new GQLDNullable!Con(ret.__listNullableInputValue);
 
 	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["query", "mutation", "subscription"]) {{
 		GQLDMap!(Con) cur = new GQLDMap!Con();
 		cur.name = qms;
 		ret.member[qms] = cur;
+		if(qms == "query") {
+			cur.member["__schema"] = ret.__schema;
+			cur.member["__type"] = ret.__type;
+		}
 		static assert(__traits(hasMember, Type, qms));
 		alias QMSType = typeof(__traits(getMember, Type, qms));
 		static foreach(mem; __traits(allMembers, QMSType)) {{

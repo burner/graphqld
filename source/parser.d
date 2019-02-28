@@ -435,7 +435,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["dots -> Selection","name -> Selection","schema__ -> Selection","type -> Selection"]
+				["dots -> Selection","name -> Selection"]
 			);
 
 		}
@@ -554,7 +554,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["dots -> Selection","name -> Selection","schema__ -> Selection","type -> Selection"]
+					["dots -> Selection","name -> Selection"]
 				);
 
 			}
@@ -570,7 +570,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["dots","name -> Field","schema__ -> Field","type -> Field"]
+			["dots","name -> Field"]
 		);
 
 	}
@@ -636,7 +636,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name -> FieldName","schema__ -> FieldName","type -> FieldName","dots"]
+			["name -> FieldName","dots"]
 		);
 
 	}
@@ -902,15 +902,13 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","schema__","type"]
+			["name"]
 		);
 
 	}
 
 	bool firstFieldName() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name
-			 || this.lex.front.type == TokenType.type
-			 || this.lex.front.type == TokenType.schema__;
+		return this.lex.front.type == TokenType.name;
 	}
 
 	FieldName parseFieldName() {
@@ -958,20 +956,6 @@ struct Parser {
 			return new FieldName(FieldNameEnum.N
 				, name
 			);
-		} else if(this.lex.front.type == TokenType.type) {
-			Token type = this.lex.front;
-			this.lex.popFront();
-
-			return new FieldName(FieldNameEnum.T
-				, type
-			);
-		} else if(this.lex.front.type == TokenType.schema__) {
-			Token schema = this.lex.front;
-			this.lex.popFront();
-
-			return new FieldName(FieldNameEnum.S
-				, schema
-			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -981,7 +965,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","type","schema__"]
+			["name"]
 		);
 
 	}

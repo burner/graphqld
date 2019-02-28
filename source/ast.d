@@ -457,14 +457,10 @@ class Field {
 enum FieldNameEnum {
 	A,
 	N,
-	T,
-	S,
 }
 
 class FieldName {
 	FieldNameEnum ruleSelection;
-	Token type;
-	Token schema;
 	Token aka;
 	Token name;
 

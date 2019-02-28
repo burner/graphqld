@@ -552,12 +552,6 @@ class Visitor {
 			case FieldNameEnum.N:
 				obj.name.visit(this);
 				break;
-			case FieldNameEnum.T:
-				obj.type.visit(this);
-				break;
-			case FieldNameEnum.S:
-				obj.schema.visit(this);
-				break;
 		}
 		exit(obj);
 	}
@@ -574,12 +568,6 @@ class Visitor {
 				break;
 			case FieldNameEnum.N:
 				obj.name.visit(this);
-				break;
-			case FieldNameEnum.T:
-				obj.type.visit(this);
-				break;
-			case FieldNameEnum.S:
-				obj.schema.visit(this);
 				break;
 		}
 		exit(obj);
