@@ -149,10 +149,25 @@ Json returnTemplate() {
 	return ret;
 }
 
+void insertPayload(ref Json result, string field, Json data) {
+	enum d = "data";
+	enum e = "error";
+	if(d in data) {
+		enforce(result[d].type == Json.Type.object);
+		result[d][field] = data[d];
+	}
+	if(e in data) {
+		enforce(result[e].type == Json.Type.array);
+		if(!canFind(result[e].array(), data[e])) {
+			result[e] ~= data[e];
+		}
+	}
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
-			Json args, ref Con context);
+			Json args, ref Con context) @safe;
 
 	Document doc;
 
@@ -223,21 +238,30 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	Json executeOperation(OperationDefinition op, Json variables)
 	{
-		//Json variables = this.collectVariables(op,
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{
 			return this.executeQuery(op, variables);
 		} else if(op.ot.tok.type == TokenType.mutation) {
-			assert(false, "Mutation not supported yet");
+			return this.executeMutation(op, variables);
 		} else if(op.ot.tok.type == TokenType.subscription) {
 			assert(false, "Subscription not supported yet");
 		}
 		assert(false, "Unexpected");
 	}
 
+	Json executeMutation(OperationDefinition op, Json variables) {
+		log("mutation");
+		FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
+		Json tmp = this.executeSelection(selSet,
+						cast(GQLDMap!Con)this.schema.member["mutation"],
+						Json.emptyObject(), variables
+					);
+		return tmp;
+	}
+
 	Json executeQuery(OperationDefinition op, Json variables) {
-		log();
+		log("query");
 		FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
 		Json tmp = this.executeSelection(selSet,
 						cast(GQLDMap!Con)this.schema.member["query"],
@@ -302,12 +326,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				objectType.getReturnType(field.name).toScalar())
 		{
 			logf("scalar");
-			if("data" in de) {
-				ret["data"][field.name] = de["data"];
-			}
-			if("error" in de) {
-				ret["error"] ~= de["error"];
-			}
+			ret.insertPayload(field.name, de);
 			logf("%s", ret);
 			return ret;
 		} else if(GQLDMap!Con map =
@@ -325,12 +344,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 								"data" in de ? de["data"] : Json.emptyObject,
 								arguments
 							);
-				if("data" in tmp) {
-					ret["data"][field.name] = tmp["data"];
-				}
-				if("error" in de) {
-					ret["error"] ~= tmp["error"];
-				}
+				ret.insertPayload(field.name, tmp);
 				return ret;
 			}
 		} else if(GQLDNullable!Con nullType =
@@ -351,12 +365,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 									"data" in de ? de["data"] : Json.emptyObject,
 									arguments
 								);
-					if("data" in tmp) {
-						ret["data"][field.name] = tmp["data"];
-					}
-					if("error" in de) {
-						ret["error"] ~= tmp["error"];
-					}
+					ret.insertPayload(field.name, tmp);
 				}
 			}
 			return ret;
@@ -400,12 +409,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 								"data" in de ? de["data"] : Json.emptyObject,
 								arguments
 							);
-				if("data" in tmp) {
-					ret["data"][field.name] = tmp["data"];
-				}
-				if("error" in de) {
-					ret["error"] ~= tmp["error"];
-				}
+				ret.insertPayload(field.name, tmp);
 				return ret;
 			}
 		}
@@ -522,9 +526,69 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("query", "shipsselection",
+	graphqld.setResolver("query", "starship",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
+			{
+				assert("id" in args);
+				long id = args["id"].get!long();
+				Json ret = Json.emptyObject;
+				ret["data"] = Json.emptyObject;
+				ret["error"] = Json.emptyArray;
+				auto theShip = database.ships.find!(s => s.id == id);
+				if(!theShip.empty) {
+					Starship ship = theShip.front;
+					Json tmp = Json.emptyObject;
+					static foreach(mem; [ "id", "designation", "size"]) {
+						tmp[mem] = __traits(getMember, ship, mem);
+					}
+					tmp["commanderId"] = ship.commander.id;
+					tmp["crewIds"] = serializeToJson(
+											ship.crew.map!(c => c.id).array
+										);
+					tmp["series"] = serializeToJson(ship.series);
+
+					ret["data"] = tmp;
+				}
+				logf("%s", ret);
+				return ret;
+			}
+		);
+
+	graphqld.setResolver("mutation", "addCrewman",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con) @trusted
+			{
+				assert("shipId" in args);
+				long shipId = args["shipId"].get!long();
+				assert("name" in args);
+				string nname = args["name"].get!string();
+				logf("%s %s", shipId, nname);
+
+				Json ret = returnTemplate();
+
+				auto theShip = database.ships.find!(s => shipId == s.id);
+				if(!theShip.empty) {
+					Starship ship = theShip.front;
+					auto nh = new Humanoid(database.i++, nname, "Human");
+					ship.crew ~= nh;
+					nh.ship = nullable(ship);
+					ret["data"]["id"] = nh.id;
+					ret["data"]["name"] = nh.name;
+					ret["data"]["shipId"] = ship.id;
+				} else {
+					ret["error"] ~= Json(format(
+											"Ship with id %s does not exist",
+											shipId
+										));
+				}
+
+				return ret;
+			}
+		);
+	graphqld.setResolver("query", "shipsselection",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con) @trusted
 			{
 				assert("ids" in args);
 				Json[] jArr = args["ids"].array();

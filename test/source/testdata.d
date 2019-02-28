@@ -27,7 +27,7 @@ interface Query {
 }
 
 interface Mutation {
-	Character addCrewman(Series series, string name, string species);
+	Character addCrewman(long shipId, string name);
 }
 
 interface Subscription {
@@ -127,9 +127,9 @@ class Starship {
 class Data {
 	Character[] chars;
 	Starship[] ships;
+	long i;
 
 	this() {
-		long i;
 		auto picard = new Humanoid(i++, "Jean-Luc Picard", "Human");
 		picard.series ~= Series.TheNextGeneration;
 		auto tng = [

@@ -10,6 +10,8 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
+@safe:
+
 struct DefaultContext {
 }
 
@@ -59,6 +61,10 @@ abstract class GQLDType(Con) {
 				return ret;
 			};
 	}
+
+	override string toString() const {
+		return "GQLDType";
+	}
 }
 
 class GQLDScalar(Con) : GQLDType!(Con) {
@@ -72,7 +78,7 @@ class GQLDString(Con) : GQLDScalar!(Con) {
 		super(GQLDKind.String);
 	}
 
-	override string toString() {
+	override string toString() const {
 		return "String";
 	}
 }
@@ -82,7 +88,7 @@ class GQLDFloat(Con) : GQLDScalar!(Con) {
 		super(GQLDKind.Float);
 	}
 
-	override string toString() {
+	override string toString() const {
 		return "Float";
 	}
 }
@@ -92,7 +98,7 @@ class GQLDInt(Con) : GQLDScalar!(Con) {
 		super(GQLDKind.Int);
 	}
 
-	override string toString() {
+	override string toString() const {
 		return "Int";
 	}
 }
@@ -104,7 +110,7 @@ class GQLDEnum(Con) : GQLDScalar!(Con) {
 		this.enumName = enumName;
 	}
 
-	override string toString() {
+	override string toString() const {
 		return this.enumName;
 	}
 }
@@ -114,7 +120,7 @@ class GQLDBool(Con) : GQLDScalar!(Con) {
 		super(GQLDKind.Bool);
 	}
 
-	override string toString() {
+	override string toString() const {
 		return "Bool";
 	}
 }
@@ -128,7 +134,7 @@ class GQLDMap(Con) : GQLDType!(Con) {
 		super(kind);
 	}
 
-	override string toString() {
+	override string toString() const {
 		auto app = appender!string();
 		foreach(key, value; this.member) {
 			formattedWrite(app, "%s: %s\n", key, value.toString());
@@ -139,14 +145,22 @@ class GQLDMap(Con) : GQLDType!(Con) {
 
 class GQLDObject(Con) : GQLDMap!(Con) {
 	string name;
-	GQLDObject!(Con) base;
+	GQLDObject!(Con) _base;
+
+	@property const(GQLDObject!(Con)) base() const {
+		return cast(const)this._base;
+	}
+
+	@property void base(GQLDObject!(Con) nb) {
+		this._base = nb;
+	}
 
 	this(string name) {
 		super(GQLDKind.Object_);
 		this.name = name;
 	}
 
-	override string toString() {
+	override string toString() const {
 		return format("Object %s(%s))\n\t\t\t\tBase(%s)",
 				this.name,
 				this.member
@@ -167,7 +181,7 @@ class GQLDUnion(Con) : GQLDMap!(Con) {
 		this.name = name;
 	}
 
-	override string toString() {
+	override string toString() const {
 		return format("Union %s(%s))",
 				this.name,
 				this.member
@@ -187,7 +201,7 @@ class GQLDList(Con) : GQLDType!(Con) {
 		this.elementType = elemType;
 	}
 
-	override string toString() {
+	override string toString() const {
 		return format("List(%s)", this.elementType.toShortString());
 	}
 }
@@ -200,7 +214,7 @@ class GQLDNullable(Con) : GQLDType!(Con) {
 		this.elementType = elemType;
 	}
 
-	override string toString() {
+	override string toString() const {
 		return format("Nullable(%s)", this.elementType.toShortString());
 	}
 }
@@ -215,7 +229,7 @@ class GQLDOperation(Con) : GQLDType!(Con) {
 		super(kind);
 	}
 
-	override string toString() {
+	override string toString() const {
 		return format("%s %s(%s)", super.kind, returnType.toShortString(),
 				this.parameters
 					.byKeyValue
@@ -252,7 +266,7 @@ class GQLDSchema(Con) : GQLDMap!(Con) {
 		super(GQLDKind.Schema);
 	}
 
-	override string toString() {
+	override string toString() const {
 		auto app = appender!string();
 		formattedWrite(app, "Operation\n");
 		foreach(key, value; super.member) {
@@ -305,10 +319,10 @@ GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 	}
 }
 
-string toShortString(Con)(GQLDType!(Con) e) {
-	if(auto o = cast(GQLDObject!(Con))e) {
+string toShortString(Con)(const(GQLDType!(Con)) e) {
+	if(auto o = cast(const(GQLDObject!(Con)))e) {
 		return o.name;
-	} else if(auto u = cast(GQLDUnion!(Con))e) {
+	} else if(auto u = cast(const(GQLDUnion!(Con)))e) {
 		return u.name;
 	} else {
 		return e.toString();
