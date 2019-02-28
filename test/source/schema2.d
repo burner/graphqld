@@ -12,6 +12,13 @@ import vibe.data.json;
 
 @safe:
 
+Json returnTemplate() {
+	Json ret = Json.emptyObject();
+	ret["data"] = Json.emptyObject();
+	ret["error"] = Json.emptyArray();
+	return ret;
+}
+
 struct DefaultContext {
 }
 
@@ -267,7 +274,7 @@ class GQLDSubscription(Con) : GQLDOperation!(Con) {
 	}
 }
 
-class GQLDSchema(Con) : GQLDMap!(Con) {
+class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDType!(Con)[string] types;
 
 	GQLDObject!(Con) __schema;
@@ -296,6 +303,46 @@ class GQLDSchema(Con) : GQLDMap!(Con) {
 	this() {
 		super(GQLDKind.Schema);
 		super.name = "Schema";
+		this.createInbuildTypes();
+		this.createIntrospectionTypes();
+	}
+
+	void createInbuildTypes() {
+		this.types["string"] = new GQLDString!Con();
+		this.types["int"] = new GQLDInt!Con();
+		this.types["float"] = new GQLDFloat!Con();
+		this.types["bool"] = new GQLDBool!Con();
+	}
+
+	void createIntrospectionTypes() {
+		this.__schema = new GQLDObject!Con("__schema");
+		this.__type = new GQLDObject!Con("__type");
+		this.__type.member["name"] = this.types["string"];
+		this.__type.resolver = buildTypeResolver!(Type, Con)();
+		this.__field = new GQLDObject!Con("__field");
+		this.__inputValue = new GQLDObject!Con("__inputValue");
+		this.__enumValue = new GQLDObject!Con("__enumValue");
+
+		this.__listType = new GQLDList!Con(this.__type);
+		this.__listField = new GQLDList!Con(this.__field);
+		this.__listInputValue = new GQLDList!Con(this.__inputValue);
+		this.__listEnumValue = new GQLDList!Con(this.__enumValue);
+
+		this.__nullableType = new GQLDNullable!Con(this.__type);
+		this.__nullableField = new GQLDNullable!Con(this.__field);
+		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
+
+		this.__listNullableType = new GQLDList!Con(this.__nullableType);
+		this.__listNullableField = new GQLDList!Con(this.__nullableField);
+		this.__listNullableInputValue =
+				new GQLDList!Con(this.__nullableInputValue);
+
+		this.__nullableListNullableType =
+				new GQLDNullable!Con(this.__listNullableType);
+		this.__nullableListNullableField =
+				new GQLDNullable!Con(this.__listNullableField);
+		this.__nullableListNullableInputValue =
+				new GQLDNullable!Con(this.__listNullableInputValue);
 	}
 
 	override string toString() const {
@@ -313,23 +360,32 @@ class GQLDSchema(Con) : GQLDMap!(Con) {
 	}
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
+		logf("%s %s", t.name, field);
 		if(auto op = t.toObject()) {
 			if(op.name == "__schema") {
 				switch(field) {
-					case "types":
-						return this.__listType;
-					case "queryTypes":
-						return this.__type;
-					case "mutationTypes":
-						return this.__nullableType;
-					case "subscriptionType":
-						return this.__nullableType;
+					case "types": return this.__listType;
+					case "queryTypes": return this.__type;
+					case "mutationTypes": return this.__nullableType;
+					case "subscriptionType": return this.__nullableType;
 					default:
 						assert(false,
 								"introspecting directive not yet supported"
 							);
 				}
 			} else if(op.name == "__type") {
+				switch(field) {
+					case "__type": return this.__type;
+					case "name": return this.types["String"];
+					case "description": return this.types["String"];
+					case "fields": return this.__listField;
+					case "interfaces": return this.__listType;
+					case "possibleTypes": return this.__listType;
+					case "enumValues": return this.__listEnumValue;
+					case "oyType": return this.__type;
+					default:
+						return null;
+				}
 			} else if(op.name == "__field") {
 			} else if(op.name == "__inputValue") {
 			} else if(op.name == "__enumValue") {
@@ -388,10 +444,10 @@ string toShortString(Con)(const(GQLDType!(Con)) e) {
 	}
 }
 
-GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
+GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 	pragma(msg, Type.stringof, " ", isIntegral!Type);
 	static if(is(Type == bool)) {
-		GQLDBool!(Con) r;
+		/*GQLDBool!(Con) r;
 		if("bool" in ret.types) {
 			r = cast(GQLDBool!(Con))ret.types["bool"];
 		} else {
@@ -399,8 +455,10 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
 			ret.types["bool"] = r;
 		}
 		return r;
+		*/
+		return new GQLDBool!(Con)();
 	} else static if(isFloatingPoint!(Type)) {
-		GQLDFloat!(Con) r;
+		/*GQLDFloat!(Con) r;
 		if("float" in ret.types) {
 			r = cast(GQLDFloat!(Con))ret.types["float"];
 		} else {
@@ -408,18 +466,21 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
 			ret.types["float"] = r;
 		}
 		return r;
+		*/
+		return new GQLDFloat!(Con)();
 	} else static if(isIntegral!(Type)) {
-		GQLDInt!(Con) r;
+		/*GQLDInt!(Con) r;
 		if("int" in ret.types) {
 			r = cast(GQLDInt!(Con))ret.types["int"];
 		} else {
 			r = new GQLDInt!(Con)();
 			ret.types["int"] = r;
 		}
-		pragma(msg, "166 ", Type.stringof, " int");
 		return r;
+		*/
+		return new GQLDInt!(Con)();
 	} else static if(isSomeString!Type) {
-		GQLDString!(Con) r;
+		/*GQLDString!(Con) r;
 		if("string" in ret.types) {
 			r = cast(GQLDString!(Con))ret.types["string"];
 		} else {
@@ -427,6 +488,8 @@ GQLDType!(Con) typeToGQLDType(Type, Con)(ref GQLDSchema!(Con) ret) {
 			ret.types["string"] = r;
 		}
 		return r;
+		*/
+		return new GQLDString!(Con)();
 	} else static if(is(Type == enum)) {
 		GQLDEnum!(Con) r;
 		if(Type.stringof in ret.types) {
@@ -494,41 +557,17 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 	QueryResolver!(Con) ret = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
-			logf("%s", args);
-			Json ret;
+			logf("%s %s", name, args);
+			Json ret = returnTemplate();
+			ret["data"]["name"] = args["name"].get!string();
+			logf("%s", ret);
 			return ret;
 		};
 	return ret;
 }
 
-GQLDSchema!(Con) toSchema2(Type, Con)() {
+GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
 	typeof(return) ret = new typeof(return)();
-	ret.__schema = new GQLDObject!Con("__schema");
-	ret.__type = new GQLDObject!Con("__type");
-	ret.__type.resolver = buildTypeResolver!(Type, Con)();
-	ret.__field = new GQLDObject!Con("__field");
-	ret.__inputValue = new GQLDObject!Con("__inputValue");
-	ret.__enumValue = new GQLDObject!Con("__enumValue");
-
-	ret.__listType = new GQLDList!Con(ret.__type);
-	ret.__listField = new GQLDList!Con(ret.__field);
-	ret.__listInputValue = new GQLDList!Con(ret.__inputValue);
-	ret.__listEnumValue = new GQLDList!Con(ret.__enumValue);
-
-	ret.__nullableType = new GQLDNullable!Con(ret.__type);
-	ret.__nullableField = new GQLDNullable!Con(ret.__field);
-	ret.__nullableInputValue = new GQLDNullable!Con(ret.__inputValue);
-
-	ret.__listNullableType = new GQLDList!Con(ret.__nullableType);
-	ret.__listNullableField = new GQLDList!Con(ret.__nullableField);
-	ret.__listNullableInputValue = new GQLDList!Con(ret.__nullableInputValue);
-
-	ret.__nullableListNullableType =
-			new GQLDNullable!Con(ret.__listNullableType);
-	ret.__nullableListNullableField =
-			new GQLDNullable!Con(ret.__listNullableField);
-	ret.__nullableListNullableInputValue =
-			new GQLDNullable!Con(ret.__listNullableInputValue);
 
 	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["query", "mutation", "subscription"]) {{

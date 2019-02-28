@@ -142,13 +142,6 @@ Document parseGraph(HTTPServerRequest req) {
 	return p.parseDocument();
 }
 
-Json returnTemplate() {
-	Json ret = Json.emptyObject();
-	ret["data"] = Json.emptyObject();
-	ret["error"] = Json.emptyArray();
-	return ret;
-}
-
 void insertPayload(ref Json result, string field, Json data) {
 	enum d = "data";
 	enum e = "error";
@@ -171,7 +164,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	Document doc;
 
-	alias Schema = GQLDSchema!(Con);
+	alias Schema = GQLDSchema!(T, Con);
 	Schema schema;
 
 	Con dummy;
