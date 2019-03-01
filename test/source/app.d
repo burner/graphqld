@@ -26,120 +26,7 @@ import schema2;
 
 Data database;
 
-struct StackElem {
-	Json json;
-	string name;
-	bool isQuery;
-	//const(Field) field;
-
-	bool isArray() const {
-		return this.json.type == Json.Type.object
-			&& "data" in this.json
-			&& this.json["data"].type == Json.Type.array;
-	}
-
-	void makeSureExists() {
-		if(this.json.type != Json.Type.object) {
-			this.json = Json.emptyObject();
-		}
-	}
-
-	void putData(Json data) {
-		this.makeSureExists();
-		this.json["data"] = data;
-	}
-
-	void putError(Json data) {
-		this.makeSureExists();
-		this.json["error"] = data;
-	}
-}
-
-string pathStackToResolve(StackElem[] stack) {
-	return stack.map!(e => to!string(e.name))
-			.filter!(e => !e.empty)
-			.joiner(".")
-			.to!string();
-}
-
-void push(ref StackElem[] stack) {
-	StackElem elem;
-	stack ~= elem;
-}
-
-Json getParentData(ref StackElem[] stack) {
-	return (stack.length > 1) ? stack[$ - 1].json : Json.emptyObject;
-}
-
-class Resolver(Impl) : Visitor {
-	alias enter = Visitor.enter;
-	alias exit = Visitor.exit;
-
-	Impl impl;
-	StackElem[] stack;
-	Json ret;
-
-	this(Impl impl) {
-		this.impl = impl;
-	}
-
-	Json resolve(Document doc) {
-		return this.resolve(cast(const(Document))doc);
-	}
-
-	Json resolve(const(Document) doc) {
-		this.ret = Json.emptyObject();
-		this.ret["data"] = Json.emptyObject();
-		this.ret["error"] = Json.emptyObject();
-
-		this.accept(doc);
-		return ret;
-	}
-
-	override void enter(const(Selection) sel) {
-		this.stack.push();
-	}
-
-	override void exit(const(Selection) sel) {
-		this.stack.popBack();
-	}
-
-	override void enter(const(Field) sel) {
-		this.stack.back.name = sel.name.name.value;
-		string p = this.stack.pathStackToResolve();
-		QueryReturnValue qrv =
-			this.impl.executeQuery(p, this.stack.getParentData(),
-				Json.emptyObject
-			);
-		writefln("%s %s",p, qrv);
-		if(qrv.data.type != Json.Type.undefined) {
-			this.stack.back.putData(qrv.data["data"]);
-		}
-	}
-}
-
-struct QueryReturnValue {
-	Json data;
-	Json error;
-
-	static QueryReturnValue opCall() {
-		QueryReturnValue ret;
-		ret.data = Json.emptyObject;
-		ret.error = Json.emptyObject;
-		return ret;
-	}
-}
-
 struct DefaultContext {
-}
-
-Document parseGraph(HTTPServerRequest req) {
-	Json j = req.json;
-	enforce("query" in j);
-	string toParse = j["query"].get!string();
-	auto l = Lexer(toParse);
-	auto p = Parser(l);
-	return p.parseDocument();
 }
 
 void insertPayload(ref Json result, string field, Json data) {
@@ -377,7 +264,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		} else if(GQLDList!Con list =
 				this.schema.getReturnType(objectType, field.name).toList())
 		{
-			logf("list");
+			logf("list %s", de);
 			if(!field.hasSelectionSet()) {
 				ret["error"] ~= Json("No selection set found for "
 										~ field.name
@@ -386,8 +273,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 				auto elemType = list.elementType;
 				assert(de["data"].type == Json.Type.array);
 				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("%(%s, %)", selSet.map!(s => s.name));
 				Json tmp = Json.emptyArray();
 				foreach(Json item; de["data"]) {
+					logf("%s %s", item, elemType.name);
 					Json itemRet = this.executeSelection(selSet, elemType,
 										item, arguments
 									);

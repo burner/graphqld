@@ -350,7 +350,14 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.resolver = buildTypeResolver!(Type, Con)();
 		this.__type.member["name"] = this.types["string"];
 		this.__type.member["description"] = this.types["string"];
-		this.__type.member["inputFields"] = this.__listInputValue;
+		this.__type.member["fields"] = this.__listField;
+
+		this.__field.resolver = buildFieldResolver!(Type, Con)();
+		this.__field.member["name"] = this.types["string"];
+		this.__field.member["description"] = this.types["string"];
+		this.__field.member["type"] = this.__type;
+		this.__field.member["isDeprecated"] = this.types["bool"];
+		this.__field.member["deprecatedReason"] = this.types["string"];
 	}
 
 	override string toString() const {
@@ -412,7 +419,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			}
 		} else {
 			logf("%s", t.toString());
-			return null;
+			return t;
 		}
 	}
 
@@ -452,16 +459,8 @@ string toShortString(Con)(const(GQLDType!(Con)) e) {
 	}
 }
 
-template RT(Type, string mem) {
-	alias RT = ReturnType!(__traits(getMember, Type, mem));
-}
-
 template isNotObject(Type) {
 	enum isNotObject = !is(Type == Object);
-}
-
-template collectTypes(Type) {
-	alias collectTypes = NoDuplicates!(collectTypesImpl!Type);
 }
 
 template collectTypesImpl(Type) {
@@ -469,14 +468,11 @@ template collectTypesImpl(Type) {
 		alias tmp = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
 			);
-		alias rtTypes = staticMap!(.collectTypesImpl, tmp);
-		alias collectTypesImpl = AliasSeq!(Type, rtTypes);
+		alias collectTypesImpl = AliasSeq!(Type, tmp);
 	} else static if(is(Type == class)) {
 		alias tmp = AliasSeq!(
-				staticMap!(.collectTypesImpl, Fields!(Type)),
-				staticMap!(.collectTypesImpl,
-						Filter!(isNotObject, BaseClassesTuple!Type)
-					)
+				Fields!(Type),
+				Filter!(isNotObject, BaseClassesTuple!Type)
 			);
 		alias collectTypesImpl = AliasSeq!(Type, tmp);
 	} else static if(is(Type : Nullable!F, F)) {
@@ -511,9 +507,56 @@ template collectReturnType(Type, Names...) {
 	}
 }
 
+template fixupBasicTypes(T) {
+	static if(isSomeString!T) {
+		alias fixupBasicTypes = string;
+	} else static if(is(T == bool)) {
+		alias fixupBasicTypes = bool;
+	} else static if(isIntegral!T) {
+		alias fixupBasicTypes = long;
+	} else static if(isFloatingPoint!T) {
+		alias fixupBasicTypes = double;
+	} else {
+		alias fixupBasicTypes = T;
+	}
+}
+
+template noArrayOrNullable(T) {
+	import std.typecons : Nullable;
+	static if(is(T : Nullable!F, F)) {
+		enum noArrayOrNullable = false;
+	} else static if(!isSomeString!T && isArray!T) {
+		enum noArrayOrNullable = false;
+	} else {
+		enum noArrayOrNullable = true;
+	}
+}
+
 unittest {
+	static assert(is(Nullable!int : Nullable!F, F));
+	static assert(!is(int : Nullable!F, F));
+	static assert( noArrayOrNullable!(int));
+	static assert( noArrayOrNullable!(string));
+	static assert(!noArrayOrNullable!(int[]));
+	static assert(!noArrayOrNullable!(Nullable!int));
+	static assert(!noArrayOrNullable!(Nullable!int));
+}
+
+template collectTypes(T...) {
+	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
+	static if(oneLevelDown.length == T.length) {
+		alias basicT = staticMap!(fixupBasicTypes, T);
+		alias collectTypes = Filter!(noArrayOrNullable, basicT);
+	} else {
+		alias collectTypes = .collectTypes!(oneLevelDown);
+	}
+}
+
+version(unittest) {
+package {
 	class U {
 		string f;
+		Bar bar;
 	}
 	class W {
 		Nullable!(Nullable!(U)[]) us;
@@ -536,8 +579,20 @@ unittest {
 		Bar bar();
 		Args args();
 	}
+}
+}
+
+unittest {
 	alias ts = collectTypes!(Foo);
-	pragma(msg, ts);
+
+	template canBeFound(T) {
+		alias expectedTypes = AliasSeq!(U, string, W, Y, bool, Z, long, Bar,
+				Args, Foo, double
+			);
+		enum tmp = staticIndexOf!(T, expectedTypes) != -1;
+		enum canBeFound = tmp;
+	}
+	static assert(allSatisfy!(canBeFound, ts));
 }
 
 GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
@@ -610,6 +665,28 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 	}
 }
 
+template stripArrayAndNullable(T) {
+	static if(is(T : Nullable!F, F)) {
+		alias stripArrayAndNullable = .stripArrayAndNullable!F;
+	} else static if(!isSomeString!T && isArray!T) {
+		alias stripArrayAndNullable =
+			.stripArrayAndNullable!(ElementEncodingType!T);
+	} else {
+		alias stripArrayAndNullable = T;
+	}
+}
+
+Json typeToField(T, string name)() {
+	alias Ts = stripArrayAndNullable!T;
+	Json ret = Json.emptyObject();
+	ret["name"] = name;
+	ret["description"] = "TODO";
+	ret["type"] = Ts.stringof;
+	ret["isDeprected"] = false;
+	ret["deprecationReason"] = "TODO";
+	return ret;
+}
+
 alias QueryResolver(Con) = Json delegate(string name, Json parent,
 		Json args, ref Con context) @safe;
 
@@ -619,10 +696,33 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 		{
 			logf("%s %s", name, args);
 			Json ret = returnTemplate();
-			ret["data"]["name"] = args["name"].get!string();
+			string typeName = args["name"].get!string();
+			ret["data"]["name"] = typeName;
 			ret["data"]["description"] = "No description";
-			logf("%s", ret);
+			static foreach(type; collectTypes!(Type)) {{
+				logf("%s %s", typeName, type.stringof);
+				if(typeName == type.stringof) {
+					alias fieldsTypes = Fields!(type);
+					alias fieldsNames = FieldNameTuple!(type);
+					ret["data"]["fields"] = Json.emptyArray();
+					static foreach(idx; 0 .. fieldsTypes.length) {{
+						ret["data"]["fields"] ~=
+							typeToField!(fieldsTypes[idx], fieldsNames[idx]);
+					}}
+				}
+			}}
+			logf("%s", ret.toPrettyString());
 			return ret;
+		};
+	return ret;
+}
+
+QueryResolver!(Con) buildFieldResolver(Type, Con)() {
+	QueryResolver!(Con) ret = delegate(string name, Json parent,
+			Json args, ref Con context) @safe
+		{
+			logf("\n\n%s %s\n\n", name, args.toPrettyString());
+			return parent;
 		};
 	return ret;
 }

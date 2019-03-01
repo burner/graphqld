@@ -2,11 +2,16 @@ module lexer;
 
 import std.experimental.logger;
 import std.format : format;
+import std.typecons :Flag;
 import std.stdio;
 
 import tokenmodule;
 
+alias QueryParser = Flag!"QueryParser";
+
+
 struct Lexer {
+	const QueryParser qp;
 	string input;
 	size_t stringPos;
 
@@ -15,12 +20,17 @@ struct Lexer {
 
 	Token cur;
 
-	this(string input) @safe {
+	this(string input, QueryParser qp = QueryParser.yes) @safe {
 		this.input = input;
 		this.stringPos = 0;
 		this.line = 1;
 		this.column = 1;
+		this.qp = qp;
 		this.buildToken();
+	}
+
+	bool isNotQueryParser() @safe const {
+		return this.qp == QueryParser.no;
 	}
 
 	private bool isTokenStop() const @safe {
@@ -163,7 +173,7 @@ struct Lexer {
 					++this.stringPos;
 					++this.column;
 					++e;
-					if(this.testCharAndInc('u', e)) {
+					if(this.isNotQueryParser() && this.testCharAndInc('u', e)) {
 						if(this.testCharAndInc('b', e)) {
 							if(this.testCharAndInc('s', e)) {
 								if(this.testCharAndInc('c', e)) {
@@ -191,7 +201,9 @@ struct Lexer {
 								}
 							}
 						}
-					} else if(this.testCharAndInc('c', e)) {
+					} else if(this.isNotQueryParser()
+								&& this.testCharAndInc('c', e))
+					{
 						if(this.testCharAndInc('a', e)) {
 							if(this.testCharAndInc('l', e)) {
 								if(this.testCharAndInc('a', e)) {
@@ -203,7 +215,9 @@ struct Lexer {
 									}
 								}
 							}
-						} else if(this.testCharAndInc('h', e)) {
+						} else if(this.isNotQueryParser()
+									&& this.testCharAndInc('h', e))
+						{
 							if(this.testCharAndInc('e', e)) {
 								if(this.testCharAndInc('m', e)) {
 									if(this.testCharAndInc('a', e)) {
@@ -421,7 +435,8 @@ struct Lexer {
 								}
 							}
 						}
-					} else if(this.testCharAndInc('y', e)) {
+					} else if(this.isNotQueryParser() &&
+							this.testCharAndInc('y', e)) {
 						if(this.testCharAndInc('p', e)) {
 							if(this.testCharAndInc('e', e)) {
 								if(this.isTokenStop()) {
