@@ -309,10 +309,15 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	void createInbuildTypes() {
-		this.types["string"] = new GQLDString!Con();
-		this.types["int"] = new GQLDInt!Con();
-		this.types["float"] = new GQLDFloat!Con();
-		this.types["bool"] = new GQLDBool!Con();
+		this.types["string"] = new GQLDObject!Con("string");
+		this.types["int"] = new GQLDObject!Con("int");
+		this.types["float"] = new GQLDObject!Con("float");
+		this.types["bool"] = new GQLDObject!Con("bool");
+
+		foreach(t; ["string", "int", "float", "bool"]) {
+			this.types[t].toObject().member["name"] = new GQLDString!Con();
+			this.types[t].resolver = buildTypeResolver!(Type,Con)();
+		}
 	}
 
 	void createIntrospectionTypes() {
@@ -348,16 +353,16 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		// set members of base types
 
 		this.__type.resolver = buildTypeResolver!(Type, Con)();
-		this.__type.member["name"] = this.types["string"];
-		this.__type.member["description"] = this.types["string"];
+		this.__type.member["name"] = new GQLDString!Con();
+		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__listField;
 
 		this.__field.resolver = buildFieldResolver!(Type, Con)();
-		this.__field.member["name"] = this.types["string"];
-		this.__field.member["description"] = this.types["string"];
+		this.__field.member["name"] = new GQLDString!Con();
+		this.__field.member["description"] = new GQLDString!Con();
 		this.__field.member["type"] = this.__type;
-		this.__field.member["isDeprecated"] = this.types["bool"];
-		this.__field.member["deprecatedReason"] = this.types["string"];
+		this.__field.member["isDeprecated"] = new GQLDBool!Con();
+		this.__field.member["deprecatedReason"] = new GQLDString!Con();
 	}
 
 	override string toString() const {
@@ -486,7 +491,7 @@ template collectTypesImpl(Type) {
 	} else static if(isIntegral!Type) {
 		alias collectTypesImpl = long;
 	} else static if(isFloatingPoint!Type) {
-		alias collectTypesImpl = double;
+		alias collectTypesImpl = float;
 	} else {
 		alias collectTypesImpl = AliasSeq!();
 	}
@@ -515,7 +520,7 @@ template fixupBasicTypes(T) {
 	} else static if(isIntegral!T) {
 		alias fixupBasicTypes = long;
 	} else static if(isFloatingPoint!T) {
-		alias fixupBasicTypes = double;
+		alias fixupBasicTypes = float;
 	} else {
 		alias fixupBasicTypes = T;
 	}
@@ -546,7 +551,7 @@ template collectTypes(T...) {
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
 	static if(oneLevelDown.length == T.length) {
 		alias basicT = staticMap!(fixupBasicTypes, T);
-		alias collectTypes = Filter!(noArrayOrNullable, basicT);
+		alias collectTypes = NoDuplicates!(Filter!(noArrayOrNullable, basicT));
 	} else {
 		alias collectTypes = .collectTypes!(oneLevelDown);
 	}
@@ -587,7 +592,7 @@ unittest {
 
 	template canBeFound(T) {
 		alias expectedTypes = AliasSeq!(U, string, W, Y, bool, Z, long, Bar,
-				Args, Foo, double
+				Args, Foo, float
 			);
 		enum tmp = staticIndexOf!(T, expectedTypes) != -1;
 		enum canBeFound = tmp;
@@ -699,6 +704,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			string typeName = args["name"].get!string();
 			ret["data"]["name"] = typeName;
 			ret["data"]["description"] = "No description";
+			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
 				logf("%s %s", typeName, type.stringof);
 				if(typeName == type.stringof) {
@@ -722,7 +728,8 @@ QueryResolver!(Con) buildFieldResolver(Type, Con)() {
 			Json args, ref Con context) @safe
 		{
 			logf("\n\n%s %s\n\n", name, args.toPrettyString());
-			return parent;
+			assert(false);
+			//return parent;
 		};
 	return ret;
 }
