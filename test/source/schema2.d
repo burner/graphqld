@@ -1,6 +1,7 @@
 module schema2;
 
 import std.array;
+import std.meta;
 import std.traits;
 import std.typecons;
 import std.algorithm : map, joiner;
@@ -315,10 +316,10 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	void createIntrospectionTypes() {
+		// build base types
 		this.__schema = new GQLDObject!Con("__schema");
+
 		this.__type = new GQLDObject!Con("__type");
-		this.__type.member["name"] = this.types["string"];
-		this.__type.resolver = buildTypeResolver!(Type, Con)();
 		this.__field = new GQLDObject!Con("__field");
 		this.__inputValue = new GQLDObject!Con("__inputValue");
 		this.__enumValue = new GQLDObject!Con("__enumValue");
@@ -343,6 +344,13 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 				new GQLDNullable!Con(this.__listNullableField);
 		this.__nullableListNullableInputValue =
 				new GQLDNullable!Con(this.__listNullableInputValue);
+
+		// set members of base types
+
+		this.__type.resolver = buildTypeResolver!(Type, Con)();
+		this.__type.member["name"] = this.types["string"];
+		this.__type.member["description"] = this.types["string"];
+		this.__type.member["inputFields"] = this.__listInputValue;
 	}
 
 	override string toString() const {
@@ -444,51 +452,103 @@ string toShortString(Con)(const(GQLDType!(Con)) e) {
 	}
 }
 
+template RT(Type, string mem) {
+	alias RT = ReturnType!(__traits(getMember, Type, mem));
+}
+
+template isNotObject(Type) {
+	enum isNotObject = !is(Type == Object);
+}
+
+template collectTypes(Type) {
+	alias collectTypes = NoDuplicates!(collectTypesImpl!Type);
+}
+
+template collectTypesImpl(Type) {
+	static if(is(Type == interface)) {
+		alias tmp = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
+		alias rtTypes = staticMap!(.collectTypesImpl, tmp);
+		alias collectTypesImpl = AliasSeq!(Type, rtTypes);
+	} else static if(is(Type == class)) {
+		alias tmp = AliasSeq!(
+				staticMap!(.collectTypesImpl, Fields!(Type)),
+				staticMap!(.collectTypesImpl,
+						Filter!(isNotObject, BaseClassesTuple!Type)
+					)
+			);
+		alias collectTypesImpl = AliasSeq!(Type, tmp);
+	} else static if(is(Type : Nullable!F, F)) {
+		alias collectTypesImpl = .collectTypesImpl!(F);
+	} else static if(isSomeString!Type) {
+		alias collectTypesImpl = string;
+	} else static if(is(Type == bool)) {
+		alias collectTypesImpl = bool;
+	} else static if(isArray!Type) {
+		alias collectTypesImpl = .collectTypesImpl!(ElementEncodingType!Type);
+	} else static if(isIntegral!Type) {
+		alias collectTypesImpl = long;
+	} else static if(isFloatingPoint!Type) {
+		alias collectTypesImpl = double;
+	} else {
+		alias collectTypesImpl = AliasSeq!();
+	}
+}
+
+template collectReturnType(Type, Names...) {
+	static if(Names.length > 0) {
+		static if(isCallable!(__traits(getMember, Type, Names[0]))) {
+			alias collectReturnType = AliasSeq!(
+					ReturnType!(__traits(getMember, Type, Names[0])),
+					.collectReturnType!(Type, Names[1 .. $])
+				);
+		} else {
+			alias collectReturnType = .collectReturnType!(Type, Names[1 .. $]);
+		}
+	} else {
+		alias collectReturnType = AliasSeq!();
+	}
+}
+
+unittest {
+	class U {
+		string f;
+	}
+	class W {
+		Nullable!(Nullable!(U)[]) us;
+	}
+	class Y {
+		bool b;
+		Nullable!W w;
+	}
+	class Z : Y {
+		long id;
+	}
+	class Bar {
+		string id;
+		Z[] zs;
+	}
+	class Args {
+		float value;
+	}
+	interface Foo {
+		Bar bar();
+		Args args();
+	}
+	alias ts = collectTypes!(Foo);
+	pragma(msg, ts);
+}
+
 GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 	pragma(msg, Type.stringof, " ", isIntegral!Type);
 	static if(is(Type == bool)) {
-		/*GQLDBool!(Con) r;
-		if("bool" in ret.types) {
-			r = cast(GQLDBool!(Con))ret.types["bool"];
-		} else {
-			r = new GQLDBool!(Con)();
-			ret.types["bool"] = r;
-		}
-		return r;
-		*/
 		return new GQLDBool!(Con)();
 	} else static if(isFloatingPoint!(Type)) {
-		/*GQLDFloat!(Con) r;
-		if("float" in ret.types) {
-			r = cast(GQLDFloat!(Con))ret.types["float"];
-		} else {
-			r = new GQLDFloat!(Con)();
-			ret.types["float"] = r;
-		}
-		return r;
-		*/
 		return new GQLDFloat!(Con)();
 	} else static if(isIntegral!(Type)) {
-		/*GQLDInt!(Con) r;
-		if("int" in ret.types) {
-			r = cast(GQLDInt!(Con))ret.types["int"];
-		} else {
-			r = new GQLDInt!(Con)();
-			ret.types["int"] = r;
-		}
-		return r;
-		*/
 		return new GQLDInt!(Con)();
 	} else static if(isSomeString!Type) {
-		/*GQLDString!(Con) r;
-		if("string" in ret.types) {
-			r = cast(GQLDString!(Con))ret.types["string"];
-		} else {
-			r = new GQLDString!(Con)();
-			ret.types["string"] = r;
-		}
-		return r;
-		*/
 		return new GQLDString!(Con)();
 	} else static if(is(Type == enum)) {
 		GQLDEnum!(Con) r;
@@ -560,6 +620,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			logf("%s %s", name, args);
 			Json ret = returnTemplate();
 			ret["data"]["name"] = args["name"].get!string();
+			ret["data"]["description"] = "No description";
 			logf("%s", ret);
 			return ret;
 		};
