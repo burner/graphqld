@@ -44,6 +44,20 @@ void insertPayload(ref Json result, string field, Json data) {
 	}
 }
 
+bool dataIsEmpty(ref Json data) {
+	enum d = "data";
+	if(d in data) {
+		if(data[d].type == Json.Type.object) {
+			foreach(key, value; data[d].byKeyValue()) {
+				if(value.type != Json.Type.object || value.length > 0) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
@@ -152,6 +166,177 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeSelection(FieldRangeItem[] fields, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
+		logf("fields %(%s, %), objectType %s, objectValue %s, variables %s",
+				fields.map!(f => f.name), objectType.toShortString(),
+				objectValue, variables);
+		Json ret = returnTemplate();
+
+		GQLDNullable!Con nullType = objectType.toNullable();
+		if(nullType) {
+			auto elemType = nullType.elementType;
+			logf("nullable ot %s, et %s", objectType.toShortString(),
+					elemType.toShortString()
+				);
+			//FieldRangeItem[] selSet = field.selectionSet().array;
+			Json tmp = this.executeSelection(fields, elemType, objectValue,
+							variables);
+			logf("tmp %s isEmpty %s", tmp, tmp.dataIsEmpty());
+			if(tmp.dataIsEmpty) {
+				ret["data"] = null;
+			} else {
+				foreach(key, value; tmp["data"].byKeyValue) {
+					ret["data"][key] = value;
+				}
+				foreach(err; tmp["error"].array()) {
+					ret["error"] ~= err;
+				}
+			}
+			return ret;
+		}
+
+		GQLDMap!Con map = objectType.toMap();
+		if(map is null) {
+			ret["error"] ~= Json(format("%s does not convert to map",
+									objectType.toString())
+								);
+			return ret;
+		}
+		logf("%(%s, %)", fields.map!(a => a.name));
+		foreach(FieldRangeItem f; fields) {
+			logf("field %s", f.name);
+			if(map !is null && f.name in map.member) {
+				auto fType = map.member[f.name];
+				logf("found field %s %s", f.name,
+						fType ? fType.toString() : "Unknown Type"
+					);
+				Json tmp = this.executeFieldSelection(f, map.member[f.name],
+								objectValue, variables
+							);
+				logf("%s", tmp);
+				foreach(key, value; tmp["data"].byKeyValue) {
+					ret["data"][key] = value;
+				}
+				foreach(err; tmp["error"].array()) {
+					ret["error"] ~= err;
+				}
+			} else if(map !is null && map.name == "query"
+					&& f.name == "__schema")
+			{
+				Json tmp = this.executeFieldSelection(f, this.schema.__schema,
+								objectValue, variables
+							);
+			} else if(map !is null && map.name == "query"
+					&& f.name == "__type")
+			{
+				Json tmp = this.executeFieldSelection(f, this.schema.__type,
+								objectValue, variables
+							);
+			} else {
+				ret["error"] ~= Json(format("field %s not present in type %s",
+										f.name, objectType.toString())
+									);
+			}
+		}
+		return ret;
+	}
+
+	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
+			Json objectValue, Json variables)
+	{
+		logf("field %s, objectType %s, objectValue %s, variables %s",
+				field.name, objectType.toShortString(), objectValue,
+				variables);
+		Json arguments = getArguments(field, variables);
+		logf("args %s", arguments);
+		Json de = objectType.resolver(field.name, objectValue,
+						arguments, this.dummy
+					);
+		logf("%s", de);
+		Json ret = Json.emptyObject();
+		ret["data"] = Json.emptyObject();
+		ret["error"] = Json.emptyArray();
+		if(GQLDScalar!Con scalar =
+				this.schema.getReturnType(objectType, field.name).toScalar())
+		{
+			logf("scalar");
+			ret.insertPayload(field.name, de);
+			logf("%s", ret);
+			return ret;
+		} else if(GQLDMap!Con map =
+				this.schema.getReturnType(objectType, field.name).toMap())
+		{
+			logf("map %s", map.toString());
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("selSet [%(%s, %)]", selSet.map!(a => a.name));
+				Json tmp = this.executeSelection(selSet, map,
+								"data" in de ? de["data"] : objectValue,
+								arguments
+							);
+				ret.insertPayload(field.name, tmp);
+				return ret;
+			}
+		} else if(GQLDList!Con list =
+				this.schema.getReturnType(objectType, field.name).toList())
+		{
+			logf("list %s", de);
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				auto elemType = list.elementType;
+				assert(de["data"].type == Json.Type.array);
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("%(%s, %)", selSet.map!(s => s.name));
+				Json tmp = Json.emptyArray();
+				foreach(Json item; de["data"]) {
+					logf("%s %s", item, elemType.name);
+					Json itemRet = this.executeSelection(selSet, elemType,
+										item, arguments
+									);
+					if("data" in itemRet) {
+						tmp ~= itemRet["data"];
+					}
+					if("error" in de) {
+						ret["error"] ~= itemRet["error"];
+					}
+				}
+				ret["data"][field.name] = tmp;
+				return ret;
+			}
+		} else {
+			logf("else de %s", de);
+			if(!field.hasSelectionSet()) {
+				ret["error"] ~= Json("No selection set found for "
+										~ field.name
+									);
+			} else {
+				FieldRangeItem[] selSet = field.selectionSet().array;
+				logf("selSet [%(%s, %)], objectType %s",
+						selSet.map!(a => a.name), objectType.toShortString());
+				auto type = this.schema.getReturnType(objectType, field.name);
+				logf("type %s", type ? type.toShortString() : "null");
+				Json tmp = this.executeSelection(selSet,
+						type ? type : objectType,
+						"data" in de ? de["data"] : objectValue,
+						arguments
+					);
+				ret.insertPayload(field.name, tmp);
+				return ret;
+			}
+		}
+		return ret;
+	}
+
+	/*
+	Json executeSelection(FieldRangeItem[] fields, GQLDType!Con objectType,
+			Json objectValue, Json variables)
+	{
 		logf("%s", objectType.toString());
 		Json ret = returnTemplate();
 
@@ -252,8 +437,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"][field.name] = null;
 				} else {
 					auto elemType = nullType.elementType;
-					FieldRangeItem[] selSet = field.selectionSet().array;
-					Json tmp = this.executeSelection(selSet, elemType,
+					//FieldRangeItem[] selSet = field.selectionSet().array;
+					Json tmp = this.executeFieldSelection(field, elemType,
 									"data" in de ? de["data"] : Json.emptyObject,
 									arguments
 								);
@@ -309,6 +494,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 		return ret;
 	}
+*/
 
 	Json getArguments(FieldRangeItem item, Json variables) {
 		auto ae = new ArgumentExtractor(variables);
@@ -396,6 +582,7 @@ GraphQLD!(Schema) graphqld;
 void main() {
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
+	writeln(graphqld.schema);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)

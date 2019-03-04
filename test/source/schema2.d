@@ -74,6 +74,10 @@ abstract class GQLDType(Con) {
 	override string toString() const {
 		return "GQLDType";
 	}
+
+	string toShortString() const {
+		return this.toString();
+	}
 }
 
 class GQLDScalar(Con) : GQLDType!(Con) {
@@ -184,6 +188,10 @@ class GQLDObject(Con) : GQLDMap!(Con) {
 				(this.base !is null ? this.base.toShortString() : "null")
 			);
 	}
+
+	override string toShortString() const {
+		return format("%s", super.name);
+	}
 }
 
 class GQLDUnion(Con) : GQLDMap!(Con) {
@@ -216,6 +224,10 @@ class GQLDList(Con) : GQLDType!(Con) {
 	override string toString() const {
 		return format("List(%s)", this.elementType.toShortString());
 	}
+
+	override string toShortString() const {
+		return format("List(%s)", this.elementType.toShortString());
+	}
 }
 
 class GQLDNullable(Con) : GQLDType!(Con) {
@@ -228,6 +240,10 @@ class GQLDNullable(Con) : GQLDType!(Con) {
 	}
 
 	override string toString() const {
+		return format("Nullable(%s)", this.elementType.toShortString());
+	}
+
+	override string toShortString() const {
 		return format("Nullable(%s)", this.elementType.toShortString());
 	}
 }
@@ -356,6 +372,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["name"] = new GQLDString!Con();
 		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__listField;
+		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		this.__field.resolver = buildFieldResolver!(Type, Con)();
 		this.__field.member["name"] = new GQLDString!Con();
@@ -381,7 +398,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 		logf("%s %s", t.name, field);
-		if(auto op = t.toObject()) {
+		/*if(auto op = t.toObject()) {
 			if(op.name == "__schema") {
 				switch(field) {
 					case "types": return this.__listType;
@@ -410,7 +427,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			} else if(op.name == "__inputValue") {
 			} else if(op.name == "__enumValue") {
 			}
-		}
+		}*/
 		if(auto s = t.toScalar()) {
 			return s;
 		} else if(auto op = t.toOperation()) {
@@ -637,37 +654,37 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
 		pragma(msg, "Nullable ", F.stringof);
-		return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
-	} else static if(isArray!Type) {
-		return new GQLDList!(Con)(
-				typeToGQLDType!(ElementEncodingType!Type, Con)(ret)
-			);
-	} else static if(isAggregateType!Type) {
-		GQLDObject!(Con) r;
-		if(Type.stringof in ret.types) {
-			r = cast(GQLDObject!(Con))ret.types[Type.stringof];
-		} else {
-			r = new GQLDObject!(Con)(Type.stringof);
-			ret.types[Type.stringof] = r;
-
-			alias fieldNames = FieldNameTuple!(Type);
-			alias fieldTypes = Fields!(Type);
-			static foreach(idx; 0 .. fieldNames.length) {{
-				r.member[fieldNames[idx]] =
-					typeToGQLDType!(fieldTypes[idx], Con)(ret);
-			}}
-
-			alias bct = BaseClassesTuple!(Type);
-			static if(bct.length > 1) {
-				r.base = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(ret);
-			}
-			assert(bct.length > 1 ? r.base !is null : true);
-		}
-		return r;
+	return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
+} else static if(isArray!Type) {
+	return new GQLDList!(Con)(
+			typeToGQLDType!(ElementEncodingType!Type, Con)(ret)
+		);
+} else static if(isAggregateType!Type) {
+	GQLDObject!(Con) r;
+	if(Type.stringof in ret.types) {
+		r = cast(GQLDObject!(Con))ret.types[Type.stringof];
 	} else {
-		pragma(msg, "218 ", Type.stringof);
-		static assert(false, Type.stringof);
+		r = new GQLDObject!(Con)(Type.stringof);
+		ret.types[Type.stringof] = r;
+
+		alias fieldNames = FieldNameTuple!(Type);
+		alias fieldTypes = Fields!(Type);
+		static foreach(idx; 0 .. fieldNames.length) {{
+			r.member[fieldNames[idx]] =
+				typeToGQLDType!(fieldTypes[idx], Con)(ret);
+		}}
+
+		alias bct = BaseClassesTuple!(Type);
+		static if(bct.length > 1) {
+			r.base = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(ret);
+		}
+		assert(bct.length > 1 ? r.base !is null : true);
 	}
+	return r;
+} else {
+	pragma(msg, "218 ", Type.stringof);
+	static assert(false, Type.stringof);
+}
 }
 
 template stripArrayAndNullable(T) {
@@ -699,15 +716,23 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 	QueryResolver!(Con) ret = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
-			logf("%s %s", name, args);
+			logf("%s %s %s", name, args, parent);
 			Json ret = returnTemplate();
-			string typeName = args["name"].get!string();
+			string typeName;
+			if("name" in parent) {
+				typeName = parent["name"].get!string();
+			} else if("name" in args) {
+				typeName = args["name"].get!string();
+			} else {
+				ret["error"] ~= Json(format("unknown type"));
+				return ret;
+			}
 			ret["data"]["name"] = typeName;
 			ret["data"]["description"] = "No description";
 			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
-				logf("%s %s", typeName, type.stringof);
 				if(typeName == type.stringof) {
+					logf("%s %s", typeName, type.stringof);
 					alias fieldsTypes = Fields!(type);
 					alias fieldsNames = FieldNameTuple!(type);
 					ret["data"]["fields"] = Json.emptyArray();
