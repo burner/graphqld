@@ -211,6 +211,11 @@ FieldRange fieldRange(SelectionSet ss, Document doc) {
 	return FieldRange(ss.sel, doc);
 }
 
+FieldRangeItem[] fieldRangeArr(Selections sel, Document doc) {
+	import std.array : array;
+	return FieldRange(sel, doc).array;
+}
+
 struct OpDefRangeItem {
 	Document doc;
 	Definition def;
@@ -231,7 +236,7 @@ struct OpDefRange {
 	}
 
 	private void advance() {
-		while(this.defs !is null 
+		while(this.defs !is null
 				&& this.defs.def.ruleSelection != DefinitionEnum.O)
 		{
 			this.defs = this.defs.follow;
@@ -662,7 +667,7 @@ fragment baz on User {
 			writeln(")");
 			foreach(kt; jt.selectionSet()) {
 				writeln("\t", kt.name);
-				assert(kt.name == nn[idx], 
+				assert(kt.name == nn[idx],
 						format("%s == %d(%s)", kt.name, idx, nn[idx])
 					);
 				++idx;

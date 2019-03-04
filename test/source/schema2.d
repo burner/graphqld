@@ -57,6 +57,7 @@ abstract class GQLDType(Con) {
 							ref Context context)
 			{
 				import std.format;
+				logf("name: %s, parent: %s, args: %s", name, parent, args);
 				Json ret = Json.emptyObject();
 				ret["data"] = Json.emptyObject();
 				ret["error"] = Json.emptyArray();
@@ -69,6 +70,10 @@ abstract class GQLDType(Con) {
 				}
 				return ret;
 			};
+	}
+
+	Json call(string name, Json parent, Json args, ref Context context) {
+		return this.resolver(name, parent, args, context);
 	}
 
 	override string toString() const {
@@ -158,6 +163,15 @@ class GQLDMap(Con) : GQLDType!(Con) {
 			formattedWrite(app, "%s: %s\n", key, value.toString());
 		}
 		return app.data;
+	}
+
+	override Json call(string name, Json parent, Json args, ref Context context)
+	{
+		if(name in this.member) {
+			return this.member[name].call(name, parent, args, context);
+		} else {
+			return this.resolver(name, parent, args, context);
+		}
 	}
 }
 
@@ -398,53 +412,77 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 		logf("%s %s", t.name, field);
-		/*if(auto op = t.toObject()) {
+		GQLDType!Con ret;
+		if(auto op = t.toObject()) {
 			if(op.name == "__schema") {
 				switch(field) {
-					case "types": return this.__listType;
-					case "queryTypes": return this.__type;
-					case "mutationTypes": return this.__nullableType;
-					case "subscriptionType": return this.__nullableType;
+					case "types": ret = this.__listType; break;
+					case "queryTypes": ret = this.__type; break;
+					case "mutationTypes": ret = this.__nullableType; break;
+					case "subscriptionType": ret = this.__nullableType; break;
 					default:
 						assert(false,
 								"introspecting directive not yet supported"
 							);
 				}
-			} else if(op.name == "__type") {
+			} else if(op.name == "__field") {
 				switch(field) {
-					case "__type": return this.__type;
-					case "name": return this.types["String"];
-					case "description": return this.types["String"];
-					case "fields": return this.__listField;
-					case "interfaces": return this.__listType;
-					case "possibleTypes": return this.__listType;
-					case "enumValues": return this.__listEnumValue;
-					case "oyType": return this.__type;
+					case "__type": ret = this.__type; break;
+					case "name": ret = this.types["string"]; break;
+					case "description": ret = this.types["string"]; break;
+					case "fields": ret = this.__listField; break;
+					case "interfaces": ret = this.__listType; break;
+					case "possibleTypes": ret = this.__listType; break;
+					case "enumValues": ret = this.__listEnumValue; break;
+					case "oyType": ret = this.__type; break;
 					default:
-						return null;
+						ret = null;
+						break;
 				}
 			} else if(op.name == "__field") {
 			} else if(op.name == "__inputValue") {
 			} else if(op.name == "__enumValue") {
 			}
-		}*/
+			if(ret) {
+				logf("%s", ret.name);
+				return ret;
+			}
+		}
 		if(auto s = t.toScalar()) {
-			return s;
+			log();
+			ret = s;
 		} else if(auto op = t.toOperation()) {
-			return op.returnType;
+			log();
+			ret = op.returnType;
 		} else if(auto map = t.toMap()) {
-			if(field in map.member) {
-				return map.member[field];
+			if(map.name == "query" && field in map.member) {
+				log();
+				auto tmp = map.member[field];
+				if(auto op = tmp.toOperation()) {
+					log();
+					ret = op.returnType;
+				} else {
+					log();
+					ret = tmp;
+				}
+			} else if(field in map.member) {
+				log();
+				ret = map.member[field];
 			} else {
+				log();
 				//logf("%s %s", t.toString(), field);
 				return null;
 			}
 		} else {
-			logf("%s", t.toString());
-			return t;
+			ret = t;
 		}
+		logf("%s", ret.name);
+		return ret;
 	}
+}
 
+GQLDSchema!(Con) toSchemaFoo(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
 }
 
 GQLDObject!(Con) toObject(Con)(GQLDType!Con t) {
@@ -469,6 +507,14 @@ GQLDList!(Con) toList(Con)(GQLDType!Con t) {
 
 GQLDNullable!(Con) toNullable(Con)(GQLDType!Con t) {
 	return cast(typeof(return))t;
+}
+
+unittest {
+	auto str = new GQLDString!(int)();
+	assert(str.name == "String");
+
+	auto map = str.toMap();
+	assert(map is null);
 }
 
 string toShortString(Con)(const(GQLDType!(Con)) e) {
