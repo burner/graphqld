@@ -657,37 +657,37 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
 		pragma(msg, "Nullable ", F.stringof);
-	return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
-} else static if(isArray!Type) {
-	return new GQLDList!(Con)(
-			typeToGQLDType!(ElementEncodingType!Type, Con)(ret)
-		);
-} else static if(isAggregateType!Type) {
-	GQLDObject!(Con) r;
-	if(Type.stringof in ret.types) {
-		r = cast(GQLDObject!(Con))ret.types[Type.stringof];
-	} else {
-		r = new GQLDObject!(Con)(Type.stringof);
-		ret.types[Type.stringof] = r;
+		return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
+	} else static if(isArray!Type) {
+		return new GQLDList!(Con)(
+				typeToGQLDType!(ElementEncodingType!Type, Con)(ret)
+			);
+	} else static if(isAggregateType!Type) {
+		GQLDObject!(Con) r;
+		if(Type.stringof in ret.types) {
+			r = cast(GQLDObject!(Con))ret.types[Type.stringof];
+		} else {
+			r = new GQLDObject!(Con)(Type.stringof);
+			ret.types[Type.stringof] = r;
 
-		alias fieldNames = FieldNameTuple!(Type);
-		alias fieldTypes = Fields!(Type);
-		static foreach(idx; 0 .. fieldNames.length) {{
-			r.member[fieldNames[idx]] =
-				typeToGQLDType!(fieldTypes[idx], Con)(ret);
-		}}
+			alias fieldNames = FieldNameTuple!(Type);
+			alias fieldTypes = Fields!(Type);
+			static foreach(idx; 0 .. fieldNames.length) {{
+				r.member[fieldNames[idx]] =
+					typeToGQLDType!(fieldTypes[idx], Con)(ret);
+			}}
 
-		alias bct = BaseClassesTuple!(Type);
-		static if(bct.length > 1) {
-			r.base = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(ret);
+			alias bct = BaseClassesTuple!(Type);
+			static if(bct.length > 1) {
+				r.base = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(ret);
+			}
+			assert(bct.length > 1 ? r.base !is null : true);
 		}
-		assert(bct.length > 1 ? r.base !is null : true);
+		return r;
+	} else {
+		pragma(msg, "218 ", Type.stringof);
+		static assert(false, Type.stringof);
 	}
-	return r;
-} else {
-	pragma(msg, "218 ", Type.stringof);
-	static assert(false, Type.stringof);
-}
 }
 
 template stripArrayAndNullable(T) {
@@ -701,12 +701,35 @@ template stripArrayAndNullable(T) {
 	}
 }
 
+template typeToTypeEnum(Type) {
+	static if(is(Type == bool)) {
+		enum typeToTypeEnum = "SCALAR";
+	} else static if(isFloatingPoint!(Type)) {
+		enum typeToTypeEnum = "SCALAR";
+	} else static if(isIntegral!(Type)) {
+		enum typeToTypeEnum = "SCALAR";
+	} else static if(isSomeString!Type) {
+		enum typeToTypeEnum = "SCALAR";
+	} else static if(is(Type == enum)) {
+		enum typeToTypeEnum = "ENUM";
+	} else static if(is(Type == union)) {
+		enum typeToTypeEnum = "UNION";
+	} else static if(is(Type : Nullable!F, F)) {
+		enum typeToTypeEnum = "NULLABLE";
+	} else static if(isArray!Type) {
+		enum typeToTypeEnum = "LIST";
+	} else static if(isAggregateType!Type) {
+		enum typeToTypeEnum = "OBJECT";
+	} else {
+		static assert(false, T.stringof ~ " not handled");
+	}
+}
+
 Json typeToField(T, string name)() {
 	alias Ts = stripArrayAndNullable!T;
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
 	ret["description"] = "TODO";
-	ret["type"] = Ts.stringof;
 	ret["isDeprected"] = false;
 	ret["deprecationReason"] = "TODO";
 	return ret;
@@ -737,6 +760,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				enum typeCap = capitalize(type.stringof);
 				if(typeName == type.stringof) {
 					logf("%s %s", typeName, type.stringof);
+					ret["data"]["kind"] = typeToTypeEnum!type;
 					alias fieldsTypes = Fields!(type);
 					alias fieldsNames = FieldNameTuple!(type);
 					ret["data"]["fields"] = Json.emptyArray();
