@@ -16,9 +16,6 @@ import helper;
 
 @safe:
 
-struct DefaultContext {
-}
-
 enum GQLDKind {
 	String,
 	Float,
@@ -324,11 +321,13 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__enumValue = new GQLDObject!Con("__enumValue");
 
 		this.__listType = new GQLDList!Con(this.__type);
+		this.__schema.member["__listType"] = this.__listType;
 		this.__listField = new GQLDList!Con(this.__field);
 		this.__listInputValue = new GQLDList!Con(this.__inputValue);
 		this.__listEnumValue = new GQLDList!Con(this.__enumValue);
 
 		this.__nullableType = new GQLDNullable!Con(this.__type);
+		this.__schema.member["__nullType"] = this.__nullableType;
 		this.__nullableField = new GQLDNullable!Con(this.__field);
 		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
 
@@ -350,15 +349,13 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__nullableListNullableInputValue =
 				new GQLDNullable!Con(this.__listNullableInputValue);
 
-		// set members of base types
+		this.__schema.member["types"] = this.__listType;
 
-		//this.__type.resolver = buildTypeResolver!(Type, Con)();
 		this.__type.member["name"] = new GQLDString!Con();
 		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__nullableListField;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
-		//this.__field.resolver = buildFieldResolver!(Type, Con)();
 		this.__field.member["name"] = new GQLDString!Con();
 		this.__field.member["description"] = new GQLDString!Con();
 		this.__field.member["type"] = this.__type;
@@ -387,24 +384,6 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
 		logf("%s %s", t.name, field);
 		GQLDType!Con ret;
-		if(auto op = t.toObject()) {
-			if(op.name == "__schema") {
-				switch(field) {
-					case "types": ret = this.__listType; break;
-					case "queryTypes": ret = this.__type; break;
-					case "mutationTypes": ret = this.__nullableType; break;
-					case "subscriptionType": ret = this.__nullableType; break;
-					default:
-						assert(false,
-								"introspecting directive not yet supported"
-							);
-				}
-			}
-			if(ret) {
-				logf("%s", ret.name);
-				return ret;
-			}
-		}
 		if(auto s = t.toScalar()) {
 			log();
 			ret = s;
@@ -412,7 +391,10 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			log();
 			ret = op.returnType;
 		} else if(auto map = t.toMap()) {
-			if(map.name == "query" && field in map.member) {
+			if((map.name == "query" || map.name == "mutation"
+						|| map.name == "subscription")
+					&& field in map.member)
+			{
 				log();
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
@@ -656,7 +638,6 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 		}
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
-		pragma(msg, "Nullable ", F.stringof);
 		return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
 	} else static if(isArray!Type) {
 		return new GQLDList!(Con)(
@@ -734,6 +715,10 @@ template typeToTypeName(Type) {
 		enum typeToTypeName = "Int";
 	} else static if(isSomeString!Type) {
 		enum typeToTypeName = "String";
+	} else static if(isArray!Type) {
+		enum typeToTypeName = "__listType";
+	} else static if(is(Type : Nullable!F, F)) {
+		enum typeToTypeName = "__nullType";
 	} else {
 		enum typeToTypeName = Type.stringof;
 	}
@@ -766,8 +751,55 @@ Json typeToField(T, string name)() {
 	return ret;
 }
 
+Json typeFields(T)() {
+	import std.algorithm.searching : startsWith;
+	import std.traits : FieldTypeTuple, FieldNameTuple;
+	import traits;
+	Json ret = Json.emptyArray();
+
+	alias manyTypes = BaseClasses!T;
+	pragma(msg, T.stringof, " ", manyTypes);
+	static foreach(Type; manyTypes) {{
+		alias fieldTypes = FieldTypeTuple!Type;
+		alias fieldNames = FieldNameTuple!Type;
+		static foreach(idx; 0 .. fieldTypes.length) {{
+			static if(!fieldNames[idx].empty
+					&& !startsWith(fieldNames[idx], "_"))
+			{
+				ret ~= typeToField!(fieldTypes[idx], fieldNames[idx]);
+			}
+		}}
+	}}
+	return ret;
+}
+
 alias QueryResolver(Con) = Json delegate(string name, Json parent,
 		Json args, ref Con context) @safe;
+
+QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
+	QueryResolver!(Con) ret = delegate(string name, Json parent,
+			Json args, ref Con context) @safe
+		{
+			logf("%s %s %s", name, args, parent);
+			Json ret = returnTemplate();
+			ret["data"]["types"] = Json.emptyArray();
+			pragma(msg, collectTypes!(Type));
+			static foreach(type; collectTypes!(Type)) {{
+				Json tmp = Json.emptyObject();
+				tmp["kind"] = typeToTypeEnum!type;
+				alias fieldsTypes = Fields!(type);
+				alias fieldsNames = FieldNameTuple!(type);
+				tmp["name"] = typeToTypeName!type;
+				tmp["description"] = "No description";
+				static if(fieldsTypes.length && !isScalarType!type) {
+					tmp["fields"] = typeFields!type();
+				}
+				ret["data"]["types"] ~= tmp;
+			}}
+			return ret;
+		};
+	return ret;
+}
 
 QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 	QueryResolver!(Con) ret = delegate(string name, Json parent,

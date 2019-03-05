@@ -69,6 +69,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			};
 		auto typeResolver = buildTypeResolver!(T, Con)();
 		this.setResolver("query", "__type", typeResolver);
+		this.setResolver("query", "__schema", buildSchemaResolver!(T, Con)());
 		this.setResolver("__field", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
@@ -388,6 +389,34 @@ void main() {
 			}
 		);
 
+	graphqld.setResolver("Character", "ship",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				Json ret = returnTemplate();
+				if("shipId" !in parent) {
+					return ret;
+				}
+				long shipId = parent["shipId"].get!long();
+				auto theShip = database.ships.find!(s => s.id == shipId);
+				if(!theShip.empty) {
+					Starship ship = theShip.front;
+					Json tmp = Json.emptyObject;
+					static foreach(mem; [ "id", "designation", "size"]) {
+						tmp[mem] = __traits(getMember, ship, mem);
+					}
+					tmp["commanderId"] = ship.commander.id;
+					tmp["crewIds"] = serializeToJson(
+											ship.crew.map!(c => c.id).array
+										);
+					tmp["series"] = serializeToJson(ship.series);
+
+					ret["data"] = tmp;
+				}
+				logf("%s", ret);
+				return ret;
+			}
+		);
 	graphqld.setResolver("query", "starship",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
@@ -432,7 +461,7 @@ void main() {
 				auto theShip = database.ships.find!(s => shipId == s.id);
 				if(!theShip.empty) {
 					Starship ship = theShip.front;
-					auto nh = new Humanoid(database.i++, nname, "Human");
+					auto nh = new HumanoidImpl(database.i++, nname, "Human");
 					ship.crew ~= nh;
 					nh.ship = nullable(ship);
 					ret["data"]["id"] = nh.id;
@@ -533,7 +562,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			e = cast(Exception)e.next;
 		}
 		ret["error"] ~= Json(app.data);
-		res.writeBody("Failed to parse " ~ app.data);
+		res.writeJsonBody(ret);
 		return;
 	}
 
