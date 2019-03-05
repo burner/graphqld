@@ -7,7 +7,7 @@ import std.typecons;
 import std.algorithm : map, joiner;
 import std.range : ElementEncodingType;
 import std.format;
-import std.string : capitalize;
+import std.string : capitalize, strip;
 import std.experimental.logger;
 
 import vibe.data.json;
@@ -355,7 +355,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		//this.__type.resolver = buildTypeResolver!(Type, Con)();
 		this.__type.member["name"] = new GQLDString!Con();
 		this.__type.member["description"] = new GQLDString!Con();
-		this.__type.member["fields"] = this.__listField;
+		this.__type.member["fields"] = this.__nullableListField;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		//this.__field.resolver = buildFieldResolver!(Type, Con)();
@@ -725,11 +725,41 @@ template typeToTypeEnum(Type) {
 	}
 }
 
+template typeToTypeName(Type) {
+	static if(is(Type == bool)) {
+		enum typeToTypeName = "Bool";
+	} else static if(isFloatingPoint!(Type)) {
+		enum typeToTypeName = "Float";
+	} else static if(isIntegral!(Type)) {
+		enum typeToTypeName = "Int";
+	} else static if(isSomeString!Type) {
+		enum typeToTypeName = "String";
+	} else {
+		enum typeToTypeName = Type.stringof;
+	}
+}
+
+template isScalarType(Type) {
+	static if(is(Type == bool)) {
+		enum isScalarType = true;
+	} else static if(isFloatingPoint!(Type)) {
+		enum isScalarType = true;
+	} else static if(isIntegral!(Type)) {
+		enum isScalarType = true;
+	} else static if(isSomeString!Type) {
+		enum isScalarType = true;
+	} else static if(is(Type == enum)) {
+		enum isScalarType = true;
+	} else {
+		enum isScalarType = false;
+	}
+}
+
 Json typeToField(T, string name)() {
 	alias Ts = stripArrayAndNullable!T;
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
-	ret["type"] = Ts.stringof;
+	ret["typename"] = typeToTypeName!(Ts);
 	ret["description"] = "TODO";
 	ret["isDeprected"] = false;
 	ret["deprecationReason"] = "TODO";
@@ -746,31 +776,44 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			logf("%s %s %s", name, args, parent);
 			Json ret = returnTemplate();
 			string typeName;
-			if("name" in parent) {
-				typeName = parent["name"].get!string();
-			} else if("name" in args) {
+			if("name" in args) {
 				typeName = args["name"].get!string();
-			} else {
-				ret["error"] ~= Json(format("unknown type"));
-				return ret;
 			}
-			ret["data"]["name"] = typeName;
-			ret["data"]["description"] = "No description";
+			if("typename" in parent) {
+				typeName = parent["typename"].get!string();
+			} else if("name" in parent) {
+				typeName = parent["name"].get!string();
+			}
+			if(typeName.empty) {
+				ret["error"] ~= Json(format("unknown type"));
+				goto retLabel;
+			}
+			logf("typeName %s", typeName);
 			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
-				enum typeCap = capitalize(type.stringof);
-				if(typeName == type.stringof) {
+				string typeCap = capitalize(typeName);
+				if(typeCap == typeToTypeName!(type)) {
 					logf("%s %s", typeName, type.stringof);
 					ret["data"]["kind"] = typeToTypeEnum!type;
 					alias fieldsTypes = Fields!(type);
 					alias fieldsNames = FieldNameTuple!(type);
-					ret["data"]["fields"] = Json.emptyArray();
-					static foreach(idx; 0 .. fieldsTypes.length) {{
-						ret["data"]["fields"] ~=
-							typeToField!(fieldsTypes[idx], fieldsNames[idx]);
-					}}
+					ret["data"]["name"] = typeToTypeName!type;
+					ret["data"]["description"] = "No description";
+					static if(fieldsTypes.length && !isScalarType!type) {
+						ret["data"]["fields"] = Json.emptyArray();
+						static foreach(idx; 0 .. fieldsTypes.length) {{
+							ret["data"]["fields"] ~=
+								typeToField!(fieldsTypes[idx],
+										fieldsNames[idx]
+									);
+						}}
+					}
+					goto retLabel;
+				} else {
+					logf("||||||||||| %s", typeCap);
 				}
 			}}
+			retLabel:
 			logf("%s", ret.toPrettyString());
 			return ret;
 		};

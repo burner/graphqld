@@ -73,11 +73,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
 					import std.string : capitalize;
-					assert(name == "type");
-					string typeName = parent["type"].get!string().capitalize();
-					Json t = Json.emptyObject();
-					t["name"] = typeName;
-					return typeResolver(name, t, args, context);
+					Json ret = typeResolver(name, parent, args, context);
+					logf("FIELDDDDD TYPPPPPE %s", ret.toPrettyString());
+					return ret;
 				}
 			);
 
@@ -233,8 +231,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
 					objectValue, variables
 				);
-			if(rslt.dataIsEmpty) {
+			if(rslt.dataIsEmpty()) {
+				logf("NULLLLLLLLLLLL %s %s", rslt, rslt.dataIsEmpty());
 				rslt["data"] = null;
+			} else {
+				logf("NNNNNNNNNNNNNN %s", rslt);
 			}
 		} else if(GQLDList!Con list = objectType.toList()) {
 			logf("list %s", list.name);
