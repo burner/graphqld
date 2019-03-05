@@ -1,28 +1,28 @@
 module traits;
 
-template BaseClasses(T) {
+template BaseFields(T) {
 	import std.meta : EraseAll, NoDuplicates;
-	alias BaseClasses = EraseAll!(Object, NoDuplicates!(BaseClassesImpl!T));
+	alias BaseFields = EraseAll!(Object, NoDuplicates!(BaseFieldsImpl!T));
 }
 
-template BaseClassesImpl(T) {
+template BaseFieldsImpl(T) {
 	import std.traits : FieldNameTuple, Fields, BaseClassesTuple;
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	static if(is(T == class)) {
 		alias BaseClassSeq = Fields!T;
-		alias BaseClassesImpl = NoDuplicates!(
+		alias BaseFieldsImpl = NoDuplicates!(
 				T,
 				BaseClassSeq,
-				staticMap!(.BaseClassesImpl, BaseClassesTuple!T)
+				staticMap!(.BaseFieldsImpl, BaseClassesTuple!T)
 			);
 	} else static if(is(T == union)) {
-		alias BaseClassesImpl = NoDuplicates!(
+		alias BaseFieldsImpl = NoDuplicates!(
 				T,
 				Fields!T,
-				staticMap!(.BaseClassesImpl, Fields!T)
+				staticMap!(.BaseFieldsImpl, Fields!T)
 			);
 	} else {
-		alias BaseClassesImpl = T;
+		alias BaseFieldsImpl = T;
 	}
 }
 
@@ -37,6 +37,12 @@ template AllFieldNames(T) {
 	} else {
 		alias AllFieldNames = AliasSeq!();
 	}
+}
+
+template BaseFieldAggregates(T) {
+	import std.meta : Filter;
+	import std.traits : isAggregateType;
+	alias BaseFieldAggregates = Filter!(isAggregateType, BaseFields!T);
 }
 
 version(unittest) {

@@ -13,6 +13,7 @@ import std.experimental.logger;
 import vibe.data.json;
 
 import helper;
+import traits;
 
 @safe:
 
@@ -754,10 +755,9 @@ Json typeToField(T, string name)() {
 Json typeFields(T)() {
 	import std.algorithm.searching : startsWith;
 	import std.traits : FieldTypeTuple, FieldNameTuple;
-	import traits;
 	Json ret = Json.emptyArray();
 
-	alias manyTypes = BaseClasses!T;
+	alias manyTypes = BaseFields!T;
 	pragma(msg, T.stringof, " ", manyTypes);
 	static foreach(Type; manyTypes) {{
 		alias fieldTypes = FieldTypeTuple!Type;
@@ -839,6 +839,13 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 										fieldsNames[idx]
 									);
 						}}
+					}
+					static if(isAggregateType!type) {
+						ret["data"]["interfaceNames"] = Json.emptyArray();
+						static foreach(iType; BaseFieldAggregates!type) {
+							ret["data"]["interfaceNames"] ~=
+								Json(iType.stringof);
+						}
 					}
 					goto retLabel;
 				} else {
