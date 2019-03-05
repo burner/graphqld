@@ -193,7 +193,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("FRI: %s, OT: %s, OJ: %s, VAR: %s", field.name,
+		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
 				objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);

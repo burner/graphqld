@@ -339,14 +339,11 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	void createInbuildTypes() {
-		this.types["string"] = new GQLDObject!Con("string");
-		this.types["int"] = new GQLDObject!Con("int");
-		this.types["float"] = new GQLDObject!Con("float");
-		this.types["bool"] = new GQLDObject!Con("bool");
-
-		foreach(t; ["string", "int", "float", "bool"]) {
-			this.types[t].toObject().member["name"] = new GQLDString!Con();
-			this.types[t].resolver = buildTypeResolver!(Type,Con)();
+		foreach(t; ["String", "Int", "Float", "Bool"]) {
+			GQLDObject!Con tmp = new GQLDObject!Con(t);
+			this.types[t] = tmp;
+			tmp.member["name"] = new GQLDString!Con();
+			tmp.resolver = buildTypeResolver!(Type,Con)();
 		}
 	}
 
@@ -389,11 +386,11 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		this.__field.resolver = buildFieldResolver!(Type, Con)();
-		this.__field.member["name"] = new GQLDString!Con();
-		this.__field.member["description"] = new GQLDString!Con();
-		this.__field.member["type"] = this.__type;
-		this.__field.member["isDeprecated"] = new GQLDBool!Con();
-		this.__field.member["deprecatedReason"] = new GQLDString!Con();
+		//this.__field.member["name"] = new GQLDString!Con();
+		//this.__field.member["description"] = new GQLDString!Con();
+		//this.__field.member["type"] = this.__type;
+		//this.__field.member["isDeprecated"] = new GQLDBool!Con();
+		//this.__field.member["deprecatedReason"] = new GQLDString!Con();
 	}
 
 	override string toString() const {
@@ -428,8 +425,9 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			} else if(op.name == "__field") {
 				switch(field) {
 					case "__type": ret = this.__type; break;
-					case "name": ret = this.types["string"]; break;
-					case "description": ret = this.types["string"]; break;
+					case "type": ret = this.__type; break;
+					case "name": ret = this.types["String"]; break;
+					case "description": ret = this.types["String"]; break;
 					case "fields": ret = this.__listField; break;
 					case "interfaces": ret = this.__listType; break;
 					case "possibleTypes": ret = this.__listType; break;
