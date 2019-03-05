@@ -69,14 +69,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			};
 		auto typeResolver = buildTypeResolver!(T, Con)();
 		this.setResolver("query", "__type", typeResolver);
-		/*this.setResolver("__type", "fields",
-				delegate(string name, Json parent, Json args, ref Con context) {
-					logf("name %s, parent %s, args %s", name, parent, args);
-					assert(name == "asldfjaslödfj");
-					return parent;
-				}
-			);
-		*/
 		this.setResolver("__field", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
@@ -165,13 +157,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	Json executeMutation(OperationDefinition op, Json variables) {
 		log("mutation");
-		assert(false);
-		/*FieldRangeItem[] selSet = fieldRange(op, this.doc).array;
-		Json tmp = this.executeSelection(selSet,
-						cast(GQLDMap!Con)this.schema.member["mutation"],
-						Json.emptyObject(), variables
-					);
-		return tmp;*/
+		Json tmp = this.executeSelections(op.ss.sel,
+				this.schema.member["mutation"],
+				Json.emptyObject(), variables
+			);
+		return tmp;
 	}
 
 	Json executeQuery(OperationDefinition op, Json variables) {
