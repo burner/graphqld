@@ -7,18 +7,14 @@ import std.typecons;
 import std.algorithm : map, joiner;
 import std.range : ElementEncodingType;
 import std.format;
+import std.string : capitalize;
 import std.experimental.logger;
 
 import vibe.data.json;
 
-@safe:
+import helper;
 
-Json returnTemplate() {
-	Json ret = Json.emptyObject();
-	ret["data"] = Json.emptyObject();
-	ret["error"] = Json.emptyArray();
-	return ret;
-}
+@safe:
 
 struct DefaultContext {
 }
@@ -40,40 +36,14 @@ enum GQLDKind {
 	Schema
 }
 
-
 abstract class GQLDType(Con) {
 	alias Context = Con;
 
-	alias Resolver = Json delegate(string name, Json parent,
-			Json args, ref Context context);
-
 	const GQLDKind kind;
 	string name;
-	Resolver resolver;
 
 	this(GQLDKind kind) {
 		this.kind = kind;
-		this.resolver = delegate(string name, Json parent, Json args,
-							ref Context context)
-			{
-				import std.format;
-				logf("name: %s, parent: %s, args: %s", name, parent, args);
-				Json ret = Json.emptyObject();
-				ret["data"] = Json.emptyObject();
-				ret["error"] = Json.emptyArray();
-				if(name in parent) {
-					ret["data"] = parent[name];
-				} else {
-					ret["error"] = Json(format("no field name '%s' found",
-										name)
-									);
-				}
-				return ret;
-			};
-	}
-
-	Json call(string name, Json parent, Json args, ref Context context) {
-		return this.resolver(name, parent, args, context);
 	}
 
 	override string toString() const {
@@ -163,15 +133,6 @@ class GQLDMap(Con) : GQLDType!(Con) {
 			formattedWrite(app, "%s: %s\n", key, value.toString());
 		}
 		return app.data;
-	}
-
-	override Json call(string name, Json parent, Json args, ref Context context)
-	{
-		if(name in this.member) {
-			return this.member[name].call(name, parent, args, context);
-		} else {
-			return this.resolver(name, parent, args, context);
-		}
 	}
 }
 
@@ -327,6 +288,10 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDList!(Con) __listNullableField;
 	GQLDList!(Con) __listNullableInputValue;
 
+	GQLDNullable!(Con) __nullableListType;
+	GQLDNullable!(Con) __nullableListField;
+	GQLDNullable!(Con) __nullableListInputValue;
+
 	GQLDNullable!(Con) __nullableListNullableType;
 	GQLDNullable!(Con) __nullableListNullableField;
 	GQLDNullable!(Con) __nullableListNullableInputValue;
@@ -343,7 +308,9 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			GQLDObject!Con tmp = new GQLDObject!Con(t);
 			this.types[t] = tmp;
 			tmp.member["name"] = new GQLDString!Con();
-			tmp.resolver = buildTypeResolver!(Type,Con)();
+			tmp.member["description"] = new GQLDString!Con();
+			tmp.member["kind"] = new GQLDEnum!Con("__TypeKind");
+			//tmp.resolver = buildTypeResolver!(Type,Con)();
 		}
 	}
 
@@ -365,6 +332,12 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__nullableField = new GQLDNullable!Con(this.__field);
 		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
 
+		this.__nullableListType = new GQLDNullable!Con(this.__listType);
+		this.__nullableListField = new GQLDNullable!Con(this.__listField);
+		this.__nullableListInputValue = new GQLDNullable!Con(
+				this.__listInputValue
+			);
+
 		this.__listNullableType = new GQLDList!Con(this.__nullableType);
 		this.__listNullableField = new GQLDList!Con(this.__nullableField);
 		this.__listNullableInputValue =
@@ -379,18 +352,22 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 		// set members of base types
 
-		this.__type.resolver = buildTypeResolver!(Type, Con)();
+		//this.__type.resolver = buildTypeResolver!(Type, Con)();
 		this.__type.member["name"] = new GQLDString!Con();
 		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__listField;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
-		this.__field.resolver = buildFieldResolver!(Type, Con)();
-		//this.__field.member["name"] = new GQLDString!Con();
-		//this.__field.member["description"] = new GQLDString!Con();
-		//this.__field.member["type"] = this.__type;
-		//this.__field.member["isDeprecated"] = new GQLDBool!Con();
-		//this.__field.member["deprecatedReason"] = new GQLDString!Con();
+		//this.__field.resolver = buildFieldResolver!(Type, Con)();
+		this.__field.member["name"] = new GQLDString!Con();
+		this.__field.member["description"] = new GQLDString!Con();
+		this.__field.member["type"] = this.__type;
+		this.__field.member["isDeprecated"] = new GQLDBool!Con();
+		this.__field.member["deprecatedReason"] = new GQLDString!Con();
+
+		foreach(t; ["String", "Int", "Float", "Bool"]) {
+			this.types[t].toObject().member["fields"] = this.__nullableListField;
+		}
 	}
 
 	override string toString() const {
@@ -422,24 +399,6 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 								"introspecting directive not yet supported"
 							);
 				}
-			} else if(op.name == "__field") {
-				switch(field) {
-					case "__type": ret = this.__type; break;
-					case "type": ret = this.__type; break;
-					case "name": ret = this.types["String"]; break;
-					case "description": ret = this.types["String"]; break;
-					case "fields": ret = this.__listField; break;
-					case "interfaces": ret = this.__listType; break;
-					case "possibleTypes": ret = this.__listType; break;
-					case "enumValues": ret = this.__listEnumValue; break;
-					case "oyType": ret = this.__type; break;
-					default:
-						ret = null;
-						break;
-				}
-			} else if(op.name == "__field") {
-			} else if(op.name == "__inputValue") {
-			} else if(op.name == "__enumValue") {
 			}
 			if(ret) {
 				logf("%s", ret.name);
@@ -775,6 +734,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			ret["data"]["description"] = "No description";
 			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
+				enum typeCap = capitalize(type.stringof);
 				if(typeName == type.stringof) {
 					logf("%s %s", typeName, type.stringof);
 					alias fieldsTypes = Fields!(type);
@@ -788,17 +748,6 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			}}
 			logf("%s", ret.toPrettyString());
 			return ret;
-		};
-	return ret;
-}
-
-QueryResolver!(Con) buildFieldResolver(Type, Con)() {
-	QueryResolver!(Con) ret = delegate(string name, Json parent,
-			Json args, ref Con context) @safe
-		{
-			logf("\n\n%s %s\n\n", name, args.toPrettyString());
-			assert(false);
-			//return parent;
 		};
 	return ret;
 }

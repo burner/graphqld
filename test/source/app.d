@@ -19,6 +19,7 @@ import tokenmodule;
 import visitor;
 import treevisitor;
 
+import helper;
 import testdata;
 import testdata2;
 import schema;
@@ -29,68 +30,85 @@ Data database;
 struct DefaultContext {
 }
 
-void insertPayload(ref Json result, string field, Json data) {
-	enum d = "data";
-	enum e = "error";
-	if(d in data) {
-		enforce(result[d].type == Json.Type.object);
-		result[d][field] = data[d];
-	}
-	if(e in data) {
-		enforce(result[e].type == Json.Type.array);
-		if(!canFind(result[e].array(), data[e])) {
-			result[e] ~= data[e];
-		}
-	}
-}
-
-bool dataIsEmpty(ref Json data) {
-	enum d = "data";
-	if(d in data) {
-		if(data[d].type == Json.Type.object) {
-			foreach(key, value; data[d].byKeyValue()) {
-				if(value.type != Json.Type.object || value.length > 0) {
-					return false;
-				}
-			}
-		}
-	}
-	return true;
-}
-
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
 
+	alias Schema = GQLDSchema!(T, Con);
+
 	Document doc;
 
-	alias Schema = GQLDSchema!(T, Con);
 	Schema schema;
 
 	Con dummy;
 
+	// [Type][field]
+	QueryResolver[string][string] resolver;
+	QueryResolver defaultResolver;
+
 	this() {
 		this.schema = toSchema2!(T,Con)();
+		this.defaultResolver = delegate(string name, Json parent, Json args,
+									ref Con context)
+			{
+				import std.format;
+				logf("name: %s, parent: %s, args: %s", name, parent, args);
+				Json ret = Json.emptyObject();
+				ret["data"] = Json.emptyObject();
+				ret["error"] = Json.emptyArray();
+				if(name in parent) {
+					ret["data"] = parent[name];
+				} else {
+					ret["error"] = Json(format("no field name '%s' found",
+										name)
+									);
+				}
+				logf("default ret %s", ret);
+				return ret;
+			};
+		auto typeResolver = buildTypeResolver!(T, Con)();
+		this.setResolver("query", "__type", typeResolver);
+		/*this.setResolver("__type", "fields",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name, parent, args);
+					assert(name == "asldfjaslödfj");
+					return parent;
+				}
+			);
+		*/
+		this.setResolver("__field", "type",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name, parent, args);
+					import std.string : capitalize;
+					assert(name == "type");
+					string typeName = parent["type"].get!string().capitalize();
+					Json t = Json.emptyObject();
+					t["name"] = typeName;
+					return typeResolver(name, t, args, context);
+				}
+			);
+
 		writeln(this.schema.toString());
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {
-		GQLDMap!(Con) fMap;
-		if(first in this.schema.member) {
-			logf("schema %s %s", first, second);
-			fMap = this.schema.member[first].toMap();
-		} else if(first in this.schema.types) {
-			logf("types %s %s", first, second);
-			fMap = this.schema.types[first].toMap();
+		if(first !in this.resolver) {
+			this.resolver[first] = QueryResolver[string].init;
 		}
+		this.resolver[first][second] = resolver;
+	}
 
-		if(fMap is null || second !in fMap.member) {
-			throw new Exception(format("Schema has no entry for %s %s",
-							first, second)
-						);
+	Json resolve(string type, string field, Json parent, Json args,
+			ref Con context)
+	{
+		if(type !in this.resolver) {
+			return defaultResolver(field, parent, args, context);
+		} else if(field !in this.resolver[type]) {
+			return defaultResolver(field, parent, args, context);
+		} else {
+			return this.resolver[type][field](field, parent, args, context);
 		}
-		fMap.member[second].resolver = resolver;
 	}
 
 	Json execute(Document doc, Json variables) {
@@ -197,7 +215,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 				objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
-		Json de = objectType.call(field.name,
+		//Json de = objectType.call(field.name,
+		//		"data" in objectValue ? objectValue["data"] : objectValue,
+		//		arguments, this.dummy
+		//	);
+		Json de = this.resolve(objectType.name, field.name,
 				"data" in objectValue ? objectValue["data"] : objectValue,
 				arguments, this.dummy
 			);
@@ -244,11 +266,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 				variables
 			);
 		assert("data" in objectValue, objectValue.toString());
-		assert(objectValue["data"].type == Json.Type.array);
+		//assert(objectValue["data"].type == Json.Type.array);
 		auto elemType = objectType.elementType;
 		Json ret = returnTemplate();
 		ret["data"] = Json.emptyArray();
-		foreach(Json item; objectValue["data"]) {
+		foreach(Json item;
+				objectValue["data"].type == Json.Type.array
+					? objectValue["data"]
+					: Json.emptyArray()
+			)
+		{
 			logf("ET: %s, item %s", elemType.name, item);
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
 			if("data" in tmp) {
