@@ -204,6 +204,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		auto retType = this.schema.getReturnType(objectType, field.name);
 		if(retType is null) {
+			logf("ERR %s %s", objectType.name, field.name);
 			Json ret = Json.emptyObject();
 			ret["error"] = Json.emptyArray();
 			ret["error"] ~= Json(format(

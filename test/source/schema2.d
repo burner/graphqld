@@ -729,6 +729,7 @@ Json typeToField(T, string name)() {
 	alias Ts = stripArrayAndNullable!T;
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
+	ret["type"] = Ts.stringof;
 	ret["description"] = "TODO";
 	ret["isDeprected"] = false;
 	ret["deprecationReason"] = "TODO";
