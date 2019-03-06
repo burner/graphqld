@@ -261,7 +261,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables)
 	{
 		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
-				objectType.name, /*objectValue*/"", variables
+				objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
 		Json de = this.resolve(objectType.name, field.name,
@@ -286,7 +286,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeSelectionSet(SelectionSet ss, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), /*objectValue*/"",
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), objectValue,
 				variables
 			);
 		Json rslt;
@@ -332,7 +332,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					: Json.emptyArray()
 			)
 		{
-			logf("ET: %s, item %s", elemType.name, /*item*/"");
+			logf("ET: %s, item %s", elemType.name, item);
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
 			if("data" in tmp) {
 				ret["data"] ~= tmp["data"];

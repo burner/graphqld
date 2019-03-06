@@ -1,5 +1,6 @@
 module schema2;
 
+import std.conv : to;
 import std.array;
 import std.meta;
 import std.traits;
@@ -297,7 +298,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDList!(Con) __listInputValue;
 	GQLDList!(Con) __listEnumValue;
 
-	GQLDNullable!(Con) __nonNullType;
+	GQLDNonNull!(Con) __nonNullType;
 	GQLDNullable!(Con) __nullableType;
 	GQLDNullable!(Con) __nullableField;
 	GQLDNullable!(Con) __nullableInputValue;
@@ -307,6 +308,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDList!(Con) __listNullableInputValue;
 
 	GQLDNullable!(Con) __nullableListType;
+	GQLDNullable!(Con) __nullableListEnumValue;
 	GQLDNullable!(Con) __nullableListField;
 	GQLDNullable!(Con) __nullableListInputValue;
 
@@ -340,6 +342,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__field = new GQLDObject!Con("__field");
 		this.__inputValue = new GQLDObject!Con("__inputValue");
 		this.__enumValue = new GQLDObject!Con("__enumValue");
+		this.__enumValue.member["name"] = new GQLDString!Con();
 
 		this.__listType = new GQLDList!Con(this.__type);
 		this.__schema.member["__listType"] = this.__listType;
@@ -356,6 +359,8 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__nullableField = new GQLDNullable!Con(this.__field);
 		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
 
+		this.__nullableListEnumValue = new
+			GQLDNullable!Con(this.__listEnumValue);
 		this.__nullableListType = new GQLDNullable!Con(this.__listType);
 		this.__nullableListField = new GQLDNullable!Con(this.__listField);
 		this.__nullableListInputValue = new GQLDNullable!Con(
@@ -387,6 +392,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["possibleTypes"] = this.__nullableListType;
 		this.__type.member["ofType"] = this.__nullableType;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
+		this.__type.member["enumValues"] = this.__nullableListEnumValue;
 
 		this.__field.member["name"] = new GQLDString!Con();
 		this.__field.member["description"] = new GQLDNullable!Con(
@@ -530,6 +536,8 @@ template collectTypesImpl(Type) {
 		alias collectTypesImpl = string;
 	} else static if(is(Type == bool)) {
 		alias collectTypesImpl = bool;
+	} else static if(is(Type == enum)) {
+		alias collectTypesImpl = Type;
 	} else static if(isArray!Type) {
 		alias collectTypesImpl = .collectTypesImpl!(ElementEncodingType!Type);
 	} else static if(isIntegral!Type) {
@@ -559,6 +567,8 @@ template collectReturnType(Type, Names...) {
 template fixupBasicTypes(T) {
 	static if(isSomeString!T) {
 		alias fixupBasicTypes = string;
+	} else static if(is(T == enum)) {
+		alias fixupBasicTypes = T;
 	} else static if(is(T == bool)) {
 		alias fixupBasicTypes = bool;
 	} else static if(isIntegral!T) {
@@ -613,9 +623,14 @@ template collectTypes(T...) {
 
 version(unittest) {
 package {
+	enum Enum {
+		one,
+		two
+	}
 	class U {
 		string f;
 		Bar bar;
+		Enum e;
 	}
 	class W {
 		Nullable!(Nullable!(U)[]) us;
@@ -642,9 +657,14 @@ package {
 }
 
 unittest {
+	alias a = collectTypes!(Enum);
+	static assert(is(a == AliasSeq!(Enum)));
+}
+
+unittest {
 	alias ts = collectTypes!(Foo);
 	alias expectedTypes = AliasSeq!(Foo, Bar, Args, float, Z[], Z, string,
-			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U);
+			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U, Enum);
 
 	template canBeFound(T) {
 		enum tmp = staticIndexOf!(T, expectedTypes) != -1;
@@ -734,7 +754,9 @@ template stripArrayAndNullable(T) {
 }
 
 template typeToTypeEnum(Type) {
-	static if(is(Type == bool)) {
+	static if(is(Type == enum)) {
+		enum typeToTypeEnum = "ENUM";
+	} else static if(is(Type == bool)) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeEnum = "SCALAR";
@@ -742,8 +764,6 @@ template typeToTypeEnum(Type) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(isSomeString!Type) {
 		enum typeToTypeEnum = "SCALAR";
-	} else static if(is(Type == enum)) {
-		enum typeToTypeEnum = "ENUM";
 	} else static if(is(Type == union)) {
 		enum typeToTypeEnum = "UNION";
 	} else static if(is(Type : Nullable!F, F)) {
@@ -762,7 +782,9 @@ unittest {
 }
 
 template typeToTypeName(Type) {
-	static if(is(Type == bool)) {
+	static if(is(Type == enum)) {
+		enum typeToTypeName = Type.stringof;
+	} else static if(is(Type == bool)) {
 		enum typeToTypeName = "Bool";
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeName = "Float";
@@ -883,9 +905,14 @@ Json typeToJson(Type)() {
 	// enumValues
 	static if(is(Type == enum)) {
 		ret["enumValues"] = Json.emptyArray();
-		static foreach(mem; EnumMembers!Type) {
-			ret["enumValues"] ~= Json(mem.stringof);
-		}
+		static foreach(mem; EnumMembers!Type) {{
+			Json tmp = Json.emptyObject();
+			tmp["name"] = Json(to!string(mem));
+			tmp["description"] = "ENUM_DESCRIPTION_TODO";
+			tmp["isDeprecated"] = false;
+			tmp["deprecationReason"] = "ENUM_DEPRECATIONREASON_TODO";
+			ret["enumValues"] ~= tmp;
+		}}
 	} else {
 		ret["enumValues"] = Json(null);
 	}
