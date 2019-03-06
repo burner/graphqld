@@ -27,6 +27,7 @@ enum GQLDKind {
 	Enum,
 	Map,
 	Nullable,
+	NonNull,
 	Union,
 	Query,
 	Mutation,
@@ -203,6 +204,24 @@ class GQLDList(Con) : GQLDType!(Con) {
 	}
 }
 
+class GQLDNonNull(Con) : GQLDType!(Con) {
+	GQLDType!(Con) elementType;
+
+	this(GQLDType!(Con) elemType) {
+		super(GQLDKind.NonNull);
+		super.name = "NonNull";
+		this.elementType = elemType;
+	}
+
+	override string toString() const {
+		return format("NonNull(%s)", this.elementType.toShortString());
+	}
+
+	override string toShortString() const {
+		return format("NonNull(%s)", this.elementType.toShortString());
+	}
+}
+
 class GQLDNullable(Con) : GQLDType!(Con) {
 	GQLDType!(Con) elementType;
 
@@ -278,6 +297,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDList!(Con) __listInputValue;
 	GQLDList!(Con) __listEnumValue;
 
+	GQLDNullable!(Con) __nonNullType;
 	GQLDNullable!(Con) __nullableType;
 	GQLDNullable!(Con) __nullableField;
 	GQLDNullable!(Con) __nullableInputValue;
@@ -329,6 +349,10 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 		this.__nullableType = new GQLDNullable!Con(this.__type);
 		this.__schema.member["__nullType"] = this.__nullableType;
+
+		this.__nonNullType = new GQLDNonNull!Con(this.__type);
+		this.__schema.member["__nonNullType"] = this.__nonNullType;
+
 		this.__nullableField = new GQLDNullable!Con(this.__field);
 		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
 
