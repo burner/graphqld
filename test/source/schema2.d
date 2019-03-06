@@ -352,8 +352,12 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 		this.__schema.member["types"] = this.__listType;
 
-		this.__type.member["name"] = new GQLDString!Con();
-		this.__type.member["description"] = new GQLDString!Con();
+		this.__type.member["name"] = new GQLDNullable!(Con)(
+				new GQLDString!Con()
+			);
+		this.__type.member["description"] = new GQLDNullable!Con(
+				new GQLDString!Con()
+			);
 		this.__type.member["fields"] = this.__nullableListField;
 		this.__type.member["interfaces"] = this.__nullableListType;
 		this.__type.member["possibleTypes"] = this.__nullableListType;
@@ -361,10 +365,14 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		this.__field.member["name"] = new GQLDString!Con();
-		this.__field.member["description"] = new GQLDString!Con();
+		this.__field.member["description"] = new GQLDNullable!Con(
+				new GQLDString!Con()
+			);
 		this.__field.member["type"] = this.__type;
 		this.__field.member["isDeprecated"] = new GQLDBool!Con();
-		this.__field.member["deprecatedReason"] = new GQLDString!Con();
+		this.__field.member["deprecatedReason"] = new GQLDNullable!Con(
+				new GQLDString!Con()
+			);
 
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
 			this.types[t].toObject().member["fields"] = this.__nullableListField;

@@ -142,24 +142,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 						ret = returnTemplate();
 						ret["data"] = emptyType();
 					}
-					//ret["data"] = parent;
-					//ret["data"]["name"] = parent["ofTypeName"];
-					/*assert("ofTypeName" in parent);
-					Json ofType = parent["ofTypeName"];
-					logf("%s", ofType);
-
-					if(ofType.type == Json.Type.string) {
-						logf("%s", ofType);
-						string typeName = ofType.get!string();
-						string typeCap = capitalize(typeName);
-						static foreach(type; collectTypes!(T)) {{
-							if(typeCap == typeToTypeName!(type)) {
-								ret["data"] = typeToJson!type();
-							}
-						}}
-					} else {
-						logf("%s", ofType);
-					}*/
 					logf("ref %s", ret["data"].toPrettyString());
 					return ret;
 				}
@@ -650,8 +632,8 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		return;
 	}
 
-	auto tv = new TreeVisitor(0);
-	tv.accept(cast(const(Document))d);
+	//auto tv = new TreeVisitor(0);
+	//tv.accept(cast(const(Document))d);
 
 	Json gqld = graphqld.execute(d, vars);
 	writeln(gqld.toPrettyString());
