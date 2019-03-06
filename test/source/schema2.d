@@ -7,7 +7,7 @@ import std.typecons;
 import std.algorithm : map, joiner;
 import std.range : ElementEncodingType;
 import std.format;
-import std.string : capitalize, strip;
+import std.string : strip;
 import std.experimental.logger;
 
 import vibe.data.json;
@@ -356,6 +356,8 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__nullableListField;
 		this.__type.member["interfaces"] = this.__nullableListType;
+		this.__type.member["possibleTypes"] = this.__nullableListType;
+		this.__type.member["ofType"] = this.__nullableType;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		this.__field.member["name"] = new GQLDString!Con();
@@ -384,7 +386,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
-		logf("%s %s", t.name, field);
+		logf("'%s' '%s'", t.name, field);
 		GQLDType!Con ret;
 		if(auto s = t.toScalar()) {
 			log();
@@ -410,7 +412,8 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 				log();
 				ret = map.member[field];
 			} else {
-				log();
+				string[] k = map.member.byKey().array;
+				logf("[%(%s, %)]", k);
 				//logf("%s %s", t.toString(), field);
 				return null;
 			}
@@ -722,6 +725,10 @@ template typeToTypeEnum(Type) {
 	}
 }
 
+unittest {
+	static assert(typeToTypeEnum!(int[]) == "LIST");
+}
+
 template typeToTypeName(Type) {
 	static if(is(Type == bool)) {
 		enum typeToTypeName = "Bool";
@@ -738,6 +745,10 @@ template typeToTypeName(Type) {
 	} else {
 		enum typeToTypeName = Type.stringof;
 	}
+}
+
+unittest {
+	static assert(typeToTypeName!(Nullable!int) == "__nullType");
 }
 
 template isScalarType(Type) {
@@ -761,6 +772,7 @@ Json typeToField(T, string name)() {
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
 	ret["typename"] = typeToTypeName!(Ts);
+	ret["typenameOrig"] = typeToTypeName!(T);
 	ret["description"] = "TODO";
 	ret["isDeprected"] = false;
 	ret["deprecationReason"] = "TODO";
@@ -785,6 +797,19 @@ Json typeFields(T)() {
 			}
 		}}
 	}}
+	return ret;
+}
+
+Json emptyType() {
+	Json ret = Json.emptyObject();
+	ret["kind"] = "";
+	ret["name"] = Json(null);
+	ret["description"] = Json(null);
+	ret["fields"] = Json(null);
+	ret["interfacesNames"] = Json(null);
+	ret["possibleTypesNames"] = Json(null);
+	ret["ofTypeName"] = Json(null);
+	ret["enumValues"] = Json(null);
 	return ret;
 }
 
@@ -816,7 +841,7 @@ Json typeToJson(Type)() {
 			|| is(Type == interface))
 	{
 		ret["possibleTypesNames"] = Json.emptyArray();
-		static foreach(pt; InheritedClasses!Type) {
+		static foreach(pt; AliasSeq!(Type, InheritedClasses!Type)) {
 			ret["possibleTypesNames"] ~= pt.stringof;
 		}
 	} else {
@@ -852,7 +877,7 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 	QueryResolver!(Con) ret = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
-			logf("%s %s %s", name, args, parent);
+			//logf("%s %s %s", name, args, parent);
 			Json ret = returnTemplate();
 			ret["data"]["types"] = Json.emptyArray();
 			pragma(msg, collectTypes!(Type));
@@ -875,8 +900,8 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			if("name" in args) {
 				typeName = args["name"].get!string();
 			}
-			if("typename" in parent) {
-				typeName = parent["typename"].get!string();
+			if("typenameOrig" in parent) {
+				typeName = parent["typenameOrig"].get!string();
 			} else if("name" in parent) {
 				typeName = parent["name"].get!string();
 			}
@@ -884,16 +909,28 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				ret["error"] ~= Json(format("unknown type"));
 				goto retLabel;
 			}
-			logf("typeName %s", typeName);
+			//logf("typeName %s", typeName);
+			if(typeName == "__listType") {
+				ret["data"] = typeToJson!(int[])();
+				ret["data"]["typenameOrig"] = parent["typename"];
+				ret["data"]["name"] = Json(null);
+				goto retLabel;
+			} else if(typeName == "__nullType") {
+				ret["data"] = typeToJson!(Nullable!int)();
+				ret["data"]["typenameOrig"] = parent["typename"];
+				ret["data"]["name"] = Json(null);
+				goto retLabel;
+			}
 			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
-				string typeCap = capitalize(typeName);
-				if(typeCap == typeToTypeName!(type)) {
+				string typeCap = firstCharUpperCase(typeName);
+				enum typeConst = typeToTypeName!(type);
+				if(typeCap == typeConst) {
 					ret["data"] = typeToJson!type();
-					logf("%s", ret["data"]);
+					logf("%s %s %s", typeCap, typeConst, ret["data"]);
 					goto retLabel;
 				} else {
-					logf("||||||||||| %s", typeCap);
+					logf("||||||||||| %s %s", typeCap, typeConst);
 				}
 			}}
 			retLabel:

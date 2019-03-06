@@ -57,7 +57,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				Json ret = Json.emptyObject();
 				ret["data"] = Json.emptyObject();
 				ret["error"] = Json.emptyArray();
-				if(name in parent) {
+				if(parent.type != Json.Type.null_ && name in parent) {
 					ret["data"] = parent[name];
 				} else {
 					ret["error"] = Json(format("no field name '%s' found",
@@ -99,6 +99,68 @@ class GraphQLD(T, QContext = DefaultContext) {
 					} else {
 						ret["data"] = Json(null);
 					}
+					return ret;
+				}
+			);
+		this.setResolver("__type", "possibleTypes",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name, parent, args);
+					assert("possibleTypesNames" in parent);
+					Json pTypesNames = parent["possibleTypesNames"];
+					Json ret = returnTemplate();
+					if(pTypesNames.type == Json.Type.array) {
+						log();
+						ret["data"] = Json.emptyArray();
+						foreach(Json it; pTypesNames.byValue()) {
+							string typeName = it.get!string();
+							string typeCap = capitalize(typeName);
+							static foreach(type; collectTypes!(T)) {{
+								if(typeCap == typeToTypeName!(type)) {
+									ret["data"] ~= typeToJson!type();
+								}
+							}}
+						}
+					} else {
+						log();
+						ret["data"] = Json(null);
+					}
+					return ret;
+				}
+			);
+		this.setResolver("__type", "ofType",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name,
+							parent.toPrettyString(), args
+						);
+					Json ret;
+					if("ofTypeName" in parent
+							&& parent["ofTypeName"].type != Json.Type.null_)
+					{
+						parent["name"] = parent["ofTypeName"];
+						ret = typeResolver(name, parent, args, context);
+					} else {
+						ret = returnTemplate();
+						ret["data"] = emptyType();
+					}
+					//ret["data"] = parent;
+					//ret["data"]["name"] = parent["ofTypeName"];
+					/*assert("ofTypeName" in parent);
+					Json ofType = parent["ofTypeName"];
+					logf("%s", ofType);
+
+					if(ofType.type == Json.Type.string) {
+						logf("%s", ofType);
+						string typeName = ofType.get!string();
+						string typeCap = capitalize(typeName);
+						static foreach(type; collectTypes!(T)) {{
+							if(typeCap == typeToTypeName!(type)) {
+								ret["data"] = typeToJson!type();
+							}
+						}}
+					} else {
+						logf("%s", ofType);
+					}*/
+					logf("ref %s", ret["data"].toPrettyString());
 					return ret;
 				}
 			);
@@ -199,15 +261,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json ret = returnTemplate();
 		logf("OT: %s, OJ: %s, VAR: %s", objectType.name,
-				objectValue, variables);
+				/*objectValue*/"", variables);
 		foreach(FieldRangeItem field; fieldRangeArr(sel, this.doc)) {
 			logf("Field: %s, OT: %s, OJ: %s", field.name, objectType.name,
-					objectValue
+					/*objectValue*/""
 				);
 			Json rslt = this.executeFieldSelection(field, objectType,
 					objectValue, variables
 				);
-			logf("RSLT: %s", rslt);
+			//logf("RSLT: %s", rslt);
 			ret.insertPayload(field.name, rslt);
 		}
 		return ret;
@@ -217,7 +279,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables)
 	{
 		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
-				objectType.name, objectValue, variables
+				objectType.name, /*objectValue*/"", variables
 			);
 		Json arguments = getArguments(field, variables);
 		Json de = this.resolve(objectType.name, field.name,
@@ -235,15 +297,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 				));
 			return ret;
 		}
-		//auto retType = objectType;
-		logf("de: %s, retType %s", de, retType.name);
+		logf("de: %s, retType %s", /*de*/"", retType.name);
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 
 	Json executeSelectionSet(SelectionSet ss, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), objectValue,
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), /*objectValue*/"",
 				variables
 			);
 		Json rslt;
@@ -276,7 +337,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeList(SelectionSet ss, GQLDList!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, objectValue,
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, /*objectValue*/"",
 				variables
 			);
 		assert("data" in objectValue, objectValue.toString());
@@ -289,7 +350,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					: Json.emptyArray()
 			)
 		{
-			logf("ET: %s, item %s", elemType.name, item);
+			logf("ET: %s, item %s", elemType.name, /*item*/"");
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
 			if("data" in tmp) {
 				ret["data"] ~= tmp["data"];

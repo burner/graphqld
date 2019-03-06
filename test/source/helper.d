@@ -1,14 +1,30 @@
 module helper;
 import vibe.data.json;
 
-Json returnTemplate() @safe {
+@safe:
+
+string firstCharUpperCase(string input) {
+	import std.conv : to;
+	import std.uni : isUpper, toUpper;
+	import std.array : front, popFront;
+	if(isUpper(input.front)) {
+		return input;
+	}
+
+	dchar f = input.front;
+	input.popFront();
+
+	return to!string(toUpper(f)) ~ input;
+}
+
+Json returnTemplate() {
 	Json ret = Json.emptyObject();
 	ret["data"] = Json.emptyObject();
 	ret["error"] = Json.emptyArray();
 	return ret;
 }
 
-void insertPayload(ref Json result, string field, Json data) @safe {
+void insertPayload(ref Json result, string field, Json data) {
 	import std.algorithm.searching : canFind;
 	import std.exception : enforce;
 	enum d = "data";
@@ -25,7 +41,7 @@ void insertPayload(ref Json result, string field, Json data) @safe {
 	}
 }
 
-bool dataIsEmpty(ref const(Json) data) @safe {
+bool dataIsEmpty(ref const(Json) data) {
 	import std.experimental.logger;
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
@@ -57,3 +73,12 @@ bool dataIsEmpty(ref const(Json) data) @safe {
 	return true;
 }
 
+unittest {
+	string t = `{
+              "kind": {},
+              "fields": null,
+              "name": {}
+            }`;
+	Json j = parseJsonString(t);
+	assert(j.dataIsEmpty());
+}

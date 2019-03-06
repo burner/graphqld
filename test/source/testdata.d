@@ -24,6 +24,7 @@ interface Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
+	FooBar foobar();
 }
 
 interface Mutation {
@@ -47,6 +48,12 @@ enum Series {
 	Voyager,
 	Enterprise,
 	Discovery
+}
+
+abstract class FooBar {
+	//Character[] longList;
+	//int id;
+	Nullable!int superImportantName;
 }
 
 abstract class Character {
