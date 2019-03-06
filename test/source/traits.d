@@ -1,5 +1,32 @@
 module traits;
 
+template InheritedClasses(T) {
+	import std.meta : NoDuplicates, EraseAll;
+	alias InheritedClass = EraseAll!(T, EraseAll!(Object,
+			NoDuplicates!(InheritedClassImpl!T))
+		);
+}
+
+template InheritedClassImpl(T) {
+	import std.meta : staticMap, AliasSeq, NoDuplicates;
+	import std.traits : FieldTypeTuple, BaseClassesTuple;
+	static if(is(T == union)) {
+		alias InheritedClassImpl = AliasSeq!(T, staticMap!(.InheritedClassImpl,
+				FieldTypeTuple!T));
+	} else static if(is(T == class)) {
+		alias InheritedClassImpl = AliasSeq!(T, staticMap!(.InheritedClassImpl,
+				BaseClassesTuple!T));
+	} else {
+		alias InheritedClassImpl = AliasSeq!();
+	}
+}
+
+unittest {
+	import std.meta : AliasSeq;
+	alias Bases = InheritedClasses!Union;
+	static assert(is(Bases == AliasSeq!(Foo, Impl, Base)));
+}
+
 template BaseFields(T) {
 	import std.meta : EraseAll, NoDuplicates;
 	alias BaseFields = EraseAll!(Object, NoDuplicates!(BaseFieldsImpl!T));
@@ -30,7 +57,7 @@ template AllFieldNames(T) {
 	import std.traits : isAggregateType, FieldNameTuple, BaseClassesTuple;
 	import std.meta : AliasSeq, staticMap, NoDuplicates;
 	static if(isAggregateType!T) {
-		alias SubAggregates = BaseClasses!T;
+		alias SubAggregates = BaseFields!T;
 		alias AllFieldNames = NoDuplicates!(AliasSeq!(FieldNameTuple!T,
 				staticMap!(FieldNameTuple, SubAggregates))
 			);
@@ -68,8 +95,8 @@ private:
 unittest {
 	import std.meta : AliasSeq;
 
-	static assert(is(BaseClasses!Union ==
-			AliasSeq!(Union, Foo, Impl, string, float, Base, int)
-			)
+	alias B = BaseFields!Union;
+	static assert(is(B == AliasSeq!(Union, Foo, Impl, string, float, Base,
+			int))
 		);
 }
