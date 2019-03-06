@@ -355,6 +355,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["name"] = new GQLDString!Con();
 		this.__type.member["description"] = new GQLDString!Con();
 		this.__type.member["fields"] = this.__nullableListField;
+		this.__type.member["interfaces"] = this.__nullableListType;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
 
 		this.__field.member["name"] = new GQLDString!Con();
@@ -478,11 +479,16 @@ template collectTypesImpl(Type) {
 			);
 		alias collectTypesImpl = AliasSeq!(Type, tmp);
 	} else static if(is(Type == class)) {
+		alias mem = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
 		alias tmp = AliasSeq!(
 				Fields!(Type),
-				Filter!(isNotObject, BaseClassesTuple!Type)
+				InheritedClasses!Type
 			);
-		alias collectTypesImpl = AliasSeq!(Type, tmp);
+		alias collectTypesImpl = AliasSeq!(Type, tmp, mem);
+	} else static if(is(Type == union)) {
+		alias collectTypesImpl = AliasSeq!(Type, InheritedClasses!Type);
 	} else static if(is(Type : Nullable!F, F)) {
 		alias collectTypesImpl = .collectTypesImpl!(F);
 	} else static if(isSomeString!Type) {
@@ -524,6 +530,12 @@ template fixupBasicTypes(T) {
 		alias fixupBasicTypes = long;
 	} else static if(isFloatingPoint!T) {
 		alias fixupBasicTypes = float;
+	} else static if(isArray!T) {
+		alias ElemFix = fixupBasicTypes!(ElementEncodingType!T);
+		alias fixupBasicTypes = ElemFix[];
+	} else static if(is(T : Nullable!F, F)) {
+		alias ElemFix = fixupBasicTypes!(F);
+		alias fixupBasicTypes = Nullable!(ElemFix);
 	} else {
 		alias fixupBasicTypes = T;
 	}
@@ -552,11 +564,15 @@ unittest {
 
 template collectTypes(T...) {
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
-	static if(oneLevelDown.length == T.length) {
-		alias basicT = staticMap!(fixupBasicTypes, T);
-		alias collectTypes = NoDuplicates!(Filter!(noArrayOrNullable, basicT));
+	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
+	alias elemTypes = Filter!(noArrayOrNullable, basicT);
+	alias rslt = NoDuplicates!(EraseAll!(Object, basicT),
+			EraseAll!(Object, elemTypes)
+		);
+	static if(rslt.length == T.length) {
+		alias collectTypes = rslt;
 	} else {
-		alias collectTypes = .collectTypes!(oneLevelDown);
+		alias collectTypes = .collectTypes!(rslt);
 	}
 }
 
@@ -592,11 +608,10 @@ package {
 
 unittest {
 	alias ts = collectTypes!(Foo);
+	alias expectedTypes = AliasSeq!(Foo, Bar, Args, float, Z[], Z, string,
+			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U);
 
 	template canBeFound(T) {
-		alias expectedTypes = AliasSeq!(U, string, W, Y, bool, Z, long, Bar,
-				Args, Foo, float
-			);
 		enum tmp = staticIndexOf!(T, expectedTypes) != -1;
 		enum canBeFound = tmp;
 	}
@@ -757,8 +772,8 @@ Json typeFields(T)() {
 	import std.traits : FieldTypeTuple, FieldNameTuple;
 	Json ret = Json.emptyArray();
 
-	alias manyTypes = BaseFields!T;
-	pragma(msg, T.stringof, " ", manyTypes);
+	alias manyTypes = AliasSeq!(T, InheritedClasses!T);
+	pragma(msg, "775 ", T.stringof, " ", manyTypes);
 	static foreach(Type; manyTypes) {{
 		alias fieldTypes = FieldTypeTuple!Type;
 		alias fieldNames = FieldNameTuple!Type;
@@ -770,6 +785,63 @@ Json typeFields(T)() {
 			}
 		}}
 	}}
+	return ret;
+}
+
+Json typeToJson(Type)() {
+	Json ret = Json.emptyObject();
+	ret["kind"] = typeToTypeEnum!Type;
+	ret["name"] = typeToTypeName!Type;
+	ret["description"] = "TODO";
+
+	// fields
+	static if(is(Type == class) || is(Type == interface)) {
+		ret["fields"] = typeFields!Type();
+	} else {
+		ret["fields"] = Json(null);
+	}
+
+	// needed to resolve interfaces
+	static if(is(Type == class)) {
+		ret["interfacesNames"] = Json.emptyArray();
+		static foreach(interfaces; InheritedClasses!Type) {{
+			ret["interfacesNames"] ~= interfaces.stringof;
+		}}
+	} else {
+		ret["interfacesNames"] = Json(null);
+	}
+
+	// needed to resolve possibleTypes
+	static if(is(Type == class) || is(Type == union)
+			|| is(Type == interface))
+	{
+		ret["possibleTypesNames"] = Json.emptyArray();
+		static foreach(pt; InheritedClasses!Type) {
+			ret["possibleTypesNames"] ~= pt.stringof;
+		}
+	} else {
+		ret["possibleTypesNames"] = Json(null);
+	}
+
+	// enumValues
+	static if(is(Type == enum)) {
+		ret["enumValues"] = Json.emptyArray();
+		static foreach(mem; EnumMembers!Type) {
+			ret["enumValues"] ~= Json(mem.stringof);
+		}
+	} else {
+		ret["enumValues"] = Json(null);
+	}
+
+	// needed to resolve ofType
+	static if(!isSomeString!Type && isArray!Type) {
+		ret["ofTypeName"] = ElementEncodingType!(Type).stringof;
+	} else static if(is(Type : Nullable!F, F)) {
+		ret["ofTypeName"] = F.stringof;
+	} else {
+		ret["ofTypeName"] = Json(null);
+	}
+
 	return ret;
 }
 
@@ -785,15 +857,7 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 			ret["data"]["types"] = Json.emptyArray();
 			pragma(msg, collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
-				Json tmp = Json.emptyObject();
-				tmp["kind"] = typeToTypeEnum!type;
-				alias fieldsTypes = Fields!(type);
-				alias fieldsNames = FieldNameTuple!(type);
-				tmp["name"] = typeToTypeName!type;
-				tmp["description"] = "No description";
-				static if(fieldsTypes.length && !isScalarType!type) {
-					tmp["fields"] = typeFields!type();
-				}
+				Json tmp = typeToJson!type();
 				ret["data"]["types"] ~= tmp;
 			}}
 			return ret;
@@ -825,28 +889,8 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			static foreach(type; collectTypes!(Type)) {{
 				string typeCap = capitalize(typeName);
 				if(typeCap == typeToTypeName!(type)) {
-					logf("%s %s", typeName, type.stringof);
-					ret["data"]["kind"] = typeToTypeEnum!type;
-					alias fieldsTypes = Fields!(type);
-					alias fieldsNames = FieldNameTuple!(type);
-					ret["data"]["name"] = typeToTypeName!type;
-					ret["data"]["description"] = "No description";
-					static if(fieldsTypes.length && !isScalarType!type) {
-						ret["data"]["fields"] = Json.emptyArray();
-						static foreach(idx; 0 .. fieldsTypes.length) {{
-							ret["data"]["fields"] ~=
-								typeToField!(fieldsTypes[idx],
-										fieldsNames[idx]
-									);
-						}}
-					}
-					static if(isAggregateType!type) {
-						ret["data"]["interfaceNames"] = Json.emptyArray();
-						static foreach(iType; BaseFieldAggregates!type) {
-							ret["data"]["interfaceNames"] ~=
-								Json(iType.stringof);
-						}
-					}
+					ret["data"] = typeToJson!type();
+					logf("%s", ret["data"]);
 					goto retLabel;
 				} else {
 					logf("||||||||||| %s", typeCap);

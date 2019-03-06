@@ -79,6 +79,29 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
+		this.setResolver("__type", "interfaces",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name, parent, args);
+					assert("interfacesNames" in parent);
+					Json interNames = parent["interfacesNames"];
+					Json ret = returnTemplate();
+					if(interNames.type == Json.Type.array) {
+						ret["data"] = Json.emptyArray();
+						foreach(Json it; interNames.byValue()) {
+							string typeName = it.get!string();
+							string typeCap = capitalize(typeName);
+							static foreach(type; collectTypes!(T)) {{
+								if(typeCap == typeToTypeName!(type)) {
+									ret["data"] ~= typeToJson!type();
+								}
+							}}
+						}
+					} else {
+						ret["data"] = Json(null);
+					}
+					return ret;
+				}
+			);
 
 		writeln(this.schema.toString());
 	}
