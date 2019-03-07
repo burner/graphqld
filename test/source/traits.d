@@ -329,12 +329,15 @@ template GetParameter(T) {
 
 template collectInputValueTypesImpl(T, S...) {
 	pragma(msg, "T ", T);
-	static if(isBasicType!T || isArray!T) {
-		alias e = fixupBasicTypes!T;
+	alias a = stripArrayAndNullable!T;
+	static if(isBasicType!a || isArray!a) {
+		alias e = fixupBasicTypes!a;
 	} else {
-		enum mem = __traits(allMembers, T);
-		alias getter = GetParameter!T;
+		enum mem = __traits(allMembers, a);
+		alias getter = GetParameter!a;
+		pragma(msg, "getter ", getter);
 		alias e = staticMap!(getter.getParameters, mem);
+		pragma(msg, "e ", e);
 	}
 	static if(S.length) {
 		alias collectInputValueTypesImpl = AliasSeq!(e,
