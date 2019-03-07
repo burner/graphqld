@@ -26,7 +26,7 @@ interface Query {
 	Character captain(Series series);
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
-	Starship[] starships();
+	Starship[] starships(float overSize = 200.0);
 	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);
 	Character[] character(Series series);
@@ -103,6 +103,14 @@ Json characterToJson(Character c) {
 		ret["data"]["commandersIds"] ~= cc.id;
 	}
 
+	if(Humanoid h = cast(Humanoid)c) {
+		ret["data"]["species"] = h.species;
+	}
+
+	if(Android a = cast(Android)c) {
+		ret["data"]["primaryFunction"] = a.primaryFunction;
+	}
+
 	return ret;
 }
 
@@ -116,12 +124,6 @@ class CharacterImpl : Character {
 
 abstract class Humanoid : Character {
 	string species;
-}
-
-Json humanoidsToJson(Humanoid h) {
-	Json ret = characterToJson(h);
-	ret["data"]["species"] = h.species;
-	return ret;
 }
 
 class HumanoidImpl : Humanoid {
@@ -144,12 +146,6 @@ class HumanoidImpl : Humanoid {
 
 abstract class Android : Character {
 	string primaryFunction;
-}
-
-Json androidToJson(Android a) {
-	Json ret = characterToJson(a);
-	ret["data"]["primaryFunction"] = a.primaryFunction;
-	return ret;
 }
 
 class AndroidImpl : Android {
@@ -230,12 +226,13 @@ class Data {
 
 	this() @trusted {
 		auto picard = new HumanoidImpl(i++, "Jean-Luc Picard", "Human");
+		auto worf = new HumanoidImpl(i++, "Worf", "Klingon");
 		picard.series ~= Series.TheNextGeneration;
 		auto tng = [
 			new HumanoidImpl(i++, "William Riker", "Human"),
 			new HumanoidImpl(i++, "Deanna Troi", "Betazoid "),
 			new HumanoidImpl(i++, "Dr. Beverly Crusher", "Human"),
-			new HumanoidImpl(i++, "Worf", "Klingon"),
+			worf,
 			new AndroidImpl(i++, "Data", "Becoming Human"),
 			new HumanoidImpl(i++, "Geordi La Forge", "Human"),
 			new HumanoidImpl(i++, "Miles O'Brien", "Human")
@@ -255,6 +252,7 @@ class Data {
 			new HumanoidImpl(i++, "Odo", "Changeling"),
 			new HumanoidImpl(i++, "Jadzia Dax", "Trill"),
 			new HumanoidImpl(i++, "Dr. Julian Bashir", "Human"),
+			worf,
 			new HumanoidImpl(i++, "Kira Nerys", "Bajoran"),
 			new HumanoidImpl(i++, "Elim Garak", "Cardassian")
 		];
@@ -328,7 +326,6 @@ class Data {
 		this.ships.back.series ~= nullable(Series.TheOriginalSeries);
 		this.ships.back.commander = sisko;
 		this.ships.back.crew = nullable(cast(Character[])ds9);
-		this.ships.back.crew ~= picard;
 		this.ships.back.crew ~= sisko;
 		ds9.map!(a => a.ship = nullable(this.ships.back)).each;
 

@@ -457,7 +457,10 @@ void main() {
 					ref typeof(graphqld).Con con)
 			{
 				Json ret = returnTemplate();
-				if("shipId" !in parent) {
+				if("shipId" !in parent
+						|| parent["shipId"].type != Json.Type.int_)
+				{
+					ret["data"] = Json(null);
 					return ret;
 				}
 				long shipId = parent["shipId"].get!long();
@@ -571,6 +574,27 @@ void main() {
 							serializeToJson(c.commands.map!(crew => crew.id).array);
 					}
 				}
+				return ret;
+			}
+		);
+
+	graphqld.setResolver("Starship", "crew",
+			delegate(string name, Json parent, Json args,
+					ref typeof(graphqld).Con con)
+			{
+				import std.algorithm.searching : canFind;
+				Json ret = returnTemplate();
+				if("crewIds" in parent) {
+					ret["data"] = Json.emptyArray();
+					long[] crewIds = parent["crewIds"]
+						.deserializeJson!(long[])();
+					foreach(c; database.chars) {
+						if(canFind(crewIds, c.id)) {
+							ret["data"] ~= characterToJson(c);
+						}
+					}
+				}
+				logf("%s", ret["data"].toPrettyString());
 				return ret;
 			}
 		);
