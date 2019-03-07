@@ -1,4 +1,7 @@
 module helper;
+
+import std.experimental.logger;
+
 import vibe.data.json;
 
 @safe:
@@ -89,4 +92,36 @@ unittest {
             }`;
 	Json j = parseJsonString(t);
 	assert(j.dataIsEmpty());
+}
+
+/** Merge two Json objects.
+Values in a take precedence over values in b.
+*/
+Json joinJson(Json a, Json b) {
+	// we can not merge null or undefined values
+	if(a.type == Json.Type.null_ || a.type == Json.Type.undefined) {
+		return b;
+	}
+	if(b.type == Json.Type.null_ || b.type == Json.Type.undefined) {
+		return a;
+	}
+
+	// we need objects to merge
+	if(a.type == Json.Type.object && b.type == Json.Type.object) {
+		Json ret = a.clone();
+		foreach(key, value; b.byKeyValue()) {
+			if(key !in ret) {
+				ret[key] = value;
+			}
+		}
+		return ret;
+	}
+	return a;
+}
+
+unittest {
+	Json a = parseJsonString(`{"overSize":200}`);
+	Json b = parseJsonString(`{}`);
+	Json c = joinJson(b, a);
+	assert(c == a);
 }

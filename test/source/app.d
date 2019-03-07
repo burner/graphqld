@@ -160,13 +160,96 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json resolve(string type, string field, Json parent, Json args,
 			ref Con context)
 	{
+		Json defaultArgs = this.getDefaultArguments(type, field);
+		Json joinedArgs = joinJson(args, defaultArgs);
+		logf("%s %s %s", defaultArgs, args, joinedArgs);
 		if(type !in this.resolver) {
-			return defaultResolver(field, parent, args, context);
+			return defaultResolver(field, parent, joinedArgs, context);
 		} else if(field !in this.resolver[type]) {
-			return defaultResolver(field, parent, args, context);
+			return defaultResolver(field, parent, joinedArgs, context);
 		} else {
-			return this.resolver[type][field](field, parent, args, context);
+			return this.resolver[type][field](field, parent, joinedArgs,
+					context
+				);
 		}
+	}
+
+	Json getDefaultArgumentImpl(string typename, Type)(string type,
+			string field)
+	{
+		static if(isAggregateType!Type) {
+			logf("Type %s %s", Type.stringof, type);
+			if(typename == type) {
+				switch(field) {
+					static foreach(mem; __traits(allMembers, Type)) {{
+						static if(isCallable!(
+								__traits(getMember, Type, mem))
+							)
+						{
+							case mem: {
+								logf("mem %s %s", mem, field);
+								logf("%s %s", type, field);
+								alias parNames = ParameterIdentifierTuple!(
+										__traits(getMember, Type, mem)
+									);
+								alias parDef = ParameterDefaultValueTuple!(
+										__traits(getMember, Type, mem)
+									);
+
+								Json ret = Json.emptyObject();
+								static foreach(i; 0 .. parNames.length) {
+									static if(!is(parDef[i] == void)) {
+										ret[parNames[i]] =
+											serializeToJson(parDef[i]);
+									}
+								}
+								logf("%s", ret);
+								return ret;
+							}
+						}
+					}}
+					default: {}
+				}
+			}
+		}
+		return Json.init;
+	}
+
+	Json getDefaultArguments(string type, string field) {
+		switch(type) {
+			static foreach(Type; collectTypes!(T)) {{
+				case Type.stringof: {
+					Json tmp = getDefaultArgumentImpl!(Type.stringof, Type)(
+							type, field
+						);
+					if(tmp.type != Json.Type.undefined
+							&& tmp.type != Json.Type.null_)
+					{
+						logf("tmp %s", tmp);
+						return tmp;
+					}
+				}
+			}}
+			default: {}
+		}
+		// entryPoint == ["query", "mutation", "subscription"];
+		switch(type) {
+			static foreach(entryPoint; FieldNameTuple!T) {{
+				case entryPoint: {
+					logf("%s", entryPoint);
+					Json tmp = getDefaultArgumentImpl!(entryPoint,
+							typeof(__traits(getMember, T, entryPoint)))(type, field
+						);
+					if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_) {
+						logf("tmp %s", tmp);
+						return tmp;
+					}
+				}
+			}}
+			default: {}
+		}
+		defaultRet:
+		return Json.init;
 	}
 
 	Json execute(Document doc, Json variables) {
@@ -441,12 +524,16 @@ void main() {
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
 			{
+				logf("%s", args);
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyArray;
 				ret["error"] = Json.emptyArray;
+				float overSize = args["overSize"].to!float();
 				foreach(ship; database.ships) {
-					Json tmp = starshipToJson(ship);
-					ret["data"] ~= tmp;
+					if(ship.size > overSize) {
+						Json tmp = starshipToJson(ship);
+						ret["data"] ~= tmp;
+					}
 				}
 				return ret;
 			}
