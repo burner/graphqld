@@ -1,13 +1,21 @@
 module testdata;
 
 import std.stdio;
+import std.conv : to;
 import std.array : array, back;
 import std.format : format;
 import std.algorithm : each, map, joiner;
 import std.range : tee;
 import std.typecons : nullable, Nullable;
+import std.experimental.logger;
+
+import vibe.data.json;
+
+import helper;
 
 import types;
+
+@safe:
 
 union SearchResult {
 	Character character;
@@ -65,6 +73,40 @@ abstract class Character {
 	Character[] commanders;
 }
 
+Json characterToJson(Character c) {
+	Json ret = returnTemplate();
+
+	// direct
+	ret["data"]["id"] = c.id;
+	ret["data"]["name"] = c.name;
+	ret["data"]["series"] = Json.emptyArray();
+	foreach(Series s; c.series) {
+		ret["data"]["series"] ~= to!string(s);
+	}
+
+	// indirect
+	ret["data"]["commandsIds"] = Json.emptyArray();
+	foreach(Character cc; c.commands) {
+		ret["data"]["commandsIds"] ~= cc.id;
+	}
+
+	// indirect
+	if(c.ship.isNull()) {
+		ret["data"]["shipId"] = Json(null);
+	} else {
+		ret["data"]["shipId"] = c.ship.get().id;
+	}
+
+	// indirect
+	ret["data"]["commandersIds"] = Json.emptyArray();
+	foreach(Character cc; c.commanders) {
+		ret["data"]["commandersIds"] ~= cc.id;
+	}
+
+	return ret;
+}
+
+
 class CharacterImpl : Character {
 	this(long id, string name) {
 		this.id = id;
@@ -74,6 +116,12 @@ class CharacterImpl : Character {
 
 abstract class Humanoid : Character {
 	string species;
+}
+
+Json humanoidsToJson(Humanoid h) {
+	Json ret = characterToJson(h);
+	ret["data"]["species"] = h.species;
+	return ret;
 }
 
 class HumanoidImpl : Humanoid {
@@ -96,6 +144,12 @@ class HumanoidImpl : Humanoid {
 
 abstract class Android : Character {
 	string primaryFunction;
+}
+
+Json androidToJson(Android a) {
+	Json ret = characterToJson(a);
+	ret["data"]["primaryFunction"] = a.primaryFunction;
+	return ret;
 }
 
 class AndroidImpl : Android {
@@ -140,12 +194,41 @@ class Starship {
 	}
 }
 
+Json starshipToJson(Starship s) {
+	Json ret = returnTemplate();
+
+	// direct
+	ret["data"]["id"] = s.id;
+	ret["data"]["designation"] = s.designation;
+	ret["data"]["size"] = s.size;
+	ret["data"]["series"] = Json.emptyArray();
+	foreach(Nullable!Series show; s.series) {
+		if(!show.isNull()) {
+			ret["data"]["series"] ~= to!string(show.get());
+		}
+	}
+
+	// indirect
+	ret["data"]["commander"] = s.commander.id;
+	if(s.crew.isNull()) {
+		ret["data"]["crewIds"] = Json(null);
+	} else {
+		ret["data"]["crewIds"] = Json.emptyArray();
+		foreach(Character cm; s.crew.get()) {
+			ret["data"]["crewIds"] ~= cm.id;
+		}
+	}
+
+	logf("%s", ret.toPrettyString());
+	return ret;
+}
+
 class Data {
 	Character[] chars;
 	Starship[] ships;
 	long i;
 
-	this() {
+	this() @trusted {
 		auto picard = new HumanoidImpl(i++, "Jean-Luc Picard", "Human");
 		picard.series ~= Series.TheNextGeneration;
 		auto tng = [
@@ -251,6 +334,7 @@ class Data {
 
 		this.ships ~= new Starship(i++, "NCC-74656", 343.0);
 		this.ships.back.series ~= nullable(Series.Voyager);
+		this.ships.back.series ~= nullable(Series.DeepSpaceNine);
 		this.ships.back.commander = janeway;
 		this.ships.back.crew = nullable(cast(Character[])voyager);
 		this.ships.back.crew ~= janeway;

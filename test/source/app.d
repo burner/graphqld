@@ -22,7 +22,7 @@ import treevisitor;
 import helper;
 import testdata;
 import testdata2;
-import schema;
+//import schema;
 import schema2;
 
 Data database;
@@ -301,6 +301,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			if(rslt.dataIsEmpty()) {
 				logf("NULLLLLLLLLLLL %s %s", rslt, rslt.dataIsEmpty());
 				rslt["data"] = null;
+				rslt.remove("error");
 			} else {
 				logf("NNNNNNNNNNNNNN %s", rslt);
 			}
@@ -319,7 +320,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeList(SelectionSet ss, GQLDList!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, /*objectValue*/"",
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, objectValue,
 				variables
 			);
 		assert("data" in objectValue, objectValue.toString());
@@ -334,11 +335,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 		{
 			logf("ET: %s, item %s", elemType.name, item);
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
-			if("data" in tmp) {
-				ret["data"] ~= tmp["data"];
-			}
-			foreach(err; tmp["error"]) {
-				ret["error"] ~= err;
+			logf("tmp %s", tmp);
+			if(tmp.type == Json.Type.object) {
+				if("data" in tmp) {
+					ret["data"] ~= tmp["data"];
+				}
+				foreach(err; tmp["error"]) {
+					ret["error"] ~= err;
+				}
+			} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
+				ret["data"] ~= tmp;
 			}
 		}
 		return ret;
@@ -439,16 +445,7 @@ void main() {
 				ret["data"] = Json.emptyArray;
 				ret["error"] = Json.emptyArray;
 				foreach(ship; database.ships) {
-					Json tmp = Json.emptyObject;
-					static foreach(mem; [ "id", "designation", "size"]) {
-						tmp[mem] = __traits(getMember, ship, mem);
-					}
-					tmp["commanderId"] = ship.commander.id;
-					tmp["crewIds"] = serializeToJson(
-											ship.crew.map!(c => c.id).array
-										);
-					tmp["series"] = serializeToJson(ship.series);
-
+					Json tmp = starshipToJson(ship);
 					ret["data"] ~= tmp;
 				}
 				return ret;
@@ -467,17 +464,7 @@ void main() {
 				auto theShip = database.ships.find!(s => s.id == shipId);
 				if(!theShip.empty) {
 					Starship ship = theShip.front;
-					Json tmp = Json.emptyObject;
-					static foreach(mem; [ "id", "designation", "size"]) {
-						tmp[mem] = __traits(getMember, ship, mem);
-					}
-					tmp["commanderId"] = ship.commander.id;
-					tmp["crewIds"] = serializeToJson(
-											ship.crew.map!(c => c.id).array
-										);
-					tmp["series"] = serializeToJson(ship.series);
-
-					ret["data"] = tmp;
+					ret = starshipToJson(ship);
 				}
 				logf("%s", ret);
 				return ret;
@@ -489,23 +476,15 @@ void main() {
 			{
 				assert("id" in args);
 				long id = args["id"].get!long();
-				Json ret = Json.emptyObject;
-				ret["data"] = Json.emptyObject;
-				ret["error"] = Json.emptyArray;
+				Json ret;
 				auto theShip = database.ships.find!(s => s.id == id);
 				if(!theShip.empty) {
 					Starship ship = theShip.front;
-					Json tmp = Json.emptyObject;
-					static foreach(mem; [ "id", "designation", "size"]) {
-						tmp[mem] = __traits(getMember, ship, mem);
-					}
-					tmp["commanderId"] = ship.commander.id;
-					tmp["crewIds"] = serializeToJson(
-											ship.crew.map!(c => c.id).array
-										);
-					tmp["series"] = serializeToJson(ship.series);
-
-					ret["data"] = tmp;
+					ret = starshipToJson(ship);
+				} else {
+					ret = Json.emptyObject;
+					ret["data"] = Json.emptyObject;
+					ret["error"] = Json.emptyArray;
 				}
 				logf("%s", ret);
 				return ret;
@@ -530,9 +509,7 @@ void main() {
 					auto nh = new HumanoidImpl(database.i++, nname, "Human");
 					ship.crew ~= nh;
 					nh.ship = nullable(ship);
-					ret["data"]["id"] = nh.id;
-					ret["data"]["name"] = nh.name;
-					ret["data"]["shipId"] = ship.id;
+					ret = characterToJson(nh);
 				} else {
 					ret["error"] ~= Json(format(
 											"Ship with id %s does not exist",
@@ -563,7 +540,10 @@ void main() {
 					tmp["crewIds"] = serializeToJson(
 											ship.crew.map!(c => c.id).array
 										);
-					tmp["series"] = serializeToJson(ship.series);
+					tmp["series"] = Json.emptyArray();
+					foreach(s; ship.series) {
+						tmp["series"] ~= to!string(s);
+					}
 
 					ret["data"] ~= tmp;
 				}
@@ -583,7 +563,10 @@ void main() {
 					if(c.id == parent["commanderId"]) {
 						ret["data"]["id"] = c.id;
 						ret["data"]["name"] = c.name;
-						ret["data"]["series"] = serializeToJson(c.series);
+						ret["data"]["series"] = Json.emptyArray();
+						foreach(s; c.series) {
+							ret["data"]["series"] ~= to!string(s);
+						}
 						ret["data"]["commandsIds"] =
 							serializeToJson(c.commands.map!(crew => crew.id).array);
 					}

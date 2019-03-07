@@ -41,11 +41,19 @@ void insertPayload(ref Json result, string field, Json data) {
 	}
 }
 
+bool isScalar(ref const(Json) data) {
+	return data.type == Json.Type.bigInt
+			|| data.type == Json.Type.bool_
+			|| data.type == Json.Type.float_
+			|| data.type == Json.Type.int_
+			|| data.type == Json.Type.string;
+}
+
 bool dataIsEmpty(ref const(Json) data) {
 	import std.experimental.logger;
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
-			if(!value.dataIsEmpty()) {
+			if(key != "error" && !value.dataIsEmpty()) {
 				return false;
 			}
 		}

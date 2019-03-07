@@ -675,7 +675,16 @@ unittest {
 
 GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 	pragma(msg, Type.stringof, " ", isIntegral!Type);
-	static if(is(Type == bool)) {
+	static if(is(Type == enum)) {
+		GQLDEnum!(Con) r;
+		if(Type.stringof in ret.types) {
+			r = cast(GQLDEnum!(Con))ret.types[Type.stringof];
+		} else {
+			r = new GQLDEnum!(Con)(Type.stringof);
+			ret.types[Type.stringof] = r;
+		}
+		return r;
+	} else static if(is(Type == bool)) {
 		return new GQLDBool!(Con)();
 	} else static if(isFloatingPoint!(Type)) {
 		return new GQLDFloat!(Con)();
@@ -683,15 +692,6 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 		return new GQLDInt!(Con)();
 	} else static if(isSomeString!Type) {
 		return new GQLDString!(Con)();
-	} else static if(is(Type == enum)) {
-		GQLDEnum!(Con) r;
-		if(Type.stringof in ret.types) {
-			r = cast(GQLDEnum!(Con))ret.types[Type.stringof];
-		} else {
-			r = new GQLDEnum!(Con)();
-			ret.types[Type.stringof] = r;
-		}
-		return r;
 	} else static if(is(Type == union)) {
 		GQLDUnion!(Con) r;
 		if(Type.stringof in ret.types) {
