@@ -1,5 +1,7 @@
 module schema;
 
+__EOF__
+
 import std.stdio;
 import std.format;
 import std.traits;

@@ -1,5 +1,10 @@
 module traits;
 
+import std.meta : AliasSeq, Filter, staticMap, EraseAll, NoDuplicates;
+import std.range : ElementEncodingType;
+import std.traits;
+import std.typecons : Nullable;
+
 template InheritedClasses(T) {
 	import std.meta : NoDuplicates, EraseAll;
 	alias Clss = InheritedClassImpl!T;
@@ -11,7 +16,6 @@ template InheritedClasses(T) {
 
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
-	import std.traits : FieldTypeTuple, BaseClassesTuple, InterfacesTuple;
 	static if(is(T == union)) {
 		alias fields = staticMap!(.InheritedClassImpl, FieldTypeTuple!T);
 		alias tmp = AliasSeq!(T, fields);
@@ -31,13 +35,11 @@ template InheritedClassImpl(T) {
 }
 
 unittest {
-	import std.meta : AliasSeq;
 	alias Bases = InheritedClasses!Union;
 	static assert(is(Bases == AliasSeq!(Foo, Impl, Base)));
 }
 
 unittest {
-	import std.meta : AliasSeq;
 	interface H {
 		int h();
 	}
@@ -61,13 +63,11 @@ unittest {
 
 
 template BaseFields(T) {
-	import std.meta : EraseAll, NoDuplicates;
 	alias BaseFields = EraseAll!(Object, NoDuplicates!(BaseFieldsImpl!T));
 }
 
 template BaseFieldsImpl(T) {
 	import std.traits : FieldNameTuple, Fields, BaseClassesTuple;
-	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	static if(is(T == class)) {
 		alias BaseClassSeq = Fields!T;
 		alias BaseFieldsImpl = NoDuplicates!(
@@ -87,8 +87,6 @@ template BaseFieldsImpl(T) {
 }
 
 template AllFieldNames(T) {
-	import std.traits : isAggregateType, FieldNameTuple, BaseClassesTuple;
-	import std.meta : AliasSeq, staticMap, NoDuplicates;
 	static if(isAggregateType!T) {
 		alias SubAggregates = BaseFields!T;
 		alias AllFieldNames = NoDuplicates!(AliasSeq!(FieldNameTuple!T,
@@ -100,8 +98,6 @@ template AllFieldNames(T) {
 }
 
 template BaseFieldAggregates(T) {
-	import std.meta : Filter;
-	import std.traits : isAggregateType;
 	alias BaseFieldAggregates = Filter!(isAggregateType, BaseFields!T);
 }
 
@@ -126,10 +122,224 @@ private:
 }
 
 unittest {
-	import std.meta : AliasSeq;
-
 	alias B = BaseFields!Union;
 	static assert(is(B == AliasSeq!(Union, Foo, Impl, string, float, Base,
 			int))
 		);
+}
+
+template isNotObject(Type) {
+	enum isNotObject = !is(Type == Object);
+}
+
+template collectTypesImpl(Type) {
+	static if(is(Type == interface)) {
+		alias tmp = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
+		alias collectTypesImpl = AliasSeq!(Type, tmp);
+	} else static if(is(Type == class)) {
+		alias mem = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
+		alias tmp = AliasSeq!(
+				Fields!(Type),
+				InheritedClasses!Type
+			);
+		alias collectTypesImpl = AliasSeq!(Type, tmp, mem);
+	} else static if(is(Type == union)) {
+		alias collectTypesImpl = AliasSeq!(Type, InheritedClasses!Type);
+	} else static if(is(Type : Nullable!F, F)) {
+		alias collectTypesImpl = .collectTypesImpl!(F);
+	} else static if(isSomeString!Type) {
+		alias collectTypesImpl = string;
+	} else static if(is(Type == bool)) {
+		alias collectTypesImpl = bool;
+	} else static if(is(Type == enum)) {
+		alias collectTypesImpl = Type;
+	} else static if(isArray!Type) {
+		alias collectTypesImpl = .collectTypesImpl!(ElementEncodingType!Type);
+	} else static if(isIntegral!Type) {
+		alias collectTypesImpl = long;
+	} else static if(isFloatingPoint!Type) {
+		alias collectTypesImpl = float;
+	} else {
+		alias collectTypesImpl = AliasSeq!();
+	}
+}
+
+template collectReturnType(Type, Names...) {
+	static if(Names.length > 0) {
+		static if(isCallable!(__traits(getMember, Type, Names[0]))) {
+			alias collectReturnType = AliasSeq!(
+					ReturnType!(__traits(getMember, Type, Names[0])),
+					.collectReturnType!(Type, Names[1 .. $])
+				);
+		} else {
+			alias collectReturnType = .collectReturnType!(Type, Names[1 .. $]);
+		}
+	} else {
+		alias collectReturnType = AliasSeq!();
+	}
+}
+
+template fixupBasicTypes(T) {
+	static if(isSomeString!T) {
+		alias fixupBasicTypes = string;
+	} else static if(is(T == enum)) {
+		alias fixupBasicTypes = T;
+	} else static if(is(T == bool)) {
+		alias fixupBasicTypes = bool;
+	} else static if(isIntegral!T) {
+		alias fixupBasicTypes = long;
+	} else static if(isFloatingPoint!T) {
+		alias fixupBasicTypes = float;
+	} else static if(isArray!T) {
+		alias ElemFix = fixupBasicTypes!(ElementEncodingType!T);
+		alias fixupBasicTypes = ElemFix[];
+	} else static if(is(T : Nullable!F, F)) {
+		alias ElemFix = fixupBasicTypes!(F);
+		alias fixupBasicTypes = Nullable!(ElemFix);
+	} else {
+		alias fixupBasicTypes = T;
+	}
+}
+
+template noArrayOrNullable(T) {
+	static if(is(T : Nullable!F, F)) {
+		enum noArrayOrNullable = false;
+	} else static if(!isSomeString!T && isArray!T) {
+		enum noArrayOrNullable = false;
+	} else {
+		enum noArrayOrNullable = true;
+	}
+}
+
+unittest {
+	static assert(is(Nullable!int : Nullable!F, F));
+	static assert(!is(int : Nullable!F, F));
+	static assert( noArrayOrNullable!(int));
+	static assert( noArrayOrNullable!(string));
+	static assert(!noArrayOrNullable!(int[]));
+	static assert(!noArrayOrNullable!(Nullable!int));
+	static assert(!noArrayOrNullable!(Nullable!int));
+}
+
+template collectTypes(T...) {
+	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
+	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
+	alias elemTypes = Filter!(noArrayOrNullable, basicT);
+	alias rslt = NoDuplicates!(EraseAll!(Object, basicT),
+			EraseAll!(Object, elemTypes)
+		);
+	static if(rslt.length == T.length) {
+		alias collectTypes = rslt;
+	} else {
+		alias collectTypes = .collectTypes!(rslt);
+	}
+}
+
+version(unittest) {
+package {
+	enum Enum {
+		one,
+		two
+	}
+	class U {
+		string f;
+		Bar bar;
+		Enum e;
+	}
+	class W {
+		Nullable!(Nullable!(U)[]) us;
+	}
+	class Y {
+		bool b;
+		Nullable!W w;
+	}
+	class Z : Y {
+		long id;
+	}
+	class Bar {
+		string id;
+		Z[] zs;
+	}
+	class Args {
+		float value;
+	}
+	interface Foo {
+		Bar bar();
+		Args args();
+	}
+}
+}
+
+unittest {
+	alias a = collectTypes!(Enum);
+	static assert(is(a == AliasSeq!(Enum)));
+}
+
+unittest {
+	alias ts = collectTypes!(Foo);
+	alias expectedTypes = AliasSeq!(Foo, Bar, Args, float, Z[], Z, string,
+			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U, Enum);
+
+	template canBeFound(T) {
+		enum tmp = staticIndexOf!(T, expectedTypes) != -1;
+		enum canBeFound = tmp;
+	}
+	static assert(allSatisfy!(canBeFound, ts));
+}
+
+template stripArrayAndNullable(T) {
+	static if(is(T : Nullable!F, F)) {
+		alias stripArrayAndNullable = .stripArrayAndNullable!F;
+	} else static if(!isSomeString!T && isArray!T) {
+		alias stripArrayAndNullable =
+			.stripArrayAndNullable!(ElementEncodingType!T);
+	} else {
+		alias stripArrayAndNullable = T;
+	}
+}
+
+template isStructOrBasicType(T) {
+	enum isStructOrBasicType = is(T == struct) || isBasicType!T;
+}
+
+template collectInputValueTypes(T) {
+	alias allButT = collectTypes!T;
+	pragma(msg, "allButT ", allButT);
+	alias collectInputValueTypes = collectInputValueTypesImpl!allButT;
+}
+
+template GetParameter(T) {
+	template getParameters(string mem) {
+		alias a = Filter!(isCallable, __traits(getMember, T, mem));
+		static if(!is(a == AliasSeq!())) {
+			alias b = staticMap!(Parameters, a);
+			alias c = staticMap!(fixupBasicTypes, b);
+			alias d = Filter!(isStructOrBasicType, c);
+			alias getParemeters = NoDuplicates!(d);
+		} else {
+			alias getParameters = a;
+		}
+	}
+}
+
+
+template collectInputValueTypesImpl(T, S...) {
+	pragma(msg, "T ", T);
+	static if(isBasicType!T || isArray!T) {
+		alias e = fixupBasicTypes!T;
+	} else {
+		enum mem = __traits(allMembers, T);
+		alias getter = GetParameter!T;
+		alias e = staticMap!(getter.getParameters, mem);
+	}
+	static if(S.length) {
+		alias collectInputValueTypesImpl = AliasSeq!(e,
+				.collectInputValueTypesImpl!S);
+	} else {
+		alias collectInputValueTypesImpl = e;
+	}
 }

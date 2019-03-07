@@ -22,8 +22,8 @@ import treevisitor;
 import helper;
 import testdata;
 import testdata2;
-//import schema;
 import schema2;
+import traits;
 
 Data database;
 
@@ -181,7 +181,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			logf("Type %s %s", Type.stringof, type);
 			if(typename == type) {
 				switch(field) {
-					static foreach(mem; __traits(allMembers, Type)) {{
+					static foreach(mem; __traits(allMembers, Type)) {
 						static if(isCallable!(
 								__traits(getMember, Type, mem))
 							)
@@ -207,8 +207,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 								return ret;
 							}
 						}
-					}}
-					default: {}
+					}
+					default: break;
 				}
 			}
 		}
@@ -246,7 +246,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					}
 				}
 			}}
-			default: {}
+			default: break;
 		}
 		defaultRet:
 		return Json.init;
@@ -520,6 +520,7 @@ void main() {
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
 	writeln(graphqld.schema);
+	pragma(msg, "523 ", collectInputValueTypes!Schema);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)

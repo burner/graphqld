@@ -26,7 +26,7 @@ interface Query {
 	Character captain(Series series);
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
-	Starship[] starships(float overSize = 200.0);
+	Starship[] starships(float overSize = 100.0);
 	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);
 	Character[] character(Series series);
@@ -35,8 +35,13 @@ interface Query {
 	FooBar foobar();
 }
 
+struct AddCrewmanData {
+	string name;
+	long shipId;
+}
+
 interface Mutation {
-	Character addCrewman(long shipId, string name);
+	Character addCrewman(AddCrewmanData input);
 }
 
 interface Subscription {
