@@ -38,6 +38,7 @@ interface Query {
 struct AddCrewmanData {
 	string name;
 	long shipId;
+	Series[] series;
 }
 
 interface Mutation {
@@ -213,7 +214,7 @@ Json starshipToJson(Starship s) {
 	}
 
 	// indirect
-	ret["data"]["commander"] = s.commander.id;
+	ret["data"]["commanderId"] = s.commander.id;
 	if(s.crew.isNull()) {
 		ret["data"]["crewIds"] = Json(null);
 	} else {
@@ -256,6 +257,7 @@ class Data {
 		tng[6].series ~= Series.DeepSpaceNine;
 
 		auto sisko = new HumanoidImpl(i++, "Benjamin Sisko", "Human");
+		sisko.series ~= Series.DeepSpaceNine;
 		auto ds9 = [
 			new HumanoidImpl(i++, "Odo", "Changeling"),
 			new HumanoidImpl(i++, "Jadzia Dax", "Trill"),

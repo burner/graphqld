@@ -127,6 +127,7 @@ Value:
     F: [false_#tok]
     ARR: [Array#arr]
     O: [ObjectType#obj]
+    E: [name#tok]
 
 Type:
     TN: [name#tname, exclamation]
@@ -149,9 +150,6 @@ ObjectValues:
     V: [name#name, colon, Value#val]
     Vsc: [name#name, colon, Value#val, comma, ObjectValues#follow]
     Vs: [name#name, colon, Value#val, ObjectValues#follow]
-
-ObjectValue:
-    V: [name#name, colon, Value#val]
 
 ObjectType:
     Var: [lcurly, ObjectValues#vals, rcurly]

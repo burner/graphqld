@@ -831,6 +831,7 @@ enum ValueEnum {
 	F,
 	ARR,
 	O,
+	E,
 }
 
 class Value {
@@ -996,30 +997,6 @@ class ObjectValues {
 		this.name = name;
 		this.val = val;
 		this.follow = follow;
-	}
-
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-}
-
-enum ObjectValueEnum {
-	V,
-}
-
-class ObjectValue {
-	ObjectValueEnum ruleSelection;
-	Value val;
-	Token name;
-
-	this(ObjectValueEnum ruleSelection, Token name, Value val) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.val = val;
 	}
 
 	void visit(Visitor vis) {

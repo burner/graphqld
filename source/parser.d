@@ -1152,7 +1152,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -1722,7 +1722,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
+				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
 			);
 
 		}
@@ -1779,7 +1779,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_","dollar"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_","dollar"]
 		);
 
 	}
@@ -1791,7 +1791,8 @@ struct Parser {
 			 || this.lex.front.type == TokenType.true_
 			 || this.lex.front.type == TokenType.false_
 			 || this.firstArray()
-			 || this.firstObjectType();
+			 || this.firstObjectType()
+			 || this.lex.front.type == TokenType.name;
 	}
 
 	Value parseValue() {
@@ -1855,6 +1856,13 @@ struct Parser {
 			return new Value(ValueEnum.O
 				, obj
 			);
+		} else if(this.lex.front.type == TokenType.name) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Value(ValueEnum.E
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1864,7 +1872,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly"]
+			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly","name"]
 		);
 
 	}
@@ -2037,7 +2045,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
+					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -2053,7 +2061,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
 		);
 
 	}
@@ -2114,7 +2122,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","stringValue -> Value","true_ -> Value"]
+				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
 			);
 
 		}
@@ -2204,77 +2212,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
-				);
-
-			}
-			auto app = appender!string();
-			formattedWrite(app, 
-				"Found a '%s' while looking for", 
-				this.lex.front
-			);
-			throw new ParseException(app.data,
-				__FILE__, __LINE__,
-				subRules,
-				["colon"]
-			);
-
-		}
-		auto app = appender!string();
-		formattedWrite(app, 
-			"Found a '%s' while looking for", 
-			this.lex.front
-		);
-		throw new ParseException(app.data,
-			__FILE__, __LINE__,
-			subRules,
-			["name"]
-		);
-
-	}
-
-	bool firstObjectValue() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
-	}
-
-	ObjectValue parseObjectValue() {
-		try {
-			return this.parseObjectValueImpl();
-		} catch(ParseException e) {
-			throw new ParseException(
-				"While parsing a ObjectValue an Exception was thrown.",
-				e, __FILE__, __LINE__
-			);
-		}
-	}
-
-	ObjectValue parseObjectValueImpl() {
-		string[] subRules;
-		subRules = ["V"];
-		if(this.lex.front.type == TokenType.name) {
-			Token name = this.lex.front;
-			this.lex.popFront();
-			subRules = ["V"];
-			if(this.lex.front.type == TokenType.colon) {
-				this.lex.popFront();
-				subRules = ["V"];
-				if(this.firstValue()) {
-					Value val = this.parseValue();
-
-					return new ObjectValue(ObjectValueEnum.V
-						, name
-						, val
-					);
-				}
-				auto app = appender!string();
-				formattedWrite(app, 
-					"Found a '%s' while looking for", 
-					this.lex.front
-				);
-				throw new ParseException(app.data,
-					__FILE__, __LINE__,
-					subRules,
-					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","stringValue","true_"]
+					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
 				);
 
 			}

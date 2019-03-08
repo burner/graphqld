@@ -262,14 +262,6 @@ class TreeVisitor : Visitor {
 		--this.depth;
 	}
 
-	override void accept(const(ObjectValue) obj) {
-		this.genIndent();
-		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
-		++this.depth;
-		super.accept(obj);
-		--this.depth;
-	}
-
 	override void accept(const(ObjectType) obj) {
 		this.genIndent();
 		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);

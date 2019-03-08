@@ -302,7 +302,10 @@ struct Lexer {
 					++this.column;
 					++e;
 					if(this.testCharAndInc('n', e)) {
-						if(this.testCharAndInc('p', e)) {
+						if(this.isNotQueryParser()
+								&& this.testCharAndInc('p', e)
+							)
+						{
 							if(this.testCharAndInc('u', e)) {
 								if(this.testCharAndInc('t', e)) {
 									if(this.isTokenStop()) {

@@ -1000,6 +1000,9 @@ class Visitor {
 			case ValueEnum.O:
 				obj.obj.visit(this);
 				break;
+			case ValueEnum.E:
+				obj.tok.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -1030,6 +1033,9 @@ class Visitor {
 				break;
 			case ValueEnum.O:
 				obj.obj.visit(this);
+				break;
+			case ValueEnum.E:
+				obj.tok.visit(this);
 				break;
 		}
 		exit(obj);
@@ -1212,34 +1218,6 @@ class Visitor {
 				obj.name.visit(this);
 				obj.val.visit(this);
 				obj.follow.visit(this);
-				break;
-		}
-		exit(obj);
-	}
-
-	void enter(ObjectValue obj) {}
-	void exit(ObjectValue obj) {}
-
-	void accept(ObjectValue obj) {
-		enter(obj);
-		final switch(obj.ruleSelection) {
-			case ObjectValueEnum.V:
-				obj.name.visit(this);
-				obj.val.visit(this);
-				break;
-		}
-		exit(obj);
-	}
-
-	void enter(const(ObjectValue) obj) {}
-	void exit(const(ObjectValue) obj) {}
-
-	void accept(const(ObjectValue) obj) {
-		enter(obj);
-		final switch(obj.ruleSelection) {
-			case ObjectValueEnum.V:
-				obj.name.visit(this);
-				obj.val.visit(this);
 				break;
 		}
 		exit(obj);

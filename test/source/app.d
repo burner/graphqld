@@ -162,7 +162,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson(args, defaultArgs);
-		logf("%s %s %s", defaultArgs, args, joinedArgs);
+		logf("%s %s %s %s", defaultArgs, parent, args, joinedArgs);
 		if(type !in this.resolver) {
 			return defaultResolver(field, parent, joinedArgs, context);
 		} else if(field !in this.resolver[type]) {
@@ -346,6 +346,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
 				objectType.name, objectValue, variables
 			);
+		logf("TESSSS %s", "data" in objectValue
+				? objectValue["data"] : objectValue
+			);
 		Json arguments = getArguments(field, variables);
 		Json de = this.resolve(objectType.name, field.name,
 				"data" in objectValue ? objectValue["data"] : objectValue,
@@ -443,6 +446,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 class ArgumentExtractor : Visitor {
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
+	alias accept = Visitor.accept;
 
 	Json arguments;
 	Json variables;
@@ -456,6 +460,7 @@ class ArgumentExtractor : Visitor {
 
 	void assign(Json toAssign) {
 		Json* arg = &this.arguments;
+		logf("%(%s.%) %s %s", this.curNames, this.arguments, toAssign);
 		assert(!this.curNames.empty);
 		foreach(idx; 0 .. this.curNames.length - 1) {
 			arg = &((*arg)[this.curNames[idx]]);
@@ -465,6 +470,8 @@ class ArgumentExtractor : Visitor {
 				&& ((*arg)[this.curNames.back]).type == Json.Type.array)
 		{
 			((*arg)[this.curNames.back]) ~= toAssign;
+		} else if((*arg).type == Json.Type.object) {
+			((*arg)[this.curNames.back]) = toAssign;
 		} else {
 			((*arg)[this.curNames.back]) = toAssign;
 		}
@@ -478,6 +485,30 @@ class ArgumentExtractor : Visitor {
 		this.curNames.popBack();
 	}
 
+	override void accept(const(ObjectValues) obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case ObjectValuesEnum.V:
+				this.curNames ~= obj.name.value;
+				obj.val.visit(this);
+				this.curNames.popBack();
+				break;
+			case ObjectValuesEnum.Vsc:
+				this.curNames ~= obj.name.value;
+				obj.val.visit(this);
+				this.curNames.popBack();
+				obj.follow.visit(this);
+				break;
+			case ObjectValuesEnum.Vs:
+				this.curNames ~= obj.name.value;
+				obj.val.visit(this);
+				this.curNames.popBack();
+				obj.follow.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
 	override void enter(const(Variable) var) {
 		string varName = var.name.value;
 		enforce(varName in this.variables,
@@ -487,7 +518,7 @@ class ArgumentExtractor : Visitor {
 	}
 
 	override void enter(const(Value) val) {
-		switch(val.ruleSelection) {
+		final switch(val.ruleSelection) {
 			case ValueEnum.STR:
 				this.assign(Json(val.tok.value));
 				break;
@@ -506,10 +537,17 @@ class ArgumentExtractor : Visitor {
 			case ValueEnum.ARR:
 				this.assign(Json.emptyArray());
 				break;
-			default:
+			case ValueEnum.O:
+				this.assign(Json.emptyObject());
+				break;
+			case ValueEnum.E:
+				this.assign(Json(val.tok.value));
+				break;
+			/*default:
 				throw new Exception(format("Value type %s not supported",
 							val.ruleSelection
 						));
+			*/
 		}
 	}
 }
@@ -585,6 +623,7 @@ void main() {
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con) @trusted
 			{
+				logf("args %s", args);
 				assert("shipId" in args);
 				long shipId = args["shipId"].get!long();
 				assert("name" in args);
@@ -622,20 +661,8 @@ void main() {
 				ret["error"] = Json.emptyArray;
 				auto theShips = database.ships.filter!(s => canFind(ids, s.id));
 				foreach(ship; theShips) {
-					Json tmp = Json.emptyObject;
-					static foreach(mem; [ "id", "designation", "size"]) {
-						tmp[mem] = __traits(getMember, ship, mem);
-					}
-					tmp["commanderId"] = ship.commander.id;
-					tmp["crewIds"] = serializeToJson(
-											ship.crew.map!(c => c.id).array
-										);
-					tmp["series"] = Json.emptyArray();
-					foreach(s; ship.series) {
-						tmp["series"] ~= to!string(s);
-					}
-
-					ret["data"] ~= tmp;
+					Json tmp = starshipToJson(ship);
+					ret["data"] ~= tmp["data"];
 				}
 				logf("%s", ret);
 				return ret;
@@ -649,18 +676,14 @@ void main() {
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyObject;
 				ret["error"] = Json.emptyArray;
+				long commanderId = parent["commanderId"].to!long();
 				foreach(c; database.chars) {
-					if(c.id == parent["commanderId"]) {
-						ret["data"]["id"] = c.id;
-						ret["data"]["name"] = c.name;
-						ret["data"]["series"] = Json.emptyArray();
-						foreach(s; c.series) {
-							ret["data"]["series"] ~= to!string(s);
-						}
-						ret["data"]["commandsIds"] =
-							serializeToJson(c.commands.map!(crew => crew.id).array);
+					if(c.id == commanderId) {
+						ret["data"] = characterToJson(c)["data"];
+						break;
 					}
 				}
+				logf("cid %s, %s", commanderId, ret["data"]);
 				return ret;
 			}
 		);
@@ -718,6 +741,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	} catch(Throwable e) {
 		auto app = appender!string();
 		while(e) {
+			writeln(e.toString());
 			app.put(e.toString());
 			e = cast(Exception)e.next;
 		}
