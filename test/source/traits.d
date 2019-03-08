@@ -134,23 +134,40 @@ template isNotObject(Type) {
 
 template collectTypesImpl(Type) {
 	static if(is(Type == interface)) {
-		alias tmp = AliasSeq!(collectReturnType!(Type,
+		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
 			);
-		alias collectTypesImpl = AliasSeq!(Type, tmp);
+		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
+				__traits(allMembers, Type))
+			);
+		alias collectTypesImpl = AliasSeq!(Type, RetTypes, ArgTypes,
+					InterfacesTuple!Type
+				);
 	} else static if(is(Type == class)) {
-		alias mem = AliasSeq!(collectReturnType!(Type,
+		alias RetTypes = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
+		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
 		alias tmp = AliasSeq!(
 				Fields!(Type),
-				InheritedClasses!Type
+				InheritedClasses!Type,
+				InterfacesTuple!Type
 			);
-		alias collectTypesImpl = AliasSeq!(Type, tmp, mem);
+		alias collectTypesImpl = AliasSeq!(Type, tmp, RetTypes, ArgTypes);
 	} else static if(is(Type == union)) {
 		alias collectTypesImpl = AliasSeq!(Type, InheritedClasses!Type);
 	} else static if(is(Type : Nullable!F, F)) {
 		alias collectTypesImpl = .collectTypesImpl!(F);
+	} else static if(is(Type == struct)) {
+		alias RetTypes = AliasSeq!(collectReturnType!(Type,
+				__traits(allMembers, Type))
+			);
+		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
+				__traits(allMembers, Type))
+			);
+		alias collectTypesImpl = AliasSeq!(Type, RetTypes, ArgTypes);
 	} else static if(isSomeString!Type) {
 		alias collectTypesImpl = string;
 	} else static if(is(Type == bool)) {
@@ -180,6 +197,25 @@ template collectReturnType(Type, Names...) {
 		}
 	} else {
 		alias collectReturnType = AliasSeq!();
+	}
+}
+
+template collectParameterTypes(Type, Names...) {
+	static if(Names.length > 0) {
+		static if(isCallable!(__traits(getMember, Type, Names[0]))) {
+			alias ArgTypes = ParameterTypeTuple!(
+					__traits(getMember, Type, Names[0])
+				);
+			alias collectParameterTypes = AliasSeq!(ArgTypes,
+					.collectParameterTypes!(Type, Names[1 .. $])
+				);
+		} else {
+			alias collectParameterTypes = .collectParameterTypes!(Type,
+					Names[1 .. $]
+				);
+		}
+	} else {
+		alias collectParameterTypes = AliasSeq!();
 	}
 }
 
@@ -299,50 +335,5 @@ template stripArrayAndNullable(T) {
 			.stripArrayAndNullable!(ElementEncodingType!T);
 	} else {
 		alias stripArrayAndNullable = T;
-	}
-}
-
-template isStructOrBasicType(T) {
-	enum isStructOrBasicType = is(T == struct) || isBasicType!T;
-}
-
-template collectInputValueTypes(T) {
-	alias allButT = collectTypes!T;
-	pragma(msg, "allButT ", allButT);
-	alias collectInputValueTypes = collectInputValueTypesImpl!allButT;
-}
-
-template GetParameter(T) {
-	template getParameters(string mem) {
-		alias a = Filter!(isCallable, __traits(getMember, T, mem));
-		static if(!is(a == AliasSeq!())) {
-			alias b = staticMap!(Parameters, a);
-			alias c = staticMap!(fixupBasicTypes, b);
-			alias d = Filter!(isStructOrBasicType, c);
-			alias getParemeters = NoDuplicates!(d);
-		} else {
-			alias getParameters = a;
-		}
-	}
-}
-
-
-template collectInputValueTypesImpl(T, S...) {
-	pragma(msg, "T ", T);
-	alias a = stripArrayAndNullable!T;
-	static if(isBasicType!a || isArray!a) {
-		alias e = fixupBasicTypes!a;
-	} else {
-		enum mem = __traits(allMembers, a);
-		alias getter = GetParameter!a;
-		pragma(msg, "getter ", getter);
-		alias e = staticMap!(getter.getParameters, mem);
-		pragma(msg, "e ", e);
-	}
-	static if(S.length) {
-		alias collectInputValueTypesImpl = AliasSeq!(e,
-				.collectInputValueTypesImpl!S);
-	} else {
-		alias collectInputValueTypesImpl = e;
 	}
 }

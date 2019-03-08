@@ -701,7 +701,8 @@ Json typeToJson(Type)() {
 	ret["description"] = "TODO";
 
 	// fields
-	static if(is(Type == class) || is(Type == interface)) {
+	static if(is(Type == class) || is(Type == interface) || is(Type == struct))
+	{
 		ret["fields"] = typeFields!Type();
 	} else {
 		ret["fields"] = Json(null);
@@ -807,7 +808,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				ret["data"]["name"] = Json(null);
 				goto retLabel;
 			}
-			pragma(msg, collectTypes!(Type));
+			pragma(msg, "collectTypes ", collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
 				string typeCap = firstCharUpperCase(typeName);
 				enum typeConst = typeToTypeName!(type);

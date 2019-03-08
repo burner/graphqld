@@ -520,7 +520,6 @@ void main() {
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
 	writeln(graphqld.schema);
-	pragma(msg, "523 ", collectInputValueTypes!Schema);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
