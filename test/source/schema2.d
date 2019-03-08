@@ -810,25 +810,13 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			} else if("name" in parent) {
 				typeName = parent["name"].get!string();
 			}
+			string typeCap;
 			if(typeName.empty) {
 				ret["error"] ~= Json(format("unknown type"));
 				goto retLabel;
+			} else {
+				typeCap = firstCharUpperCase(typeName);
 			}
-			//logf("typeName %s", typeName);
-			/*if(canFind(["__listType", "__nullType", "__nonNullType"], typeName))
-			{
-				const string typename = parent["typename"].get!string();
-				switch(typename) {
-					static foreach(type; collectTypes!(Type)) {{
-						case type.stringof: {
-							ret["data"] = typeToJson!(type)();
-							ret["data"]["typenameOrig"] = typename;
-							goto retLabel;
-						}
-					}}
-					default: break;
-				}
-			}*/
 			if(typeName == "__listType") {
 				ret["data"] = typeToJson!(int[])();
 				ret["data"]["typenameOrig"] = parent["typename"];
@@ -848,7 +836,6 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			}
 			pragma(msg, "collectTypes ", collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
-				string typeCap = firstCharUpperCase(typeName);
 				enum typeConst = typeToTypeName!(type);
 				if(typeCap == typeConst) {
 					ret["data"] = typeToJson!type();
