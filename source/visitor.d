@@ -3,6 +3,8 @@ module visitor;
 import ast;
 import tokenmodule;
 
+@safe:
+
 class Visitor {
 
 	void enter(Document obj) {}

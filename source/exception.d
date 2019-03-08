@@ -1,5 +1,8 @@
 module exception;
 
+@safe:
+
+
 class ParseException : Exception {
 	int line;
 	string[] subRules;

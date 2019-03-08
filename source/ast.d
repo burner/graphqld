@@ -4,6 +4,8 @@ import tokenmodule;
 
 import visitor;
 
+@safe:
+
 enum DocumentEnum {
 	Defi,
 }

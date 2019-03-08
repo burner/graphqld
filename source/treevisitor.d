@@ -5,6 +5,8 @@ import ast;
 import visitor;
 import tokenmodule;
 
+@safe:
+
 class TreeVisitor : Visitor {
 	import std.stdio : write, writeln;
 

@@ -9,6 +9,8 @@ import lexer;
 
 import exception;
 
+@safe:
+
 struct Parser {
 	import std.array : appender;
 
