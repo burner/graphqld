@@ -460,7 +460,7 @@ class ArgumentExtractor : Visitor {
 
 	void assign(Json toAssign) {
 		Json* arg = &this.arguments;
-		logf("%(%s.%) %s %s", this.curNames, this.arguments, toAssign);
+		//logf("%(%s.%) %s %s", this.curNames, this.arguments, toAssign);
 		assert(!this.curNames.empty);
 		foreach(idx; 0 .. this.curNames.length - 1) {
 			arg = &((*arg)[this.curNames[idx]]);
@@ -543,11 +543,6 @@ class ArgumentExtractor : Visitor {
 			case ValueEnum.E:
 				this.assign(Json(val.tok.value));
 				break;
-			/*default:
-				throw new Exception(format("Value type %s not supported",
-							val.ruleSelection
-						));
-			*/
 		}
 	}
 }
