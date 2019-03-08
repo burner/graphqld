@@ -379,6 +379,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 		if(GQLDMap!Con map = objectType.toMap()) {
 			logf("map %s %s", map.name, ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
+		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
+			logf("NonNull %s", nonNullType.name);
+			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
+					objectValue, variables
+				);
+			if(rslt.dataIsEmpty()) {
+				rslt["error"] ~= Json("NonNull was null");
+				rslt["data"] = Json(null);
+			}
 		} else if(GQLDNullable!Con nullType = objectType.toNullable()) {
 			logf("nullable %s", nullType.name);
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
@@ -458,13 +467,16 @@ class ArgumentExtractor : Visitor {
 		this.arguments = Json.emptyObject();
 	}
 
-	void assign(Json toAssign) {
+	void assign(Json toAssign) @trusted {
 		Json* arg = &this.arguments;
 		//logf("%(%s.%) %s %s", this.curNames, this.arguments, toAssign);
 		assert(!this.curNames.empty);
 		foreach(idx; 0 .. this.curNames.length - 1) {
+			enforce(arg !is null);
 			arg = &((*arg)[this.curNames[idx]]);
 		}
+
+		enforce(arg !is null);
 
 		if(this.curNames.back in (*arg)
 				&& ((*arg)[this.curNames.back]).type == Json.Type.array)

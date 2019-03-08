@@ -5,7 +5,7 @@ import std.array;
 import std.meta;
 import std.traits;
 import std.typecons;
-import std.algorithm : map, joiner;
+import std.algorithm : map, joiner, canFind;
 import std.range : ElementEncodingType;
 import std.format;
 import std.string : strip;
@@ -324,6 +324,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	void createInbuildTypes() {
+		this.types["string"] = new GQLDString!Con();
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
 			GQLDObject!Con tmp = new GQLDObject!Con(t);
 			this.types[t] = tmp;
@@ -449,6 +450,8 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			} else if(field in map.member) {
 				log();
 				ret = map.member[field];
+			} else if(field == "__typename") {
+				ret = this.types["string"];
 			} else {
 				string[] k = map.member.byKey().array;
 				logf("[%(%s, %)]", k);
@@ -488,6 +491,10 @@ GQLDList!(Con) toList(Con)(GQLDType!Con t) {
 }
 
 GQLDNullable!(Con) toNullable(Con)(GQLDType!Con t) {
+	return cast(typeof(return))t;
+}
+
+GQLDNonNull!(Con) toNonNull(Con)(GQLDType!Con t) {
 	return cast(typeof(return))t;
 }
 
@@ -648,12 +655,22 @@ template isScalarType(Type) {
 	}
 }
 
+template typeToFieldType(Type) {
+	static if(isArray!Type && !isSomeString!Type) {
+		enum typeToFieldType = "__listType";
+	} else static if(is(Type : Nullable!F, F)) {
+		enum typeToFieldType = F.stringof;
+	} else {
+		enum typeToFieldType = "__nonNullType";
+	}
+}
+
 Json typeToField(T, string name)() {
 	alias Ts = stripArrayAndNullable!T;
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
 	ret["typename"] = typeToTypeName!(Ts);
-	ret["typenameOrig"] = typeToTypeName!(T);
+	ret["typenameOrig"] = typeToFieldType!(T);
 	ret["description"] = "TODO";
 	ret["isDeprected"] = false;
 	ret["deprecationReason"] = "TODO";
@@ -698,6 +715,7 @@ Json typeToJson(Type)() {
 	Json ret = Json.emptyObject();
 	ret["kind"] = typeToTypeEnum!Type;
 	ret["name"] = typeToTypeName!Type;
+	ret["__typename"] = typeToTypeName!Type;
 	ret["description"] = "TODO";
 
 	// fields
@@ -751,7 +769,7 @@ Json typeToJson(Type)() {
 	} else static if(is(Type : Nullable!F, F)) {
 		ret["ofTypeName"] = F.stringof;
 	} else {
-		ret["ofTypeName"] = Json(null);
+		ret["ofTypeName"] = Type.stringof;
 	}
 
 	return ret;
@@ -797,6 +815,20 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				goto retLabel;
 			}
 			//logf("typeName %s", typeName);
+			/*if(canFind(["__listType", "__nullType", "__nonNullType"], typeName))
+			{
+				const string typename = parent["typename"].get!string();
+				switch(typename) {
+					static foreach(type; collectTypes!(Type)) {{
+						case type.stringof: {
+							ret["data"] = typeToJson!(type)();
+							ret["data"]["typenameOrig"] = typename;
+							goto retLabel;
+						}
+					}}
+					default: break;
+				}
+			}*/
 			if(typeName == "__listType") {
 				ret["data"] = typeToJson!(int[])();
 				ret["data"]["typenameOrig"] = parent["typename"];
@@ -806,6 +838,12 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				ret["data"] = typeToJson!(Nullable!int)();
 				ret["data"]["typenameOrig"] = parent["typename"];
 				ret["data"]["name"] = Json(null);
+				goto retLabel;
+			} else if(typeName == "__nonNullType") {
+				ret["data"] = typeToJson!(int)();
+				ret["data"]["typenameOrig"] = parent["typename"];
+				ret["data"]["name"] = Json(null);
+				ret["data"]["kind"] = "NON_NULL";
 				goto retLabel;
 			}
 			pragma(msg, "collectTypes ", collectTypes!(Type));

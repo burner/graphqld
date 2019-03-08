@@ -86,6 +86,7 @@ Json characterToJson(Character c) {
 	ret["data"]["id"] = c.id;
 	ret["data"]["name"] = c.name;
 	ret["data"]["series"] = Json.emptyArray();
+	ret["data"]["__typename"] = "Character";
 	foreach(Series s; c.series) {
 		ret["data"]["series"] ~= to!string(s);
 	}
@@ -111,10 +112,12 @@ Json characterToJson(Character c) {
 
 	if(Humanoid h = cast(Humanoid)c) {
 		ret["data"]["species"] = h.species;
+		ret["data"]["__typename"] = "Humanoid";
 	}
 
 	if(Android a = cast(Android)c) {
 		ret["data"]["primaryFunction"] = a.primaryFunction;
+		ret["data"]["__typename"] = "Android";
 	}
 
 	return ret;
@@ -207,6 +210,7 @@ Json starshipToJson(Starship s) {
 	ret["data"]["name"] = s.name;
 	ret["data"]["size"] = s.size;
 	ret["data"]["series"] = Json.emptyArray();
+	ret["data"]["__typename"] = "Starship";
 	foreach(Nullable!Series show; s.series) {
 		if(!show.isNull()) {
 			ret["data"]["series"] ~= to!string(show.get());
