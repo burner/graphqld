@@ -120,11 +120,19 @@ class GQLDBool(Con) : GQLDScalar!(Con) {
 
 class GQLDMap(Con) : GQLDType!(Con) {
 	GQLDType!(Con)[string] member;
+	GQLDMap!(Con)[] derivatives;
+
 	this() {
 		super(GQLDKind.Map);
 	}
 	this(GQLDKind kind) {
 		super(kind);
+	}
+
+	void addDerivative(GQLDMap!(Con) d) {
+		if(!canFind!((a,b) => a is b)(this.derivatives, d)) {
+			this.derivatives ~= d;
+		}
 	}
 
 	override string toString() const {
@@ -153,14 +161,16 @@ class GQLDObject(Con) : GQLDMap!(Con) {
 	}
 
 	override string toString() const {
-		return format("Object %s(%s))\n\t\t\t\tBase(%s)",
+		return format(
+				"Object %s(%s))\n\t\t\t\tBase(%s)\n\t\t\t\tDerivaties(%s)",
 				this.name,
 				this.member
 					.byKeyValue
 					.map!(kv => format("%s %s", kv.key,
 							kv.value.toShortString()))
 					.joiner(",\n\t\t\t\t"),
-				(this.base !is null ? this.base.toShortString() : "null")
+				(this.base !is null ? this.base.toShortString() : "null"),
+				this.derivatives.map!(d => d.toShortString())
 			);
 	}
 
@@ -176,13 +186,14 @@ class GQLDUnion(Con) : GQLDMap!(Con) {
 	}
 
 	override string toString() const {
-		return format("Union %s(%s))",
+		return format("Union %s(%s))\n\t\t\t\tDerivaties(%s)",
 				this.name,
 				this.member
 					.byKeyValue
 					.map!(kv => format("%s %s", kv.key,
 							kv.value.toShortString()))
-					.joiner(",\n\t\t\t\t")
+					.joiner(",\n\t\t\t\t"),
+				this.derivatives.map!(d => d.toShortString())
 			);
 	}
 }
@@ -453,9 +464,13 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			} else if(field == "__typename") {
 				ret = this.types["string"];
 			} else {
-				string[] k = map.member.byKey().array;
-				//logf("[%(%s, %)]", k);
-				//logf("%s %s", t.toString(), field);
+				// if we couldn't find it in the passed map, maybe it is in some
+				// of its derivatives
+				foreach(deriv; map.derivatives) {
+					if(field in deriv.member) {
+						return deriv.member[field];
+					}
+				}
 				return null;
 			}
 		} else {
@@ -546,8 +561,12 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				r.member[fieldNames[idx]] =
-					typeToGQLDType!(fieldTypes[idx], Con)(ret);
+				auto tmp = typeToGQLDType!(fieldTypes[idx], Con)(ret);
+				r.member[fieldNames[idx]] = tmp;
+
+				if(GQLDMap!Con tmpMap = tmp.toMap()) {
+					r.addDerivative(tmpMap);
+				}
 			}}
 		}
 		return r;
@@ -575,7 +594,12 @@ GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
 			static if(is(Type == class)) {
 				alias bct = BaseClassesTuple!(Type);
 				static if(bct.length > 1) {
-					r.base = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(ret);
+					auto d = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(
+							ret
+						);
+					r.base = d;
+					d.addDerivative(r);
+
 				}
 				assert(bct.length > 1 ? r.base !is null : true);
 			}
