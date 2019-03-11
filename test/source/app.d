@@ -376,7 +376,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				));
 			return ret;
 		}
-		//logf("de: %s, retType %s", /*de*/"", retType.name);
+		logf("retType %s, de: %s", retType.name, de);
+		enforce(field.f.ss !is null);
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 
@@ -426,11 +427,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeList(SelectionSet ss, GQLDList!Con objectType,
 			Json objectValue, Json variables)
 	{
-		//logf("OT: %s, OJ: %s, VAR: %s", objectType.name, objectValue,
-		//		variables
-		//	);
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, /*objectValue*/"",
+				variables
+			);
 		assert("data" in objectValue, objectValue.toString());
 		auto elemType = objectType.elementType;
+		logf("elemType %s", elemType);
 		Json ret = returnTemplate();
 		ret["data"] = Json.emptyArray();
 		foreach(Json item;
@@ -439,7 +441,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					: Json.emptyArray()
 			)
 		{
-			//logf("ET: %s, item %s", elemType.name, item);
+			logf("ET: %s, item %s", elemType.name, item);
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
 			//logf("tmp %s", tmp);
 			if(tmp.type == Json.Type.object) {

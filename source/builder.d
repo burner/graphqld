@@ -40,6 +40,7 @@ FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;
 	Definitions cur = doc.defs;
+	logf("New search for %s", name);
 	while(cur !is null) {
 		enforce(cur.def !is null);
 		if(cur.def.ruleSelection == DefinitionEnum.F) {
@@ -50,12 +51,16 @@ FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
 			if(cur.def.frag.name.value == name
 					&& canFind(typenames, cur.def.frag.tc.value))
 			{
+				logf("found it");
 				return cur.def.frag;
+			} else {
+				logf("not found");
 			}
 		}
 		cur = cur.follow;
 	}
 
+	logf("search failed");
 	return null;
 }
 
@@ -94,25 +99,28 @@ fragment fooo on Hero {
 	assert(f is null);
 }
 
-void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
+bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 		string[] typenames)
 {
 	import std.array : empty;
 	import std.format : format;
 	if(stack.length == 0) {
-		return;
+		return true;
 	}
 	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
-		return;
+		return true;
 	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
 		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
 				typenames
 			);
-		enforce(f !is null, format("'[%(%s,%)]'", typenames));
+		if(f !is null) {
+			enforce(f !is null, format("'[%(%s,%)]'", typenames));
 
-		Selections fs = f.ss.sel;
-		stack.insertBack(fs);
-		resolveFragments(stack, doc, typenames);
+			Selections fs = f.ss.sel;
+			stack.insertBack(fs);
+			return resolveFragments(stack, doc, typenames);
+		}
+		return false;
 	}
 }
 
@@ -200,6 +208,7 @@ struct FieldRange {
 	}
 
 	@property FieldRangeItem front() {
+		enforce(!this.cur.empty);
 		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 

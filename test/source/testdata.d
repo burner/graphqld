@@ -182,7 +182,7 @@ class Starship {
 
 	Character commander;
 	Nullable!(Series)[] series;
-	Nullable!(Character[]) crew;
+	Character[] crew;
 
 	this(long id, string designation, double size, string name) {
 		this.id = id;
@@ -196,7 +196,7 @@ class Starship {
 					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
 			(
 				 id, designation, size, name, commander.name, series,
-				 crew.get().map!(a => a.name)
+				 crew.map!(a => a.name)
 			);
 	}
 }
@@ -219,13 +219,9 @@ Json starshipToJson(Starship s) {
 
 	// indirect
 	ret["data"]["commanderId"] = s.commander.id;
-	if(s.crew.isNull()) {
-		ret["data"]["crewIds"] = Json(null);
-	} else {
-		ret["data"]["crewIds"] = Json.emptyArray();
-		foreach(Character cm; s.crew.get()) {
-			ret["data"]["crewIds"] ~= cm.id;
-		}
+	ret["data"]["crewIds"] = Json.emptyArray();
+	foreach(Character cm; s.crew) {
+		ret["data"]["crewIds"] ~= cm.id;
 	}
 
 	logf("%s", ret.toPrettyString());
@@ -330,7 +326,7 @@ class Data {
 		this.ships ~= new Starship(i++, "NCC-1701E", 685.7, "Enterprise");
 		this.ships.back.series ~= nullable(Series.TheNextGeneration);
 		this.ships.back.commander = picard;
-		this.ships.back.crew = nullable(tng);
+		this.ships.back.crew = tng;
 		this.ships.back.crew ~= picard;
 		tng.map!(a => a.ship = nullable(this.ships.back)).each;
 
@@ -338,7 +334,7 @@ class Data {
 		this.ships.back.series ~= nullable(Series.DeepSpaceNine);
 		this.ships.back.series ~= nullable(Series.TheOriginalSeries);
 		this.ships.back.commander = sisko;
-		this.ships.back.crew = nullable(cast(Character[])ds9);
+		this.ships.back.crew = cast(Character[])ds9;
 		this.ships.back.crew ~= sisko;
 		ds9.map!(a => a.ship = nullable(this.ships.back)).each;
 
@@ -346,14 +342,14 @@ class Data {
 		this.ships.back.series ~= nullable(Series.Voyager);
 		this.ships.back.series ~= nullable(Series.DeepSpaceNine);
 		this.ships.back.commander = janeway;
-		this.ships.back.crew = nullable(cast(Character[])voyager);
+		this.ships.back.crew = cast(Character[])voyager;
 		this.ships.back.crew ~= janeway;
 		voyager.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NX-01", 225.0, "Enterprise");
 		this.ships.back.series ~= nullable(Series.Enterprise);
 		this.ships.back.commander = archer;
-		this.ships.back.crew = nullable(cast(Character[])enterprise);
+		this.ships.back.crew = cast(Character[])enterprise;
 		this.ships.back.crew ~= archer;
 		enterprise.map!(a => a.ship = nullable(this.ships.back)).each;
 
@@ -361,14 +357,14 @@ class Data {
 		this.ships.back.series ~= nullable(Series.TheOriginalSeries);
 		this.ships.back.series ~= nullable(Series.Discovery);
 		this.ships.back.commander = kirk;
-		this.ships.back.crew = nullable(cast(Character[])tos);
+		this.ships.back.crew = cast(Character[])tos;
 		this.ships.back.crew ~= kirk;
 		tos.map!(a => a.ship = nullable(this.ships.back)).each;
 
 		this.ships ~= new Starship(i++, "NCC-1031", 244.00, "Discovery");
 		this.ships.back.series ~= nullable(Series.Discovery);
 		this.ships.back.commander = georgiou;
-		this.ships.back.crew = nullable(cast(Character[])discovery);
+		this.ships.back.crew = cast(Character[])discovery;
 		this.ships.back.crew ~= georgiou;
 		discovery.map!(a => a.ship = nullable(this.ships.back)).each;
 

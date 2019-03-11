@@ -4,12 +4,17 @@ import std.meta;
 import std.range : ElementEncodingType;
 import std.traits;
 import std.typecons : Nullable;
+import std.experimental.logger : logf;
 
-template AllIncarnations(T) {
-	static if(is(T == class) || is(T == interface)) {
-		alias AllIncarnations = AliasSeq!(T, BaseTypeTuple!T);
+template AllIncarnations(T, SCH...) {
+	static if(SCH.length > 0 && is(T : SCH[0])) {
+		alias AllIncarnations = AliasSeq!(SCH[0],
+				.AllIncarnations!(T, SCH[1 ..  $])
+			);
+	} else static if(SCH.length > 0) {
+		alias AllIncarnations = AliasSeq!(.AllIncarnations!(T, SCH[1 ..  $]));
 	} else {
-		alias AllIncarnations = AliasSeq!();
+		alias AllIncarnations = AliasSeq!(T);
 	}
 }
 
@@ -351,12 +356,21 @@ template stringofType(T) {
 }
 
 string[] interfacesForType(Schema)(string typename) {
+	alias filtered = staticMap!(stripArrayAndNullable, collectTypes!Schema);
+	alias Types = NoDuplicates!(filtered);
+	static foreach(Type; Types) {
+		pragma(msg, "361 ", Type, ": ",
+			NoDuplicates!(staticMap!(stringofType,
+					EraseAll!(Object, AllIncarnations!(Type, Types)))
+				));
+	}
 	switch(typename) {
-		static foreach(T; NoDuplicates!(collectTypes!Schema)) {
+		static foreach(T; Types) {
 			case T.stringof: {
-				static enum ret = [staticMap!(stringofType,
-						EraseAll!(Object, AllIncarnations!T))
+				static enum ret = [NoDuplicates!(staticMap!(stringofType,
+						EraseAll!(Object, AllIncarnations!(T, Types))))
 					];
+				logf("%s %s %s", typename, T.stringof, ret);
 				return ret;
 			}
 		}
