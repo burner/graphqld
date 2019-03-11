@@ -327,11 +327,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json ret = returnTemplate();
 		logf("OT: %s, OJ: %s, VAR: %s, TN: %s", objectType.name,
 				objectValue, variables,
-				objectValue.getWithDefault!string("data.__typename")
+				interfacesForType!(T)(objectValue
+						.getWithDefault!string("data.__typename")
+					)
 			);
 		foreach(FieldRangeItem field;
 				fieldRangeArr(sel, this.doc,
-						objectValue.getWithDefault!string("data.__typename")
+						interfacesForType!(T)(objectValue
+								.getWithDefault!string("data.__typename")
+							)
 					)
 			)
 		{

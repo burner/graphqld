@@ -36,14 +36,19 @@ struct Fragment {
 	Selections sels;
 }
 
-FragmentDefinition findFragment(Document doc, string name, string typename) {
+FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
+	import std.algorithm.searching : canFind;
+	import std.experimental.logger : logf;
 	Definitions cur = doc.defs;
 	while(cur !is null) {
 		enforce(cur.def !is null);
 		if(cur.def.ruleSelection == DefinitionEnum.F) {
 			enforce(cur.def.frag !is null);
+			logf("%s == %s && %s in %s", cur.def.frag.name.value, name,
+					typenames, cur.def.frag.tc.value
+				);
 			if(cur.def.frag.name.value == name
-					&& cur.def.frag.tc.value == typename)
+					&& canFind(typenames, cur.def.frag.tc.value))
 			{
 				return cur.def.frag;
 			}
@@ -90,8 +95,9 @@ fragment fooo on Hero {
 }
 
 void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
-		string typename)
+		string[] typenames)
 {
+	import std.array : empty;
 	import std.format : format;
 	if(stack.length == 0) {
 		return;
@@ -100,13 +106,13 @@ void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 		return;
 	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
 		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
-				typename
+				typenames
 			);
-		enforce(f !is null, format("'%s'", typename));
+		enforce(f !is null, format("'[%(%s,%)]'", typenames));
 
 		Selections fs = f.ss.sel;
 		stack.insertBack(fs);
-		resolveFragments(stack, doc, typename);
+		resolveFragments(stack, doc, typenames);
 	}
 }
 
@@ -166,8 +172,8 @@ struct FieldRangeItem {
 		return f.ss !is null;
 	}
 
-	FieldRange selectionSet(string typename) {
-		return FieldRange(this.f.ss.sel, this.doc, typename);
+	FieldRange selectionSet(string[] typenames) {
+		return FieldRange(this.f.ss.sel, this.doc, typenames);
 	}
 
 }
@@ -175,13 +181,13 @@ struct FieldRangeItem {
 struct FieldRange {
 	FixedSizeArray!(Selections,32) cur;
 	Document doc;
-	string typename;
+	string[] typenames;
 
-	this(Selections sels, Document doc, string typename) {
+	this(Selections sels, Document doc, string[] typenames) {
 		this.doc = doc;
-		this.typename = typename;
+		this.typenames = typenames;
 		this.cur.insertBack(sels);
-		resolveFragments(this.cur, this.doc, typename);
+		resolveFragments(this.cur, this.doc, typenames);
 	}
 
 	this(ref FieldRange old) {
@@ -204,7 +210,7 @@ struct FieldRange {
 				this.cur.removeBack();
 				continue;
 			} else {
-				resolveFragments(this.cur, this.doc, this.typename);
+				resolveFragments(this.cur, this.doc, this.typenames);
 				break;
 			}
 		}
@@ -215,26 +221,30 @@ struct FieldRange {
 	}
 }
 
-FieldRange fieldRange(OperationDefinition od, Document doc, string typename) {
-	return FieldRange(od.accessNN!(["ss", "sel"]), doc, typename);
+FieldRange fieldRange(OperationDefinition od, Document doc,
+		string[] typenames)
+{
+	return FieldRange(od.accessNN!(["ss", "sel"]), doc, typenames);
 }
 
-FieldRange fieldRange(SelectionSet ss, Document doc, string typename) {
-	return FieldRange(ss.sel, doc, typename);
+FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames) {
+	return FieldRange(ss.sel, doc, typenames);
 }
 
-FieldRangeItem[] fieldRangeArr(Selections sel, Document doc, string typename) {
+FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
+		string[] typenames)
+{
 	import std.array : array;
-	return FieldRange(sel, doc, typename).array;
+	return FieldRange(sel, doc, typenames).array;
 }
 
 struct OpDefRangeItem {
 	Document doc;
 	Definition def;
 
-	FieldRange fieldRange(string typename) {
+	FieldRange fieldRange(string[] typenames) {
 		return .fieldRange(accessNN!(["op", "ss"])(this.def), this.doc,
-				typename
+				typenames
 			);
 	}
 }

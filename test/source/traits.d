@@ -5,6 +5,14 @@ import std.range : ElementEncodingType;
 import std.traits;
 import std.typecons : Nullable;
 
+template AllIncarnations(T) {
+	static if(is(T == class) || is(T == interface)) {
+		alias AllIncarnations = AliasSeq!(T, BaseTypeTuple!T);
+	} else {
+		alias AllIncarnations = AliasSeq!();
+	}
+}
+
 template InheritedClasses(T) {
 	import std.meta : NoDuplicates, EraseAll;
 	alias Clss = InheritedClassImpl!T;
@@ -335,5 +343,23 @@ template stripArrayAndNullable(T) {
 			.stripArrayAndNullable!(ElementEncodingType!T);
 	} else {
 		alias stripArrayAndNullable = T;
+	}
+}
+
+template stringofType(T) {
+	enum stringofType = T.stringof;
+}
+
+string[] interfacesForType(Schema)(string typename) {
+	switch(typename) {
+		static foreach(T; NoDuplicates!(collectTypes!Schema)) {
+			case T.stringof: {
+				static enum ret = [staticMap!(stringofType,
+						EraseAll!(Object, AllIncarnations!T))
+					];
+				return ret;
+			}
+		}
+		default: return string[].init;
 	}
 }
