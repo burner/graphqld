@@ -1,6 +1,6 @@
 module traits;
 
-import std.meta : AliasSeq, Filter, staticMap, EraseAll, NoDuplicates;
+import std.meta;
 import std.range : ElementEncodingType;
 import std.traits;
 import std.typecons : Nullable;
@@ -36,7 +36,7 @@ template InheritedClassImpl(T) {
 
 unittest {
 	alias Bases = InheritedClasses!Union;
-	static assert(is(Bases == AliasSeq!(Foo, Impl, Base)));
+	static assert(is(Bases == AliasSeq!(Bar, Impl, Base)));
 }
 
 unittest {
@@ -111,19 +111,19 @@ private:
 		float b;
 	}
 
-	class Foo {
+	class Bar {
 		string c;
 	}
 
 	union Union {
-		Foo foo;
+		Bar foo;
 		Impl impl;
 	}
 }
 
 unittest {
 	alias B = BaseFields!Union;
-	static assert(is(B == AliasSeq!(Union, Foo, Impl, string, float, Base,
+	static assert(is(B == AliasSeq!(Union, Bar, Impl, string, float, Base,
 			int))
 		);
 }
@@ -283,7 +283,7 @@ package {
 	}
 	class U {
 		string f;
-		Bar bar;
+		Baz baz;
 		Enum e;
 	}
 	class W {
@@ -296,7 +296,7 @@ package {
 	class Z : Y {
 		long id;
 	}
-	class Bar {
+	class Baz {
 		string id;
 		Z[] zs;
 	}
@@ -304,7 +304,7 @@ package {
 		float value;
 	}
 	interface Foo {
-		Bar bar();
+		Baz bar();
 		Args args();
 	}
 }
@@ -317,7 +317,7 @@ unittest {
 
 unittest {
 	alias ts = collectTypes!(Foo);
-	alias expectedTypes = AliasSeq!(Foo, Bar, Args, float, Z[], Z, string,
+	alias expectedTypes = AliasSeq!(Foo, Baz, Args, float, Z[], Z, string,
 			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U, Enum);
 
 	template canBeFound(T) {

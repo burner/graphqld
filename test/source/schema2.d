@@ -425,43 +425,43 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
-		logf("'%s' '%s'", t.name, field);
+		//logf("'%s' '%s'", t.name, field);
 		GQLDType!Con ret;
 		if(auto s = t.toScalar()) {
-			log();
+			//log();
 			ret = s;
 		} else if(auto op = t.toOperation()) {
-			log();
+			//log();
 			ret = op.returnType;
 		} else if(auto map = t.toMap()) {
 			if((map.name == "query" || map.name == "mutation"
 						|| map.name == "subscription")
 					&& field in map.member)
 			{
-				log();
+				//log();
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
-					log();
+					//log();
 					ret = op.returnType;
 				} else {
-					log();
+					//log();
 					ret = tmp;
 				}
 			} else if(field in map.member) {
-				log();
+				//log();
 				ret = map.member[field];
 			} else if(field == "__typename") {
 				ret = this.types["string"];
 			} else {
 				string[] k = map.member.byKey().array;
-				logf("[%(%s, %)]", k);
+				//logf("[%(%s, %)]", k);
 				//logf("%s %s", t.toString(), field);
 				return null;
 			}
 		} else {
 			ret = t;
 		}
-		logf("%s", ret.name);
+		//logf("%s", ret.name);
 		return ret;
 	}
 }
@@ -702,6 +702,7 @@ Json emptyType() {
 	Json ret = Json.emptyObject();
 	ret["kind"] = "";
 	ret["name"] = Json(null);
+	ret["__typename"] = Json(null);
 	ret["description"] = Json(null);
 	ret["fields"] = Json(null);
 	ret["interfacesNames"] = Json(null);
@@ -819,17 +820,20 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			}
 			if(typeName == "__listType") {
 				ret["data"] = typeToJson!(int[])();
+				ret["data"]["__typename"] = "__listType";
 				ret["data"]["typenameOrig"] = parent["typename"];
 				ret["data"]["name"] = Json(null);
 				goto retLabel;
 			} else if(typeName == "__nullType") {
 				ret["data"] = typeToJson!(Nullable!int)();
 				ret["data"]["typenameOrig"] = parent["typename"];
+				ret["data"]["__typename"] = "__nullType";
 				ret["data"]["name"] = Json(null);
 				goto retLabel;
 			} else if(typeName == "__nonNullType") {
 				ret["data"] = typeToJson!(int)();
 				ret["data"]["typenameOrig"] = parent["typename"];
+				ret["data"]["__typename"] = "__nonNullType";
 				ret["data"]["name"] = Json(null);
 				ret["data"]["kind"] = "NON_NULL";
 				goto retLabel;

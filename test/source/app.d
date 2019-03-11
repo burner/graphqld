@@ -178,7 +178,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			string field)
 	{
 		static if(isAggregateType!Type) {
-			logf("Type %s %s", Type.stringof, type);
+			//logf("Type %s %s", Type.stringof, type);
 			if(typename == type) {
 				switch(field) {
 					static foreach(mem; __traits(allMembers, Type)) {
@@ -187,8 +187,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 							)
 						{
 							case mem: {
-								logf("mem %s %s", mem, field);
-								logf("%s %s", type, field);
+								//logf("mem %s %s", mem, field);
+								//logf("%s %s", type, field);
 								alias parNames = ParameterIdentifierTuple!(
 										__traits(getMember, Type, mem)
 									);
@@ -203,7 +203,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 											serializeToJson(parDef[i]);
 									}
 								}
-								logf("%s", ret);
+								//logf("%s", ret);
 								return ret;
 							}
 						}
@@ -225,7 +225,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					if(tmp.type != Json.Type.undefined
 							&& tmp.type != Json.Type.null_)
 					{
-						logf("tmp %s", tmp);
+						//logf("tmp %s", tmp);
 						return tmp;
 					}
 				}
@@ -236,12 +236,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 		switch(type) {
 			static foreach(entryPoint; FieldNameTuple!T) {{
 				case entryPoint: {
-					logf("%s", entryPoint);
+					//logf("%s", entryPoint);
 					Json tmp = getDefaultArgumentImpl!(entryPoint,
 							typeof(__traits(getMember, T, entryPoint)))(type, field
 						);
 					if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_) {
-						logf("tmp %s", tmp);
+						//logf("tmp %s", tmp);
 						return tmp;
 					}
 				}
@@ -255,7 +255,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json execute(Document doc, Json variables) {
 		this.doc = doc;
 		OperationDefinition[] ops = this.getOperations(this.doc);
-		logf("Vars %s", variables);
+		//logf("Vars %s", variables);
 
 		auto selSet = ops
 			.find!(op => op.ruleSelection == OperationDefinitionEnum.SelSet);
@@ -325,12 +325,19 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables)
 	{
 		Json ret = returnTemplate();
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.name,
-				/*objectValue*/"", variables);
-		foreach(FieldRangeItem field; fieldRangeArr(sel, this.doc)) {
-			logf("Field: %s, OT: %s, OJ: %s", field.name, objectType.name,
-					/*objectValue*/""
-				);
+		logf("OT: %s, OJ: %s, VAR: %s, TN: %s", objectType.name,
+				objectValue, variables,
+				objectValue.getWithDefault!string("data.__typename")
+			);
+		foreach(FieldRangeItem field;
+				fieldRangeArr(sel, this.doc,
+						objectValue.getWithDefault!string("data.__typename")
+					)
+			)
+		{
+			//logf("Field: %s, OT: %s, OJ: %s", field.name, objectType.name,
+			//		/*objectValue*/""
+			//	);
 			Json rslt = this.executeFieldSelection(field, objectType,
 					objectValue, variables
 				);
@@ -343,12 +350,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
-				objectType.name, objectValue, variables
-			);
-		logf("TESSSS %s", "data" in objectValue
-				? objectValue["data"] : objectValue
-			);
+		//logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
+		//		objectType.name, objectValue, variables
+		//	);
+		//logf("TESSSS %s", "data" in objectValue
+		//		? objectValue["data"] : objectValue
+		//	);
 		Json arguments = getArguments(field, variables);
 		Json de = this.resolve(objectType.name, field.name,
 				"data" in objectValue ? objectValue["data"] : objectValue,
@@ -356,7 +363,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		auto retType = this.schema.getReturnType(objectType, field.name);
 		if(retType is null) {
-			logf("ERR %s %s", objectType.name, field.name);
+			//logf("ERR %s %s", objectType.name, field.name);
 			Json ret = Json.emptyObject();
 			ret["error"] = Json.emptyArray();
 			ret["error"] ~= Json(format(
@@ -365,22 +372,22 @@ class GraphQLD(T, QContext = DefaultContext) {
 				));
 			return ret;
 		}
-		logf("de: %s, retType %s", /*de*/"", retType.name);
+		//logf("de: %s, retType %s", /*de*/"", retType.name);
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 
 	Json executeSelectionSet(SelectionSet ss, GQLDType!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), objectValue,
-				variables
-			);
+		//logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), objectValue,
+		//		variables
+		//	);
 		Json rslt;
 		if(GQLDMap!Con map = objectType.toMap()) {
-			logf("map %s %s", map.name, ss !is null);
+			//logf("map %s %s", map.name, ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
 		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
-			logf("NonNull %s", nonNullType.name);
+			//logf("NonNull %s", nonNullType.name);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables
 				);
@@ -389,35 +396,35 @@ class GraphQLD(T, QContext = DefaultContext) {
 				rslt["data"] = Json(null);
 			}
 		} else if(GQLDNullable!Con nullType = objectType.toNullable()) {
-			logf("nullable %s", nullType.name);
+			//logf("nullable %s", nullType.name);
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
 					objectValue, variables
 				);
 			if(rslt.dataIsEmpty()) {
-				logf("NULLLLLLLLLLLL %s %s", rslt, rslt.dataIsEmpty());
+				//logf("NULLLLLLLLLLLL %s %s", rslt, rslt.dataIsEmpty());
 				rslt["data"] = null;
 				rslt.remove("error");
 			} else {
-				logf("NNNNNNNNNNNNNN %s", rslt);
+				//logf("NNNNNNNNNNNNNN %s", rslt);
 			}
 		} else if(GQLDList!Con list = objectType.toList()) {
-			logf("list %s", list.name);
+			//logf("list %s", list.name);
 			rslt = this.executeList(ss, list, objectValue, variables);
 		} else if(GQLDScalar!Con scalar = objectType.toScalar()) {
-			logf("scalar %s", scalar.name);
+			//logf("scalar %s", scalar.name);
 			rslt = objectValue;
 		}
 
-		logf("RSLT %s", rslt);
+		//logf("RSLT %s", rslt);
 		return rslt;
 	}
 
 	Json executeList(SelectionSet ss, GQLDList!Con objectType,
 			Json objectValue, Json variables)
 	{
-		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, objectValue,
-				variables
-			);
+		//logf("OT: %s, OJ: %s, VAR: %s", objectType.name, objectValue,
+		//		variables
+		//	);
 		assert("data" in objectValue, objectValue.toString());
 		auto elemType = objectType.elementType;
 		Json ret = returnTemplate();
@@ -428,9 +435,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 					: Json.emptyArray()
 			)
 		{
-			logf("ET: %s, item %s", elemType.name, item);
+			//logf("ET: %s, item %s", elemType.name, item);
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables);
-			logf("tmp %s", tmp);
+			//logf("tmp %s", tmp);
 			if(tmp.type == Json.Type.object) {
 				if("data" in tmp) {
 					ret["data"] ~= tmp["data"];

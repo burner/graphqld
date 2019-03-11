@@ -1,5 +1,7 @@
 module helper;
 
+import std.algorithm.iteration : splitter;
+import std.exception : enforce;
 import std.experimental.logger;
 
 import vibe.data.json;
@@ -124,4 +126,75 @@ unittest {
 	Json b = parseJsonString(`{}`);
 	Json c = joinJson(b, a);
 	assert(c == a);
+}
+
+template toType(T) {
+	import std.bigint : BigInt;
+	import std.traits : isArray, isIntegral, isAggregateType, isFloatingPoint,
+		   isSomeString;
+	static if(is(T == bool)) {
+		enum toType = Json.Type.bool_;
+	} else static if(isIntegral!(T)) {
+		enum toType = Json.Type.int_;
+	} else static if(isFloatingPoint!(T)) {
+		enum toType = Json.Type.float_;
+	} else static if(isSomeString!(T)) {
+		enum toType = Json.Type.string;
+	} else static if(isArray!(T)) {
+		enum toType = Json.Type.array;
+	} else static if(isAggregateType!(T)) {
+		enum toType = Json.Type.object;
+	} else static if(is(T == BigInt)) {
+		enum toType = Json.Type.bigint;
+	} else {
+		enum toType = Json.Type.undefined;
+	}
+}
+
+bool hasPathTo(T)(Json data, string path) {
+	enum TT = toType!T;
+	auto sp = path.splitter(".");
+	while(!sp.empty) {
+		string f = sp.front;
+		sp.popFront();
+		Json* t = f in data;
+		if(!sp.empty && t is null) {
+			return false;
+		}
+		data = *t;
+	}
+	return data.type == TT;
+}
+
+/**
+params:
+	path = A "." seperated path
+*/
+T getWithDefault(T)(Json data, string path, T def = T.init) {
+	enum TT = toType!T;
+	auto sp = path.splitter(".");
+	while(!sp.empty) {
+		string f = sp.front;
+		sp.popFront();
+		if(data.type != Json.Type.object) {
+			return def;
+		}
+		Json* t = f in data;
+		if(t is null) {
+			return def;
+		}
+		enforce(t is null|| data.type == Json.Type.object);
+		data = data[f];
+	}
+
+	return data.type == TT ? data.to!T() : def;
+}
+
+unittest {
+	Json d = parseJsonString(`{"error":[],"data":{"commanderId":8,
+			"__typename":"Starship","series":["DeepSpaceNine",
+			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
+			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}}`);
+	string r = d.getWithDefault!string("data.__typename");
+	assert(r == "Starship", r);
 }
