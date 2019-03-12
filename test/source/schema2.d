@@ -692,7 +692,7 @@ Json typeToField(T, string name)() {
 	return ret;
 }
 
-Json typeFields(T)() {
+/*Json typeFields(T)() {
 	import std.algorithm.searching : startsWith;
 	import std.traits : FieldTypeTuple, FieldNameTuple;
 	Json ret = Json.emptyArray();
@@ -707,12 +707,12 @@ Json typeFields(T)() {
 		}
 		pragma(msg, FT);
 		Json tmp = Json.emptyObject();
-		tmp["name"] = mem;
 		tmp["description"] = "TODO";
 		tmp["isDeprecated"] = false;
 		tmp["deprecationReason"] = "TODO";
 		static if(isBasicType!FT) {
 		} else {
+			tmp["name"] = mem;
 			static foreach(mem; __traits(allMembers, FT)) {{
 				alias MemType = typeof(__traits(getMember, FT, mem));
 				static if(isCallable!(__traits(getMember, FT, mem))) {
@@ -733,6 +733,44 @@ Json typeFields(T)() {
 		//		ret ~= typeToField!(fieldTypes[idx], fieldNames[idx]);
 		//	}
 		//}}
+	}}
+	return ret;
+}*/
+
+Json typeFields(T)() {
+	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
+			"opEquals", "Monitor", "factory"];
+	Json ret = Json.emptyArray();
+	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
+	static foreach(Type; TplusParents) {{
+		pragma(msg, "746 ", Type.stringof);
+		static foreach(mem; __traits(allMembers, Type)) {{
+			static if(!canFind(memsToIgnore, mem)) {
+				Json tmp = Json.emptyObject();
+				tmp["name"] = mem;
+				tmp["description"] = "";
+				tmp["isDeprecated"] = false;
+				tmp["deprecationReason"] = "";
+				pragma(msg, "\t749 ", mem);
+				static if(isCallable!(__traits(getMember, Type, mem))) {
+					pragma(msg, "\t\tcallable");
+					alias RT = ReturnType!(__traits(getMember, Type, mem));
+					alias RTS = stripArrayAndNullable!RT;
+					tmp["typename"] = typeToTypeName!RTS;
+					tmp["typenameOrg"] = typeToTypeName!RT;
+				} else {
+					pragma(msg, "\t\tfield");
+					alias Ts = stripArrayAndNullable!(
+							typeof(__traits(getMember, Type, mem))
+						);
+					tmp["typename"] = typeToTypeName!Ts;
+					tmp["typenameOrg"] = typeToTypeName!(
+							typeof(__traits(getMember, Type, mem))
+						);
+				}
+				ret ~= tmp;
+			}
+		}}
 	}}
 	return ret;
 }
@@ -759,7 +797,9 @@ Json typeToJson(Type)() {
 	ret["description"] = "TODO";
 
 	// fields
-	static if(is(Type == class) || is(Type == interface) || is(Type == struct))
+	static if(
+			(is(Type == class) || is(Type == interface) || is(Type == struct))
+			&& !is(Type : Nullable!K, K))
 	{
 		ret["fields"] = typeFields!Type();
 	} else {

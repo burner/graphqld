@@ -581,8 +581,8 @@ void main() {
 	writeln(graphqld.schema);
 	auto sr = buildSchemaResolver!(Schema, DefaultContext);
 	DefaultContext dc;
-	writeln(sr("", Json.emptyObject(), Json.emptyObject(), dc)
-			.toPrettyString()
+	writeln(sr("", Json.emptyObject(), Json.emptyObject(),
+				dc)["data"]["queryType"].toPrettyString()
 		);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
