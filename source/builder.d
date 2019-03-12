@@ -1,6 +1,7 @@
 module builder;
 
 import std.experimental.allocator;
+import std.experimental.logger : logf;
 import std.experimental.allocator.mallocator : Mallocator;
 import std.exception : enforce;
 
@@ -10,31 +11,6 @@ import helper;
 import ast;
 import parser;
 import lexer;
-
-string ctor = `
-
-HTTPServerRequest __request;
-HTTPServerResponse __response;
-Document document;
-Parser parser;
-this(HTTPServerRequest req, HTTPServerResponse res) {
-	this.__resquest = req;
-	this.__response = res;
-
-	this.parser = Parser(Lexer(req.bodyReader.readAllUTF8()));
-}
-
-void parse() {
-	this.document = this.parser.parseDocument();
-}
-`;
-
-struct Fragment {
-	string name;
-	string tc;
-	Directives dirs;
-	Selections sels;
-}
 
 FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
@@ -46,7 +22,7 @@ FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
 		if(cur.def.ruleSelection == DefinitionEnum.F) {
 			enforce(cur.def.frag !is null);
 			logf("%s == %s && %s in %s", cur.def.frag.name.value, name,
-					typenames, cur.def.frag.tc.value
+					cur.def.frag.tc.value, typenames
 				);
 			if(cur.def.frag.name.value == name
 					&& canFind(typenames, cur.def.frag.tc.value))
@@ -99,7 +75,7 @@ fragment fooo on Hero {
 	assert(f is null);
 }
 
-void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
+/*void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 		string[] typenames)
 {
 	import std.array : empty;
@@ -121,7 +97,7 @@ void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 			resolveFragments(stack, doc, typenames);
 		}
 	}
-}
+}*/
 
 struct ArgumentRangeItem {
 	Argument arg;
@@ -190,16 +166,35 @@ struct FieldRange {
 	Document doc;
 	string[] typenames;
 
+	void test() {
+		import std.format : format;
+		import std.conv : to;
+		import std.algorithm.iteration : map;
+		logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
+				i !is null ? to!string(i.sel.ruleSelection) : "null"))
+			);
+		foreach(it; this.cur[]) {
+			assert(it !is null);
+			assert(it.sel.ruleSelection == SelectionEnum.Field);
+		}
+	}
+
 	this(Selections sels, Document doc, string[] typenames) {
 		this.doc = doc;
 		this.typenames = typenames;
 		this.cur.insertBack(sels);
-		resolveFragments(this.cur, this.doc, typenames);
+		this.build();
+		this.test();
+		//resolveFragments(this.cur, this.doc, this.typenames);
 	}
 
 	this(ref FieldRange old) {
 		this.cur = old.cur;
 		this.doc = doc;
+	}
+
+	@property FieldRange save() {
+		return FieldRange(this);
 	}
 
 	@property bool empty() const pure {
@@ -208,57 +203,72 @@ struct FieldRange {
 
 	@property FieldRangeItem front() {
 		enforce(!this.cur.empty);
+		enforce(this.cur.back !is null);
+		enforce(this.cur.back.sel !is null);
+		enforce(this.cur.back.sel.field !is null);
 		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 
-	/*void popFront() {
-		while(this.cur.length > 0) {
-			enforce(this.cur.back !is null);
-			this.cur.back = this.cur.back.follow;
-			if(this.cur.back is null) {
-				this.cur.removeBack();
-				continue;
-			} else {
-				if(resolveFragments(this.cur, this.doc, this.typenames)) {
-					break;
-				}
-			}
-		}
-	}*/
-
 	void popFront() {
-		loop: while(!this.cur.empty) {
-			if(this.cur.back is null) {
-				this.cur.removeBack();
-			} else {
-				Selections f = this.cur.back.follow;
-				this.cur.back = f;
-				if(f is null) {
-					continue;
-				}
-				final switch(f.sel.ruleSelection) {
-					case SelectionEnum.Field:
-						break loop;
-					case SelectionEnum.Spread:
-						FragmentDefinition fd = findFragment(doc,
-								f.sel.frag.name.value, typenames
-							);
-						if(fd !is null) {
-							this.cur.insertBack(fd.ss.sel);
-							break loop;
-						}
-						continue loop;
-					case SelectionEnum.IFrag:
-						assert(false, "Not implemented yet");
-				}
-			}
-		}
+		this.cur.back = this.cur.back.follow;
+		this.build();
+		this.test();
 	}
 
-	@property FieldRange save() {
-		return FieldRange(this);
+	void build() {
+		if(this.cur.empty) {
+			return;
+		}
+		if(this.cur.back is null) {
+			this.cur.removeBack();
+			this.build();
+			this.test();
+			return;
+		}
+		if(this.cur.back.sel.ruleSelection == SelectionEnum.Field) {
+			return;
+		} else if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread) {
+			Selections follow = this.cur.back.follow;
+			FragmentDefinition f = findFragment(doc,
+					this.cur.back.sel.frag.name.value, this.typenames
+				);
+
+			this.cur.removeBack();
+
+			if(follow !is null) {
+				this.cur.insertBack(follow);
+				this.build();
+				this.test();
+			}
+			if(f !is null) {
+				this.cur.insertBack(f.ss.sel);
+				this.build();
+				this.test();
+			}
+		}
 	}
 }
+
+/*bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
+		string[] typenames)
+{
+	import std.array : empty;
+	import std.format : format;
+	enforce(!stack.empty);
+	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
+		return true;
+	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
+		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
+				typenames
+			);
+		if(f !is null) {
+			Selections fs = f.ss.sel;
+			stack.insertBack(fs);
+			return resolveFragments(stack, doc, typenames);
+		}
+	}
+	return false;
+}*/
 
 FieldRange fieldRange(OperationDefinition od, Document doc,
 		string[] typenames)

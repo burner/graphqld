@@ -314,9 +314,11 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDNullable!(Con) __nullableField;
 	GQLDNullable!(Con) __nullableInputValue;
 
+	GQLDList!(Con) __listNonNullType;
 	GQLDList!(Con) __listNullableType;
 	GQLDList!(Con) __listNullableField;
 	GQLDList!(Con) __listNullableInputValue;
+	GQLDNonNull!(Con) __nonNullListOfNonNullTypes;
 
 	GQLDNullable!(Con) __nullableListType;
 	GQLDNullable!(Con) __nullableListEnumValue;
@@ -350,14 +352,13 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		// build base types
 		this.__schema = new GQLDObject!Con("__schema");
 
-		this.__type = new GQLDObject!Con("__type");
-		this.__field = new GQLDObject!Con("__field");
-		this.__inputValue = new GQLDObject!Con("__inputValue");
-		this.__enumValue = new GQLDObject!Con("__enumValue");
+		this.__type = new GQLDObject!Con("__Type");
+		this.__field = new GQLDObject!Con("__Field");
+		this.__inputValue = new GQLDObject!Con("__VnputValue");
+		this.__enumValue = new GQLDObject!Con("__EnumValue");
 		this.__enumValue.member["name"] = new GQLDString!Con();
 
 		this.__listType = new GQLDList!Con(this.__type);
-		this.__schema.member["__listType"] = this.__listType;
 		this.__listField = new GQLDList!Con(this.__field);
 		this.__listInputValue = new GQLDList!Con(this.__inputValue);
 		this.__listEnumValue = new GQLDList!Con(this.__enumValue);
@@ -391,7 +392,15 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__nullableListNullableInputValue =
 				new GQLDNullable!Con(this.__listNullableInputValue);
 
-		this.__schema.member["types"] = this.__listType;
+		this.__listNonNullType = new GQLDList!Con(this.__nonNullType);
+		this.__nonNullListOfNonNullTypes = new GQLDNonNull!Con(
+				this.__listNonNullType
+			);
+
+		this.__schema.member["types"] = this.__nonNullListOfNonNullTypes;
+		this.__schema.member["queryType"] = this.__nonNullType;
+		this.__schema.member["mutationType"] = this.__type;
+		this.__schema.member["subscriptionType"] = this.__type;
 
 		this.__type.member["name"] = new GQLDNullable!(Con)(
 				new GQLDString!Con()
