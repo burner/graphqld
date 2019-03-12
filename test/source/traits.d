@@ -356,6 +356,7 @@ template stringofType(T) {
 }
 
 string[] interfacesForType(Schema)(string typename) {
+	import std.algorithm.searching : canFind;
 	alias filtered = staticMap!(stripArrayAndNullable, collectTypes!Schema);
 	alias Types = NoDuplicates!(filtered);
 	static foreach(Type; Types) {
@@ -374,6 +375,14 @@ string[] interfacesForType(Schema)(string typename) {
 				return ret;
 			}
 		}
-		default: return string[].init;
+		default:
+			logf("DEFAULT: '%s'", typename);
+			if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
+						"__EnumValue", "__TypeKind", "__Directive",
+						"__DirectiveLocation"], typename))
+			{
+				return [typename];
+			}
+			return string[].init;
 	}
 }

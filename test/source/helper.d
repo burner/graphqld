@@ -151,43 +151,39 @@ template toType(T) {
 	}
 }
 
-bool hasPathTo(T)(Json data, string path) {
+bool hasPathTo(T)(Json data, string path, ref T ret) {
 	enum TT = toType!T;
 	auto sp = path.splitter(".");
+	string f;
 	while(!sp.empty) {
-		string f = sp.front;
+		f = sp.front;
 		sp.popFront();
-		Json* t = f in data;
-		if(!sp.empty && t is null) {
+		if(data.type != Json.Type.object || f !in data) {
 			return false;
+		} else {
+			data = data[f];
 		}
-		data = *t;
 	}
-	return data.type == TT;
+	if(data.type == TT) {
+		ret = data.to!T();
+		return true;
+	}
+	return false;
 }
 
 /**
 params:
 	path = A "." seperated path
 */
-T getWithDefault(T)(Json data, string path, T def = T.init) {
+T getWithDefault(T)(Json data, string[] paths...) {
 	enum TT = toType!T;
-	auto sp = path.splitter(".");
-	while(!sp.empty) {
-		string f = sp.front;
-		sp.popFront();
-		if(data.type != Json.Type.object) {
-			return def;
+	T ret = T.init;
+	foreach(string path; paths) {
+		if(hasPathTo!T(data, path, ret)) {
+			return ret;
 		}
-		Json* t = f in data;
-		if(t is null) {
-			return def;
-		}
-		enforce(t is null|| data.type == Json.Type.object);
-		data = data[f];
 	}
-
-	return data.type == TT ? data.to!T() : def;
+	return ret;
 }
 
 unittest {
@@ -196,5 +192,23 @@ unittest {
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}}`);
 	string r = d.getWithDefault!string("data.__typename");
+	assert(r == "Starship", r);
+}
+
+unittest {
+	Json d = parseJsonString(`{"commanderId":8,
+			"__typename":"Starship","series":["DeepSpaceNine",
+			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
+			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}`);
+	string r = d.getWithDefault!string("data.__typename", "__typename");
+	assert(r == "Starship", r);
+}
+
+unittest {
+	Json d = parseJsonString(`{"commanderId":8,
+			"__typename":"Starship","series":["DeepSpaceNine",
+			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
+			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}`);
+	string r = d.getWithDefault!string("__typename");
 	assert(r == "Starship", r);
 }

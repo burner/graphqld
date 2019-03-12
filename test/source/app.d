@@ -70,7 +70,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		auto typeResolver = buildTypeResolver!(T, Con)();
 		this.setResolver("query", "__type", typeResolver);
 		this.setResolver("query", "__schema", buildSchemaResolver!(T, Con)());
-		this.setResolver("__field", "type",
+		this.setResolver("__Field", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
 					import std.string : capitalize;
@@ -79,7 +79,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
-		this.setResolver("__type", "interfaces",
+		this.setResolver("__Type", "interfaces",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
 					assert("interfacesNames" in parent);
@@ -102,7 +102,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
-		this.setResolver("__type", "possibleTypes",
+		this.setResolver("__Type", "possibleTypes",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
 					assert("possibleTypesNames" in parent);
@@ -127,7 +127,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
-		this.setResolver("__type", "ofType",
+		this.setResolver("__Type", "ofType",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name,
 							parent.toPrettyString(), args
@@ -325,16 +325,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables)
 	{
 		Json ret = returnTemplate();
-		logf("OT: %s, OJ: %s, VAR: %s, TN: %s", objectType.name,
-				objectValue, variables,
-				interfacesForType!(T)(objectValue
-						.getWithDefault!string("data.__typename")
-					)
-			);
+		logf("OT: %s, OJ: %s, VAR: %s", objectType.name,
+				objectValue, variables);
+		logf("TN: %s", interfacesForType!(T)(objectValue
+				.getWithDefault!string("data.__typename", "__typename")
+			));
 		foreach(FieldRangeItem field;
 				fieldRangeArr(sel, this.doc,
 						interfacesForType!(T)(objectValue
-								.getWithDefault!string("data.__typename")
+								.getWithDefault!string("data.__typename",
+										"__typename"
+									)
 							)
 					)
 			)
@@ -392,7 +393,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			//logf("map %s %s", map.name, ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
 		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
-			//logf("NonNull %s", nonNullType.name);
+			logf("NonNull %s", nonNullType.elementType.name);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables
 				);
@@ -578,6 +579,11 @@ void main() {
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
 	writeln(graphqld.schema);
+	auto sr = buildSchemaResolver!(Schema, DefaultContext);
+	DefaultContext dc;
+	writeln(sr("", Json.emptyObject(), Json.emptyObject(), dc)
+			.toPrettyString()
+		);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref typeof(graphqld).Con con)
@@ -777,4 +783,5 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	writeln(gqld.toPrettyString());
 
 	res.writeJsonBody(gqld);
+	writeln(toParse);
 }

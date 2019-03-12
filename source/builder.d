@@ -12,7 +12,7 @@ import ast;
 import parser;
 import lexer;
 
-FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
+Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;
 	Definitions cur = doc.defs;
@@ -28,7 +28,7 @@ FragmentDefinition findFragment(Document doc, string name, string[] typenames) {
 					&& canFind(typenames, cur.def.frag.tc.value))
 			{
 				logf("found it");
-				return cur.def.frag;
+				return cur.def.frag.ss.sel;
 			} else {
 				logf("not found");
 			}
@@ -74,30 +74,6 @@ fragment fooo on Hero {
 	f = findFragment(d, "fooo", "Villian");
 	assert(f is null);
 }
-
-/*void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
-		string[] typenames)
-{
-	import std.array : empty;
-	import std.format : format;
-	if(stack.length == 0) {
-		return;
-	}
-	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
-		return;
-	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
-		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
-				typenames
-			);
-		if(f !is null) {
-			enforce(f !is null, format("'[%(%s,%)]'", typenames));
-
-			Selections fs = f.ss.sel;
-			stack.insertBack(fs);
-			resolveFragments(stack, doc, typenames);
-		}
-	}
-}*/
 
 struct ArgumentRangeItem {
 	Argument arg;
@@ -170,9 +146,9 @@ struct FieldRange {
 		import std.format : format;
 		import std.conv : to;
 		import std.algorithm.iteration : map;
-		logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
-				i !is null ? to!string(i.sel.ruleSelection) : "null"))
-			);
+		//logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
+		//		i !is null ? to!string(i.sel.ruleSelection) : "null"))
+		//	);
 		foreach(it; this.cur[]) {
 			assert(it !is null);
 			assert(it.sel.ruleSelection == SelectionEnum.Field);
@@ -185,7 +161,6 @@ struct FieldRange {
 		this.cur.insertBack(sels);
 		this.build();
 		this.test();
-		//resolveFragments(this.cur, this.doc, this.typenames);
 	}
 
 	this(ref FieldRange old) {
@@ -227,11 +202,20 @@ struct FieldRange {
 		}
 		if(this.cur.back.sel.ruleSelection == SelectionEnum.Field) {
 			return;
-		} else if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread) {
+		} else if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread
+				|| this.cur.back.sel.ruleSelection == SelectionEnum.IFrag)
+		{
 			Selections follow = this.cur.back.follow;
-			FragmentDefinition f = findFragment(doc,
-					this.cur.back.sel.frag.name.value, this.typenames
-				);
+			Selections f;
+			if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread) {
+				f = findFragment(doc,
+						this.cur.back.sel.frag.name.value, this.typenames
+					);
+			} else {
+				f = resolveInlineFragment(this.cur.back.sel.ifrag,
+						this.typenames
+					);
+			}
 
 			this.cur.removeBack();
 
@@ -241,7 +225,7 @@ struct FieldRange {
 				this.test();
 			}
 			if(f !is null) {
-				this.cur.insertBack(f.ss.sel);
+				this.cur.insertBack(f);
 				this.build();
 				this.test();
 			}
@@ -249,26 +233,19 @@ struct FieldRange {
 	}
 }
 
-/*bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
-		string[] typenames)
-{
-	import std.array : empty;
-	import std.format : format;
-	enforce(!stack.empty);
-	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
-		return true;
-	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
-		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
-				typenames
-			);
-		if(f !is null) {
-			Selections fs = f.ss.sel;
-			stack.insertBack(fs);
-			return resolveFragments(stack, doc, typenames);
-		}
+Selections resolveInlineFragment(InlineFragment ilf, string[] typenames) {
+	import std.algorithm.searching : canFind;
+	final switch(ilf.ruleSelection) {
+		case InlineFragmentEnum.TDS:
+			goto case InlineFragmentEnum.TS;
+		case InlineFragmentEnum.TS:
+			return canFind(typenames, ilf.tc.value) ? ilf.ss.sel : null;
+		case InlineFragmentEnum.DS:
+			return ilf.ss.sel;
+		case InlineFragmentEnum.S:
+			return ilf.ss.sel;
 	}
-	return false;
-}*/
+}
 
 FieldRange fieldRange(OperationDefinition od, Document doc,
 		string[] typenames)

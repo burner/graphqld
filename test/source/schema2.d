@@ -304,30 +304,16 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDObject!(Con) __inputValue;
 	GQLDObject!(Con) __enumValue;
 
-	GQLDList!(Con) __listType;
-	GQLDList!(Con) __listField;
-	GQLDList!(Con) __listInputValue;
-	GQLDList!(Con) __listEnumValue;
-
-	GQLDNonNull!(Con) __nonNullType;
-	GQLDNullable!(Con) __nullableType;
-	GQLDNullable!(Con) __nullableField;
-	GQLDNullable!(Con) __nullableInputValue;
-
-	GQLDList!(Con) __listNonNullType;
-	GQLDList!(Con) __listNullableType;
-	GQLDList!(Con) __listNullableField;
-	GQLDList!(Con) __listNullableInputValue;
-	GQLDNonNull!(Con) __nonNullListOfNonNullTypes;
-
-	GQLDNullable!(Con) __nullableListType;
-	GQLDNullable!(Con) __nullableListEnumValue;
-	GQLDNullable!(Con) __nullableListField;
-	GQLDNullable!(Con) __nullableListInputValue;
-
-	GQLDNullable!(Con) __nullableListNullableType;
-	GQLDNullable!(Con) __nullableListNullableField;
-	GQLDNullable!(Con) __nullableListNullableInputValue;
+	GQLDNonNull!Con __nonNullType;
+	GQLDNullable!Con __nullableType;
+	GQLDNullable!Con __listOfNonNullType;
+	GQLDNonNull!Con __nonNullListOfNonNullType;
+	GQLDNonNull!Con __nonNullField;
+	GQLDNullable!Con __listOfNonNullField;
+	GQLDNonNull!Con __nonNullInputValue;
+	GQLDList!Con __listOfNonNullInputValue;
+	GQLDNonNull!Con __nonNullListOfNonNullInputValue;
+	GQLDList!Con __listOfNonNullEnumValue;
 
 	this() {
 		super(GQLDKind.Schema);
@@ -350,83 +336,79 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 
 	void createIntrospectionTypes() {
 		// build base types
+		auto str = new GQLDString!Con();
+		auto nnStr = new GQLDNonNull!Con(str);
+		auto nllStr = new GQLDNullable!Con(str);
+
+		auto b = new GQLDBool!Con();
+		auto nnB = new GQLDNonNull!Con(b);
 		this.__schema = new GQLDObject!Con("__schema");
-
 		this.__type = new GQLDObject!Con("__Type");
-		this.__field = new GQLDObject!Con("__Field");
-		this.__inputValue = new GQLDObject!Con("__VnputValue");
-		this.__enumValue = new GQLDObject!Con("__EnumValue");
-		this.__enumValue.member["name"] = new GQLDString!Con();
-
-		this.__listType = new GQLDList!Con(this.__type);
-		this.__listField = new GQLDList!Con(this.__field);
-		this.__listInputValue = new GQLDList!Con(this.__inputValue);
-		this.__listEnumValue = new GQLDList!Con(this.__enumValue);
-
-		this.__nullableType = new GQLDNullable!Con(this.__type);
-		this.__schema.member["__nullType"] = this.__nullableType;
-
-		this.__nonNullType = new GQLDNonNull!Con(this.__type);
-		this.__schema.member["__nonNullType"] = this.__nonNullType;
-
-		this.__nullableField = new GQLDNullable!Con(this.__field);
-		this.__nullableInputValue = new GQLDNullable!Con(this.__inputValue);
-
-		this.__nullableListEnumValue = new
-			GQLDNullable!Con(this.__listEnumValue);
-		this.__nullableListType = new GQLDNullable!Con(this.__listType);
-		this.__nullableListField = new GQLDNullable!Con(this.__listField);
-		this.__nullableListInputValue = new GQLDNullable!Con(
-				this.__listInputValue
-			);
-
-		this.__listNullableType = new GQLDList!Con(this.__nullableType);
-		this.__listNullableField = new GQLDList!Con(this.__nullableField);
-		this.__listNullableInputValue =
-				new GQLDList!Con(this.__nullableInputValue);
-
-		this.__nullableListNullableType =
-				new GQLDNullable!Con(this.__listNullableType);
-		this.__nullableListNullableField =
-				new GQLDNullable!Con(this.__listNullableField);
-		this.__nullableListNullableInputValue =
-				new GQLDNullable!Con(this.__listNullableInputValue);
-
-		this.__listNonNullType = new GQLDList!Con(this.__nonNullType);
-		this.__nonNullListOfNonNullTypes = new GQLDNonNull!Con(
-				this.__listNonNullType
-			);
-
-		this.__schema.member["types"] = this.__nonNullListOfNonNullTypes;
-		this.__schema.member["queryType"] = this.__nonNullType;
 		this.__schema.member["mutationType"] = this.__type;
 		this.__schema.member["subscriptionType"] = this.__type;
 
-		this.__type.member["name"] = new GQLDNullable!(Con)(
-				new GQLDString!Con()
-			);
-		this.__type.member["description"] = new GQLDNullable!Con(
-				new GQLDString!Con()
-			);
-		this.__type.member["fields"] = this.__nullableListField;
-		this.__type.member["interfaces"] = this.__nullableListType;
-		this.__type.member["possibleTypes"] = this.__nullableListType;
+		this.__nullableType = new GQLDNullable!Con(this.__type);
 		this.__type.member["ofType"] = this.__nullableType;
 		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
-		this.__type.member["enumValues"] = this.__nullableListEnumValue;
+		this.__type.member["name"] = nllStr;
+		this.__type.member["description"] = nllStr;
 
-		this.__field.member["name"] = new GQLDString!Con();
-		this.__field.member["description"] = new GQLDNullable!Con(
-				new GQLDString!Con()
+		this.__nonNullType = new GQLDNonNull!Con(this.__type);
+		this.__schema.member["queryType"] = this.__type;
+		auto lNNTypes = new GQLDList!Con(this.__nonNullType);
+		this.__listOfNonNullType = new GQLDNullable!Con(lNNTypes);
+		this.__type.member["interfaces"] = str;
+		this.__type.member["possibleTypes"] = str;
+
+		this.__nonNullListOfNonNullType = new GQLDNonNull!Con(lNNTypes);
+		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
+
+		this.__field = new GQLDObject!Con("__Field");
+		this.__field.member["name"] = nnStr;
+		this.__field.member["description"] = nllStr;
+		this.__field.member["type"] = this.__nonNullType;
+		this.__field.member["isDeprecated"] = nnB;
+		this.__field.member["deprecationReason"] = nllStr;
+
+		this.__nonNullField = new GQLDNonNull!Con(this.__field);
+		auto lNNFields = new GQLDList!Con(this.__nonNullField);
+		this.__listOfNonNullField = new GQLDNullable!Con(lNNFields);
+		this.__type.member["fields"] = this.__listOfNonNullField;
+
+		this.__inputValue = new GQLDObject!Con("__InputValue");
+		this.__inputValue.member["name"] = nnStr;
+		this.__inputValue.member["description"] = nllStr;
+		this.__inputValue.member["defaultValue"] = nllStr;
+		this.__inputValue.member["type"] = this.__nonNullType;
+
+		this.__nonNullInputValue = new GQLDNonNull!Con(this.__inputValue);
+		this.__listOfNonNullInputValue = new GQLDList!Con(
+				this.__nonNullInputValue
 			);
-		this.__field.member["type"] = this.__type;
-		this.__field.member["isDeprecated"] = new GQLDBool!Con();
-		this.__field.member["deprecatedReason"] = new GQLDNullable!Con(
-				new GQLDString!Con()
+
+		this.__type.member["inputFields"] = this.__listOfNonNullInputValue;
+
+		this.__nonNullListOfNonNullInputValue = new GQLDNonNull!Con(
+				this.__listOfNonNullInputValue
 			);
+
+		this.__field.member["args"] = this.__nonNullListOfNonNullInputValue;
+
+		this.__enumValue = new GQLDObject!Con("__EnumValue");
+		this.__enumValue.member["name"] = nnStr;
+		this.__enumValue.member["description"] = nllStr;
+		this.__enumValue.member["isDeprecated"] = nnB;
+		this.__enumValue.member["deprecationReason"] = nllStr;
+
+		this.__listOfNonNullEnumValue = new GQLDList!Con(new GQLDNonNull!Con(
+				this.__enumValue
+			));
+
+		this.__type.member["enumValues"] = this.__listOfNonNullEnumValue;
 
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
-			this.types[t].toObject().member["fields"] = this.__nullableListField;
+			this.types[t].toObject().member["fields"] =
+				this.__listOfNonNullField;
 		}
 	}
 
@@ -705,7 +687,7 @@ Json typeToField(T, string name)() {
 	ret["typename"] = typeToTypeName!(Ts);
 	ret["typenameOrig"] = typeToFieldType!(T);
 	ret["description"] = "TODO";
-	ret["isDeprected"] = false;
+	ret["isDeprecated"] = false;
 	ret["deprecationReason"] = "TODO";
 	return ret;
 }
@@ -715,18 +697,42 @@ Json typeFields(T)() {
 	import std.traits : FieldTypeTuple, FieldNameTuple;
 	Json ret = Json.emptyArray();
 
-	alias manyTypes = AliasSeq!(T, InheritedClasses!T);
+	alias manyTypes = EraseAll!(Object, AliasSeq!(T, InheritedClasses!T));
 	pragma(msg, "775 ", T.stringof, " ", manyTypes);
 	static foreach(Type; manyTypes) {{
-		alias fieldTypes = FieldTypeTuple!Type;
-		alias fieldNames = FieldNameTuple!Type;
-		static foreach(idx; 0 .. fieldTypes.length) {{
-			static if(!fieldNames[idx].empty
-					&& !startsWith(fieldNames[idx], "_"))
-			{
-				ret ~= typeToField!(fieldTypes[idx], fieldNames[idx]);
-			}
-		}}
+		static if(is(Type : Nullable!F, F)) {
+			alias FT = F;
+		} else {
+			alias FT = Type;
+		}
+		pragma(msg, FT);
+		Json tmp = Json.emptyObject();
+		tmp["name"] = mem;
+		tmp["description"] = "TODO";
+		tmp["isDeprecated"] = false;
+		tmp["deprecationReason"] = "TODO";
+		static if(isBasicType!FT) {
+		} else {
+			static foreach(mem; __traits(allMembers, FT)) {{
+				alias MemType = typeof(__traits(getMember, FT, mem));
+				static if(isCallable!(__traits(getMember, FT, mem))) {
+					alias RT = ReturnType!(__traits(getMember, FT, mem));
+					alias RTS = stripArrayAndNullable!RT;
+					tmp["typename"] = typeToTypeName!(RTS);
+					tmp["typenameOrig"] = typeToTypeName!(RT);
+				}
+			}}
+		}
+		ret ~= tmp;
+		//alias fieldTypes = FieldTypeTuple!Type;
+		//alias fieldNames = FieldNameTuple!Type;
+		//static foreach(idx; 0 .. fieldTypes.length) {{
+		//	static if(!fieldNames[idx].empty
+		//			&& !startsWith(fieldNames[idx], "_"))
+		//	{
+		//		ret ~= typeToField!(fieldTypes[idx], fieldNames[idx]);
+		//	}
+		//}}
 	}}
 	return ret;
 }
@@ -749,7 +755,7 @@ Json typeToJson(Type)() {
 	Json ret = Json.emptyObject();
 	ret["kind"] = typeToTypeEnum!Type;
 	ret["name"] = typeToTypeName!Type;
-	ret["__typename"] = typeToTypeName!Type;
+	ret["__typename"] = "__Type";
 	ret["description"] = "TODO";
 
 	// fields
@@ -824,6 +830,9 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 				Json tmp = typeToJson!type();
 				ret["data"]["types"] ~= tmp;
 			}}
+			ret["data"]["directives"] = Json.emptyArray();
+			ret["data"]["queryType"] = typeToJson!(typeof(
+					__traits(getMember, Type, "query")))();
 			return ret;
 		};
 	return ret;
@@ -856,6 +865,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				ret["data"]["__typename"] = "__listType";
 				ret["data"]["typenameOrig"] = parent["typename"];
 				ret["data"]["name"] = Json(null);
+				ret["data"]["kind"] = "LIST";
 				goto retLabel;
 			} else if(typeName == "__nullType") {
 				ret["data"] = typeToJson!(Nullable!int)();
@@ -901,31 +911,35 @@ GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
 			cur.member["__schema"] = ret.__schema;
 			cur.member["__type"] = ret.__type;
 		}
-		static assert(__traits(hasMember, Type, qms));
-		alias QMSType = typeof(__traits(getMember, Type, qms));
-		static foreach(mem; __traits(allMembers, QMSType)) {{
-			alias MemType = typeof(__traits(getMember, QMSType, mem));
-			static if(isCallable!(MemType)) {{
-				GQLDOperation!(Con) op = qms == "query" ? new GQLDQuery!Con()
-					: qms == "mutation" ? new GQLDMutation!Con()
-					: qms == "subscription" ? new GQLDSubscription!Con()
-					: null;
-				cur.member[mem] = op;
-				assert(op !is null);
-				op.returnType = typeToGQLDType!(ReturnType!(MemType), Con)(ret);
+		static if(__traits(hasMember, Type, qms)) {
+			alias QMSType = typeof(__traits(getMember, Type, qms));
+			static foreach(mem; __traits(allMembers, QMSType)) {{
+				alias MemType = typeof(__traits(getMember, QMSType, mem));
+				static if(isCallable!(MemType)) {{
+					GQLDOperation!(Con) op = qms == "query"
+						? new GQLDQuery!Con()
+						: qms == "mutation" ? new GQLDMutation!Con()
+						: qms == "subscription" ? new GQLDSubscription!Con()
+						: null;
+					cur.member[mem] = op;
+					assert(op !is null);
+					op.returnType = typeToGQLDType!(ReturnType!(MemType), Con)(
+							ret
+						);
 
-				alias paraNames = ParameterIdentifierTuple!(
-						__traits(getMember, QMSType, mem)
-					);
-				alias paraTypes = Parameters!(
-						__traits(getMember, QMSType, mem)
-					);
-				static foreach(idx; 0 .. paraNames.length) {
-					op.parameters[paraNames[idx]] =
-						typeToGQLDType!(paraTypes[idx], Con)(ret);
-				}
+					alias paraNames = ParameterIdentifierTuple!(
+							__traits(getMember, QMSType, mem)
+						);
+					alias paraTypes = Parameters!(
+							__traits(getMember, QMSType, mem)
+						);
+					static foreach(idx; 0 .. paraNames.length) {
+						op.parameters[paraNames[idx]] =
+							typeToGQLDType!(paraTypes[idx], Con)(ret);
+					}
+				}}
 			}}
-		}}
+		}
 	}}
 	return ret;
 }
