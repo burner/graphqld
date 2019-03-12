@@ -107,7 +107,6 @@ bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 	if(stack.length == 0) {
 		return true;
 	}
-	enforce(stack.back.sel !is null);
 	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
 		return true;
 	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
@@ -116,14 +115,13 @@ bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 			);
 		if(f !is null) {
 			enforce(f !is null, format("'[%(%s,%)]'", typenames));
-			enforce(f.ss !is null);
 
 			Selections fs = f.ss.sel;
 			stack.insertBack(fs);
+			return resolveFragments(stack, doc, typenames);
 		}
-		return resolveFragments(stack, doc, typenames);
+		return false;
 	}
-	return false;
 }
 
 struct ArgumentRangeItem {
@@ -188,27 +186,6 @@ struct FieldRangeItem {
 
 }
 
-Selections resolveSelections(Selections cur, Document doc, string[] typenames) {
-	if(cur is null) {
-		return null;
-	}
-	final switch(cur.sel.ruleSelection) {
-		case SelectionEnum.Field:
-			return cur;
-		case SelectionEnum.Spread:
-			FragmentDefinition fd = findFragment(doc, cur.sel.frag.name.value,
-					typenames
-				);
-			if(fd !is null) {
-				return fd.ss.sel;
-			} else {
-				return null;
-			}
-		case SelectionEnum.IFrag:
-			assert(false);
-	}
-}
-
 struct FieldRange {
 	FixedSizeArray!(Selections,32) cur;
 	Document doc;
@@ -217,10 +194,8 @@ struct FieldRange {
 	this(Selections sels, Document doc, string[] typenames) {
 		this.doc = doc;
 		this.typenames = typenames;
-		if(sels !is null) {
-			this.cur.insertBack(sels);
-		}
-		//resolveFragments(this.cur, this.doc, typenames);
+		this.cur.insertBack(sels);
+		resolveFragments(this.cur, this.doc, typenames);
 	}
 
 	this(ref FieldRange old) {
@@ -234,31 +209,19 @@ struct FieldRange {
 
 	@property FieldRangeItem front() {
 		enforce(!this.cur.empty);
-		Selections b = this.cur.back;
-		enforce(b !is null);
-		enforce(b.sel !is null);
-		enforce(b.sel.field !is null);
 		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 
 	void popFront() {
 		while(this.cur.length > 0) {
-			Selections possibleFollow = this.cur.back.follow;
-			Selections follow = resolveSelections(possibleFollow,
-					this.doc, this.typenames
-				);
-			if(follow !is null) {
-				this.cur.back = follow;
-			} else {
-				this.cur.removeBack();
-			}
-			/*this.cur.back = this.cur.back.follow;
+			this.cur.back = this.cur.back.follow;
 			if(this.cur.back is null) {
 				this.cur.removeBack();
 				continue;
 			} else {
-				Selections frag
-			}*/
+				resolveFragments(this.cur, this.doc, this.typenames);
+				break;
+			}
 		}
 	}
 

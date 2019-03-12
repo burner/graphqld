@@ -377,7 +377,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			return ret;
 		}
 		logf("retType %s, de: %s", retType.name, de);
-		enforce(field.f !is null);
+		enforce(field.f.ss !is null);
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 
@@ -390,11 +390,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json rslt;
 		if(GQLDMap!Con map = objectType.toMap()) {
 			//logf("map %s %s", map.name, ss !is null);
-			enforce(ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
 		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
 			//logf("NonNull %s", nonNullType.name);
-			enforce(ss !is null);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables
 				);
