@@ -377,7 +377,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			return ret;
 		}
 		logf("retType %s, de: %s", retType.name, de);
-		enforce(field.f.ss !is null);
+		//enforce(field.f.ss !is null);
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 

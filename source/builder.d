@@ -99,16 +99,16 @@ fragment fooo on Hero {
 	assert(f is null);
 }
 
-bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
+void resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 		string[] typenames)
 {
 	import std.array : empty;
 	import std.format : format;
 	if(stack.length == 0) {
-		return true;
+		return;
 	}
 	if(stack.back.sel.ruleSelection == SelectionEnum.Field) {
-		return true;
+		return;
 	} else if(stack.back.sel.ruleSelection == SelectionEnum.Spread) {
 		FragmentDefinition f = findFragment(doc, stack.back.sel.frag.name.value,
 				typenames
@@ -118,9 +118,8 @@ bool resolveFragments(ref FixedSizeArray!(Selections,32) stack, Document doc,
 
 			Selections fs = f.ss.sel;
 			stack.insertBack(fs);
-			return resolveFragments(stack, doc, typenames);
+			resolveFragments(stack, doc, typenames);
 		}
-		return false;
 	}
 }
 
@@ -212,15 +211,46 @@ struct FieldRange {
 		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 
-	void popFront() {
+	/*void popFront() {
 		while(this.cur.length > 0) {
+			enforce(this.cur.back !is null);
 			this.cur.back = this.cur.back.follow;
 			if(this.cur.back is null) {
 				this.cur.removeBack();
 				continue;
 			} else {
-				resolveFragments(this.cur, this.doc, this.typenames);
-				break;
+				if(resolveFragments(this.cur, this.doc, this.typenames)) {
+					break;
+				}
+			}
+		}
+	}*/
+
+	void popFront() {
+		loop: while(!this.cur.empty) {
+			if(this.cur.back is null) {
+				this.cur.removeBack();
+			} else {
+				Selections f = this.cur.back.follow;
+				this.cur.back = f;
+				if(f is null) {
+					continue;
+				}
+				final switch(f.sel.ruleSelection) {
+					case SelectionEnum.Field:
+						break loop;
+					case SelectionEnum.Spread:
+						FragmentDefinition fd = findFragment(doc,
+								f.sel.frag.name.value, typenames
+							);
+						if(fd !is null) {
+							this.cur.insertBack(fd.ss.sel);
+							break loop;
+						}
+						continue loop;
+					case SelectionEnum.IFrag:
+						assert(false, "Not implemented yet");
+				}
 			}
 		}
 	}
