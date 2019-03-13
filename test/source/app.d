@@ -22,7 +22,7 @@ import treevisitor;
 import helper;
 import testdata;
 import testdata2;
-import schema2;
+import schema;
 import traits;
 
 Data database;
@@ -573,16 +573,16 @@ class ArgumentExtractor : Visitor {
 	}
 }
 
-GraphQLD!(Schema) graphqld;
+GraphQLD!(Schema2) graphqld;
 
 void main() {
  	database = new Data();
-	graphqld = new GraphQLD!Schema();
+	graphqld = new GraphQLD!Schema2();
 	writeln(graphqld.schema);
-	auto sr = buildSchemaResolver!(Schema, DefaultContext);
+	auto sr = buildSchemaResolver!(Schema2, DefaultContext);
 	DefaultContext dc;
 	writeln(sr("", Json.emptyObject(), Json.emptyObject(),
-				dc)["data"]["queryType"].toPrettyString()
+				dc)["data"].toPrettyString()
 		);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,

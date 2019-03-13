@@ -8,7 +8,7 @@ class SmallChild {
 class Small {
 	long id;
 	string name;
-	//SmallChild child;
+	SmallChild child;
 	//SmallChild[] foobar;
 }
 
