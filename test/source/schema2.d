@@ -751,13 +751,39 @@ Json typeFields(T)() {
 				tmp["description"] = "";
 				tmp["isDeprecated"] = false;
 				tmp["deprecationReason"] = "";
+				tmp["args"] = Json.emptyArray();
 				pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
+					tmp["__typename"] = "__Field";
 					tmp["typename"] = typeToTypeName!RTS;
 					tmp["typenameOrg"] = typeToTypeName!RT;
+
+					// InputValue
+					alias paraNames = ParameterIdentifierTuple!(
+							__traits(getMember, Type, mem)
+						);
+					alias paraTypes = Parameters!(
+							__traits(getMember, Type, mem)
+						);
+					alias paraDefs = ParameterDefaults!(
+							__traits(getMember, Type, mem)
+						);
+					static foreach(idx; 0 .. paraNames.length) {{
+						Json iv = Json.emptyObject();
+						iv["__typename"] = "__InputValue";
+						iv["name"] = paraNames[idx];
+						iv["typename"] = typeToTypeName!(paraTypes[idx]);
+						alias Ts = stripArrayAndNullable!(paraTypes[idx]);
+						iv["typenameOrig"] = typeToFieldType!(Ts);
+						static if(!is(paraDefs[idx] == void)) {
+							iv["defaultValue"] = serializeToJson(paraDefs[idx])
+								.toString();
+						}
+						tmp["args"] ~= iv;
+					}}
 				} else {
 					pragma(msg, "\t\tfield");
 					alias Ts = stripArrayAndNullable!(
