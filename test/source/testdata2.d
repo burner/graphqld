@@ -1,8 +1,9 @@
 module testdata2;
 
-class SmallChild {
+abstract class SmallChild {
 	long id;
 	string name;
+	int foo(long a);
 }
 
 class Small {

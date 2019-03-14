@@ -62,13 +62,14 @@ bool dataIsEmpty(ref const(Json) data) {
 				return false;
 			}
 		}
+		return true;
 	} else if(data.type == Json.Type.null_
 			|| data.type == Json.Type.undefined
 		)
 	{
 		return true;
 	} else if(data.type == Json.Type.array) {
-		return false;
+		return data.length == 0;
 	} else if(data.type == Json.Type.bigInt
 			|| data.type == Json.Type.bool_
 			|| data.type == Json.Type.float_
@@ -90,6 +91,15 @@ unittest {
             }`;
 	Json j = parseJsonString(t);
 	assert(j.dataIsEmpty());
+}
+
+bool dataIsNull(ref const(Json) data) {
+	import std.format : format;
+	enforce(data.type == Json.Type.object, format("%s", data));
+	if(const(Json)* d = "data" in data) {
+		return d.type == Json.Type.null_;
+	}
+	return false;
 }
 
 /** Merge two Json objects.

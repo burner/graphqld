@@ -7,6 +7,7 @@ import std.typecons;
 import std.algorithm;
 
 import std.experimental.logger;
+import std.experimental.logger.filelogger;
 
 import vibe.vibe;
 import vibe.data.json;
@@ -86,20 +87,22 @@ class GraphQLD(T, QContext = DefaultContext) {
 					assert("interfacesNames" in parent);
 					Json interNames = parent["interfacesNames"];
 					Json ret = returnTemplate();
+					ret["data"] = Json(null);
 					if(interNames.type == Json.Type.array) {
-						ret["data"] = Json.emptyArray();
-						foreach(Json it; interNames.byValue()) {
-							string typeName = it.get!string();
-							string typeCap = capitalize(typeName);
-							static foreach(type; collectTypes!(T)) {{
-								if(typeCap == typeToTypeName!(type)) {
-									ret["data"] ~= typeToJson!type();
-								}
-							}}
+						if(interNames.length > 0) {
+							ret["data"] = Json.emptyArray();
+							foreach(Json it; interNames.byValue()) {
+								string typeName = it.get!string();
+								string typeCap = capitalize(typeName);
+								static foreach(type; collectTypes!(T)) {{
+									if(typeCap == typeToTypeName!(type)) {
+										ret["data"] ~= typeToJson!type();
+									}
+								}}
+							}
 						}
-					} else {
-						ret["data"] = Json(null);
 					}
+					logf("__Type.interfaces result %s", ret);
 					return ret;
 				}
 			);
@@ -332,13 +335,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				.getWithDefault!string("data.__typename", "__typename")
 			));
 		foreach(FieldRangeItem field;
-				fieldRangeArr(sel, this.doc,
-						interfacesForType!(T)(objectValue
-								.getWithDefault!string("data.__typename",
-										"__typename"
-									)
-							)
-					)
+				fieldRangeArr(sel, this.doc, interfacesForType!(T)(objectValue
+					.getWithDefault!string("data.__typename", "__typename")))
 			)
 		{
 			//logf("Field: %s, OT: %s, OJ: %s", field.name, objectType.name,
@@ -398,15 +396,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables
 				);
-			if(rslt.dataIsEmpty()) {
+			if(rslt.dataIsNull()) {
+				logf("%s", rslt);
 				rslt["error"] ~= Json("NonNull was null");
-				rslt["data"] = Json(null);
 			}
 		} else if(GQLDNullable!Con nullType = objectType.toNullable()) {
 			//logf("nullable %s", nullType.name);
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
 					objectValue, variables
 				);
+			logf("IIIIIS EMPTY %s rslt %s", rslt.dataIsEmpty(), rslt);
 			if(rslt.dataIsEmpty()) {
 				//logf("NULLLLLLLLLLLL %s %s", rslt, rslt.dataIsEmpty());
 				rslt["data"] = null;
@@ -470,6 +469,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 GraphQLD!(Schema2) graphqld;
 
 void main() {
+	sharedLog = new std.experimental.logger.FileLogger("app.log");
  	database = new Data();
 	graphqld = new GraphQLD!Schema2();
 	writeln(graphqld.schema);

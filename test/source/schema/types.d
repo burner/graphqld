@@ -356,9 +356,10 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__nonNullType = new GQLDNonNull!Con(this.__type);
 		this.__schema.member["queryType"] = this.__type;
 		auto lNNTypes = new GQLDList!Con(this.__nonNullType);
+		auto nlNNTypes = new GQLDNullable!Con(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable!Con(lNNTypes);
-		this.__type.member["interfaces"] = str;
-		this.__type.member["possibleTypes"] = str;
+		this.__type.member["interfaces"] = nlNNTypes;
+		this.__type.member["possibleTypes"] = nlNNTypes;
 
 		this.__nonNullListOfNonNullType = new GQLDNonNull!Con(lNNTypes);
 		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
@@ -385,8 +386,11 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__listOfNonNullInputValue = new GQLDList!Con(
 				this.__nonNullInputValue
 			);
+		auto nlNNInputValue = new GQLDNullable!Con(
+				this.__listOfNonNullInputValue
+			);
 
-		this.__type.member["inputFields"] = this.__listOfNonNullInputValue;
+		this.__type.member["inputFields"] = nlNNInputValue;
 
 		this.__nonNullListOfNonNullInputValue = new GQLDNonNull!Con(
 				this.__listOfNonNullInputValue
@@ -427,7 +431,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
-		//logf("'%s' '%s'", t.name, field);
+		logf("'%s' '%s'", t.name, field);
 		GQLDType!Con ret;
 		if(auto s = t.toScalar()) {
 			//log();
@@ -440,17 +444,17 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 						|| map.name == "subscription")
 					&& field in map.member)
 			{
-				//log();
+				log();
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
 					//log();
 					ret = op.returnType;
 				} else {
-					//log();
+					log();
 					ret = tmp;
 				}
 			} else if(field in map.member) {
-				//log();
+				log();
 				ret = map.member[field];
 			} else if(field == "__typename") {
 				ret = this.types["string"];
@@ -467,7 +471,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		} else {
 			ret = t;
 		}
-		//logf("%s", ret.name);
+		logf("%s", ret.name);
 		return ret;
 	}
 }
