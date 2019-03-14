@@ -6,11 +6,11 @@ abstract class SmallChild {
 	int foo(long a);
 }
 
-class Small {
-	long id;
-	string name;
-	SmallChild child;
-	//SmallChild[] foobar;
+abstract class Small {
+	//long id;
+	//string name;
+	//abstract SmallChild[] foobar(int a);
+	SmallChild[] foobar;
 }
 
 interface Query2 {

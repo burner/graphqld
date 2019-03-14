@@ -170,11 +170,16 @@ bool hasPathTo(T)(Json data, string path, ref T ret) {
 			data = data[f];
 		}
 	}
-	if(data.type == TT) {
-		ret = data.to!T();
+	static if(is(T == Json)) {
+		ret = data;
 		return true;
+	} else {
+		if(data.type == TT) {
+			ret = data.to!T();
+			return true;
+		}
+		return false;
 	}
-	return false;
 }
 
 /**

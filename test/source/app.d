@@ -70,7 +70,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 				return ret;
 			};
 		auto typeResolver = buildTypeResolver!(T, Con)();
-		this.setResolver("query", "__type", typeResolver);
+		this.setResolver("query", "__type",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					Json tr = typeResolver(name, parent, args, context);
+					Json ret = returnTemplate();
+					ret["data"] = tr["data"]["ofType"];
+					logf("%s %s", tr.toPrettyString(), ret.toPrettyString());
+					return ret;
+				}
+			);
 		this.setResolver("query", "__schema", buildSchemaResolver!(T, Con)());
 		this.setResolver("__Field", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
@@ -78,6 +86,18 @@ class GraphQLD(T, QContext = DefaultContext) {
 					import std.string : capitalize;
 					Json ret = typeResolver(name, parent, args, context);
 					logf("FIELDDDDD TYPPPPPE %s", ret.toPrettyString());
+					return ret;
+				}
+			);
+		this.setResolver("__Type", "ofType",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("name %s, parent %s, args %s", name, parent, args);
+					Json ret = returnTemplate();
+					Json ofType;
+					if(parent.hasPathTo("ofType", ofType)) {
+						ret["data"] = ofType;
+					}
+					logf("%s", ret);
 					return ret;
 				}
 			);
@@ -128,25 +148,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 						log();
 						ret["data"] = Json(null);
 					}
-					return ret;
-				}
-			);
-		this.setResolver("__Type", "ofType",
-				delegate(string name, Json parent, Json args, ref Con context) {
-					logf("name %s, parent %s, args %s", name,
-							parent.toPrettyString(), args
-						);
-					Json ret;
-					if("ofTypeName" in parent
-							&& parent["ofTypeName"].type != Json.Type.null_)
-					{
-						parent["name"] = parent["ofTypeName"];
-						ret = typeResolver(name, parent, args, context);
-					} else {
-						ret = returnTemplate();
-						ret["data"] = emptyType();
-					}
-					logf("ref %s", ret["data"].toPrettyString());
 					return ret;
 				}
 			);
@@ -367,7 +368,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		auto retType = this.schema.getReturnType(objectType, field.name);
 		if(retType is null) {
-			//logf("ERR %s %s", objectType.name, field.name);
+			logf("ERR %s %s", objectType.name, field.name);
 			Json ret = Json.emptyObject();
 			ret["error"] = Json.emptyArray();
 			ret["error"] ~= Json(format(
@@ -389,7 +390,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		//	);
 		Json rslt;
 		if(GQLDMap!Con map = objectType.toMap()) {
-			//logf("map %s %s", map.name, ss !is null);
+			logf("map %s %s", map.name, ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
 		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
 			logf("NonNull %s", nonNullType.elementType.name);
@@ -401,7 +402,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				rslt["error"] ~= Json("NonNull was null");
 			}
 		} else if(GQLDNullable!Con nullType = objectType.toNullable()) {
-			//logf("nullable %s", nullType.name);
+			logf("nullable %s", nullType.name);
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
 					objectValue, variables
 				);
@@ -414,7 +415,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				//logf("NNNNNNNNNNNNNN %s", rslt);
 			}
 		} else if(GQLDList!Con list = objectType.toList()) {
-			//logf("list %s", list.name);
+			logf("list %s", list.name);
 			rslt = this.executeList(ss, list, objectValue, variables);
 		} else if(GQLDScalar!Con scalar = objectType.toScalar()) {
 			//logf("scalar %s", scalar.name);

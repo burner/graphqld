@@ -354,7 +354,6 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["description"] = nllStr;
 
 		this.__nonNullType = new GQLDNonNull!Con(this.__type);
-		this.__schema.member["queryType"] = this.__type;
 		auto lNNTypes = new GQLDList!Con(this.__nonNullType);
 		auto nlNNTypes = new GQLDNullable!Con(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable!Con(lNNTypes);

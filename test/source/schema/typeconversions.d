@@ -27,19 +27,15 @@ template typeToTypeEnum(Type) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(is(Type == union)) {
 		enum typeToTypeEnum = "UNION";
-	} else static if(is(Type : Nullable!F, F)) {
+	/*} else static if(is(Type : Nullable!F, F)) {
 		enum typeToTypeEnum = "NULLABLE";
 	} else static if(isArray!Type) {
-		enum typeToTypeEnum = "LIST";
+		enum typeToTypeEnum = "LIST";*/
 	} else static if(isAggregateType!Type) {
 		enum typeToTypeEnum = "OBJECT";
 	} else {
-		static assert(false, T.stringof ~ " not handled");
+		static assert(false, Type.stringof ~ " not handled");
 	}
-}
-
-unittest {
-	static assert(typeToTypeEnum!(int[]) == "LIST");
 }
 
 template typeToTypeName(Type) {
@@ -53,17 +49,14 @@ template typeToTypeName(Type) {
 		enum typeToTypeName = "Int";
 	} else static if(isSomeString!Type) {
 		enum typeToTypeName = "String";
-	} else static if(isArray!Type) {
+	/*} else static if(isArray!Type) {
 		enum typeToTypeName = "__listType";
 	} else static if(is(Type : Nullable!F, F)) {
 		enum typeToTypeName = "__nullType";
+	*/
 	} else {
 		enum typeToTypeName = Type.stringof;
 	}
-}
-
-unittest {
-	static assert(typeToTypeName!(Nullable!int) == "__nullType");
 }
 
 template isScalarType(Type) {
@@ -92,7 +85,7 @@ template typeToFieldType(Type) {
 	}
 }
 
-Json typeToField(T, string name)() {
+/*Json typeToField(T, string name)() {
 	alias Ts = stripArrayAndNullable!T;
 	Json ret = Json.emptyObject();
 	ret["name"] = name;
@@ -101,51 +94,6 @@ Json typeToField(T, string name)() {
 	ret["description"] = "TODO";
 	ret["isDeprecated"] = false;
 	ret["deprecationReason"] = "TODO";
-	return ret;
-}
-
-/*Json typeFields(T)() {
-	import std.algorithm.searching : startsWith;
-	import std.traits : FieldTypeTuple, FieldNameTuple;
-	Json ret = Json.emptyArray();
-
-	alias manyTypes = EraseAll!(Object, AliasSeq!(T, InheritedClasses!T));
-	pragma(msg, "775 ", T.stringof, " ", manyTypes);
-	static foreach(Type; manyTypes) {{
-		static if(is(Type : Nullable!F, F)) {
-			alias FT = F;
-		} else {
-			alias FT = Type;
-		}
-		pragma(msg, FT);
-		Json tmp = Json.emptyObject();
-		tmp["description"] = "TODO";
-		tmp["isDeprecated"] = false;
-		tmp["deprecationReason"] = "TODO";
-		static if(isBasicType!FT) {
-		} else {
-			tmp["name"] = mem;
-			static foreach(mem; __traits(allMembers, FT)) {{
-				alias MemType = typeof(__traits(getMember, FT, mem));
-				static if(isCallable!(__traits(getMember, FT, mem))) {
-					alias RT = ReturnType!(__traits(getMember, FT, mem));
-					alias RTS = stripArrayAndNullable!RT;
-					tmp["typename"] = typeToTypeName!(RTS);
-					tmp["typenameOrig"] = typeToTypeName!(RT);
-				}
-			}}
-		}
-		ret ~= tmp;
-		//alias fieldTypes = FieldTypeTuple!Type;
-		//alias fieldNames = FieldNameTuple!Type;
-		//static foreach(idx; 0 .. fieldTypes.length) {{
-		//	static if(!fieldNames[idx].empty
-		//			&& !startsWith(fieldNames[idx], "_"))
-		//	{
-		//		ret ~= typeToField!(fieldTypes[idx], fieldNames[idx]);
-		//	}
-		//}}
-	}}
 	return ret;
 }*/
 
@@ -159,20 +107,17 @@ Json typeFields(T)() {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
-				tmp["__TypeKind"] = "__Field";
 				tmp["name"] = mem;
-				tmp["description"] = "";
+				tmp["description"] = Json(null);
 				tmp["isDeprecated"] = false;
-				tmp["deprecationReason"] = "";
+				tmp["deprecationReason"] = Json(null);
 				tmp["args"] = Json.emptyArray();
 				pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
-					tmp["__typename"] = "__Field";
-					tmp["typename"] = typeToTypeName!RTS;
-					tmp["typenameOrg"] = typeToTypeName!RT;
+					tmp["typenameOrig"] = RT.stringof;
 
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(
@@ -186,11 +131,8 @@ Json typeFields(T)() {
 						);
 					static foreach(idx; 0 .. paraNames.length) {{
 						Json iv = Json.emptyObject();
-						iv["__TypeKind"] = "__InputValue";
 						iv["name"] = paraNames[idx];
-						iv["typename"] = typeToTypeName!(paraTypes[idx]);
-						alias Ts = stripArrayAndNullable!(paraTypes[idx]);
-						iv["typenameOrig"] = typeToFieldType!(Ts);
+						iv["typenameOrig"] = paraTypes[idx].stringof;
 						static if(!is(paraDefs[idx] == void)) {
 							iv["defaultValue"] = serializeToJson(paraDefs[idx])
 								.toString();
@@ -199,13 +141,11 @@ Json typeFields(T)() {
 					}}
 				} else {
 					pragma(msg, "\t\tfield");
-					alias Ts = stripArrayAndNullable!(
-							typeof(__traits(getMember, Type, mem))
-						);
-					tmp["typename"] = typeToTypeName!Ts;
-					tmp["typenameOrg"] = typeToTypeName!(
-							typeof(__traits(getMember, Type, mem))
-						);
+					//alias Ts = stripArrayAndNullable!(
+					//
+					//	);
+					tmp["typenameOrig"] = typeof(__traits(getMember, Type, mem))
+						.stringof;
 				}
 				ret ~= tmp;
 			}
@@ -216,29 +156,60 @@ Json typeFields(T)() {
 
 Json emptyType() {
 	Json ret = Json.emptyObject();
-	ret["kind"] = "";
 	ret["name"] = Json(null);
-	ret["__typename"] = Json(null);
 	ret["description"] = Json(null);
 	ret["fields"] = Json(null);
 	ret["interfacesNames"] = Json(null);
 	ret["possibleTypesNames"] = Json(null);
-	ret["ofTypeName"] = Json(null);
 	ret["enumValues"] = Json(null);
+	ret["ofType"] = Json(null);
 	return ret;
 }
 
+// remove the top nullable to find out if we have a NON_NULL or not
 Json typeToJson(Type)() {
+	static if(is(Type : Nullable!F, F)) {
+		return typeToJson1!F();
+	} else {
+		Json ret = emptyType();
+		ret["kind"] = "NON_NULL";
+		ret["ofType"] = typeToJson1!Type();
+		return ret;
+	}
+}
+
+// remove the array is present
+Json typeToJson1(Type)() {
+	static if(isArray!Type && !isSomeString!Type) {
+		Json ret = emptyType();
+		ret["kind"] = "LIST";
+		ret["ofType"] = typeToJson2!(ElementEncodingType!Type)();
+		return ret;
+	} else {
+		return typeToJsonImpl!Type();
+	}
+}
+
+// remove another nullable
+Json typeToJson2(Type)() {
+	static if(is(Type : Nullable!F, F)) {
+		return typeToJsonImpl!F();
+	} else {
+		Json ret = emptyType();
+		ret["kind"] = "NON_NULL";
+		ret["ofType"] = typeToJsonImpl!Type();
+		return ret;
+	}
+}
+
+Json typeToJsonImpl(Type)() {
 	Json ret = Json.emptyObject();
-	ret["__TypeKind"] = "__Type";
 	ret["kind"] = typeToTypeEnum!Type;
 	ret["name"] = typeToTypeName!Type;
-	ret["__typename"] = "__Type";
 	ret["description"] = "TODO";
 
 	// fields
-	static if(
-			(is(Type == class) || is(Type == interface) || is(Type == struct))
+	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
 			&& !is(Type : Nullable!K, K))
 	{
 		ret["fields"] = typeFields!Type();
@@ -285,12 +256,10 @@ Json typeToJson(Type)() {
 	}
 
 	// needed to resolve ofType
-	static if(!isSomeString!Type && isArray!Type) {
-		ret["ofTypeName"] = ElementEncodingType!(Type).stringof;
-	} else static if(is(Type : Nullable!F, F)) {
+	static if(is(Type : Nullable!F, F)) {
 		ret["ofTypeName"] = F.stringof;
-	} else {
-		ret["ofTypeName"] = Type.stringof;
+	} else static if(isArray!Type) {
+		ret["ofTypeName"] = ElementEncodingType!(Type).stringof;
 	}
 
 	return ret;

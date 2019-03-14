@@ -43,7 +43,6 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 		{
 			logf("%s %s %s", name, args, parent);
 			Json ret = returnTemplate();
-			ret["__TypeKind"] = "__Type";
 			string typeName;
 			if("name" in args) {
 				typeName = args["name"].get!string();
@@ -59,27 +58,6 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				goto retLabel;
 			} else {
 				typeCap = firstCharUpperCase(typeName);
-			}
-			if(typeName == "__listType") {
-				ret["data"] = typeToJson!(int[])();
-				ret["data"]["__typename"] = "__listType";
-				ret["data"]["typenameOrig"] = parent["typename"];
-				ret["data"]["name"] = Json(null);
-				ret["data"]["kind"] = "LIST";
-				goto retLabel;
-			} else if(typeName == "__nullType") {
-				ret["data"] = typeToJson!(Nullable!int)();
-				ret["data"]["typenameOrig"] = parent["typename"];
-				ret["data"]["__typename"] = "__nullType";
-				ret["data"]["name"] = Json(null);
-				goto retLabel;
-			} else if(typeName == "__nonNullType") {
-				ret["data"] = typeToJson!(int)();
-				ret["data"]["typenameOrig"] = parent["typename"];
-				ret["data"]["__typename"] = "__nonNullType";
-				ret["data"]["name"] = Json(null);
-				ret["data"]["kind"] = "NON_NULL";
-				goto retLabel;
 			}
 			pragma(msg, "collectTypes ", collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
@@ -109,7 +87,7 @@ GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
 		ret.member[qms] = cur;
 		if(qms == "query") {
 			cur.member["__schema"] = ret.__schema;
-			cur.member["__type"] = ret.__type;
+			cur.member["__type"] = ret.__nonNullType;
 		}
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
