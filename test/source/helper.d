@@ -68,11 +68,7 @@ bool dataIsEmpty(ref const(Json) data) {
 	{
 		return true;
 	} else if(data.type == Json.Type.array) {
-		foreach(item; data.byValue()) {
-			if(!item.dataIsEmpty()) {
-				return false;
-			}
-		}
+		return false;
 	} else if(data.type == Json.Type.bigInt
 			|| data.type == Json.Type.bool_
 			|| data.type == Json.Type.float_
