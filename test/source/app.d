@@ -89,6 +89,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
+		this.setResolver("__InputValue", "type",
+				delegate(string name, Json parent, Json args, ref Con context) {
+					Json tr = typeResolver(name, parent, args, context);
+					Json ret = returnTemplate();
+					ret["data"] = tr["data"]["ofType"];
+					logf("%s %s", tr.toPrettyString(), ret.toPrettyString());
+					return ret;
+				}
+			);
 		this.setResolver("__Type", "ofType",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
@@ -104,10 +113,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.setResolver("__Type", "interfaces",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
-					assert("interfacesNames" in parent);
-					Json interNames = parent["interfacesNames"];
 					Json ret = returnTemplate();
-					ret["data"] = Json(null);
+					if("interfacesNames" !in parent) {
+						ret["data"] = Json(null);
+						return ret;
+					}
+					Json interNames = parent["interfacesNames"];
 					if(interNames.type == Json.Type.array) {
 						if(interNames.length > 0) {
 							ret["data"] = Json.emptyArray();
@@ -121,6 +132,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 								}}
 							}
 						}
+					} else {
+						ret["data"] = Json(null);
 					}
 					logf("__Type.interfaces result %s", ret);
 					return ret;
@@ -129,9 +142,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.setResolver("__Type", "possibleTypes",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
-					assert("possibleTypesNames" in parent);
-					Json pTypesNames = parent["possibleTypesNames"];
 					Json ret = returnTemplate();
+					if("possibleTypesNames" !in parent) {
+						ret["data"] = Json(null);
+						return ret;
+					}
+					Json pTypesNames = parent["possibleTypesNames"];
 					if(pTypesNames.type == Json.Type.array) {
 						log();
 						ret["data"] = Json.emptyArray();
@@ -167,7 +183,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson(args, defaultArgs);
-		logf("%s %s %s %s", defaultArgs, parent, args, joinedArgs);
+		logf("%s %s %s %s %s %s", type, field, defaultArgs, parent, args,
+				joinedArgs
+			);
 		if(type !in this.resolver) {
 			return defaultResolver(field, parent, joinedArgs, context);
 		} else if(field !in this.resolver[type]) {

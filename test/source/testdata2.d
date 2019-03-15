@@ -7,9 +7,9 @@ abstract class SmallChild {
 }
 
 abstract class Small {
-	//long id;
-	//string name;
-	//abstract SmallChild[] foobar(int a);
+	long id;
+	string name;
+	abstract SmallChild[] arg(int a);
 	SmallChild[] foobar;
 }
 

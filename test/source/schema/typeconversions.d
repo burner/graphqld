@@ -85,18 +85,6 @@ template typeToFieldType(Type) {
 	}
 }
 
-/*Json typeToField(T, string name)() {
-	alias Ts = stripArrayAndNullable!T;
-	Json ret = Json.emptyObject();
-	ret["name"] = name;
-	ret["typename"] = typeToTypeName!(Ts);
-	ret["typenameOrig"] = typeToFieldType!(T);
-	ret["description"] = "TODO";
-	ret["isDeprecated"] = false;
-	ret["deprecationReason"] = "TODO";
-	return ret;
-}*/
-
 Json typeFields(T)() {
 	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
 			"opEquals", "Monitor", "factory"];
@@ -108,6 +96,7 @@ Json typeFields(T)() {
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
 				tmp["name"] = mem;
+				tmp["__typename"] = "__Field"; // needed for interfacesForType
 				tmp["description"] = Json(null);
 				tmp["isDeprecated"] = false;
 				tmp["deprecationReason"] = Json(null);
@@ -117,7 +106,7 @@ Json typeFields(T)() {
 					pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
-					tmp["typenameOrig"] = RT.stringof;
+					tmp["typenameOrig"] = typeToTypeName!(RT);
 
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(
@@ -132,7 +121,9 @@ Json typeFields(T)() {
 					static foreach(idx; 0 .. paraNames.length) {{
 						Json iv = Json.emptyObject();
 						iv["name"] = paraNames[idx];
-						iv["typenameOrig"] = paraTypes[idx].stringof;
+						// needed for interfacesForType
+						iv["__typename"] = "__InputValue";
+						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv["defaultValue"] = serializeToJson(paraDefs[idx])
 								.toString();
@@ -141,11 +132,9 @@ Json typeFields(T)() {
 					}}
 				} else {
 					pragma(msg, "\t\tfield");
-					//alias Ts = stripArrayAndNullable!(
-					//
-					//	);
-					tmp["typenameOrig"] = typeof(__traits(getMember, Type, mem))
-						.stringof;
+					tmp["typenameOrig"] = typeToTypeName!(
+							typeof(__traits(getMember, Type, mem))
+						);
 				}
 				ret ~= tmp;
 			}
@@ -173,6 +162,7 @@ Json typeToJson(Type)() {
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
+		ret["__typename"] = "__Type";
 		ret["ofType"] = typeToJson1!Type();
 		return ret;
 	}
@@ -183,6 +173,7 @@ Json typeToJson1(Type)() {
 	static if(isArray!Type && !isSomeString!Type) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
+		ret["__typename"] = "__Type";
 		ret["ofType"] = typeToJson2!(ElementEncodingType!Type)();
 		return ret;
 	} else {
@@ -197,6 +188,7 @@ Json typeToJson2(Type)() {
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
+		ret["__typename"] = "__Type";
 		ret["ofType"] = typeToJsonImpl!Type();
 		return ret;
 	}
@@ -205,6 +197,7 @@ Json typeToJson2(Type)() {
 Json typeToJsonImpl(Type)() {
 	Json ret = Json.emptyObject();
 	ret["kind"] = typeToTypeEnum!Type;
+	ret["__typename"] = "__Type";
 	ret["name"] = typeToTypeName!Type;
 	ret["description"] = "TODO";
 
