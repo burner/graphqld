@@ -11,6 +11,7 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
+import schema.directives;
 import helper;
 
 import types;
@@ -53,6 +54,7 @@ class Schema {
 	Query query;
 	Mutation mutation;
 	Subscription subscription;
+	DefaultDirectives directives;
 }
 
 enum Series {

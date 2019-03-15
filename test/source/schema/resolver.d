@@ -33,7 +33,10 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 				Json tmp = typeToJsonImpl!type();
 				ret["data"]["types"] ~= tmp;
 			}}
-			ret["data"]["directives"] = Json.emptyArray();
+			ret["data"]["directives"] =
+				directivesToJson!(typeof(
+						__traits(getMember, Type, "directives")
+					));
 			ret["data"]["queryType"] = typeToJsonImpl!(typeof(
 					__traits(getMember, Type, "query")))();
 			logf("%s", ret.toPrettyString());

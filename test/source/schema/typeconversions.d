@@ -25,12 +25,10 @@ template typeToTypeEnum(Type) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(isSomeString!Type) {
 		enum typeToTypeEnum = "SCALAR";
+	} else static if(is(Type == void)) {
+		enum typeToTypeEnum = "VOID";
 	} else static if(is(Type == union)) {
 		enum typeToTypeEnum = "UNION";
-	/*} else static if(is(Type : Nullable!F, F)) {
-		enum typeToTypeEnum = "NULLABLE";
-	} else static if(isArray!Type) {
-		enum typeToTypeEnum = "LIST";*/
 	} else static if(isAggregateType!Type) {
 		enum typeToTypeEnum = "OBJECT";
 	} else {
@@ -49,11 +47,6 @@ template typeToTypeName(Type) {
 		enum typeToTypeName = "Int";
 	} else static if(isSomeString!Type) {
 		enum typeToTypeName = "String";
-	/*} else static if(isArray!Type) {
-		enum typeToTypeName = "__listType";
-	} else static if(is(Type : Nullable!F, F)) {
-		enum typeToTypeName = "__nullType";
-	*/
 	} else {
 		enum typeToTypeName = Type.stringof;
 	}
@@ -255,5 +248,55 @@ Json typeToJsonImpl(Type)() {
 		ret["ofTypeName"] = ElementEncodingType!(Type).stringof;
 	}
 
+	return ret;
+}
+
+Json directivesToJson(Directives)() {
+	import std.string : stripLeft;
+	Json ret = Json.emptyArray();
+	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
+			"opEquals", "Monitor", "factory"];
+	alias TplusParents = AliasSeq!(Directives, InheritedClasses!Directives);
+	static foreach(Type; TplusParents) {{
+		static foreach(mem; __traits(allMembers, Type)) {{
+			static if(!canFind(memsToIgnore, mem)) {
+				Json tmp = Json.emptyObject();
+				tmp["name"] = mem;
+				// needed for interfacesForType
+				tmp["__typename"] = "__Directive";
+				tmp["description"] = Json(null);
+				tmp["locations"] = Json.emptyArray();
+				tmp["args"] = Json.emptyArray();
+				static if(isCallable!(__traits(getMember, Type, mem))) {
+					// InputValue
+					alias paraNames = ParameterIdentifierTuple!(
+							__traits(getMember, Type, mem)
+						);
+					alias paraTypes = Parameters!(
+							__traits(getMember, Type, mem)
+						);
+					alias paraDefs = ParameterDefaults!(
+							__traits(getMember, Type, mem)
+						);
+					static foreach(idx; 0 .. paraNames.length) {{
+						Json iv = Json.emptyObject();
+						// TODO remove the strip left. Its in because the
+						// two default directives of GraphQL skip and include
+						// both have one parameter named "if".
+						iv["name"] = stripLeft(paraNames[idx], "_");
+						// needed for interfacesForType
+						iv["__typename"] = "__InputValue";
+						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
+						static if(!is(paraDefs[idx] == void)) {
+							iv["defaultValue"] = serializeToJson(paraDefs[idx])
+								.toString();
+						}
+						tmp["args"] ~= iv;
+					}}
+				}
+				ret ~= tmp;
+			}
+		}}
+	}}
 	return ret;
 }

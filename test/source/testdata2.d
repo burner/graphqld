@@ -2,6 +2,8 @@ module testdata2;
 
 import std.typecons : Nullable;
 
+import schema.directives;
+
 abstract class SmallChild {
 	long id;
 	string name;
@@ -30,6 +32,7 @@ interface Subscription2 {
 
 class Schema2 {
 	Query2 query;
+	DefaultDirectives directives;
 	//Mutation2 mutation;
 	//Subscription2 subscription;
 }

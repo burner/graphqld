@@ -412,7 +412,7 @@ class GQLDSchema(Type) : GQLDMap {
 
 		this.__directives = new GQLDObject("__Directive");
 		this.__directives.member["name"] = nnStr;
-		this.__directives.member["name"] = str;
+		this.__directives.member["description"] = str;
 		this.__directives.member["args"] =
 			this.__nonNullListOfNonNullInputValue;
 		this.__directives.member["locations"] = new GQLDNonNull(

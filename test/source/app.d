@@ -485,12 +485,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 }
 
-GraphQLD!(Schema2) graphqld;
+GraphQLD!(Schema) graphqld;
 
 void main() {
 	sharedLog = new std.experimental.logger.FileLogger("app.log");
  	database = new Data();
-	graphqld = new GraphQLD!Schema2();
+	graphqld = new GraphQLD!Schema();
 	writeln(graphqld.schema);
 	auto sr = buildSchemaResolver!(Schema2, DefaultContext);
 	DefaultContext dc;
