@@ -36,8 +36,7 @@ enum GQLDKind {
 	Schema
 }
 
-abstract class GQLDType(Con) {
-	alias Context = Con;
+abstract class GQLDType {
 
 	const GQLDKind kind;
 	string name;
@@ -55,13 +54,13 @@ abstract class GQLDType(Con) {
 	}
 }
 
-class GQLDScalar(Con) : GQLDType!(Con) {
+class GQLDScalar : GQLDType {
 	this(GQLDKind kind) {
 		super(kind);
 	}
 }
 
-class GQLDString(Con) : GQLDScalar!(Con) {
+class GQLDString : GQLDScalar {
 	this() {
 		super(GQLDKind.String);
 		super.name = "String";
@@ -72,7 +71,7 @@ class GQLDString(Con) : GQLDScalar!(Con) {
 	}
 }
 
-class GQLDFloat(Con) : GQLDScalar!(Con) {
+class GQLDFloat : GQLDScalar {
 	this() {
 		super(GQLDKind.Float);
 		super.name = "Float";
@@ -83,7 +82,7 @@ class GQLDFloat(Con) : GQLDScalar!(Con) {
 	}
 }
 
-class GQLDInt(Con) : GQLDScalar!(Con) {
+class GQLDInt : GQLDScalar {
 	this() {
 		super(GQLDKind.Int);
 		super.name = "Int";
@@ -94,7 +93,7 @@ class GQLDInt(Con) : GQLDScalar!(Con) {
 	}
 }
 
-class GQLDEnum(Con) : GQLDScalar!(Con) {
+class GQLDEnum : GQLDScalar {
 	string enumName;
 	this(string enumName) {
 		super(GQLDKind.Enum);
@@ -107,7 +106,7 @@ class GQLDEnum(Con) : GQLDScalar!(Con) {
 	}
 }
 
-class GQLDBool(Con) : GQLDScalar!(Con) {
+class GQLDBool : GQLDScalar {
 	this() {
 		super(GQLDKind.Bool);
 		super.name = "Bool";
@@ -118,9 +117,9 @@ class GQLDBool(Con) : GQLDScalar!(Con) {
 	}
 }
 
-class GQLDMap(Con) : GQLDType!(Con) {
-	GQLDType!(Con)[string] member;
-	GQLDMap!(Con)[] derivatives;
+class GQLDMap : GQLDType {
+	GQLDType[string] member;
+	GQLDMap[] derivatives;
 
 	this() {
 		super(GQLDKind.Map);
@@ -129,7 +128,7 @@ class GQLDMap(Con) : GQLDType!(Con) {
 		super(kind);
 	}
 
-	void addDerivative(GQLDMap!(Con) d) {
+	void addDerivative(GQLDMap d) {
 		if(!canFind!((a,b) => a is b)(this.derivatives, d)) {
 			this.derivatives ~= d;
 		}
@@ -144,14 +143,14 @@ class GQLDMap(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDObject(Con) : GQLDMap!(Con) {
-	GQLDObject!(Con) _base;
+class GQLDObject : GQLDMap {
+	GQLDObject _base;
 
-	@property const(GQLDObject!(Con)) base() const {
+	@property const(GQLDObject) base() const {
 		return cast(const)this._base;
 	}
 
-	@property void base(GQLDObject!(Con) nb) {
+	@property void base(GQLDObject nb) {
 		this._base = nb;
 	}
 
@@ -179,7 +178,7 @@ class GQLDObject(Con) : GQLDMap!(Con) {
 	}
 }
 
-class GQLDUnion(Con) : GQLDMap!(Con) {
+class GQLDUnion : GQLDMap {
 	this(string name) {
 		super(GQLDKind.Union);
 		super.name = name;
@@ -198,10 +197,10 @@ class GQLDUnion(Con) : GQLDMap!(Con) {
 	}
 }
 
-class GQLDList(Con) : GQLDType!(Con) {
-	GQLDType!(Con) elementType;
+class GQLDList : GQLDType {
+	GQLDType elementType;
 
-	this(GQLDType!(Con) elemType) {
+	this(GQLDType elemType) {
 		super(GQLDKind.List);
 		super.name = "List";
 		this.elementType = elemType;
@@ -216,10 +215,10 @@ class GQLDList(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDNonNull(Con) : GQLDType!(Con) {
-	GQLDType!(Con) elementType;
+class GQLDNonNull : GQLDType {
+	GQLDType elementType;
 
-	this(GQLDType!(Con) elemType) {
+	this(GQLDType elemType) {
 		super(GQLDKind.NonNull);
 		super.name = "NonNull";
 		this.elementType = elemType;
@@ -234,10 +233,10 @@ class GQLDNonNull(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDNullable(Con) : GQLDType!(Con) {
-	GQLDType!(Con) elementType;
+class GQLDNullable : GQLDType {
+	GQLDType elementType;
 
-	this(GQLDType!(Con) elemType) {
+	this(GQLDType elemType) {
 		super(GQLDKind.Nullable);
 		super.name = "Nullable";
 		this.elementType = elemType;
@@ -252,11 +251,11 @@ class GQLDNullable(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDOperation(Con) : GQLDType!(Con) {
-	GQLDType!(Con) returnType;
+class GQLDOperation : GQLDType {
+	GQLDType returnType;
 	string returnTypeName;
 
-	GQLDType!(Con)[string] parameters;
+	GQLDType[string] parameters;
 
 	this(GQLDKind kind) {
 		super(kind);
@@ -274,47 +273,47 @@ class GQLDOperation(Con) : GQLDType!(Con) {
 	}
 }
 
-class GQLDQuery(Con) : GQLDOperation!(Con) {
+class GQLDQuery : GQLDOperation {
 	this() {
 		super(GQLDKind.Query);
 		super.name = "Query";
 	}
 }
 
-class GQLDMutation(Con) : GQLDOperation!(Con) {
+class GQLDMutation : GQLDOperation {
 	this() {
 		super(GQLDKind.Mutation);
 		super.name = "Mutation";
 	}
 }
 
-class GQLDSubscription(Con) : GQLDOperation!(Con) {
+class GQLDSubscription : GQLDOperation {
 	this() {
 		super(GQLDKind.Subscription);
 		super.name = "Subscription";
 	}
 }
 
-class GQLDSchema(Type, Con) : GQLDMap!(Con) {
-	GQLDType!(Con)[string] types;
+class GQLDSchema(Type) : GQLDMap {
+	GQLDType[string] types;
 
-	GQLDObject!(Con) __schema;
-	GQLDObject!(Con) __type;
-	GQLDObject!(Con) __field;
-	GQLDObject!(Con) __inputValue;
-	GQLDObject!(Con) __enumValue;
-	GQLDObject!(Con) __directives;
+	GQLDObject __schema;
+	GQLDObject __type;
+	GQLDObject __field;
+	GQLDObject __inputValue;
+	GQLDObject __enumValue;
+	GQLDObject __directives;
 
-	GQLDNonNull!Con __nonNullType;
-	GQLDNullable!Con __nullableType;
-	GQLDNullable!Con __listOfNonNullType;
-	GQLDNonNull!Con __nonNullListOfNonNullType;
-	GQLDNonNull!Con __nonNullField;
-	GQLDNullable!Con __listOfNonNullField;
-	GQLDNonNull!Con __nonNullInputValue;
-	GQLDList!Con __listOfNonNullInputValue;
-	GQLDNonNull!Con __nonNullListOfNonNullInputValue;
-	GQLDList!Con __listOfNonNullEnumValue;
+	GQLDNonNull __nonNullType;
+	GQLDNullable __nullableType;
+	GQLDNullable __listOfNonNullType;
+	GQLDNonNull __nonNullListOfNonNullType;
+	GQLDNonNull __nonNullField;
+	GQLDNullable __listOfNonNullField;
+	GQLDNonNull __nonNullInputValue;
+	GQLDList __listOfNonNullInputValue;
+	GQLDNonNull __nonNullListOfNonNullInputValue;
+	GQLDList __listOfNonNullEnumValue;
 
 	this() {
 		super(GQLDKind.Schema);
@@ -324,104 +323,104 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 
 	void createInbuildTypes() {
-		this.types["string"] = new GQLDString!Con();
+		this.types["string"] = new GQLDString();
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
-			GQLDObject!Con tmp = new GQLDObject!Con(t);
+			GQLDObject tmp = new GQLDObject(t);
 			this.types[t] = tmp;
-			tmp.member["name"] = new GQLDString!Con();
-			tmp.member["description"] = new GQLDString!Con();
-			tmp.member["kind"] = new GQLDEnum!Con("__TypeKind");
+			tmp.member["name"] = new GQLDString();
+			tmp.member["description"] = new GQLDString();
+			tmp.member["kind"] = new GQLDEnum("__TypeKind");
 			//tmp.resolver = buildTypeResolver!(Type,Con)();
 		}
 	}
 
 	void createIntrospectionTypes() {
 		// build base types
-		auto str = new GQLDString!Con();
-		auto nnStr = new GQLDNonNull!Con(str);
-		auto nllStr = new GQLDNullable!Con(str);
+		auto str = new GQLDString();
+		auto nnStr = new GQLDNonNull(str);
+		auto nllStr = new GQLDNullable(str);
 
-		auto b = new GQLDBool!Con();
-		auto nnB = new GQLDNonNull!Con(b);
-		this.__schema = new GQLDObject!Con("__schema");
-		this.__type = new GQLDObject!Con("__Type");
+		auto b = new GQLDBool();
+		auto nnB = new GQLDNonNull(b);
+		this.__schema = new GQLDObject("__schema");
+		this.__type = new GQLDObject("__Type");
 		this.__schema.member["mutationType"] = this.__type;
 		this.__schema.member["subscriptionType"] = this.__type;
 
-		this.__nullableType = new GQLDNullable!Con(this.__type);
+		this.__nullableType = new GQLDNullable(this.__type);
 		this.__type.member["ofType"] = this.__nullableType;
-		this.__type.member["kind"] = new GQLDEnum!Con("__TypeKind");
+		this.__type.member["kind"] = new GQLDEnum("__TypeKind");
 		this.__type.member["name"] = nllStr;
 		this.__type.member["description"] = nllStr;
 
-		this.__nonNullType = new GQLDNonNull!Con(this.__type);
+		this.__nonNullType = new GQLDNonNull(this.__type);
 		this.__schema.member["queryType"] = this.__nonNullType;
-		auto lNNTypes = new GQLDList!Con(this.__nonNullType);
-		auto nlNNTypes = new GQLDNullable!Con(lNNTypes);
-		this.__listOfNonNullType = new GQLDNullable!Con(lNNTypes);
+		auto lNNTypes = new GQLDList(this.__nonNullType);
+		auto nlNNTypes = new GQLDNullable(lNNTypes);
+		this.__listOfNonNullType = new GQLDNullable(lNNTypes);
 		this.__type.member["interfaces"] = nlNNTypes;
 		this.__type.member["possibleTypes"] = nlNNTypes;
 
-		this.__nonNullListOfNonNullType = new GQLDNonNull!Con(lNNTypes);
+		this.__nonNullListOfNonNullType = new GQLDNonNull(lNNTypes);
 		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
 
-		this.__field = new GQLDObject!Con("__Field");
+		this.__field = new GQLDObject("__Field");
 		this.__field.member["name"] = nnStr;
 		this.__field.member["description"] = nllStr;
 		this.__field.member["type"] = this.__nonNullType;
 		this.__field.member["isDeprecated"] = nnB;
 		this.__field.member["deprecationReason"] = nllStr;
 
-		this.__nonNullField = new GQLDNonNull!Con(this.__field);
-		auto lNNFields = new GQLDList!Con(this.__nonNullField);
-		this.__listOfNonNullField = new GQLDNullable!Con(lNNFields);
+		this.__nonNullField = new GQLDNonNull(this.__field);
+		auto lNNFields = new GQLDList(this.__nonNullField);
+		this.__listOfNonNullField = new GQLDNullable(lNNFields);
 		this.__type.member["fields"] = this.__listOfNonNullField;
 
-		this.__inputValue = new GQLDObject!Con("__InputValue");
+		this.__inputValue = new GQLDObject("__InputValue");
 		this.__inputValue.member["name"] = nnStr;
 		this.__inputValue.member["description"] = nllStr;
 		this.__inputValue.member["defaultValue"] = nllStr;
 		this.__inputValue.member["type"] = this.__nonNullType;
 
-		this.__nonNullInputValue = new GQLDNonNull!Con(this.__inputValue);
-		this.__listOfNonNullInputValue = new GQLDList!Con(
+		this.__nonNullInputValue = new GQLDNonNull(this.__inputValue);
+		this.__listOfNonNullInputValue = new GQLDList(
 				this.__nonNullInputValue
 			);
-		auto nlNNInputValue = new GQLDNullable!Con(
+		auto nlNNInputValue = new GQLDNullable(
 				this.__listOfNonNullInputValue
 			);
 
 		this.__type.member["inputFields"] = nlNNInputValue;
 
-		this.__nonNullListOfNonNullInputValue = new GQLDNonNull!Con(
+		this.__nonNullListOfNonNullInputValue = new GQLDNonNull(
 				this.__listOfNonNullInputValue
 			);
 
 		this.__field.member["args"] = this.__nonNullListOfNonNullInputValue;
 
-		this.__enumValue = new GQLDObject!Con("__EnumValue");
+		this.__enumValue = new GQLDObject("__EnumValue");
 		this.__enumValue.member["name"] = nnStr;
 		this.__enumValue.member["description"] = nllStr;
 		this.__enumValue.member["isDeprecated"] = nnB;
 		this.__enumValue.member["deprecationReason"] = nllStr;
 
-		this.__listOfNonNullEnumValue = new GQLDList!Con(new GQLDNonNull!Con(
+		this.__listOfNonNullEnumValue = new GQLDList(new GQLDNonNull(
 				this.__enumValue
 			));
 
 		this.__type.member["enumValues"] = this.__listOfNonNullEnumValue;
 
-		this.__directives = new GQLDObject!Con("__Directive");
+		this.__directives = new GQLDObject("__Directive");
 		this.__directives.member["name"] = nnStr;
 		this.__directives.member["name"] = str;
 		this.__directives.member["args"] =
 			this.__nonNullListOfNonNullInputValue;
-		this.__directives.member["locations"] = new GQLDNonNull!(Con)(
+		this.__directives.member["locations"] = new GQLDNonNull(
 				this.__listOfNonNullEnumValue
 			);
 
-		this.__schema.member["directives"] = new GQLDNonNull!(Con)(
-				new GQLDList!(Con)(new GQLDNonNull!(Con)(this.__directives))
+		this.__schema.member["directives"] = new GQLDNonNull(
+				new GQLDList(new GQLDNonNull(this.__directives))
 			);
 
 
@@ -445,9 +444,9 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		return app.data;
 	}
 
-	GQLDType!(Con) getReturnType(Con)(GQLDType!Con t, string field) {
+	GQLDType getReturnType(GQLDType t, string field) {
 		logf("'%s' '%s'", t.name, field);
-		GQLDType!Con ret;
+		GQLDType ret;
 		if(auto s = t.toScalar()) {
 			//log();
 			ret = s;
@@ -491,120 +490,115 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	}
 }
 
-GQLDSchema!(Con) toSchemaFoo(Con)(GQLDType!Con t) {
+GQLDObject toObject(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDObject!(Con) toObject(Con)(GQLDType!Con t) {
+GQLDMap toMap(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDMap!(Con) toMap(Con)(GQLDType!Con t) {
+GQLDScalar toScalar(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDScalar!(Con) toScalar(Con)(GQLDType!Con t) {
+GQLDOperation toOperation(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDOperation!(Con) toOperation(Con)(GQLDType!Con t) {
+GQLDList toList(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDList!(Con) toList(Con)(GQLDType!Con t) {
+GQLDNullable toNullable(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
-GQLDNullable!(Con) toNullable(Con)(GQLDType!Con t) {
-	return cast(typeof(return))t;
-}
-
-GQLDNonNull!(Con) toNonNull(Con)(GQLDType!Con t) {
+GQLDNonNull toNonNull(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
 unittest {
-	auto str = new GQLDString!(int)();
+	auto str = new GQLDString();
 	assert(str.name == "String");
 
 	auto map = str.toMap();
 	assert(map is null);
 }
 
-string toShortString(Con)(const(GQLDType!(Con)) e) {
-	if(auto o = cast(const(GQLDObject!(Con)))e) {
+string toShortString(const(GQLDType) e) {
+	if(auto o = cast(const(GQLDObject))e) {
 		return o.name;
-	} else if(auto u = cast(const(GQLDUnion!(Con)))e) {
+	} else if(auto u = cast(const(GQLDUnion))e) {
 		return u.name;
 	} else {
 		return e.toString();
 	}
 }
 
-GQLDType!(Con) typeToGQLDType(Type, Con, SCH)(ref SCH ret) {
+GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 	pragma(msg, Type.stringof, " ", isIntegral!Type);
 	static if(is(Type == enum)) {
-		GQLDEnum!(Con) r;
+		GQLDEnum r;
 		if(Type.stringof in ret.types) {
-			r = cast(GQLDEnum!(Con))ret.types[Type.stringof];
+			r = cast(GQLDEnum)ret.types[Type.stringof];
 		} else {
-			r = new GQLDEnum!(Con)(Type.stringof);
+			r = new GQLDEnum(Type.stringof);
 			ret.types[Type.stringof] = r;
 		}
 		return r;
 	} else static if(is(Type == bool)) {
-		return new GQLDBool!(Con)();
+		return new GQLDBool();
 	} else static if(isFloatingPoint!(Type)) {
-		return new GQLDFloat!(Con)();
+		return new GQLDFloat();
 	} else static if(isIntegral!(Type)) {
-		return new GQLDInt!(Con)();
+		return new GQLDInt();
 	} else static if(isSomeString!Type) {
-		return new GQLDString!(Con)();
+		return new GQLDString();
 	} else static if(is(Type == union)) {
-		GQLDUnion!(Con) r;
+		GQLDUnion r;
 		if(Type.stringof in ret.types) {
-			r = cast(GQLDUnion!(Con))ret.types[Type.stringof];
+			r = cast(GQLDUnion)ret.types[Type.stringof];
 		} else {
-			r = new GQLDUnion!(Con)(Type.stringof);
+			r = new GQLDUnion(Type.stringof);
 			ret.types[Type.stringof] = r;
 
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				auto tmp = typeToGQLDType!(fieldTypes[idx], Con)(ret);
+				auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
 				r.member[fieldNames[idx]] = tmp;
 
-				if(GQLDMap!Con tmpMap = tmp.toMap()) {
+				if(GQLDMap tmpMap = tmp.toMap()) {
 					r.addDerivative(tmpMap);
 				}
 			}}
 		}
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
-		return new GQLDNullable!(Con)(typeToGQLDType!(F, Con)(ret));
+		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {
-		return new GQLDList!(Con)(
-				typeToGQLDType!(ElementEncodingType!Type, Con)(ret)
+		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret)
 			);
 	} else static if(isAggregateType!Type) {
-		GQLDObject!(Con) r;
+		GQLDObject r;
 		if(Type.stringof in ret.types) {
-			r = cast(GQLDObject!(Con))ret.types[Type.stringof];
+			r = cast(GQLDObject)ret.types[Type.stringof];
 		} else {
-			r = new GQLDObject!(Con)(Type.stringof);
+			r = new GQLDObject(Type.stringof);
 			ret.types[Type.stringof] = r;
 
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
 				r.member[fieldNames[idx]] =
-					typeToGQLDType!(fieldTypes[idx], Con)(ret);
+					typeToGQLDType!(fieldTypes[idx])(ret);
 			}}
 
 			static if(is(Type == class)) {
 				alias bct = BaseClassesTuple!(Type);
 				static if(bct.length > 1) {
-					auto d = cast(GQLDObject!(Con))typeToGQLDType!(bct[0], Con)(
+					auto d = cast(GQLDObject)typeToGQLDType!(bct[0])(
 							ret
 						);
 					r.base = d;

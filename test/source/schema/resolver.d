@@ -82,12 +82,12 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 	return ret;
 }
 
-GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
+GQLDSchema!(Type) toSchema2(Type)() {
 	typeof(return) ret = new typeof(return)();
 
 	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["query", "mutation", "subscription"]) {{
-		GQLDMap!(Con) cur = new GQLDMap!Con();
+		GQLDMap cur = new GQLDMap();
 		cur.name = qms;
 		ret.member[qms] = cur;
 		if(qms == "query") {
@@ -99,14 +99,14 @@ GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
 			static foreach(mem; __traits(allMembers, QMSType)) {{
 				alias MemType = typeof(__traits(getMember, QMSType, mem));
 				static if(isCallable!(MemType)) {{
-					GQLDOperation!(Con) op = qms == "query"
-						? new GQLDQuery!Con()
-						: qms == "mutation" ? new GQLDMutation!Con()
-						: qms == "subscription" ? new GQLDSubscription!Con()
+					GQLDOperation op = qms == "query"
+						? new GQLDQuery()
+						: qms == "mutation" ? new GQLDMutation()
+						: qms == "subscription" ? new GQLDSubscription()
 						: null;
 					cur.member[mem] = op;
 					assert(op !is null);
-					op.returnType = typeToGQLDType!(ReturnType!(MemType), Con)(
+					op.returnType = typeToGQLDType!(ReturnType!(MemType))(
 							ret
 						);
 
@@ -118,7 +118,7 @@ GQLDSchema!(Type, Con) toSchema2(Type, Con)() {
 						);
 					static foreach(idx; 0 .. paraNames.length) {
 						op.parameters[paraNames[idx]] =
-							typeToGQLDType!(paraTypes[idx], Con)(ret);
+							typeToGQLDType!(paraTypes[idx])(ret);
 					}
 				}}
 			}}

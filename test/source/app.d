@@ -37,7 +37,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
 
-	alias Schema = GQLDSchema!(T, Con);
+	alias Schema = GQLDSchema!(T);
 
 	Document doc;
 
@@ -50,7 +50,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	QueryResolver defaultResolver;
 
 	this() {
-		this.schema = toSchema2!(T,Con)();
+		this.schema = toSchema2!(T)();
 		this.defaultResolver = delegate(string name, Json parent, Json args,
 									ref Con context)
 			{
@@ -344,7 +344,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return tmp;
 	}
 
-	Json executeSelections(Selections sel, GQLDType!Con objectType,
+	Json executeSelections(Selections sel, GQLDType objectType,
 			Json objectValue, Json variables)
 	{
 		Json ret = returnTemplate();
@@ -370,7 +370,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return ret;
 	}
 
-	Json executeFieldSelection(FieldRangeItem field, GQLDType!Con objectType,
+	Json executeFieldSelection(FieldRangeItem field, GQLDType objectType,
 			Json objectValue, Json variables)
 	{
 		logf("FRI: %s, OT: %s, OV: %s, VAR: %s", field.name,
@@ -400,17 +400,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return this.executeSelectionSet(field.f.ss, retType, de, arguments);
 	}
 
-	Json executeSelectionSet(SelectionSet ss, GQLDType!Con objectType,
+	Json executeSelectionSet(SelectionSet ss, GQLDType objectType,
 			Json objectValue, Json variables)
 	{
 		//logf("OT: %s, OJ: %s, VAR: %s", objectType.toString(), objectValue,
 		//		variables
 		//	);
 		Json rslt;
-		if(GQLDMap!Con map = objectType.toMap()) {
+		if(GQLDMap map = objectType.toMap()) {
 			logf("map %s %s", map.name, ss !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables);
-		} else if(GQLDNonNull!Con nonNullType = objectType.toNonNull()) {
+		} else if(GQLDNonNull nonNullType = objectType.toNonNull()) {
 			logf("NonNull %s", nonNullType.elementType.name);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables
@@ -419,7 +419,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				logf("%s", rslt);
 				rslt["error"] ~= Json("NonNull was null");
 			}
-		} else if(GQLDNullable!Con nullType = objectType.toNullable()) {
+		} else if(GQLDNullable nullType = objectType.toNullable()) {
 			logf("nullable %s", nullType.name);
 			rslt = this.executeSelectionSet(ss, nullType.elementType,
 					objectValue, variables
@@ -432,10 +432,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 			} else {
 				//logf("NNNNNNNNNNNNNN %s", rslt);
 			}
-		} else if(GQLDList!Con list = objectType.toList()) {
+		} else if(GQLDList list = objectType.toList()) {
 			logf("list %s", list.name);
 			rslt = this.executeList(ss, list, objectValue, variables);
-		} else if(GQLDScalar!Con scalar = objectType.toScalar()) {
+		} else if(GQLDScalar scalar = objectType.toScalar()) {
 			//logf("scalar %s", scalar.name);
 			rslt = objectValue;
 		}
@@ -444,7 +444,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return rslt;
 	}
 
-	Json executeList(SelectionSet ss, GQLDList!Con objectType,
+	Json executeList(SelectionSet ss, GQLDList objectType,
 			Json objectValue, Json variables)
 	{
 		logf("OT: %s, OJ: %s, VAR: %s", objectType.name, /*objectValue*/"",
@@ -499,7 +499,7 @@ void main() {
 		);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
+					ref DefaultContext con)
 			{
 				logf("%s", args);
 				Json ret = Json.emptyObject;
@@ -518,7 +518,7 @@ void main() {
 
 	graphqld.setResolver("Character", "ship",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
+					ref DefaultContext con)
 			{
 				Json ret = returnTemplate();
 				if("shipId" !in parent
@@ -539,7 +539,7 @@ void main() {
 		);
 	graphqld.setResolver("query", "starship",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
+					ref DefaultContext con)
 			{
 				assert("id" in args);
 				long id = args["id"].get!long();
@@ -560,7 +560,7 @@ void main() {
 
 	graphqld.setResolver("mutation", "addCrewman",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con) @trusted
+					ref DefaultContext con) @trusted
 			{
 				logf("args %s", args);
 				assert("shipId" in args);
@@ -590,7 +590,7 @@ void main() {
 		);
 	graphqld.setResolver("query", "shipsselection",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con) @trusted
+					ref DefaultContext con) @trusted
 			{
 				assert("ids" in args);
 				Json[] jArr = args["ids"].array();
@@ -610,7 +610,7 @@ void main() {
 
 	graphqld.setResolver("Starship", "commander",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
+					ref DefaultContext con)
 			{
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyObject;
@@ -629,7 +629,7 @@ void main() {
 
 	graphqld.setResolver("Starship", "crew",
 			delegate(string name, Json parent, Json args,
-					ref typeof(graphqld).Con con)
+					ref DefaultContext con)
 			{
 				import std.algorithm.searching : canFind;
 				Json ret = returnTemplate();
