@@ -359,12 +359,6 @@ string[] interfacesForType(Schema)(string typename) {
 	import std.algorithm.searching : canFind;
 	alias filtered = staticMap!(stripArrayAndNullable, collectTypes!Schema);
 	alias Types = NoDuplicates!(filtered);
-	/*static foreach(Type; Types) {
-		pragma(msg, "361 ", Type, ": ",
-			NoDuplicates!(staticMap!(stringofType,
-					EraseAll!(Object, AllIncarnations!(Type, Types)))
-				));
-	}*/
 	switch(typename) {
 		static foreach(T; Types) {
 			case T.stringof: {

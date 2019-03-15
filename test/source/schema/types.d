@@ -303,6 +303,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 	GQLDObject!(Con) __field;
 	GQLDObject!(Con) __inputValue;
 	GQLDObject!(Con) __enumValue;
+	GQLDObject!(Con) __directives;
 
 	GQLDNonNull!Con __nonNullType;
 	GQLDNullable!Con __nullableType;
@@ -354,6 +355,7 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 		this.__type.member["description"] = nllStr;
 
 		this.__nonNullType = new GQLDNonNull!Con(this.__type);
+		this.__schema.member["queryType"] = this.__nonNullType;
 		auto lNNTypes = new GQLDList!Con(this.__nonNullType);
 		auto nlNNTypes = new GQLDNullable!Con(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable!Con(lNNTypes);
@@ -408,6 +410,20 @@ class GQLDSchema(Type, Con) : GQLDMap!(Con) {
 			));
 
 		this.__type.member["enumValues"] = this.__listOfNonNullEnumValue;
+
+		this.__directives = new GQLDObject!Con("__Directive");
+		this.__directives.member["name"] = nnStr;
+		this.__directives.member["name"] = str;
+		this.__directives.member["args"] =
+			this.__nonNullListOfNonNullInputValue;
+		this.__directives.member["locations"] = new GQLDNonNull!(Con)(
+				this.__listOfNonNullEnumValue
+			);
+
+		this.__schema.member["directives"] = new GQLDNonNull!(Con)(
+				new GQLDList!(Con)(new GQLDNonNull!(Con)(this.__directives))
+			);
+
 
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
 			this.types[t].toObject().member["fields"] =

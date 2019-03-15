@@ -1,5 +1,7 @@
 module testdata2;
 
+import std.typecons : Nullable;
+
 abstract class SmallChild {
 	long id;
 	string name;
@@ -14,10 +16,10 @@ abstract class Small {
 }
 
 interface Query2 {
-	//long foo();
-	//long bar();
-	Small small();
-	//Small[] manysmall();
+	long foo();
+	long bar();
+	Nullable!Small small();
+	Small[] manysmall();
 }
 
 interface Mutation2 {

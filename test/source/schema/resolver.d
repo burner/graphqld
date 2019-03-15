@@ -25,13 +25,18 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 			Json ret = returnTemplate();
 			ret["data"]["types"] = Json.emptyArray();
 			pragma(msg, collectTypes!(Type));
-			static foreach(type; collectTypes!(Type)) {{
-				Json tmp = typeToJson!type();
+			alias AllTypes = collectTypes!(Type);
+			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
+			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
+			alias NoDup = NoDuplicates!(FixUp);
+			static foreach(type; NoDup) {{
+				Json tmp = typeToJsonImpl!type();
 				ret["data"]["types"] ~= tmp;
 			}}
 			ret["data"]["directives"] = Json.emptyArray();
-			ret["data"]["queryType"] = typeToJson!(typeof(
+			ret["data"]["queryType"] = typeToJsonImpl!(typeof(
 					__traits(getMember, Type, "query")))();
+			logf("%s", ret.toPrettyString());
 			return ret;
 		};
 	return ret;
