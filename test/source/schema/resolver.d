@@ -28,17 +28,40 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 			alias AllTypes = collectTypes!(Type);
 			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
 			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
-			alias NoDup = NoDuplicates!(FixUp);
+			static if(hasMember!(Type, "directives")) {
+				alias NoDirectives = EraseAll!(
+						typeof(__traits(getMember, Type, "directives")),
+						FixUp
+					);
+			} else {
+				alias NoDirectives = FixUp;
+			}
+			alias NoDup = NoDuplicates!(NoDirectives);
 			static foreach(type; NoDup) {{
 				Json tmp = typeToJsonImpl!type();
 				ret["data"]["types"] ~= tmp;
 			}}
-			ret["data"]["directives"] =
-				directivesToJson!(typeof(
-						__traits(getMember, Type, "directives")
-					));
+			static if(hasMember!(Type, "directives")) {
+				ret["data"]["directives"] =
+					directivesToJson!(typeof(
+							__traits(getMember, Type, "directives")
+						));
+			}
+			/*
 			ret["data"]["queryType"] = typeToJsonImpl!(typeof(
-					__traits(getMember, Type, "query")))();
+					__traits(getMember, Type, "queryType")))();
+			*/
+
+			static foreach(tName; ["subscriptionType",
+					"queryType", "mutationType"])
+			{
+				static if(hasMember!(Type, tName)) {
+					ret["data"][tName] =
+						typeToJsonImpl!(typeof(
+								__traits(getMember, Type, tName)
+							));
+				}
+			}
 			logf("%s", ret.toPrettyString());
 			return ret;
 		};
@@ -65,7 +88,8 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 				ret["error"] ~= Json(format("unknown type"));
 				goto retLabel;
 			} else {
-				typeCap = firstCharUpperCase(typeName);
+				//typeCap = firstCharUpperCase(typeName);
+				typeCap = typeName;
 			}
 			pragma(msg, "collectTypes ", collectTypes!(Type));
 			static foreach(type; collectTypes!(Type)) {{
@@ -89,11 +113,11 @@ GQLDSchema!(Type) toSchema2(Type)() {
 	typeof(return) ret = new typeof(return)();
 
 	pragma(msg, __traits(allMembers, Type));
-	static foreach(qms; ["query", "mutation", "subscription"]) {{
+	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
 		GQLDMap cur = new GQLDMap();
 		cur.name = qms;
 		ret.member[qms] = cur;
-		if(qms == "query") {
+		if(qms == "queryType") {
 			cur.member["__schema"] = ret.__schema;
 			cur.member["__type"] = ret.__nonNullType;
 		}
@@ -102,10 +126,10 @@ GQLDSchema!(Type) toSchema2(Type)() {
 			static foreach(mem; __traits(allMembers, QMSType)) {{
 				alias MemType = typeof(__traits(getMember, QMSType, mem));
 				static if(isCallable!(MemType)) {{
-					GQLDOperation op = qms == "query"
+					GQLDOperation op = qms == "queryType"
 						? new GQLDQuery()
-						: qms == "mutation" ? new GQLDMutation()
-						: qms == "subscription" ? new GQLDSubscription()
+						: qms == "mutationType" ? new GQLDMutation()
+						: qms == "subscriptionType" ? new GQLDSubscription()
 						: null;
 					cur.member[mem] = op;
 					assert(op !is null);

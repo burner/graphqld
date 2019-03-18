@@ -278,8 +278,9 @@ template collectTypes(T...) {
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
 	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
 	alias elemTypes = Filter!(noArrayOrNullable, basicT);
+	alias noVoid = EraseAll!(void, elemTypes);
 	alias rslt = NoDuplicates!(EraseAll!(Object, basicT),
-			EraseAll!(Object, elemTypes)
+			EraseAll!(Object, noVoid)
 		);
 	static if(rslt.length == T.length) {
 		alias collectTypes = rslt;

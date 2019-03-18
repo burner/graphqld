@@ -70,8 +70,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 				return ret;
 			};
 		auto typeResolver = buildTypeResolver!(T, Con)();
-		this.setResolver("query", "__type",
+		this.setResolver("queryType", "__type",
 				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("%s %s %s", name, parent, args);
 					Json tr = typeResolver(name, parent, args, context);
 					Json ret = returnTemplate();
 					ret["data"] = tr["data"]["ofType"];
@@ -79,7 +80,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					return ret;
 				}
 			);
-		this.setResolver("query", "__schema", buildSchemaResolver!(T, Con)());
+		this.setResolver("queryType", "__schema", buildSchemaResolver!(T, Con)());
 		this.setResolver("__Field", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
@@ -114,13 +115,20 @@ class GraphQLD(T, QContext = DefaultContext) {
 				delegate(string name, Json parent, Json args, ref Con context) {
 					logf("name %s, parent %s, args %s", name, parent, args);
 					Json ret = returnTemplate();
+					if("kind" in parent
+							&& parent["kind"].get!string() == "OBJECT")
+					{
+						ret["data"] = Json.emptyArray();
+					}
 					if("interfacesNames" !in parent) {
-						ret["data"] = Json(null);
 						return ret;
 					}
 					Json interNames = parent["interfacesNames"];
 					if(interNames.type == Json.Type.array) {
 						if(interNames.length > 0) {
+							assert(ret["data"].type == Json.Type.array,
+									format("%s", parent.toPrettyString())
+								);
 							ret["data"] = Json.emptyArray();
 							foreach(Json it; interNames.byValue()) {
 								string typeName = it.get!string();
@@ -132,8 +140,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 								}}
 							}
 						}
-					} else {
-						ret["data"] = Json(null);
 					}
 					logf("__Type.interfaces result %s", ret);
 					return ret;
@@ -300,8 +306,24 @@ class GraphQLD(T, QContext = DefaultContext) {
 					OperationDefinitionEnum.OT_N_V,
 					OperationDefinitionEnum.OT_N_VD], op.ruleSelection))
 			{
-				logf("%s", op.name.value);
-				ret["data"][op.name.value] = tmp["data"];
+				/*foreach(key, value; tmp.byKeyValue()) {
+					if(key in ret["data"]) {
+						logf("key %s already present", key);
+						continue;
+					}
+					ret["data"][key] = value;
+				}*/
+				if(tmp.type == Json.Type.object && "data" in tmp) {
+					foreach(key, value; tmp["data"].byKeyValue()) {
+						if(key in ret["data"]) {
+							logf("key %s already present", key);
+							continue;
+						}
+						ret["data"][key] = value;
+					}
+				}
+				//logf("%s", op.name.value);
+				//ret["data"][op.name.value] = tmp["data"];
 				foreach(err; tmp["error"]) {
 					ret["error"] ~= err;
 				}
@@ -330,7 +352,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeMutation(OperationDefinition op, Json variables) {
 		log("mutation");
 		Json tmp = this.executeSelections(op.ss.sel,
-				this.schema.member["mutation"],
+				this.schema.member["mutationType"],
 				Json.emptyObject(), variables
 			);
 		return tmp;
@@ -338,7 +360,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	Json executeQuery(OperationDefinition op, Json variables) {
 		log("query");
-		Json tmp = this.executeSelections(op.ss.sel, this.schema.member["query"],
+		Json tmp = this.executeSelections(op.ss.sel,
+				this.schema.member["queryType"],
 				Json.emptyObject(), variables
 			);
 		return tmp;
@@ -657,15 +680,37 @@ void main() {
 }
 
 void hello(HTTPServerRequest req, HTTPServerResponse res) {
+	if("Origin" in req.headers) {
+		res.headers.addField("Access-Control-Allow-Origin",
+				//req.headers["Origin"]
+				//"http://localhost:8080/"
+				"*"
+			);
+	}
+	res.headers.addField("Access-Control-Allow-Credentials", "true");
+    res.headers.addField("Access-Control-Allow-Methods",
+			"POST, GET, OPTIONS, DELETE"
+		);
+	res.headers.addField("Access-Control-Allow-Headers",
+                "Origin, X-Requested-With, Content-Type, Accept, " ~ "X-CSRF-TOKEN");
 	Json j = req.json;
+	writefln("input %s req %s headers %s", j, req.toString(), req.headers);
 	string toParse;
-	if("query" in j) {
+	if(j.type == Json.Type.object && "query" in j) {
 		toParse = j["query"].get!string();
-	} else {
+	} else if(j.type == Json.Type.object && "mutation" in j) {
 		toParse = j["mutation"].get!string();
+	} else {
+		toParse = req.headers["Referer"].urlDecode();
+		string toFind = "?query=";
+		auto idx = toParse.indexOf(toFind);
+		if(idx != -1) {
+			toParse = toParse[idx + toFind.length .. $];
+		}
+		writeln(toParse);
 	}
 	Json vars = Json.emptyObject();
-	if("variables" in j) {
+	if(j.type == Json.Type.object && "variables" in j) {
 		vars = j["variables"];
 	}
 	writeln(j.toPrettyString());

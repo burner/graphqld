@@ -31,7 +31,7 @@ interface Subscription2 {
 }
 
 class Schema2 {
-	Query2 query;
+	Query2 queryType;
 	DefaultDirectives directives;
 	//Mutation2 mutation;
 	//Subscription2 subscription;

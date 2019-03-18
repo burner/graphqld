@@ -358,7 +358,7 @@ class GQLDSchema(Type) : GQLDMap {
 		auto lNNTypes = new GQLDList(this.__nonNullType);
 		auto nlNNTypes = new GQLDNullable(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable(lNNTypes);
-		this.__type.member["interfaces"] = nlNNTypes;
+		this.__type.member["interfaces"] = new GQLDNonNull(lNNTypes);
 		this.__type.member["possibleTypes"] = nlNNTypes;
 
 		this.__nonNullListOfNonNullType = new GQLDNonNull(lNNTypes);
@@ -454,8 +454,8 @@ class GQLDSchema(Type) : GQLDMap {
 			//log();
 			ret = op.returnType;
 		} else if(auto map = t.toMap()) {
-			if((map.name == "query" || map.name == "mutation"
-						|| map.name == "subscription")
+			if((map.name == "queryType" || map.name == "mutationType"
+						|| map.name == "subscriptionType")
 					&& field in map.member)
 			{
 				log();
@@ -566,12 +566,14 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
-				r.member[fieldNames[idx]] = tmp;
+				static if(fieldNames[idx] != "directives") {{
+					auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
+					r.member[fieldNames[idx]] = tmp;
 
-				if(GQLDMap tmpMap = tmp.toMap()) {
-					r.addDerivative(tmpMap);
-				}
+					if(GQLDMap tmpMap = tmp.toMap()) {
+						r.addDerivative(tmpMap);
+					}
+				}}
 			}}
 		}
 		return r;
@@ -591,8 +593,10 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				r.member[fieldNames[idx]] =
-					typeToGQLDType!(fieldTypes[idx])(ret);
+				static if(fieldNames[idx] != "directives") {{
+					r.member[fieldNames[idx]] =
+						typeToGQLDType!(fieldTypes[idx])(ret);
+				}}
 			}}
 
 			static if(is(Type == class)) {

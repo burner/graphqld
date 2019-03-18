@@ -26,7 +26,7 @@ template typeToTypeEnum(Type) {
 	} else static if(isSomeString!Type) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(is(Type == void)) {
-		enum typeToTypeEnum = "VOID";
+		enum typeToTypeEnum = "SCALAR";
 	} else static if(is(Type == union)) {
 		enum typeToTypeEnum = "UNION";
 	} else static if(isAggregateType!Type) {

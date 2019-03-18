@@ -51,9 +51,9 @@ interface Subscription {
 }
 
 class Schema {
-	Query query;
-	Mutation mutation;
-	Subscription subscription;
+	Query queryType;
+	Mutation mutationType;
+	Subscription subscriptionType;
 	DefaultDirectives directives;
 }
 
