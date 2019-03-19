@@ -529,7 +529,7 @@ void main() {
 	//writeln(sr("", Json.emptyObject(), Json.emptyObject(),
 	//			dc)["data"].toPrettyString()
 	//	);
-	graphqld.setResolver("query", "starships",
+	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
 			{
@@ -569,7 +569,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("query", "starship",
+	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
 			{
@@ -590,7 +590,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("mutation", "addCrewman",
+	graphqld.setResolver("mutationType", "addCrewman",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @trusted
 			{
@@ -620,7 +620,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("query", "shipsselection",
+	graphqld.setResolver("queryType", "shipsselection",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @trusted
 			{
