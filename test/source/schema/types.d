@@ -446,30 +446,23 @@ class GQLDSchema(Type) : GQLDMap {
 	}
 
 	GQLDType getReturnType(GQLDType t, string field) {
-		logf("'%s' '%s'", t.name, field);
 		GQLDType ret;
 		if(auto s = t.toScalar()) {
-			//log();
 			ret = s;
 		} else if(auto op = t.toOperation()) {
-			//log();
 			ret = op.returnType;
 		} else if(auto map = t.toMap()) {
 			if((map.name == "queryType" || map.name == "mutationType"
 						|| map.name == "subscriptionType")
 					&& field in map.member)
 			{
-				log();
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
-					//log();
 					ret = op.returnType;
 				} else {
-					log();
 					ret = tmp;
 				}
 			} else if(field in map.member) {
-				log();
 				ret = map.member[field];
 			} else if(field == "__typename") {
 				ret = this.types["string"];
@@ -486,7 +479,6 @@ class GQLDSchema(Type) : GQLDMap {
 		} else {
 			ret = t;
 		}
-		logf("%s", ret.name);
 		return ret;
 	}
 }

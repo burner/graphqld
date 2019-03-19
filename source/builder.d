@@ -16,27 +16,26 @@ Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;
 	Definitions cur = doc.defs;
-	logf("New search for %s", name);
 	while(cur !is null) {
 		enforce(cur.def !is null);
 		if(cur.def.ruleSelection == DefinitionEnum.F) {
 			enforce(cur.def.frag !is null);
-			logf("%s == %s && %s in %s", cur.def.frag.name.value, name,
-					cur.def.frag.tc.value, typenames
-				);
+			//logf("%s == %s && %s in %s", cur.def.frag.name.value, name,
+			//		cur.def.frag.tc.value, typenames
+			//	);
 			if(cur.def.frag.name.value == name
 					&& canFind(typenames, cur.def.frag.tc.value))
 			{
-				logf("found it");
+				//logf("found it");
 				return cur.def.frag.ss.sel;
 			} else {
-				logf("not found");
+				//logf("not found");
 			}
 		}
 		cur = cur.follow;
 	}
 
-	logf("search failed");
+	//logf("search failed");
 	return null;
 }
 

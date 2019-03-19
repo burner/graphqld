@@ -323,12 +323,12 @@ string[] interfacesForType(Schema)(string typename) {
 				static enum ret = [NoDuplicates!(staticMap!(stringofType,
 						EraseAll!(Object, AllIncarnations!(T, Types))))
 					];
-				logf("%s %s %s", typename, T.stringof, ret);
+				//logf("%s %s %s", typename, T.stringof, ret);
 				return ret;
 			}
 		}
 		default:
-			logf("DEFAULT: '%s'", typename);
+			//logf("DEFAULT: '%s'", typename);
 			if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
 						"__EnumValue", "__TypeKind", "__Directive",
 						"__DirectiveLocation"], typename))

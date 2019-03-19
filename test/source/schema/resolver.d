@@ -6,6 +6,8 @@ import std.meta;
 import std.traits;
 import std.typecons : Nullable;
 import std.experimental.logger;
+import std.stdio;
+import std.string : capitalize;
 
 import vibe.data.json;
 
@@ -14,95 +16,16 @@ import schema.typeconversions;
 import helper;
 import traits;
 import constants;
+import graphql;
 
 alias QueryResolver(Con) = Json delegate(string name, Json parent,
 		Json args, ref Con context) @safe;
 
 QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
-	QueryResolver!(Con) ret = delegate(string name, Json parent,
-			Json args, ref Con context) @safe
-		{
-			//logf("%s %s %s", name, args, parent);
-			Json ret = returnTemplate();
-			ret["data"]["types"] = Json.emptyArray();
-			pragma(msg, collectTypes!(Type));
-			alias AllTypes = collectTypes!(Type);
-			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
-			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
-			static if(hasMember!(Type, Constants.directives)) {
-				alias NoDirectives = EraseAll!(
-						typeof(__traits(getMember, Type, Constants.directives)),
-						FixUp
-					);
-			} else {
-				alias NoDirectives = FixUp;
-			}
-			alias NoDup = NoDuplicates!(EraseAll!(Type, NoDirectives));
-			static foreach(type; NoDup) {{
-				Json tmp = typeToJsonImpl!(type,Type)();
-				ret["data"]["types"] ~= tmp;
-			}}
-			static if(hasMember!(Type, Constants.directives)) {
-				ret["data"][Constants.directives] =
-					directivesToJson!(typeof(
-							__traits(getMember, Type, Constants.directives)
-						));
-			}
-
-			static foreach(tName; ["subscriptionType",
-					"queryType", "mutationType"])
-			{
-				static if(hasMember!(Type, tName)) {
-					ret["data"][tName] =
-						typeToJsonImpl!(typeof(
-								__traits(getMember, Type, tName)
-							),Type);
-				}
-			}
-			logf("%s", ret.toPrettyString());
-			return ret;
-		};
 	return ret;
 }
 
 QueryResolver!(Con) buildTypeResolver(Type, Con)() {
-	QueryResolver!(Con) ret = delegate(string name, Json parent,
-			Json args, ref Con context) @safe
-		{
-			logf("%s %s %s", name, args, parent);
-			Json ret = returnTemplate();
-			string typeName;
-			if(Constants.name in args) {
-				typeName = args[Constants.name].get!string();
-			}
-			if(Constants.typenameOrig in parent) {
-				typeName = parent[Constants.typenameOrig].get!string();
-			} else if(Constants.name in parent) {
-				typeName = parent[Constants.name].get!string();
-			}
-			string typeCap;
-			if(typeName.empty) {
-				ret["error"] ~= Json(format("unknown type"));
-				goto retLabel;
-			} else {
-				//typeCap = firstCharUpperCase(typeName);
-				typeCap = typeName;
-			}
-			pragma(msg, "collectTypes ", collectTypes!(Type));
-			static foreach(type; collectTypes!(Type)) {{
-				enum typeConst = typeToTypeName!(type);
-				if(typeCap == typeConst) {
-					ret["data"] = typeToJson!(type,Type)();
-					logf("%s %s %s", typeCap, typeConst, ret["data"]);
-					goto retLabel;
-				} else {
-					logf("||||||||||| %s %s", typeCap, typeConst);
-				}
-			}}
-			retLabel:
-			logf("%s", ret.toPrettyString());
-			return ret;
-		};
 	return ret;
 }
 
@@ -149,4 +72,228 @@ GQLDSchema!(Type) toSchema2(Type)() {
 		}
 	}}
 	return ret;
+}
+
+void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
+	auto typeResolver = delegate(string name, Json parent,
+			Json args, ref Con context) @safe
+		{
+			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
+			Json ret = returnTemplate();
+			string typeName;
+			if(Constants.name in args) {
+				typeName = args[Constants.name].get!string();
+			}
+			if(Constants.typenameOrig in parent) {
+				typeName = parent[Constants.typenameOrig].get!string();
+			} else if(Constants.name in parent) {
+				typeName = parent[Constants.name].get!string();
+			}
+			string typeCap;
+			if(typeName.empty) {
+				ret["error"] ~= Json(format("unknown type"));
+				goto retLabel;
+			} else {
+				//typeCap = firstCharUpperCase(typeName);
+				typeCap = typeName;
+			}
+			pragma(msg, "collectTypes ", collectTypes!(T));
+			static foreach(type; collectTypes!(T)) {{
+				enum typeConst = typeToTypeName!(type);
+				if(typeCap == typeConst) {
+					ret["data"] = typeToJson!(type,T)();
+					graphql.defaultResolverLog.logf("%s %s %s", typeCap,
+							typeConst, ret["data"]
+						);
+					goto retLabel;
+				} else {
+					graphql.defaultResolverLog.logf("||||||||||| %s %s",
+							typeCap, typeConst
+						);
+				}
+			}}
+			retLabel:
+			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			return ret;
+		};
+
+	QueryResolver!(Con) schemaResolver = delegate(string name, Json parent,
+			Json args, ref Con context) @safe
+		{
+			//logf("%s %s %s", name, args, parent);
+			Json ret = returnTemplate();
+			ret["data"]["types"] = Json.emptyArray();
+			alias AllTypes = collectTypes!(T);
+			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
+			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
+			static if(hasMember!(T, Constants.directives)) {
+				alias NoDirectives = EraseAll!(
+						typeof(__traits(getMember, T, Constants.directives)),
+						FixUp
+					);
+			} else {
+				alias NoDirectives = FixUp;
+			}
+			alias NoDup = NoDuplicates!(EraseAll!(T, NoDirectives));
+			static foreach(type; NoDup) {{
+				Json tmp = typeToJsonImpl!(type,T)();
+				ret["data"]["types"] ~= tmp;
+			}}
+			static if(hasMember!(T, Constants.directives)) {
+				ret["data"][Constants.directives] =
+					directivesToJson!(typeof(
+							__traits(getMember, T, Constants.directives)
+						));
+			}
+
+			static foreach(tName; ["subscriptionType",
+					"queryType", "mutationType"])
+			{
+				static if(hasMember!(T, tName)) {
+					ret["data"][tName] =
+						typeToJsonImpl!(typeof(
+								__traits(getMember, T, tName)
+							),T);
+				}
+			}
+			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			return ret;
+		};
+
+	graphql.setResolver("queryType", "__type",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
+				Json tr = typeResolver(name, parent, args, context);
+				Json ret = returnTemplate();
+				ret["data"] = tr["data"]["ofType"];
+				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
+						ret.toPrettyString());
+				return ret;
+			}
+		);
+
+	graphql.setResolver("queryType", "__schema", schemaResolver);
+
+	graphql.setResolver("__Field", "type",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
+						name, parent, args
+					);
+				import std.string : capitalize;
+				Json ret = typeResolver(name, parent, args, context);
+				graphql.defaultResolverLog.logf("FIELDDDDD TYPPPPPE %s",
+						ret.toPrettyString()
+					);
+				return ret;
+			}
+		);
+
+	graphql.setResolver("__InputValue", "type",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
+				Json tr = typeResolver(name, parent, args, context);
+				Json ret = returnTemplate();
+				ret["data"] = tr["data"]["ofType"];
+				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
+						ret.toPrettyString()
+					);
+				return ret;
+			}
+		);
+
+	graphql.setResolver("__Type", "ofType",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
+						name, parent, args
+					);
+				Json ret = returnTemplate();
+				Json ofType;
+				if(parent.hasPathTo("ofType", ofType)) {
+					ret["data"] = ofType;
+				}
+				graphql.defaultResolverLog.logf("%s", ret);
+				return ret;
+			}
+		);
+
+	graphql.setResolver("__Type", "interfaces",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
+						name, parent, args
+					);
+				Json ret = returnTemplate();
+				if("kind" in parent
+						&& parent["kind"].get!string() == "OBJECT")
+				{
+					ret["data"] = Json.emptyArray();
+				}
+				if("interfacesNames" !in parent) {
+					return ret;
+				}
+				Json interNames = parent["interfacesNames"];
+				if(interNames.type == Json.Type.array) {
+					if(interNames.length > 0) {
+						assert(ret["data"].type == Json.Type.array,
+								format("%s", parent.toPrettyString())
+							);
+						ret["data"] = Json.emptyArray();
+						foreach(Json it; interNames.byValue()) {
+							string typeName = it.get!string();
+							string typeCap = capitalize(typeName);
+							static foreach(type; collectTypes!(T)) {{
+								if(typeCap == typeToTypeName!(type)) {
+									alias striped =
+										stripArrayAndNullable!type;
+									graphql.defaultResolverLog.logf("%s %s",
+											typeCap, striped.stringof
+										);
+									ret["data"] ~=
+										typeToJsonImpl!(striped,T)();
+									//ret["data"] ~= typeToJson!(type,T)();
+								}
+							}}
+						}
+					}
+				}
+				graphql.defaultResolverLog.logf("__Type.interfaces result %s",
+						ret
+					);
+				return ret;
+			}
+		);
+
+	graphql.setResolver("__Type", "possibleTypes",
+			delegate(string name, Json parent, Json args, ref Con context) {
+				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
+						name, parent, args
+					);
+				Json ret = returnTemplate();
+				if("possibleTypesNames" !in parent) {
+					ret["data"] = Json(null);
+					return ret;
+				}
+				Json pTypesNames = parent["possibleTypesNames"];
+				if(pTypesNames.type == Json.Type.array) {
+					graphql.defaultResolverLog.log();
+					ret["data"] = Json.emptyArray();
+					foreach(Json it; pTypesNames.byValue()) {
+						string typeName = it.get!string();
+						string typeCap = capitalize(typeName);
+						static foreach(type; collectTypes!(T)) {{
+							if(typeCap == typeToTypeName!(type)) {
+								alias striped = stripArrayAndNullable!type;
+								graphql.defaultResolverLog.logf("%s %s", typeCap,
+										striped.stringof
+									);
+								ret["data"] ~= typeToJsonImpl!(striped,T)();
+							}
+						}}
+					}
+				} else {
+					graphql.defaultResolverLog.log();
+					ret["data"] = Json(null);
+				}
+				return ret;
+			}
+		);
 }
