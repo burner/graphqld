@@ -13,6 +13,7 @@ import vibe.data.json;
 import schema.types;
 import traits;
 import uda;
+import constants;
 
 @safe:
 
@@ -98,10 +99,10 @@ Json typeFields(T)() {
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
 				tmp["name"] = mem;
-				tmp["__typename"] = "__Field"; // needed for interfacesForType
-				tmp["description"] = Json(null);
-				tmp["isDeprecated"] = false;
-				tmp["deprecationReason"] = Json(null);
+				tmp[Constants.__typename] = "__Field"; // needed for interfacesForType
+				tmp[Constants.description] = Json(null);
+				tmp[Constants.isDeprecated] = false;
+				tmp[Constants.deprecationReason] = Json(null);
 				tmp["args"] = Json.emptyArray();
 				//pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
@@ -124,7 +125,7 @@ Json typeFields(T)() {
 						Json iv = Json.emptyObject();
 						iv["name"] = paraNames[idx];
 						// needed for interfacesForType
-						iv["__typename"] = "__InputValue";
+						iv[Constants.__typename] = "__InputValue";
 						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv["defaultValue"] = serializeToJson(paraDefs[idx])
@@ -152,8 +153,8 @@ Json inputFields(Type)() {
 	static foreach(idx; 0 .. types.length) {{
 		Json tmp = Json.emptyObject();
 		tmp["name"] = names[idx];
-		tmp["description"] = Json(null);
-		tmp["__typename"] = "__InputValue"; // needed for interfacesForType
+		tmp[Constants.description] = Json(null);
+		tmp[Constants.__typename] = "__InputValue"; // needed for interfacesForType
 		tmp["typenameOrig"] = typeToTypeName!(types[idx]);
 		tmp["defaultValue"] = serializeToJson(
 				__traits(getMember, Type.init, names[idx])
@@ -166,10 +167,10 @@ Json inputFields(Type)() {
 Json emptyType() {
 	Json ret = Json.emptyObject();
 	ret["name"] = Json(null);
-	ret["description"] = Json(null);
+	ret[Constants.description] = Json(null);
 	ret["fields"] = Json(null);
 	ret["interfacesNames"] = Json(null);
-	ret["possibleTypesNames"] = Json(null);
+	ret[Constants.possibleTypesNames] = Json(null);
 	ret["enumValues"] = Json(null);
 	ret["ofType"] = Json(null);
 	return ret;
@@ -182,7 +183,7 @@ Json typeToJson(Type,Schema)() {
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
-		ret["__typename"] = "__Type";
+		ret[Constants.__typename] = "__Type";
 		ret["ofType"] = typeToJson1!(Type,Schema)();
 		return ret;
 	}
@@ -193,7 +194,7 @@ Json typeToJson1(Type,Schema)() {
 	static if(isArray!Type && !isSomeString!Type) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
-		ret["__typename"] = "__Type";
+		ret[Constants.__typename] = "__Type";
 		ret["ofType"] = typeToJson2!(ElementEncodingType!Type, Schema)();
 		return ret;
 	} else {
@@ -208,7 +209,7 @@ Json typeToJson2(Type,Schema)() {
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
-		ret["__typename"] = "__Type";
+		ret[Constants.__typename] = "__Type";
 		ret["ofType"] = typeToJsonImpl!(Type, Schema)();
 		return ret;
 	}
@@ -218,9 +219,9 @@ Json typeToJsonImpl(Type,Schema)() {
 	Json ret = Json.emptyObject();
 	enum string kind = typeToTypeEnum!Type;
 	ret["kind"] = kind;
-	ret["__typename"] = "__Type";
+	ret[Constants.__typename] = "__Type";
 	ret["name"] = typeToTypeName!Type;
-	ret["description"] = "TODO";
+	ret[Constants.description] = "TODO";
 
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
@@ -252,14 +253,14 @@ Json typeToJsonImpl(Type,Schema)() {
 	static if(is(Type == class) || is(Type == union)
 			|| is(Type == interface))
 	{
-		ret["possibleTypesNames"] = Json.emptyArray();
+		ret[Constants.possibleTypesNames] = Json.emptyArray();
 		alias PT = PossibleTypes!(Type, Schema);
 		writefln("%s %s", Type.stringof, PT.stringof);
 		static foreach(pt; PT) {
-			ret["possibleTypesNames"] ~= pt.stringof;
+			ret[Constants.possibleTypesNames] ~= pt.stringof;
 		}
 	} else {
-		ret["possibleTypesNames"] = Json(null);
+		ret[Constants.possibleTypesNames] = Json(null);
 	}
 
 	// enumValues
@@ -269,9 +270,9 @@ Json typeToJsonImpl(Type,Schema)() {
 			Json tmp = Json.emptyObject();
 			tmp["__TypeKind"] = "__EnumValue";
 			tmp["name"] = Json(to!string(mem));
-			tmp["description"] = "ENUM_DESCRIPTION_TODO";
-			tmp["isDeprecated"] = false;
-			tmp["deprecationReason"] = "ENUM_DEPRECATIONREASON_TODO";
+			tmp[Constants.description] = "ENUM_DESCRIPTION_TODO";
+			tmp[Constants.isDeprecated] = false;
+			tmp[Constants.deprecationReason] = "ENUM_DEPRECATIONREASON_TODO";
 			ret["enumValues"] ~= tmp;
 		}}
 	} else {
@@ -280,9 +281,9 @@ Json typeToJsonImpl(Type,Schema)() {
 
 	// needed to resolve ofType
 	static if(is(Type : Nullable!F, F)) {
-		ret["ofTypeName"] = F.stringof;
+		ret[Constants.ofTypeName] = F.stringof;
 	} else static if(isArray!Type) {
-		ret["ofTypeName"] = ElementEncodingType!(Type).stringof;
+		ret[Constants.ofTypeName] = ElementEncodingType!(Type).stringof;
 	}
 
 	return ret;
@@ -300,8 +301,8 @@ Json directivesToJson(Directives)() {
 				Json tmp = Json.emptyObject();
 				tmp["name"] = mem;
 				// needed for interfacesForType
-				tmp["__typename"] = "__Directive";
-				tmp["description"] = Json(null);
+				tmp[Constants.__typename] = "__Directive";
+				tmp[Constants.description] = Json(null);
 				tmp["locations"] = Json.emptyArray();
 				tmp["args"] = Json.emptyArray();
 				static if(isCallable!(__traits(getMember, Type, mem))) {
@@ -322,7 +323,7 @@ Json directivesToJson(Directives)() {
 						// both have one parameter named "if".
 						iv["name"] = stripLeft(paraNames[idx], "_");
 						// needed for interfacesForType
-						iv["__typename"] = "__InputValue";
+						iv[Constants.__typename] = "__InputValue";
 						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv["defaultValue"] = serializeToJson(paraDefs[idx])
