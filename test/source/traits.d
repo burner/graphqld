@@ -42,6 +42,10 @@ template InheritedClassImpl(T) {
 		alias interfs = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
 		alias tmp = AliasSeq!(T, interfs);
 		alias InheritedClassImpl = tmp;
+	} else static if(is(T : Nullable!F, F)) {
+		alias interfs = staticMap!(.InheritedClassImpl, F);
+		alias tmp = AliasSeq!(T, interfs);
+		alias InheritedClassImpl = tmp;
 	} else {
 		alias InheritedClassImpl = T;
 	}
@@ -49,7 +53,7 @@ template InheritedClassImpl(T) {
 
 unittest {
 	alias Bases = InheritedClasses!Union;
-	static assert(is(Bases == AliasSeq!(Bar, Impl, Base)));
+	static assert(is(Bases == AliasSeq!(Nullable!Bar, Nullable!Impl)));
 }
 
 unittest {
@@ -74,46 +78,6 @@ unittest {
 	static assert(is(inter2 == AliasSeq!(I,G,H)));
 }
 
-
-template BaseFields(T) {
-	alias BaseFields = EraseAll!(Object, NoDuplicates!(BaseFieldsImpl!T));
-}
-
-template BaseFieldsImpl(T) {
-	import std.traits : FieldNameTuple, Fields, BaseClassesTuple;
-	static if(is(T == class)) {
-		alias BaseClassSeq = Fields!T;
-		alias BaseFieldsImpl = NoDuplicates!(
-				T,
-				BaseClassSeq,
-				staticMap!(.BaseFieldsImpl, BaseClassesTuple!T)
-			);
-	} else static if(is(T == union)) {
-		alias BaseFieldsImpl = NoDuplicates!(
-				T,
-				Fields!T,
-				staticMap!(.BaseFieldsImpl, Fields!T)
-			);
-	} else {
-		alias BaseFieldsImpl = T;
-	}
-}
-
-template AllFieldNames(T) {
-	static if(isAggregateType!T) {
-		alias SubAggregates = BaseFields!T;
-		alias AllFieldNames = NoDuplicates!(AliasSeq!(FieldNameTuple!T,
-				staticMap!(FieldNameTuple, SubAggregates))
-			);
-	} else {
-		alias AllFieldNames = AliasSeq!();
-	}
-}
-
-template BaseFieldAggregates(T) {
-	alias BaseFieldAggregates = Filter!(isAggregateType, BaseFields!T);
-}
-
 version(unittest) {
 private:
 	abstract class Base {
@@ -129,16 +93,9 @@ private:
 	}
 
 	union Union {
-		Bar foo;
-		Impl impl;
+		Nullable!Bar foo;
+		Nullable!Impl impl;
 	}
-}
-
-unittest {
-	alias B = BaseFields!Union;
-	static assert(is(B == AliasSeq!(Union, Bar, Impl, string, float, Base,
-			int))
-		);
 }
 
 template isNotObject(Type) {
@@ -379,5 +336,32 @@ string[] interfacesForType(Schema)(string typename) {
 				return [typename];
 			}
 			return string[].init;
+	}
+}
+
+template PossibleTypes(Type, Schema) {
+	static if(is(Type == union)) {
+		alias PossibleTypes = Filter!(isAggregateType, FieldTypeTuple!Type);
+	} else static if(is(Type == interface) || is(Type == class)) {
+		alias AllTypes = NoDuplicates!(collectTypes!Schema);
+		pragma(msg, "347 ", AllTypes);
+		alias PossibleTypes = NoDuplicates!(PossibleTypesImpl!(Type, AllTypes));
+	}
+}
+
+template PossibleTypesImpl(Type, AllTypes...) {
+	static if(AllTypes.length == 0) {
+		alias PossibleTypesImpl = AliasSeq!(Type);
+	} else {
+		static if(is(AllTypes[0] : Type)) {
+			pragma(msg, "356 ", AllTypes[0].stringof, " ", Type.stringof);
+			alias PossibleTypesImpl = AliasSeq!(AllTypes[0],
+					.PossibleTypesImpl!(Type, AllTypes[1 .. $])
+				);
+		} else {
+			alias PossibleTypesImpl = AliasSeq!(
+					.PossibleTypesImpl!(Type, AllTypes[1 .. $])
+				);
+		}
 	}
 }

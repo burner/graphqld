@@ -15,11 +15,13 @@ import schema.directives;
 import helper;
 
 import types;
+import uda;
 
 @safe:
 
 union SearchResult {
-	Character character;
+	Android android;
+	Humanoid humanoid;
 	Starship ship;
 }
 
@@ -33,9 +35,9 @@ interface Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
-	FooBar foobar();
 }
 
+@GQLDUda(TypeKind.INPUT_OBJECT)
 struct AddCrewmanData {
 	string name;
 	long shipId;
@@ -66,12 +68,7 @@ enum Series {
 	Discovery
 }
 
-abstract class FooBar {
-	//Character[] longList;
-	//int id;
-	Nullable!int superImportantName;
-}
-
+@GQLDUda(TypeKind.INTERFACE)
 abstract class Character {
 	long id;
 	string name;

@@ -92,6 +92,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		this.setResolver("__InputValue", "type",
 				delegate(string name, Json parent, Json args, ref Con context) {
+					logf("%s %s %s", name, parent, args);
 					Json tr = typeResolver(name, parent, args, context);
 					Json ret = returnTemplate();
 					ret["data"] = tr["data"]["ofType"];
@@ -135,7 +136,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 								string typeCap = capitalize(typeName);
 								static foreach(type; collectTypes!(T)) {{
 									if(typeCap == typeToTypeName!(type)) {
-										ret["data"] ~= typeToJson!type();
+										alias striped =
+											stripArrayAndNullable!type;
+										logf("%s %s", typeCap,
+												striped.stringof);
+										ret["data"] ~=
+											typeToJsonImpl!(striped,T)();
+										//ret["data"] ~= typeToJson!(type,T)();
 									}
 								}}
 							}
@@ -162,7 +169,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 							string typeCap = capitalize(typeName);
 							static foreach(type; collectTypes!(T)) {{
 								if(typeCap == typeToTypeName!(type)) {
-									ret["data"] ~= typeToJson!type();
+									alias striped = stripArrayAndNullable!type;
+									logf("%s %s", typeCap, striped.stringof);
+									ret["data"] ~= typeToJsonImpl!(striped,T)();
 								}
 							}}
 						}
@@ -515,11 +524,11 @@ void main() {
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
 	writeln(graphqld.schema);
-	auto sr = buildSchemaResolver!(Schema2, DefaultContext);
 	DefaultContext dc;
-	writeln(sr("", Json.emptyObject(), Json.emptyObject(),
-				dc)["data"].toPrettyString()
-		);
+	//auto sr = buildSchemaResolver!(Schema2, DefaultContext);
+	//writeln(sr("", Json.emptyObject(), Json.emptyObject(),
+	//			dc)["data"].toPrettyString()
+	//	);
 	graphqld.setResolver("query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
@@ -742,4 +751,5 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 
 	res.writeJsonBody(gqld);
 	writeln(toParse);
+	pragma(msg, "745 ", is(Schema : Android));
 }

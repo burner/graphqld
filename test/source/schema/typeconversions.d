@@ -2,6 +2,7 @@ module schema.typeconversions;
 
 import std.algorithm.searching : canFind;
 import std.conv : to;
+import std.stdio;
 import std.traits;
 import std.meta;
 import std.typecons : Nullable, nullable;
@@ -11,11 +12,19 @@ import vibe.data.json;
 
 import schema.types;
 import traits;
+import uda;
 
 @safe:
 
 template typeToTypeEnum(Type) {
-	static if(is(Type == enum)) {
+	static if(isAggregateType!Type && hasUDA!(Type, GQLDUdaData)
+			&& getUDAs!(Type, GQLDUdaData)[0].typeKind != TypeKind.UNDEFINED)
+	{
+		enum udas = getUDAs!(Type, GQLDUdaData);
+		static assert(udas.length == 1);
+		enum GQLDUdaData u = udas[0];
+		enum typeToTypeEnum = to!string(u.typeKind);
+	} else static if(is(Type == enum)) {
 		enum typeToTypeEnum = "ENUM";
 	} else static if(is(Type == bool)) {
 		enum typeToTypeEnum = "SCALAR";
@@ -84,7 +93,7 @@ Json typeFields(T)() {
 	Json ret = Json.emptyArray();
 	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
 	static foreach(Type; TplusParents) {{
-		pragma(msg, "746 ", Type.stringof);
+		//pragma(msg, "746 ", Type.stringof);
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
@@ -94,9 +103,9 @@ Json typeFields(T)() {
 				tmp["isDeprecated"] = false;
 				tmp["deprecationReason"] = Json(null);
 				tmp["args"] = Json.emptyArray();
-				pragma(msg, "\t749 ", mem);
+				//pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
-					pragma(msg, "\t\tcallable");
+					//pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
 					tmp["typenameOrig"] = typeToTypeName!(RT);
@@ -124,7 +133,7 @@ Json typeFields(T)() {
 						tmp["args"] ~= iv;
 					}}
 				} else {
-					pragma(msg, "\t\tfield");
+					//pragma(msg, "\t\tfield");
 					tmp["typenameOrig"] = typeToTypeName!(
 							typeof(__traits(getMember, Type, mem))
 						);
@@ -132,6 +141,24 @@ Json typeFields(T)() {
 				ret ~= tmp;
 			}
 		}}
+	}}
+	return ret;
+}
+
+Json inputFields(Type)() {
+	Json ret = Json.emptyArray();
+	alias types = FieldTypeTuple!Type;
+	alias names = FieldNameTuple!Type;
+	static foreach(idx; 0 .. types.length) {{
+		Json tmp = Json.emptyObject();
+		tmp["name"] = names[idx];
+		tmp["description"] = Json(null);
+		tmp["__typename"] = "__InputValue"; // needed for interfacesForType
+		tmp["typenameOrig"] = typeToTypeName!(types[idx]);
+		tmp["defaultValue"] = serializeToJson(
+				__traits(getMember, Type.init, names[idx])
+			);
+		ret ~= tmp;
 	}}
 	return ret;
 }
@@ -149,47 +176,48 @@ Json emptyType() {
 }
 
 // remove the top nullable to find out if we have a NON_NULL or not
-Json typeToJson(Type)() {
+Json typeToJson(Type,Schema)() {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJson1!F();
+		return typeToJson1!(F,Schema)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret["__typename"] = "__Type";
-		ret["ofType"] = typeToJson1!Type();
+		ret["ofType"] = typeToJson1!(Type,Schema)();
 		return ret;
 	}
 }
 
 // remove the array is present
-Json typeToJson1(Type)() {
+Json typeToJson1(Type,Schema)() {
 	static if(isArray!Type && !isSomeString!Type) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
 		ret["__typename"] = "__Type";
-		ret["ofType"] = typeToJson2!(ElementEncodingType!Type)();
+		ret["ofType"] = typeToJson2!(ElementEncodingType!Type, Schema)();
 		return ret;
 	} else {
-		return typeToJsonImpl!Type();
+		return typeToJsonImpl!(Type, Schema)();
 	}
 }
 
 // remove another nullable
-Json typeToJson2(Type)() {
+Json typeToJson2(Type,Schema)() {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJsonImpl!F();
+		return typeToJsonImpl!(F,Schema)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret["__typename"] = "__Type";
-		ret["ofType"] = typeToJsonImpl!Type();
+		ret["ofType"] = typeToJsonImpl!(Type, Schema)();
 		return ret;
 	}
 }
 
-Json typeToJsonImpl(Type)() {
+Json typeToJsonImpl(Type,Schema)() {
 	Json ret = Json.emptyObject();
-	ret["kind"] = typeToTypeEnum!Type;
+	enum string kind = typeToTypeEnum!Type;
+	ret["kind"] = kind;
 	ret["__typename"] = "__Type";
 	ret["name"] = typeToTypeName!Type;
 	ret["description"] = "TODO";
@@ -203,8 +231,15 @@ Json typeToJsonImpl(Type)() {
 		ret["fields"] = Json(null);
 	}
 
+	// inputFields
+	static if(kind == "INPUT_OBJECT") {
+		ret["inputFields"] = inputFields!Type();
+	} else {
+		ret["inputFields"] = Json(null);
+	}
+
 	// needed to resolve interfaces
-	static if(is(Type == class)) {
+	static if(is(Type == class) || is(Type == interface)) {
 		ret["interfacesNames"] = Json.emptyArray();
 		static foreach(interfaces; InheritedClasses!Type) {{
 			ret["interfacesNames"] ~= interfaces.stringof;
@@ -218,7 +253,9 @@ Json typeToJsonImpl(Type)() {
 			|| is(Type == interface))
 	{
 		ret["possibleTypesNames"] = Json.emptyArray();
-		static foreach(pt; AliasSeq!(Type, InheritedClasses!Type)) {
+		alias PT = PossibleTypes!(Type, Schema);
+		writefln("%s %s", Type.stringof, PT.stringof);
+		static foreach(pt; PT) {
 			ret["possibleTypesNames"] ~= pt.stringof;
 		}
 	} else {

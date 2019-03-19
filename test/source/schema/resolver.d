@@ -36,9 +36,9 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 			} else {
 				alias NoDirectives = FixUp;
 			}
-			alias NoDup = NoDuplicates!(NoDirectives);
+			alias NoDup = NoDuplicates!(EraseAll!(Type, NoDirectives));
 			static foreach(type; NoDup) {{
-				Json tmp = typeToJsonImpl!type();
+				Json tmp = typeToJsonImpl!(type,Type)();
 				ret["data"]["types"] ~= tmp;
 			}}
 			static if(hasMember!(Type, "directives")) {
@@ -59,7 +59,7 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 					ret["data"][tName] =
 						typeToJsonImpl!(typeof(
 								__traits(getMember, Type, tName)
-							));
+							),Type);
 				}
 			}
 			logf("%s", ret.toPrettyString());
@@ -95,7 +95,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			static foreach(type; collectTypes!(Type)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(typeCap == typeConst) {
-					ret["data"] = typeToJson!type();
+					ret["data"] = typeToJson!(type,Type)();
 					logf("%s %s %s", typeCap, typeConst, ret["data"]);
 					goto retLabel;
 				} else {
