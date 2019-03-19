@@ -15,6 +15,7 @@ import vibe.data.json;
 
 import helper;
 import traits;
+import constants;
 
 @safe:
 
@@ -327,9 +328,9 @@ class GQLDSchema(Type) : GQLDMap {
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
 			GQLDObject tmp = new GQLDObject(t);
 			this.types[t] = tmp;
-			tmp.member["name"] = new GQLDString();
-			tmp.member["description"] = new GQLDString();
-			tmp.member["kind"] = new GQLDEnum("__TypeKind");
+			tmp.member[Constants.name] = new GQLDString();
+			tmp.member[Constants.description] = new GQLDString();
+			tmp.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
 			//tmp.resolver = buildTypeResolver!(Type,Con)();
 		}
 	}
@@ -344,43 +345,43 @@ class GQLDSchema(Type) : GQLDMap {
 		auto nnB = new GQLDNonNull(b);
 		this.__schema = new GQLDObject("__schema");
 		this.__type = new GQLDObject("__Type");
-		this.__schema.member["mutationType"] = this.__type;
-		this.__schema.member["subscriptionType"] = this.__type;
-
 		this.__nullableType = new GQLDNullable(this.__type);
-		this.__type.member["ofType"] = this.__nullableType;
-		this.__type.member["kind"] = new GQLDEnum("__TypeKind");
-		this.__type.member["name"] = nllStr;
-		this.__type.member["description"] = nllStr;
+		this.__schema.member["mutationType"] = this.__nullableType;
+		this.__schema.member["subscriptionType"] = this.__nullableType;
+
+		this.__type.member[Constants.ofType] = this.__nullableType;
+		this.__type.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
+		this.__type.member[Constants.name] = nllStr;
+		this.__type.member[Constants.description] = nllStr;
 
 		this.__nonNullType = new GQLDNonNull(this.__type);
 		this.__schema.member["queryType"] = this.__nonNullType;
 		auto lNNTypes = new GQLDList(this.__nonNullType);
 		auto nlNNTypes = new GQLDNullable(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable(lNNTypes);
-		this.__type.member["interfaces"] = new GQLDNonNull(lNNTypes);
+		this.__type.member[Constants.interfaces] = new GQLDNonNull(lNNTypes);
 		this.__type.member["possibleTypes"] = nlNNTypes;
 
 		this.__nonNullListOfNonNullType = new GQLDNonNull(lNNTypes);
 		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
 
 		this.__field = new GQLDObject("__Field");
-		this.__field.member["name"] = nnStr;
-		this.__field.member["description"] = nllStr;
-		this.__field.member["type"] = this.__nonNullType;
-		this.__field.member["isDeprecated"] = nnB;
-		this.__field.member["deprecationReason"] = nllStr;
+		this.__field.member[Constants.name] = nnStr;
+		this.__field.member[Constants.description] = nllStr;
+		this.__field.member[Constants.type] = this.__nonNullType;
+		this.__field.member[Constants.isDeprecated] = nnB;
+		this.__field.member[Constants.deprecationReason] = nllStr;
 
 		this.__nonNullField = new GQLDNonNull(this.__field);
 		auto lNNFields = new GQLDList(this.__nonNullField);
 		this.__listOfNonNullField = new GQLDNullable(lNNFields);
-		this.__type.member["fields"] = this.__listOfNonNullField;
+		this.__type.member[Constants.fields] = this.__listOfNonNullField;
 
-		this.__inputValue = new GQLDObject("__InputValue");
-		this.__inputValue.member["name"] = nnStr;
-		this.__inputValue.member["description"] = nllStr;
+		this.__inputValue = new GQLDObject(Constants.__InputValue);
+		this.__inputValue.member[Constants.name] = nnStr;
+		this.__inputValue.member[Constants.description] = nllStr;
 		this.__inputValue.member["defaultValue"] = nllStr;
-		this.__inputValue.member["type"] = this.__nonNullType;
+		this.__inputValue.member[Constants.type] = this.__nonNullType;
 
 		this.__nonNullInputValue = new GQLDNonNull(this.__inputValue);
 		this.__listOfNonNullInputValue = new GQLDList(
@@ -396,36 +397,36 @@ class GQLDSchema(Type) : GQLDMap {
 				this.__listOfNonNullInputValue
 			);
 
-		this.__field.member["args"] = this.__nonNullListOfNonNullInputValue;
+		this.__field.member[Constants.args] = this.__nonNullListOfNonNullInputValue;
 
-		this.__enumValue = new GQLDObject("__EnumValue");
-		this.__enumValue.member["name"] = nnStr;
-		this.__enumValue.member["description"] = nllStr;
-		this.__enumValue.member["isDeprecated"] = nnB;
-		this.__enumValue.member["deprecationReason"] = nllStr;
+		this.__enumValue = new GQLDObject(Constants.__EnumValue);
+		this.__enumValue.member[Constants.name] = nnStr;
+		this.__enumValue.member[Constants.description] = nllStr;
+		this.__enumValue.member[Constants.isDeprecated] = nnB;
+		this.__enumValue.member[Constants.deprecationReason] = nllStr;
 
 		this.__listOfNonNullEnumValue = new GQLDList(new GQLDNonNull(
 				this.__enumValue
 			));
 
-		this.__type.member["enumValues"] = this.__listOfNonNullEnumValue;
+		this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
 
-		this.__directives = new GQLDObject("__Directive");
-		this.__directives.member["name"] = nnStr;
-		this.__directives.member["description"] = str;
-		this.__directives.member["args"] =
+		this.__directives = new GQLDObject(Constants.__Directive);
+		this.__directives.member[Constants.name] = nnStr;
+		this.__directives.member[Constants.description] = str;
+		this.__directives.member[Constants.args] =
 			this.__nonNullListOfNonNullInputValue;
-		this.__directives.member["locations"] = new GQLDNonNull(
+		this.__directives.member[Constants.locations] = new GQLDNonNull(
 				this.__listOfNonNullEnumValue
 			);
 
-		this.__schema.member["directives"] = new GQLDNonNull(
+		this.__schema.member[Constants.directives] = new GQLDNonNull(
 				new GQLDList(new GQLDNonNull(this.__directives))
 			);
 
 
 		foreach(t; ["String", "Int", "Float", "Bool"]) {
-			this.types[t].toObject().member["fields"] =
+			this.types[t].toObject().member[Constants.fields] =
 				this.__listOfNonNullField;
 		}
 	}
@@ -566,7 +567,7 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				static if(fieldNames[idx] != "directives") {{
+				static if(fieldNames[idx] != Constants.directives) {{
 					auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
 					r.member[fieldNames[idx]] = tmp;
 
@@ -593,7 +594,7 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				static if(fieldNames[idx] != "directives") {{
+				static if(fieldNames[idx] != Constants.directives) {{
 					r.member[fieldNames[idx]] =
 						typeToGQLDType!(fieldTypes[idx])(ret);
 				}}

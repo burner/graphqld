@@ -98,18 +98,18 @@ Json typeFields(T)() {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
-				tmp["name"] = mem;
+				tmp[Constants.name] = mem;
 				tmp[Constants.__typename] = "__Field"; // needed for interfacesForType
 				tmp[Constants.description] = Json(null);
 				tmp[Constants.isDeprecated] = false;
 				tmp[Constants.deprecationReason] = Json(null);
-				tmp["args"] = Json.emptyArray();
+				tmp[Constants.args] = Json.emptyArray();
 				//pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					//pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
-					tmp["typenameOrig"] = typeToTypeName!(RT);
+					tmp[Constants.typenameOrig] = typeToTypeName!(RT);
 
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(
@@ -123,19 +123,19 @@ Json typeFields(T)() {
 						);
 					static foreach(idx; 0 .. paraNames.length) {{
 						Json iv = Json.emptyObject();
-						iv["name"] = paraNames[idx];
+						iv[Constants.name] = paraNames[idx];
 						// needed for interfacesForType
-						iv[Constants.__typename] = "__InputValue";
-						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
+						iv[Constants.__typename] = Constants.__InputValue;
+						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
-							iv["defaultValue"] = serializeToJson(paraDefs[idx])
+							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();
 						}
-						tmp["args"] ~= iv;
+						tmp[Constants.args] ~= iv;
 					}}
 				} else {
 					//pragma(msg, "\t\tfield");
-					tmp["typenameOrig"] = typeToTypeName!(
+					tmp[Constants.typenameOrig] = typeToTypeName!(
 							typeof(__traits(getMember, Type, mem))
 						);
 				}
@@ -152,11 +152,11 @@ Json inputFields(Type)() {
 	alias names = FieldNameTuple!Type;
 	static foreach(idx; 0 .. types.length) {{
 		Json tmp = Json.emptyObject();
-		tmp["name"] = names[idx];
+		tmp[Constants.name] = names[idx];
 		tmp[Constants.description] = Json(null);
-		tmp[Constants.__typename] = "__InputValue"; // needed for interfacesForType
-		tmp["typenameOrig"] = typeToTypeName!(types[idx]);
-		tmp["defaultValue"] = serializeToJson(
+		tmp[Constants.__typename] = Constants.__InputValue; // needed for interfacesForType
+		tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
+		tmp[Constants.defaultValue] = serializeToJson(
 				__traits(getMember, Type.init, names[idx])
 			);
 		ret ~= tmp;
@@ -166,12 +166,12 @@ Json inputFields(Type)() {
 
 Json emptyType() {
 	Json ret = Json.emptyObject();
-	ret["name"] = Json(null);
+	ret[Constants.name] = Json(null);
 	ret[Constants.description] = Json(null);
-	ret["fields"] = Json(null);
-	ret["interfacesNames"] = Json(null);
+	ret[Constants.fields] = Json(null);
+	ret[Constants.interfacesNames] = Json(null);
 	ret[Constants.possibleTypesNames] = Json(null);
-	ret["enumValues"] = Json(null);
+	ret[Constants.enumValues] = Json(null);
 	ret["ofType"] = Json(null);
 	return ret;
 }
@@ -220,33 +220,33 @@ Json typeToJsonImpl(Type,Schema)() {
 	enum string kind = typeToTypeEnum!Type;
 	ret["kind"] = kind;
 	ret[Constants.__typename] = "__Type";
-	ret["name"] = typeToTypeName!Type;
+	ret[Constants.name] = typeToTypeName!Type;
 	ret[Constants.description] = "TODO";
 
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
 			&& !is(Type : Nullable!K, K))
 	{
-		ret["fields"] = typeFields!Type();
+		ret[Constants.fields] = typeFields!Type();
 	} else {
-		ret["fields"] = Json(null);
+		ret[Constants.fields] = Json(null);
 	}
 
 	// inputFields
-	static if(kind == "INPUT_OBJECT") {
-		ret["inputFields"] = inputFields!Type();
+	static if(kind == Constants.INPUT_OBJECT) {
+		ret[Constants.inputFields] = inputFields!Type();
 	} else {
-		ret["inputFields"] = Json(null);
+		ret[Constants.inputFields] = Json(null);
 	}
 
 	// needed to resolve interfaces
 	static if(is(Type == class) || is(Type == interface)) {
-		ret["interfacesNames"] = Json.emptyArray();
+		ret[Constants.interfacesNames] = Json.emptyArray();
 		static foreach(interfaces; InheritedClasses!Type) {{
-			ret["interfacesNames"] ~= interfaces.stringof;
+			ret[Constants.interfacesNames] ~= interfaces.stringof;
 		}}
 	} else {
-		ret["interfacesNames"] = Json(null);
+		ret[Constants.interfacesNames] = Json(null);
 	}
 
 	// needed to resolve possibleTypes
@@ -265,18 +265,18 @@ Json typeToJsonImpl(Type,Schema)() {
 
 	// enumValues
 	static if(is(Type == enum)) {
-		ret["enumValues"] = Json.emptyArray();
+		ret[Constants.enumValues] = Json.emptyArray();
 		static foreach(mem; EnumMembers!Type) {{
 			Json tmp = Json.emptyObject();
-			tmp["__TypeKind"] = "__EnumValue";
-			tmp["name"] = Json(to!string(mem));
+			tmp[Constants.__TypeKind] = Constants.__EnumValue;
+			tmp[Constants.name] = Json(to!string(mem));
 			tmp[Constants.description] = "ENUM_DESCRIPTION_TODO";
 			tmp[Constants.isDeprecated] = false;
 			tmp[Constants.deprecationReason] = "ENUM_DEPRECATIONREASON_TODO";
-			ret["enumValues"] ~= tmp;
+			ret[Constants.enumValues] ~= tmp;
 		}}
 	} else {
-		ret["enumValues"] = Json(null);
+		ret[Constants.enumValues] = Json(null);
 	}
 
 	// needed to resolve ofType
@@ -299,12 +299,12 @@ Json directivesToJson(Directives)() {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
-				tmp["name"] = mem;
+				tmp[Constants.name] = mem;
 				// needed for interfacesForType
-				tmp[Constants.__typename] = "__Directive";
+				tmp[Constants.__typename] = Constants.__Directive;
 				tmp[Constants.description] = Json(null);
-				tmp["locations"] = Json.emptyArray();
-				tmp["args"] = Json.emptyArray();
+				tmp[Constants.locations] = Json.emptyArray();
+				tmp[Constants.args] = Json.emptyArray();
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(
@@ -321,15 +321,15 @@ Json directivesToJson(Directives)() {
 						// TODO remove the strip left. Its in because the
 						// two default directives of GraphQL skip and include
 						// both have one parameter named "if".
-						iv["name"] = stripLeft(paraNames[idx], "_");
+						iv[Constants.name] = stripLeft(paraNames[idx], "_");
 						// needed for interfacesForType
-						iv[Constants.__typename] = "__InputValue";
-						iv["typenameOrig"] = typeToTypeName!(paraTypes[idx]);
+						iv[Constants.__typename] = Constants.__InputValue;
+						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
-							iv["defaultValue"] = serializeToJson(paraDefs[idx])
+							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();
 						}
-						tmp["args"] ~= iv;
+						tmp[Constants.args] ~= iv;
 					}}
 				}
 				ret ~= tmp;

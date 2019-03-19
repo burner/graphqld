@@ -13,6 +13,7 @@ import schema.types;
 import schema.typeconversions;
 import helper;
 import traits;
+import constants;
 
 alias QueryResolver(Con) = Json delegate(string name, Json parent,
 		Json args, ref Con context) @safe;
@@ -28,9 +29,9 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 			alias AllTypes = collectTypes!(Type);
 			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
 			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);
-			static if(hasMember!(Type, "directives")) {
+			static if(hasMember!(Type, Constants.directives)) {
 				alias NoDirectives = EraseAll!(
-						typeof(__traits(getMember, Type, "directives")),
+						typeof(__traits(getMember, Type, Constants.directives)),
 						FixUp
 					);
 			} else {
@@ -41,16 +42,12 @@ QueryResolver!(Con) buildSchemaResolver(Type, Con)() {
 				Json tmp = typeToJsonImpl!(type,Type)();
 				ret["data"]["types"] ~= tmp;
 			}}
-			static if(hasMember!(Type, "directives")) {
-				ret["data"]["directives"] =
+			static if(hasMember!(Type, Constants.directives)) {
+				ret["data"][Constants.directives] =
 					directivesToJson!(typeof(
-							__traits(getMember, Type, "directives")
+							__traits(getMember, Type, Constants.directives)
 						));
 			}
-			/*
-			ret["data"]["queryType"] = typeToJsonImpl!(typeof(
-					__traits(getMember, Type, "queryType")))();
-			*/
 
 			static foreach(tName; ["subscriptionType",
 					"queryType", "mutationType"])
@@ -75,13 +72,13 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 			logf("%s %s %s", name, args, parent);
 			Json ret = returnTemplate();
 			string typeName;
-			if("name" in args) {
-				typeName = args["name"].get!string();
+			if(Constants.name in args) {
+				typeName = args[Constants.name].get!string();
 			}
-			if("typenameOrig" in parent) {
-				typeName = parent["typenameOrig"].get!string();
-			} else if("name" in parent) {
-				typeName = parent["name"].get!string();
+			if(Constants.typenameOrig in parent) {
+				typeName = parent[Constants.typenameOrig].get!string();
+			} else if(Constants.name in parent) {
+				typeName = parent[Constants.name].get!string();
 			}
 			string typeCap;
 			if(typeName.empty) {
