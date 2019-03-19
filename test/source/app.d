@@ -46,7 +46,6 @@ void main() {
 				logf("%s", args);
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyArray;
-				ret["error"] = Json.emptyArray;
 				float overSize = args["overSize"].to!float();
 				foreach(ship; database.ships) {
 					if(ship.size > overSize) {
@@ -62,7 +61,7 @@ void main() {
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
 			{
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				if("shipId" !in parent
 						|| parent["shipId"].type != Json.Type.int_)
 				{
@@ -93,7 +92,6 @@ void main() {
 				} else {
 					ret = Json.emptyObject;
 					ret["data"] = Json.emptyObject;
-					ret["error"] = Json.emptyArray;
 				}
 				logf("%s", ret);
 				return ret;
@@ -111,7 +109,7 @@ void main() {
 				string nname = args["name"].get!string();
 				logf("%s %s", shipId, nname);
 
-				Json ret = returnTemplate();
+				Json ret;
 
 				auto theShip = database.ships.find!(s => shipId == s.id);
 				if(!theShip.empty) {
@@ -121,10 +119,10 @@ void main() {
 					nh.ship = nullable(ship);
 					ret = characterToJson(nh);
 				} else {
-					ret["error"] ~= Json(format(
-											"Ship with id %s does not exist",
-											shipId
-										));
+					ret = Json.emptyObject();
+					ret.insertError(format("Ship with id %s does not exist",
+							shipId)
+						);
 				}
 
 				return ret;
@@ -139,7 +137,6 @@ void main() {
 				long[] ids = jArr.map!(j => j.get!long()).array;
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyArray;
-				ret["error"] = Json.emptyArray;
 				auto theShips = database.ships.filter!(s => canFind(ids, s.id));
 				foreach(ship; theShips) {
 					Json tmp = starshipToJson(ship);
@@ -156,7 +153,6 @@ void main() {
 			{
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyObject;
-				ret["error"] = Json.emptyArray;
 				long commanderId = parent["commanderId"].to!long();
 				foreach(c; database.chars) {
 					if(c.id == commanderId) {
@@ -174,7 +170,7 @@ void main() {
 					ref DefaultContext con)
 			{
 				import std.algorithm.searching : canFind;
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				if("crewIds" in parent) {
 					ret["data"] = Json.emptyArray();
 					long[] crewIds = parent["crewIds"]

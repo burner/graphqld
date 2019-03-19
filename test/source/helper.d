@@ -1,5 +1,6 @@
 module helper;
 
+import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;
 import std.exception : enforce;
 import std.experimental.logger;
@@ -7,6 +8,9 @@ import std.experimental.logger;
 import vibe.data.json;
 
 @safe:
+
+enum d = "data";
+enum e = "error";
 
 string firstCharUpperCase(string input) {
 	import std.conv : to;
@@ -29,16 +33,29 @@ Json returnTemplate() {
 	return ret;
 }
 
+void insertError(T)(ref Json result, T t) {
+	Json err = serializeToJson(t);
+	if(e !in result) {
+		result[e] = Json.emptyArray();
+	}
+	enforce(result[e].type == Json.Type.array);
+	if(!canFind(result[e].byValue(), err)) {
+		result[e] ~= err;
+	}
+}
+
 void insertPayload(ref Json result, string field, Json data) {
-	import std.algorithm.searching : canFind;
-	import std.exception : enforce;
-	enum d = "data";
-	enum e = "error";
 	if(d in data) {
+		if(d !in result) {
+			result[d] = Json.emptyObject();
+		}
 		enforce(result[d].type == Json.Type.object);
 		result[d][field] = data[d];
 	}
 	if(e in data) {
+		if(e !in result) {
+			result[e] = Json.emptyArray();
+		}
 		enforce(result[e].type == Json.Type.array);
 		if(!canFind(result[e].byValue(), data[e])) {
 			result[e] ~= data[e];

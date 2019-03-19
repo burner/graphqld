@@ -79,7 +79,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			Json args, ref Con context) @safe
 		{
 			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
-			Json ret = returnTemplate();
+			Json ret = //returnTemplate();
+				Json.emptyObject();
 			string typeName;
 			if(Constants.name in args) {
 				typeName = args[Constants.name].get!string();
@@ -91,10 +92,9 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			}
 			string typeCap;
 			if(typeName.empty) {
-				ret["error"] ~= Json(format("unknown type"));
+				ret.insertError("unknown type");
 				goto retLabel;
 			} else {
-				//typeCap = firstCharUpperCase(typeName);
 				typeCap = typeName;
 			}
 			pragma(msg, "collectTypes ", collectTypes!(T));
@@ -121,7 +121,9 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			Json args, ref Con context) @safe
 		{
 			//logf("%s %s %s", name, args, parent);
-			Json ret = returnTemplate();
+			Json ret = //returnTemplate();
+				Json.emptyObject();
+			ret["data"] = Json.emptyObject();
 			ret["data"]["types"] = Json.emptyArray();
 			alias AllTypes = collectTypes!(T);
 			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
@@ -164,7 +166,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			delegate(string name, Json parent, Json args, ref Con context) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				ret["data"] = tr["data"]["ofType"];
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString());
@@ -192,7 +194,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			delegate(string name, Json parent, Json args, ref Con context) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				ret["data"] = tr["data"]["ofType"];
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString()
@@ -206,7 +208,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				Json ofType;
 				if(parent.hasPathTo("ofType", ofType)) {
 					ret["data"] = ofType;
@@ -221,7 +223,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
+				ret["data"] = Json.emptyObject();
 				if("kind" in parent
 						&& parent["kind"].get!string() == "OBJECT")
 				{
@@ -267,7 +270,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
-				Json ret = returnTemplate();
+				Json ret = Json.emptyObject();
 				if("possibleTypesNames" !in parent) {
 					ret["data"] = Json(null);
 					return ret;
@@ -279,15 +282,22 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 					foreach(Json it; pTypesNames.byValue()) {
 						string typeName = it.get!string();
 						string typeCap = capitalize(typeName);
-						static foreach(type; collectTypes!(T)) {{
-							if(typeCap == typeToTypeName!(type)) {
-								alias striped = stripArrayAndNullable!type;
-								graphql.defaultResolverLog.logf("%s %s", typeCap,
-										striped.stringof
-									);
-								ret["data"] ~= typeToJsonImpl!(striped,T)();
+						l: switch(typeCap) {
+							static foreach(type; collectTypes!(T)) {
+								//if(typeCap == typeToTypeName!(type)) {
+								case typeToTypeName!(type): {
+									alias striped = stripArrayAndNullable!type;
+									graphql.defaultResolverLog.logf("%s %s",
+											typeCap, striped.stringof
+										);
+									ret["data"] ~= typeToJsonImpl!(striped,T)();
+									break l;
+								}
 							}
-						}}
+							default: {
+								break;
+							}
+						}
 					}
 				} else {
 					graphql.defaultResolverLog.log();
