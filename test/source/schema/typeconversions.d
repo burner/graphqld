@@ -94,7 +94,6 @@ Json typeFields(T)() {
 	Json ret = Json.emptyArray();
 	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
 	static foreach(Type; TplusParents) {{
-		//pragma(msg, "746 ", Type.stringof);
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
@@ -104,9 +103,7 @@ Json typeFields(T)() {
 				tmp[Constants.isDeprecated] = false;
 				tmp[Constants.deprecationReason] = Json(null);
 				tmp[Constants.args] = Json.emptyArray();
-				//pragma(msg, "\t749 ", mem);
 				static if(isCallable!(__traits(getMember, Type, mem))) {
-					//pragma(msg, "\t\tcallable");
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
 					tmp[Constants.typenameOrig] = typeToTypeName!(RT);
@@ -134,7 +131,6 @@ Json typeFields(T)() {
 						tmp[Constants.args] ~= iv;
 					}}
 				} else {
-					//pragma(msg, "\t\tfield");
 					tmp[Constants.typenameOrig] = typeToTypeName!(
 							typeof(__traits(getMember, Type, mem))
 						);

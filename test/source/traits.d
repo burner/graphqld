@@ -344,7 +344,6 @@ template PossibleTypes(Type, Schema) {
 		alias PossibleTypes = Filter!(isAggregateType, FieldTypeTuple!Type);
 	} else static if(is(Type == interface) || is(Type == class)) {
 		alias AllTypes = NoDuplicates!(collectTypes!Schema);
-		pragma(msg, "347 ", AllTypes);
 		alias PossibleTypes = NoDuplicates!(PossibleTypesImpl!(Type, AllTypes));
 	}
 }
@@ -354,7 +353,6 @@ template PossibleTypesImpl(Type, AllTypes...) {
 		alias PossibleTypesImpl = AliasSeq!(Type);
 	} else {
 		static if(is(AllTypes[0] : Type)) {
-			pragma(msg, "356 ", AllTypes[0].stringof, " ", Type.stringof);
 			alias PossibleTypesImpl = AliasSeq!(AllTypes[0],
 					.PossibleTypesImpl!(Type, AllTypes[1 .. $])
 				);

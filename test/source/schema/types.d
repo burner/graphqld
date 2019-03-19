@@ -530,7 +530,6 @@ string toShortString(const(GQLDType) e) {
 }
 
 GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
-	pragma(msg, Type.stringof, " ", isIntegral!Type);
 	static if(is(Type == enum)) {
 		GQLDEnum r;
 		if(Type.stringof in ret.types) {
@@ -607,7 +606,6 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		}
 		return r;
 	} else {
-		pragma(msg, "218 ", Type.stringof);
 		static assert(false, Type.stringof);
 	}
 }

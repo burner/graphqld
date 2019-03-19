@@ -29,10 +29,9 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 	return ret;
 }
 
-GQLDSchema!(Type) toSchema2(Type)() {
+GQLDSchema!(Type) toSchema(Type)() {
 	typeof(return) ret = new typeof(return)();
 
-	pragma(msg, __traits(allMembers, Type));
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
 		GQLDMap cur = new GQLDMap();
 		cur.name = qms;
@@ -97,7 +96,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			} else {
 				typeCap = typeName;
 			}
-			pragma(msg, "collectTypes ", collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(typeCap == typeConst) {
