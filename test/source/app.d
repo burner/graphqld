@@ -253,9 +253,8 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	//tv.accept(cast(const(Document))d);
 
 	Json gqld = graphqld.execute(d, vars);
-	writeln(gqld.toPrettyString());
+	//writeln(gqld.toPrettyString());
 
 	res.writeJsonBody(gqld);
-	writeln(toParse);
-	pragma(msg, "745 ", is(Schema : Android));
+	//writeln(toParse);
 }

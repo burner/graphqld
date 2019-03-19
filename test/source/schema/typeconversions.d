@@ -255,7 +255,6 @@ Json typeToJsonImpl(Type,Schema)() {
 	{
 		ret[Constants.possibleTypesNames] = Json.emptyArray();
 		alias PT = PossibleTypes!(Type, Schema);
-		writefln("%s %s", Type.stringof, PT.stringof);
 		static foreach(pt; PT) {
 			ret[Constants.possibleTypesNames] ~= pt.stringof;
 		}

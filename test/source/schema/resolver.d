@@ -243,18 +243,22 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						foreach(Json it; interNames.byValue()) {
 							string typeName = it.get!string();
 							string typeCap = capitalize(typeName);
-							static foreach(type; collectTypes!(T)) {{
-								if(typeCap == typeToTypeName!(type)) {
-									alias striped =
-										stripArrayAndNullable!type;
-									graphql.defaultResolverLog.logf("%s %s",
-											typeCap, striped.stringof
-										);
-									ret["data"] ~=
-										typeToJsonImpl!(striped,T)();
-									//ret["data"] ~= typeToJson!(type,T)();
-								}
-							}}
+							l: switch(typeCap) {
+								static foreach(type; collectTypes!(T)) {{
+									case typeToTypeName!(type): {
+									//if(typeCap == typeToTypeName!(type)) {
+										alias striped =
+											stripArrayAndNullable!type;
+										graphql.defaultResolverLog.logf("%s %s",
+												typeCap, striped.stringof
+											);
+										ret["data"] ~=
+											typeToJsonImpl!(striped,T)();
+										break l;
+									}
+								}}
+								default: break;
+							}
 						}
 					}
 				}
