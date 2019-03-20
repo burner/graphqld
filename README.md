@@ -117,6 +117,13 @@ This graphql implementation is based on June 2018 spec.
 Thank you to [graphql-dot](https://github.com/graphql-dotnet/graphql-dotnet)
 for the excelent list of features
 
+## Documentation
+The Documentation is still WIP, please have a look at the vibe.d project in the
+test folder.
+
+## Contributing
+PRs are welcome!
+
 # About Kaleidic Associates
 We are a boutique consultancy that advises a small number of hedge fund clients.  We are
 not accepting new clients currently, but if you are interested in working either remotely

@@ -19,6 +19,8 @@ import uda;
 
 @safe:
 
+// The Schema used by graphqld
+
 union SearchResult {
 	Android android;
 	Humanoid humanoid;
@@ -78,6 +80,43 @@ abstract class Character {
 	Character[] commanders;
 }
 
+abstract class Humanoid : Character {
+	string species;
+}
+
+abstract class Android : Character {
+	string primaryFunction;
+}
+
+class Starship {
+	long id;
+	string name;
+	string designation;
+	double size;
+
+	Character commander;
+	Nullable!(Series)[] series;
+	Character[] crew;
+
+	this(long id, string designation, double size, string name) {
+		this.id = id;
+		this.designation = designation;
+		this.size = size;
+		this.name = name;
+	}
+
+	override string toString() const @safe {
+		return format!("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
+					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
+			(
+				 id, designation, size, name, commander.name, series,
+				 crew.map!(a => a.name)
+			);
+	}
+}
+
+// The database impl
+
 Json characterToJson(Character c) {
 	Json ret = returnTemplate();
 
@@ -130,10 +169,6 @@ class CharacterImpl : Character {
 	}
 }
 
-abstract class Humanoid : Character {
-	string species;
-}
-
 class HumanoidImpl : Humanoid {
 	this(long id, string name, string species) {
 		this.id = id;
@@ -152,10 +187,6 @@ class HumanoidImpl : Humanoid {
 	}
 }
 
-abstract class Android : Character {
-	string primaryFunction;
-}
-
 class AndroidImpl : Android {
 	this(long id, string name, string pfunc) {
 		this.id = id;
@@ -169,33 +200,6 @@ class AndroidImpl : Android {
 			(
 				id, name, primaryFunction, series, commands.map!(a => a.name),
 				ship ? ship.designation : "", commanders.map!(a => a.name)
-			);
-	}
-}
-
-class Starship {
-	long id;
-	string name;
-	string designation;
-	double size;
-
-	Character commander;
-	Nullable!(Series)[] series;
-	Character[] crew;
-
-	this(long id, string designation, double size, string name) {
-		this.id = id;
-		this.designation = designation;
-		this.size = size;
-		this.name = name;
-	}
-
-	override string toString() const @safe {
-		return format!("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
-					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
-			(
-				 id, designation, size, name, commander.name, series,
-				 crew.map!(a => a.name)
 			);
 	}
 }

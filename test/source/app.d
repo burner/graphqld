@@ -55,27 +55,6 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Character", "ship",
-			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
-			{
-				Json ret = Json.emptyObject();
-				if("shipId" !in parent
-						|| parent["shipId"].type != Json.Type.int_)
-				{
-					ret["data"] = Json(null);
-					return ret;
-				}
-				long shipId = parent["shipId"].get!long();
-				auto theShip = database.ships.find!(s => s.id == shipId);
-				if(!theShip.empty) {
-					Starship ship = theShip.front;
-					ret = starshipToJson(ship);
-				}
-				logf("%s", ret);
-				return ret;
-			}
-		);
 	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
@@ -183,6 +162,29 @@ void main() {
 				return ret;
 			}
 		);
+
+	graphqld.setResolver("Character", "ship",
+			delegate(string name, Json parent, Json args,
+					ref DefaultContext con)
+			{
+				Json ret = Json.emptyObject();
+				if("shipId" !in parent
+						|| parent["shipId"].type != Json.Type.int_)
+				{
+					ret["data"] = Json(null);
+					return ret;
+				}
+				long shipId = parent["shipId"].get!long();
+				auto theShip = database.ships.find!(s => s.id == shipId);
+				if(!theShip.empty) {
+					Starship ship = theShip.front;
+					ret = starshipToJson(ship);
+				}
+				logf("%s", ret);
+				return ret;
+			}
+		);
+
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;
 	settings.bindAddresses = ["::1", "127.0.0.1"];
