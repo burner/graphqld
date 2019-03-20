@@ -53,7 +53,7 @@ unittest {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "fooo");
+	auto f = findFragment(d, "fooo", ["user"]);
 	assert(f is null);
 }
 
@@ -66,11 +66,11 @@ fragment fooo on Hero {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "fooo", "Hero");
+	auto f = findFragment(d, "fooo", ["Hero"]);
 	assert(f !is null);
-	assert(f.ss.sel.sel.field.name.name.value == "name");
+	assert(f.sel.field.name.name.value == "name");
 
-	f = findFragment(d, "fooo", "Villian");
+	f = findFragment(d, "fooo", ["Villian"]);
 	assert(f is null);
 }
 
@@ -331,7 +331,7 @@ unittest {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -341,7 +341,7 @@ unittest {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "friends");
 	fss.popFront();
@@ -372,10 +372,10 @@ fragment foo on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -385,7 +385,7 @@ fragment foo on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -417,13 +417,13 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar");
+	auto f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -433,7 +433,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -466,13 +466,13 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar");
+	auto f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -482,7 +482,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "name", fss.front.name);
 	fss.popFront();
@@ -518,13 +518,13 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar");
+	auto f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -534,7 +534,7 @@ fragment bar on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -575,13 +575,13 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar");
+	auto f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -591,7 +591,7 @@ fragment baz on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -636,13 +636,13 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo");
+	auto f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar");
+	auto f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
-	FieldRange r = fieldRange(d.defs.def.op, d);
+	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
@@ -652,7 +652,7 @@ fragment baz on User {
 	argL.popFront();
 	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet();
+	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
 	assert(fss.front.name == "hello", fss.front.name);
 	fss.popFront();
@@ -708,14 +708,14 @@ fragment baz on User {
 	foreach(it; opDefRange(d)) {
 		++cnt;
 		long idx;
-		foreach(jt; it.fieldRange()) {
-			writef("%s(", jt.name);
+		foreach(jt; it.fieldRange(["User"])) {
+			//writef("%s(", jt.name);
 			foreach(var; jt.arguments()) {
-				writef("%s, ", var.name());
+				//writef("%s, ", var.name());
 			}
-			writeln(")");
-			foreach(kt; jt.selectionSet()) {
-				writeln("\t", kt.name);
+			//writeln(")");
+			foreach(kt; jt.selectionSet(["User"])) {
+				//writeln("\t", kt.name);
 				assert(kt.name == nn[idx],
 						format("%s == %d(%s)", kt.name, idx, nn[idx])
 					);

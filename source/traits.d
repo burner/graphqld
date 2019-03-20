@@ -53,7 +53,9 @@ template InheritedClassImpl(T) {
 
 unittest {
 	alias Bases = InheritedClasses!Union;
-	static assert(is(Bases == AliasSeq!(Nullable!Bar, Nullable!Impl)));
+	static assert(is(Bases ==
+			AliasSeq!(Nullable!Bar, Bar, Nullable!Impl, Impl, Base))
+		);
 }
 
 unittest {

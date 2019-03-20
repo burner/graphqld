@@ -9,7 +9,6 @@ import tokenmodule;
 
 alias QueryParser = Flag!"QueryParser";
 
-
 struct Lexer {
 	const QueryParser qp;
 	string input;
@@ -621,6 +620,10 @@ struct Lexer {
 
 	void popFront() @safe {
 		this.buildToken();
+	}
+
+	string getRestOfInput() const @safe {
+		return this.input[this.stringPos .. $];
 	}
 }
 

@@ -10,21 +10,22 @@ import parser;
 
 private struct TestCase {
 	int id;
+	QueryParser qp;
 	string str;
 }
 
 unittest {
 	TestCase[] tests;
-	tests ~= TestCase(0, 
+	tests ~= TestCase(0, QueryParser.yes,
 	`
-mutation updateUser($userId: String! $name: String!) {  
+mutation updateUser($userId: String! $name: String!) {
   updateUser(id: $userId name: $name) {
     name
   }
 }
 `);
 
-	tests ~= TestCase(1,`
+	tests ~= TestCase(1, QueryParser.yes, `
 query inlineFragmentNoType($expandedInfo: Boolean) {
   user(handle: "zuck") {
     id
@@ -38,7 +39,7 @@ query inlineFragmentNoType($expandedInfo: Boolean) {
 }
 `);
 
-	tests ~= TestCase(2, `
+	tests ~= TestCase(2, QueryParser.yes,  `
 query HeroForEpisode($ep: Episode!) {
   hero(episode: $ep) {
     name
@@ -52,7 +53,7 @@ query HeroForEpisode($ep: Episode!) {
 }
 `);
 
-	tests ~= TestCase(3, `
+	tests ~= TestCase(3, QueryParser.yes,  `
 mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
   createReview(episode: $ep, review: $review) {
     stars
@@ -61,7 +62,7 @@ mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
 }
 `);
 
-	tests ~= TestCase(4, `
+	tests ~= TestCase(4, QueryParser.yes,  `
 query HeroNameAndFriends($episode: Episode = "JEDI") {
   hero(episode: $episode) {
     name
@@ -71,8 +72,8 @@ query HeroNameAndFriends($episode: Episode = "JEDI") {
   }
 }`);
 
-	tests ~= TestCase(5, `
-query  hero {
+	tests ~= TestCase(5, QueryParser.yes,  `
+query hero {
     name
     # Queries can have comments!
 
@@ -82,7 +83,7 @@ query  hero {
     }
 }`);
 
-	tests ~= TestCase(6, `
+	tests ~= TestCase(6, QueryParser.no,  `
 enum DogCommand { SIT, DOWN, HEEL }
 
 type Dog implements Pet {
@@ -129,7 +130,7 @@ type QueryRoot {
 }
 `);
 
-	tests ~= TestCase(7, `
+	tests ~= TestCase(7, QueryParser.no,  `
 union SearchResult = Photo | Person
 union SearchResult = Photo Person
 
@@ -147,7 +148,7 @@ type SearchQuery {
   firstSearchResult: SearchResult
 }`);
 
-	tests ~= TestCase(8, `
+	tests ~= TestCase(8, QueryParser.no,  `
 interface NamedEntity {
   name: String
 }
@@ -162,18 +163,18 @@ type Business implements NamedEntity {
   employeeCount: Int
 }`);
 
-	tests ~= TestCase(9, `type Person {
+	tests ~= TestCase(9, QueryParser.no, `type Person {
   name: String
   age: Int
   picture: Url
 }`);
 
-	tests ~= TestCase(10, `
+	tests ~= TestCase(10, QueryParser.yes, `
 query myQuery($someTest: Boolean) {
   experimentalField @skip(if: $someTest)
 }`);
 
-	tests ~= TestCase(11, `
+	tests ~= TestCase(11, QueryParser.no, `
 subscription sub {
   newMessage {
     body
@@ -188,12 +189,12 @@ fragment newMessageFields on Message {
 
 subscription sub {
   newMessage {
-    ... newMessageFields  
+    ... newMessageFields
   }
 
 }`);
 
-	tests ~= TestCase(11, `
+	tests ~= TestCase(11, QueryParser.yes, `
 query HeroNameAndFriends($episode: Episode) {
   hero(episode: $episode) {
     name,
@@ -203,7 +204,7 @@ query HeroNameAndFriends($episode: Episode) {
   }
 }`);
 
-	tests ~= TestCase(12, `
+	tests ~= TestCase(12, QueryParser.yes, `
 query name {
   leftComparison: hero(episode: $EMPIRE) {
     ...comparisonFields
@@ -222,7 +223,7 @@ fragment comparisonFields on Character {
 
 `);
 
-	tests ~= TestCase(13, `
+	tests ~= TestCase(13, QueryParser.yes, `
 query name{
  builds(first: 54) {
 	all: number
@@ -230,7 +231,7 @@ query name{
 }
 `);
 
-	tests ~= TestCase(14, `
+	tests ~= TestCase(14, QueryParser.yes, `
 		query foo {
 			viewer {
 				user {
@@ -249,7 +250,7 @@ query name{
 		}
 `);
 
-	tests ~= TestCase(15, `
+	tests ~= TestCase(15, QueryParser.yes, `
 query foo {
 	name
     builds(first: 1) {
@@ -257,14 +258,14 @@ query foo {
   }
  }`);
 
-	tests ~= TestCase(16, `
+	tests ~= TestCase(16, QueryParser.yes, `
 query h {
 	name
     builds
   }
 `);
 
-	tests ~= TestCase(17, `
+	tests ~= TestCase(17, QueryParser.yes, `
   query human($id: H, $limit: lim, $gender: Gen) {
     name
     height
@@ -275,22 +276,22 @@ query h {
 	}
   }` );
 
-	tests ~= TestCase(18, `
+	tests ~= TestCase(18, QueryParser.yes, `
   query human($id: Var) {
     name
     height
   }`);
 
-	tests ~= TestCase(19, `
+	tests ~= TestCase(19, QueryParser.yes, `
   query human() {
     name
     height
   }`);
 
-	tests ~= TestCase(20, `
+	tests ~= TestCase(20, QueryParser.yes, `
   query name {
 	  foo
-}`); 
+}`);
 
 	/*tests ~= TestCase(21, `{
 		query n {
@@ -306,7 +307,7 @@ query h {
 }
 }`);*/
 
-	tests ~= TestCase(21, `{
+	tests ~= TestCase(21, QueryParser.yes, `{
  user(id: 1) {
    friends {
      name
@@ -314,7 +315,7 @@ query h {
  }
 }`);
 
-	tests ~= TestCase(22, `query IntrospectionQueryTypeQuery {
+	tests ~= TestCase(22, QueryParser.yes, `query IntrospectionQueryTypeQuery {
           __schema {
             queryType {
               fields {
@@ -337,7 +338,7 @@ query h {
           }
         }`);
 
-	tests ~= TestCase(23, `query IntrospectionDroidFieldsQuery {
+	tests ~= TestCase(23, QueryParser.yes, `query IntrospectionDroidFieldsQuery {
           __type(name: "Droid") {
             name
             fields {
@@ -350,7 +351,7 @@ query h {
           }
         }`);
 
-	tests ~= TestCase(24, `
+	tests ~= TestCase(24, QueryParser.yes, `
         query IntrospectionCharacterKindQuery {
           __type(name: "Character") {
             name
@@ -359,20 +360,20 @@ query h {
         }`);
 
 
-	tests ~= TestCase(25, `query IntrospectionDroidKindQuery {
+	tests ~= TestCase(25, QueryParser.yes, `query IntrospectionDroidKindQuery {
           __type(name: "Droid") {
             name
             kind
           }
         }`);
 
-	tests ~= TestCase(26, `query IntrospectionDroidTypeQuery {
+	tests ~= TestCase(26, QueryParser.yes, `query IntrospectionDroidTypeQuery {
           __type(name: "Droid") {
             name
           }
         }`);
 
-	tests ~= TestCase(27, `query IntrospectionQueryTypeQuery {
+	tests ~= TestCase(27, QueryParser.yes, `query IntrospectionQueryTypeQuery {
           __schema {
             queryType {
               name
@@ -380,7 +381,7 @@ query h {
           }
         }`);
 
-	tests ~= TestCase(28, `query IntrospectionTypeQuery {
+	tests ~= TestCase(28, QueryParser.yes, `query IntrospectionTypeQuery {
           __schema {
             types {
               name
@@ -388,7 +389,8 @@ query h {
           }
         }`);
 
-	tests ~= TestCase(29, `query IntrospectionDroidDescriptionQuery {
+	tests ~= TestCase(29, QueryParser.yes,
+			`query IntrospectionDroidDescriptionQuery {
           __type(name: "Droid") {
             name
             description
@@ -396,7 +398,7 @@ query h {
         }`);
 
 	foreach(test; tests) {
-		auto l = Lexer(test.str);
+		auto l = Lexer(test.str, test.qp);
 		auto p = Parser(l);
 		try {
 			auto d = p.parseDocument();
@@ -408,6 +410,6 @@ query h {
 			}
 			assert(false, format("Test %d", test.id));
 		}
-		assert(p.lex.empty, format("%d", test.id));
+		assert(p.lex.empty, format("%d %s", test.id, p.lex.getRestOfInput()));
 	}
 }
