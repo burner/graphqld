@@ -1,7 +1,7 @@
 # GraphqlD: A graphql implementation for the D Programming language
 
 Graphql is a query language for apis.
-Given a query like for the schema in folder test
+Given a query like for the schema in folder test.
 
 ```
 {
@@ -14,8 +14,7 @@ Given a query like for the schema in folder test
 }
 ```
 
-You get back Json in that looks like
-
+You get back json that looks like:
 ```JS
 {
   "error": [],
@@ -43,11 +42,6 @@ Graphiql type-ahead works, this makes schema introspection a lot nicer.
 ## Features
 This graphql implementation is based on June 2018 spec.
 
-### Comfort Features
-- [ ] Query AST cache
-- [ ] Json to resolver argument extractor
-- [ ] SQL query generation from AST
-
 ### Operation Execution
 - [x] Scalars
 - [x] Objects
@@ -64,8 +58,9 @@ This graphql implementation is based on June 2018 spec.
 - [x] Enumerations
 - [x] Input Objects
 - [x] Mutations
-- [ ] Subscriptions
-- [ ] Async execution
+- [ ] Subscriptions (This needs vibe.d websocket integration)
+- [ ] Async execution (when used with vibe.d blocking resolver are async by
+  default)
 
 ### Validation
 - [ ] Arguments of correct type
@@ -114,8 +109,15 @@ This graphql implementation is based on June 2018 spec.
   - [x] subscriptionType
   - [x] directives
 
-About Kaleidic Associates
--------------------------
+### Comfort Features
+- [ ] Query AST cache
+- [ ] Json to resolver argument extractor
+- [ ] SQL query generation from AST
+
+Thank you to [graphql-dot](https://github.com/graphql-dotnet/graphql-dotnet)
+for the excelent list of features
+
+# About Kaleidic Associates
 We are a boutique consultancy that advises a small number of hedge fund clients.  We are
 not accepting new clients currently, but if you are interested in working either remotely
 or locally in London or Hong Kong, and if you are a talented hacker with a moral compass

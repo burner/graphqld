@@ -1,14 +1,14 @@
 {
 	"name": "graphqld",
 	"authors": [
-		"burner"
+		"Robert burner Schadek"
 	],
 	"dependencies" : {
 		"fixedsizearray": ">=1.2.0",
 		"vibe-d:data": "~>0.8.4",
 		"darser": ">=0.1.0"
 	},
-	"description": "A vibe.d library to handle the GraphQL Protocol",
-	"copyright": "Copyright © 2017, burner",
+	"description": "A library to handle the GraphQL Protocol",
+	"copyright": "Copyright © 2019, Robert burner Schadek",
 	"license": "LGPL3"
 }

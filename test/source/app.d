@@ -30,15 +30,13 @@ Data database;
 GraphQLD!(Schema) graphqld;
 
 void main() {
-	sharedLog = new std.experimental.logger.FileLogger("app.log");
  	database = new Data();
 	graphqld = new GraphQLD!Schema();
+
 	writeln(graphqld.schema);
+
 	DefaultContext dc;
-	//auto sr = buildSchemaResolver!(Schema2, DefaultContext);
-	//writeln(sr("", Json.emptyObject(), Json.emptyObject(),
-	//			dc)["data"].toPrettyString()
-	//	);
+
 	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con)
@@ -196,11 +194,7 @@ void main() {
 
 void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	if("Origin" in req.headers) {
-		res.headers.addField("Access-Control-Allow-Origin",
-				//req.headers["Origin"]
-				//"http://localhost:8080/"
-				"*"
-			);
+		res.headers.addField("Access-Control-Allow-Origin", "*");
 	}
 	res.headers.addField("Access-Control-Allow-Credentials", "true");
     res.headers.addField("Access-Control-Allow-Methods",
@@ -229,12 +223,11 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		vars = j["variables"];
 	}
 	writeln(j.toPrettyString());
+
 	auto l = Lexer(toParse);
 	auto p = Parser(l);
+
 	Document d;
-	Json ret = Json.emptyObject;
-	ret["data"] = Json.emptyObject;
-	ret["error"] = Json.emptyArray;
 	try {
 		d = p.parseDocument();
 	} catch(Throwable e) {
@@ -244,17 +237,15 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			app.put(e.toString());
 			e = cast(Exception)e.next;
 		}
+		Json ret = Json.emptyObject;
+		ret["error"] = Json.emptyArray;
 		ret["error"] ~= Json(app.data);
 		res.writeJsonBody(ret);
 		return;
 	}
 
-	//auto tv = new TreeVisitor(0);
-	//tv.accept(cast(const(Document))d);
-
-	Json gqld = graphqld.execute(d, vars);
-	//writeln(gqld.toPrettyString());
+	DefaultContext con;
+	Json gqld = graphqld.execute(d, vars, con);
 
 	res.writeJsonBody(gqld);
-	//writeln(toParse);
 }
