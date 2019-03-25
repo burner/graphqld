@@ -1,12 +1,12 @@
-module parsertests;
+module graphql.parsertests;
 
 import std.format : format;
 import std.experimental.allocator;
 import std.experimental.allocator.mallocator : Mallocator;
 import std.stdio;
 
-import lexer;
-import parser;
+import graphql.lexer;
+import graphql.parser;
 
 private struct TestCase {
 	int id;

@@ -2,7 +2,7 @@ module testdata2;
 
 import std.typecons : Nullable;
 
-import schema.directives;
+import graphql.schema.directives;
 
 abstract class SmallChild {
 	long id;

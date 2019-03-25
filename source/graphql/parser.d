@@ -1,13 +1,13 @@
-module parser;
+module graphql.parser;
 
 import std.typecons : RefCounted, refCounted;
 import std.format : format;
-import ast;
-import tokenmodule;
+import graphql.ast;
+import graphql.tokenmodule;
 
-import lexer;
+import graphql.lexer;
 
-import exception;
+import graphql.exception;
 
 @safe:
 

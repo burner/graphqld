@@ -1,4 +1,4 @@
-module helper;
+module graphql.helper;
 
 import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;

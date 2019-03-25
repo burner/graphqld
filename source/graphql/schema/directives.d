@@ -1,4 +1,4 @@
-module schema.directives;
+module graphql.schema.directives;
 
 @safe:
 

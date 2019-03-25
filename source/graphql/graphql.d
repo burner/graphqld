@@ -1,4 +1,4 @@
-module graphql;
+module graphql.graphql;
 
 import std.array : array, front, empty;
 import std.stdio;
@@ -8,13 +8,13 @@ import std.format : format;
 
 import vibe.data.json;
 
-import builder;
-import ast;
-import helper;
-import tokenmodule;
-import argumentextractor;
-import schema.types;
-import schema.resolver;
+import graphql.builder;
+import graphql.ast;
+import graphql.helper;
+import graphql.tokenmodule;
+import graphql.argumentextractor;
+import graphql.schema.types;
+import graphql.schema.resolver;
 
 @safe:
 
@@ -134,7 +134,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json getDefaultArguments(string type, string field) {
-		import traits : collectTypes;
+		import graphql.traits : collectTypes;
 		switch(type) {
 			static foreach(Type; collectTypes!(T)) {{
 				case Type.stringof: {
@@ -258,7 +258,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeSelections(Selections sel, GQLDType objectType,
 			Json objectValue, Json variables, Document doc, ref Con context)
 	{
-		import traits : interfacesForType;
+		import graphql.traits : interfacesForType;
 		Json ret = returnTemplate();
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
 				objectType.name, objectValue, variables);

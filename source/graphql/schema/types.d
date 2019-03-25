@@ -1,4 +1,4 @@
-module schema.types;
+module graphql.schema.types;
 
 import std.conv : to;
 import std.array;
@@ -13,9 +13,9 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
-import helper;
-import traits;
-import constants;
+import graphql.helper;
+import graphql.traits;
+import graphql.constants;
 
 @safe:
 

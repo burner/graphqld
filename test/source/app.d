@@ -12,18 +12,19 @@ import std.experimental.logger.filelogger;
 import vibe.vibe;
 import vibe.data.json;
 
-import parser;
-import builder;
-import lexer;
-import ast;
+import graphql.parser;
+import graphql.builder;
+import graphql.lexer;
+import graphql.ast;
 
-import helper;
+import graphql.helper;
+import graphql.schema;
+import graphql.traits;
+import graphql.argumentextractor;
+import graphql.graphql;
+
 import testdata;
 import testdata2;
-import schema;
-import traits;
-import argumentextractor;
-import graphql;
 
 Data database;
 

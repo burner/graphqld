@@ -1,4 +1,4 @@
-module constants;
+module graphql.constants;
 
 enum Constants {
 	ENUM = "ENUM",

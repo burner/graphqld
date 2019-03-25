@@ -1,6 +1,6 @@
-module schema.helper;
+module graphql.schema.helper;
 
-import schema.types;
+import graphql.schema.types;
 
 @safe:
 

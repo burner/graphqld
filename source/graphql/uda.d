@@ -1,4 +1,4 @@
-module uda;
+module graphql.uda;
 
 import std.traits : isBuiltinType;
 

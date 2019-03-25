@@ -1,6 +1,6 @@
-module tokenmodule;
+module graphql.tokenmodule;
 
-import visitor;
+import graphql.visitor;
 
 enum TokenType {
 	undefined,
