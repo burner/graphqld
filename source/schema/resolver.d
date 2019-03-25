@@ -18,6 +18,8 @@ import traits;
 import constants;
 import graphql;
 
+@safe:
+
 alias QueryResolver(Con) = Json delegate(string name, Json parent,
 		Json args, ref Con context) @safe;
 
@@ -160,7 +162,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		};
 
 	graphql.setResolver("queryType", "__type",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
@@ -174,7 +177,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("queryType", "__schema", schemaResolver);
 
 	graphql.setResolver("__Field", "type",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
@@ -188,7 +192,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		);
 
 	graphql.setResolver("__InputValue", "type",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
@@ -201,7 +206,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		);
 
 	graphql.setResolver("__Type", "ofType",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
@@ -216,7 +222,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		);
 
 	graphql.setResolver("__Type", "interfaces",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
@@ -267,7 +274,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		);
 
 	graphql.setResolver("__Type", "possibleTypes",
-			delegate(string name, Json parent, Json args, ref Con context) {
+			delegate(string name, Json parent, Json args, ref Con context) @safe
+			{
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);

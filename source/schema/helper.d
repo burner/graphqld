@@ -2,6 +2,8 @@ module schema.helper;
 
 import schema.types;
 
+@safe:
+
 string toString(Con)(ref GQLDType!(Con)[string] all) {
 	import std.array : appender;
 	import std.format : formattedWrite;

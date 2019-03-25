@@ -10,6 +10,8 @@ import vibe.data.json;
 import visitor;
 import ast;
 
+@safe:
+
 class ArgumentExtractor : Visitor {
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
