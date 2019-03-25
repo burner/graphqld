@@ -11,10 +11,10 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
-import schema.directives;
-import helper;
+import graphql.schema.directives;
+import graphql.helper;
 
-import uda;
+import graphql.uda;
 
 @safe:
 

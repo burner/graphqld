@@ -1,4 +1,4 @@
-module builder;
+module graphql.builder;
 
 import std.experimental.allocator;
 import std.experimental.logger : logf;
@@ -7,10 +7,10 @@ import std.exception : enforce;
 
 import fixedsizearray;
 
-import helper;
-import ast;
-import parser;
-import lexer;
+import graphql.helper;
+import graphql.ast;
+import graphql.parser;
+import graphql.lexer;
 
 @safe:
 

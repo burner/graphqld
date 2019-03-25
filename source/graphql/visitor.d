@@ -1,7 +1,7 @@
-module visitor;
+module graphql.visitor;
 
-import ast;
-import tokenmodule;
+import graphql.ast;
+import graphql.tokenmodule;
 
 @safe:
 

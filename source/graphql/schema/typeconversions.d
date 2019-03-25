@@ -1,4 +1,4 @@
-module schema.typeconversions;
+module graphql.schema.typeconversions;
 
 import std.array : empty;
 import std.algorithm.searching : canFind;
@@ -11,10 +11,10 @@ import std.range : ElementEncodingType;
 
 import vibe.data.json;
 
-import schema.types;
-import traits;
-import uda;
-import constants;
+import graphql.schema.types;
+import graphql.traits;
+import graphql.uda;
+import graphql.constants;
 
 @safe:
 

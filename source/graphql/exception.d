@@ -1,4 +1,4 @@
-module exception;
+module graphql.exception;
 
 @safe:
 

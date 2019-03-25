@@ -1,9 +1,9 @@
-module treevisitor;
+module graphql.treevisitor;
 
 import std.traits : Unqual;
-import ast;
-import visitor;
-import tokenmodule;
+import graphql.ast;
+import graphql.visitor;
+import graphql.tokenmodule;
 
 @safe:
 

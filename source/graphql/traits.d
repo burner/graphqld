@@ -1,4 +1,4 @@
-module traits;
+module graphql.traits;
 
 import std.meta;
 import std.range : ElementEncodingType;

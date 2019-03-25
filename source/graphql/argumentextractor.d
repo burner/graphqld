@@ -1,4 +1,4 @@
-module argumentextractor;
+module graphql.argumentextractor;
 
 import std.array : back, empty, popBack;
 import std.conv : to;
@@ -7,8 +7,8 @@ import std.exception : enforce;
 
 import vibe.data.json;
 
-import visitor;
-import ast;
+import graphql.visitor;
+import graphql.ast;
 
 @safe:
 

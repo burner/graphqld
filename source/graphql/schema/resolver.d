@@ -1,4 +1,4 @@
-module schema.resolver;
+module graphql.schema.resolver;
 
 import std.array : empty;
 import std.format : format;
@@ -11,12 +11,12 @@ import std.string : capitalize;
 
 import vibe.data.json;
 
-import schema.types;
-import schema.typeconversions;
-import helper;
-import traits;
-import constants;
-import graphql;
+import graphql.schema.types;
+import graphql.schema.typeconversions;
+import graphql.helper;
+import graphql.traits;
+import graphql.constants;
+import graphql.graphql;
 
 @safe:
 
