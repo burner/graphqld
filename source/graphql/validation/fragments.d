@@ -1,6 +1,7 @@
 module graphql.validation.fragments;
 
 import std.array : back, empty, popBack;
+import std.algorithm.searching : canFind;
 import std.conv : to;
 import std.format : format;
 import std.exception : enforce;
@@ -37,8 +38,16 @@ class FragmentValidator : Visitor {
 
 	string[][string] fragmentChildren;
 	FixedSizeArray!string curFragment;
+	string[] allFrags;
 
 	override void enter(const(FragmentDefinition) frag) {
+		enforce!FragmentNameAlreadyInUseException(
+				!canFind(this.allFrags, frag.name.value),
+				format("Fragment names '%s' already in use '[%(%s, %)]'",
+					frag.name.value, this.allFrags)
+			);
+
+		this.allFrags ~= frag.name.value;
 		this.curFragment.insertBack(frag.name.value);
 	}
 
@@ -76,7 +85,6 @@ bool noCylces(string[][string] frags) {
 }
 
 void noCylcesImpl(string[] toFind, string[][string] frags) {
-	import std.algorithm.searching : canFind;
 	auto toIter = toFind.back in frags;
 	if(toIter is null) {
 		return;
@@ -192,4 +200,34 @@ query Q {
 
 	FragmentValidator fv = new FragmentValidator(doc);
 	assertThrown!FragmentNotFoundException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+fragment Frag0 on Foo {
+	...Frag1
+}
+
+fragment Frag0 on Foo {
+	...Frag2
+}
+
+fragment Frag1 on Foo {
+	...Frag2
+}
+
+fragment Frag2 on Foo {
+	hello
+}
+
+query Q {
+	...Frag0
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	FragmentValidator fv = new FragmentValidator(doc);
+	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
 }

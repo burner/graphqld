@@ -69,10 +69,10 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Fragments on composite types
 - [ ] Known argument names
 - [ ] Known directives
-- [ ] Known fragment names
+- [x] Known fragment names
 - [ ] Known type names
 - [ ] Lone anonymous operations
-- [ ] No fragment cycles
+- [x] No fragment cycles
 - [ ] No undefined variables
 - [ ] No unused fragments
 - [ ] No unused variables
@@ -82,7 +82,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Scalar leafs
 - [ ] Unique argument names
 - [ ] Unique directives per location
-- [ ] Unique fragment names
+- [x] Unique fragment names
 - [ ] Unique input field names
 - [ ] Unique operation names
 - [ ] Unique variable names

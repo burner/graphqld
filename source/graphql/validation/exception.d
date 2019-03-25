@@ -22,3 +22,10 @@ class FragmentCycleException : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class FragmentNameAlreadyInUseException : ValidationException {
+	this(string msg, string f, size_t l) {
+		import std.format : format;
+		super(msg, f, l);
+	}
+}
