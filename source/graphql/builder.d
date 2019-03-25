@@ -14,6 +14,29 @@ import graphql.lexer;
 
 @safe:
 
+const(FragmentDefinition) findFragment(const(Document) doc, string name) {
+	import std.algorithm.searching : canFind;
+	import std.experimental.logger : logf;
+	enforce(doc !is null);
+	const(Definitions) cur = doc.defs;
+	return findFragmentImpl(cur, name);
+}
+
+const(FragmentDefinition) findFragmentImpl(const(Definitions) cur, string name) {
+	if(cur is null) {
+		return null;
+	} else {
+		enforce(cur.def !is null);
+		if(cur.def.ruleSelection == DefinitionEnum.F) {
+			enforce(cur.def.frag !is null);
+			if(cur.def.frag.name.value == name) {
+				return cur.def.frag;
+			}
+		}
+		return findFragmentImpl(cur.follow, name);
+	}
+}
+
 Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;
