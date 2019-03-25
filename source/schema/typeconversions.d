@@ -1,5 +1,6 @@
 module schema.typeconversions;
 
+import std.array : empty;
 import std.algorithm.searching : canFind;
 import std.conv : to;
 import std.stdio;
@@ -96,12 +97,24 @@ Json typeFields(T)() {
 	static foreach(Type; TplusParents) {{
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
+				enum GQLDUdaData udaData = getUdaData!(Type, mem);
 				Json tmp = Json.emptyObject();
 				tmp[Constants.name] = mem;
 				tmp[Constants.__typename] = "__Field"; // needed for interfacesForType
-				tmp[Constants.description] = Json(null);
-				tmp[Constants.isDeprecated] = false;
-				tmp[Constants.deprecationReason] = Json(null);
+				tmp[Constants.description] = udaData.description.text.empty
+						? Json(null)
+						: Json(udaData.description.text);
+
+				tmp[Constants.isDeprecated] =
+					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+						? true
+						: false;
+
+				tmp[Constants.deprecationReason] =
+					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+						? Json(udaData.deprecationInfo.deprecationReason)
+						: Json(null);
+
 				tmp[Constants.args] = Json.emptyArray();
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
@@ -147,9 +160,12 @@ Json inputFields(Type)() {
 	alias types = FieldTypeTuple!Type;
 	alias names = FieldNameTuple!Type;
 	static foreach(idx; 0 .. types.length) {{
+		enum GQLDUdaData udaData = getUdaData!(types[idx]);
 		Json tmp = Json.emptyObject();
 		tmp[Constants.name] = names[idx];
-		tmp[Constants.description] = Json(null);
+		tmp[Constants.description] = udaData.description.text.empty
+				? Json(null)
+				: Json(udaData.description.text);
 		tmp[Constants.__typename] = Constants.__InputValue; // needed for interfacesForType
 		tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
 		tmp[Constants.defaultValue] = serializeToJson(
@@ -175,49 +191,63 @@ Json emptyType() {
 // remove the top nullable to find out if we have a NON_NULL or not
 Json typeToJson(Type,Schema)() {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJson1!(F,Schema)();
+		return typeToJson1!(F,Schema,Type)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret[Constants.__typename] = "__Type";
-		ret["ofType"] = typeToJson1!(Type,Schema)();
+		ret["ofType"] = typeToJson1!(Type,Schema,Type)();
 		return ret;
 	}
 }
 
 // remove the array is present
-Json typeToJson1(Type,Schema)() {
+Json typeToJson1(Type,Schema,Orig)() {
 	static if(isArray!Type && !isSomeString!Type) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
 		ret[Constants.__typename] = "__Type";
-		ret["ofType"] = typeToJson2!(ElementEncodingType!Type, Schema)();
+		ret["ofType"] = typeToJson2!(ElementEncodingType!Type, Schema, Orig)();
 		return ret;
 	} else {
-		return typeToJsonImpl!(Type, Schema)();
+		return typeToJsonImpl!(Type, Schema, Orig)();
 	}
 }
 
 // remove another nullable
-Json typeToJson2(Type,Schema)() {
+Json typeToJson2(Type,Schema,Orig)() {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJsonImpl!(F,Schema)();
+		return typeToJsonImpl!(F, Schema, Orig)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret[Constants.__typename] = "__Type";
-		ret["ofType"] = typeToJsonImpl!(Type, Schema)();
+		ret["ofType"] = typeToJsonImpl!(Type, Schema, Orig)();
 		return ret;
 	}
 }
 
-Json typeToJsonImpl(Type,Schema)() {
+Json typeToJsonImpl(Type,Schema,Orig)() {
 	Json ret = Json.emptyObject();
 	enum string kind = typeToTypeEnum!Type;
 	ret["kind"] = kind;
 	ret[Constants.__typename] = "__Type";
 	ret[Constants.name] = typeToTypeName!Type;
-	ret[Constants.description] = "TODO";
+
+	enum GQLDUdaData udaData = getUdaData!(Orig);
+	ret[Constants.description] = udaData.description.text.empty
+			? Json(null)
+			: Json(udaData.description.text);
+
+	ret[Constants.isDeprecated] =
+		udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+			? true
+			: false;
+
+	ret[Constants.deprecationReason] =
+		udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+			? Json(udaData.deprecationInfo.deprecationReason)
+			: Json(null);
 
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
@@ -294,10 +324,25 @@ Json directivesToJson(Directives)() {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			static if(!canFind(memsToIgnore, mem)) {
 				Json tmp = Json.emptyObject();
+				enum GQLDUdaData udaData = getUdaData!(Type, mem);
 				tmp[Constants.name] = mem;
 				// needed for interfacesForType
 				tmp[Constants.__typename] = Constants.__Directive;
-				tmp[Constants.description] = Json(null);
+				tmp[Constants.description] = udaData.description.text.empty
+						? Json(null)
+						: Json(udaData.description.text);
+
+				tmp[Constants.isDeprecated] =
+					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+						? true
+						: false;
+
+				tmp[Constants.deprecationReason] =
+					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+						? Json(udaData.deprecationInfo.deprecationReason)
+						: Json(null);
+
+				//tmp[Constants.description] = Json(null);
 				tmp[Constants.locations] = Json.emptyArray();
 				tmp[Constants.args] = Json.emptyArray();
 				static if(isCallable!(__traits(getMember, Type, mem))) {

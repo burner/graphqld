@@ -27,8 +27,15 @@ union SearchResult {
 	Starship ship;
 }
 
-interface Query {
+@GQLDUda(TypeKind.OBJECT)
+struct Query {
+	@GQLDUda(
+		GQLDDescription("Get the captain by Series")
+	)
 	Character captain(Series series);
+	@GQLDUda(
+		GQLDDeprecated(IsDeprecated.yes, "To complex")
+	)
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
 	Starship[] starships(float overSize = 100.0);
@@ -37,6 +44,10 @@ interface Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
+}
+
+unittest {
+	Query d;
 }
 
 @GQLDUda(TypeKind.INPUT_OBJECT)
@@ -88,9 +99,15 @@ abstract class Android : Character {
 	string primaryFunction;
 }
 
+@GQLDUda(
+	GQLDDescription("The thing Chracters fly around in")
+)
 class Starship {
 	long id;
 	string name;
+	@GQLDUda(
+		GQLDDescription("The name used when speaking about the ship")
+	)
 	string designation;
 	double size;
 
