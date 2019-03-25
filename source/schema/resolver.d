@@ -136,7 +136,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			}
 			alias NoDup = NoDuplicates!(EraseAll!(T, NoDirectives));
 			static foreach(type; NoDup) {{
-				Json tmp = typeToJsonImpl!(type,T)();
+				Json tmp = typeToJsonImpl!(type,T,type)();
 				ret["data"]["types"] ~= tmp;
 			}}
 			static if(hasMember!(T, Constants.directives)) {
@@ -151,9 +151,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			{
 				static if(hasMember!(T, tName)) {
 					ret["data"][tName] =
-						typeToJsonImpl!(typeof(
-								__traits(getMember, T, tName)
-							),T);
+						typeToJsonImpl!(typeof(__traits(getMember, T, tName)),
+								T, typeof(__traits(getMember, T, tName)));
 				}
 			}
 			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
@@ -251,7 +250,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 												typeCap, striped.stringof
 											);
 										ret["data"] ~=
-											typeToJsonImpl!(striped,T)();
+											typeToJsonImpl!(striped,T,type)();
 										break l;
 									}
 								}}
@@ -292,7 +291,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 									graphql.defaultResolverLog.logf("%s %s",
 											typeCap, striped.stringof
 										);
-									ret["data"] ~= typeToJsonImpl!(striped,T)();
+									ret["data"] ~=
+										typeToJsonImpl!(striped,T,type)();
 									break l;
 								}
 							}
