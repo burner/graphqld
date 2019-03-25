@@ -2,6 +2,8 @@ module uda;
 
 import std.traits : isBuiltinType;
 
+@safe:
+
 enum TypeKind {
 	UNDEFINED,
 	SCALAR,

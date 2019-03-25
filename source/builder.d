@@ -12,6 +12,8 @@ import ast;
 import parser;
 import lexer;
 
+@safe:
+
 Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;

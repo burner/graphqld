@@ -16,6 +16,8 @@ import argumentextractor;
 import schema.types;
 import schema.resolver;
 
+@safe:
+
 struct DefaultContext {
 }
 
@@ -168,7 +170,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return Json.init;
 	}
 
-	Json execute(Document doc, Json variables, ref Con context) {
+	Json execute(Document doc, Json variables, ref Con context) @trusted {
 		import std.algorithm.searching : canFind, find;
 		OperationDefinition[] ops = this.getOperations(doc);
 
@@ -354,6 +356,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	Json executeList(SelectionSet ss, GQLDList objectType,
 			Json objectValue, Json variables, Document doc, ref Con context)
+			@trusted
 	{
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
 				objectType.name, objectValue, variables
