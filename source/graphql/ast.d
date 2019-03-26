@@ -731,15 +731,18 @@ class VariableDefinition {
 	VariableDefinitionEnum ruleSelection;
 	Type type;
 	DefaultValue dvalue;
+	Variable var;
 
-	this(VariableDefinitionEnum ruleSelection, Type type, DefaultValue dvalue) {
+	this(VariableDefinitionEnum ruleSelection, Variable var, Type type, DefaultValue dvalue) {
 		this.ruleSelection = ruleSelection;
+		this.var = var;
 		this.type = type;
 		this.dvalue = dvalue;
 	}
 
-	this(VariableDefinitionEnum ruleSelection, Type type) {
+	this(VariableDefinitionEnum ruleSelection, Variable var, Type type) {
 		this.ruleSelection = ruleSelection;
+		this.var = var;
 		this.type = type;
 	}
 
