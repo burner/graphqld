@@ -2,6 +2,9 @@ module graphql.validation.fragments;
 
 import std.array : array, back, empty, popBack;
 import std.algorithm.searching : canFind;
+import std.algorithm.sorting : sort;
+import std.algorithm.setops : setDifference;
+import std.algorithm.comparison : equal;
 import std.conv : to;
 import std.format : format;
 import std.exception : enforce;
@@ -46,8 +49,18 @@ class StaticValidator : Visitor {
 	// Lone Anonymous Operation
 	bool laoFound;
 
-	// Unique Operation Names
+	// Unique Operation names
 	bool[string] operationNames;
+
+	// Unique Argument names
+	bool[string] argumentNames;
+
+	// Unique Variable names
+	bool[string] variableNames;
+
+	// Variable usage
+	bool variableDefinitionDone;
+	bool[string] variableUsed;
 
 	override void enter(const(Definition) od) {
 		enforce!NoTypeSystemDefinitionException(
@@ -55,6 +68,11 @@ class StaticValidator : Visitor {
 	}
 
 	override void enter(const(OperationDefinition) od) {
+		() @trusted {
+			this.variableUsed.clear();
+		}();
+		this.variableDefinitionDone = false;
+
 		enforce!LoneAnonymousOperationException(!this.laoFound);
 		if(canFind([OperationDefinitionEnum.SelSet,
 					OperationDefinitionEnum.OT,
@@ -72,6 +90,16 @@ class StaticValidator : Visitor {
 				);
 			this.operationNames[od.name.value] = true;
 		}
+	}
+
+	override void exit(const(OperationDefinition) od) {
+		auto vn = this.variableNames.byKey().array.sort;
+		auto vnUsed = this.variableUsed.byKey().array.sort;
+
+		enforce!UnusedVariablesUsedException(equal(vn, vnUsed), format(
+					"Not all variables used [%(%s, %)], avaiable [%(%s, %)] "
+					~ "used [%(%s, %)]", setDifference(vn, vnUsed), vn, vnUsed)
+				);
 	}
 
 	override void enter(const(FragmentDefinition) frag) {
@@ -109,6 +137,46 @@ class StaticValidator : Visitor {
 						));
 				}();
 			(*children) ~= frag.name.value;
+		}
+	}
+
+	override void enter(const(Arguments) al) {
+		() @trusted {
+			this.argumentNames.clear();
+		}();
+	}
+
+	override void enter(const(Argument) al) {
+		enforce!ArgumentsNotUniqueException(al.name.value !in this.argumentNames,
+				format("Argument with name '%s' already present in [%(%s, %)]",
+						al.name.value, this.argumentNames.byKey()
+					)
+			);
+		this.argumentNames[al.name.value] = true;
+	}
+
+	override void enter(const(VariableDefinitions) vd) {
+		() @trusted {
+			this.variableNames.clear();
+		}();
+	}
+
+	override void exit(const(VariableDefinitions) vd) {
+		this.variableDefinitionDone = true;
+	}
+
+	override void enter(const(Variable) v) {
+		if(variableDefinitionDone) {
+			this.variableUsed[v.name.value] = true;
+		} else {
+			enforce!VariablesNotUniqueException(
+					v.name.value !in this.variableNames,
+					format(
+						"Variable with name '%s' already present in [%(%s, %)]",
+						v.name.value, this.variableNames.byKey()
+					)
+				);
+			this.variableNames[v.name.value] = true;
 		}
 	}
 }
@@ -158,9 +226,6 @@ bool[string] allReachable(bool[string] reached, string[][string] fragChildren) {
 }
 
 void allFragmentsReached(StaticValidator fv) {
-	import std.algorithm.setops : setDifference;
-	import std.algorithm.sorting : sort;
-	import std.algorithm.comparison : equal;
 	bool[string] reached = allReachable(fv.reachedFragments,
 			fv.fragmentChildren);
 	auto af = fv.allFrags.sort;
@@ -386,4 +451,92 @@ enum Dog {
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!NoTypeSystemDefinitionException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int!) {
+	bar(x: $x) {
+		a
+	}
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertNotThrown!ArgumentsNotUniqueException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo {
+	foo(x: 10, y: 11.1) {
+		bar(x: $x, y: $y) {
+			i
+		}
+	}
+
+	bar(x: 10, x: 11.1) {
+		bar(x: $x, y: $x) {
+			i
+		}
+	}
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertThrown!ArgumentsNotUniqueException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int, $y: Float) {
+	bar(x: $x, y: $y) {
+		i
+	}
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertNotThrown!VariablesNotUniqueException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int, $x: Float) {
+	bar(x: $x, y: $x) {
+		i
+	}
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertThrown!VariablesNotUniqueException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int, $y: Float) {
+	bar(x: $x) {
+		i
+	}
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertThrown!UnusedVariablesUsedException(fv.accept(doc));
 }

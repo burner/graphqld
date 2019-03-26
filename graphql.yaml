@@ -93,9 +93,6 @@ Directive:
     NArg: [at, name#name, Arguments#arg]
     N: [at, name#name]
 
-    #TypeCondition:
-    #    TN: [name#tname]
-
 VariableDefinitions:
     Empty: [lparen, rparen]
     Vars: [lparen, VariableDefinitionList#vars, rparen]
@@ -106,8 +103,8 @@ VariableDefinitionList:
     VF: [VariableDefinition#var, VariableDefinitionList#follow]
 
 VariableDefinition:
-    VarD: [Variable, colon, Type#type, DefaultValue#dvalue]
-    Var: [Variable, colon, Type#type]
+    VarD: [Variable#var, colon, Type#type, DefaultValue#dvalue]
+    Var: [Variable#var, colon, Type#type]
 
 Variable:
     Var: [dollar, name#name]

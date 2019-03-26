@@ -1577,7 +1577,7 @@ struct Parser {
 		string[] subRules;
 		subRules = ["Var", "VarD"];
 		if(this.firstVariable()) {
-			this.parseVariable();
+			Variable var = this.parseVariable();
 			subRules = ["Var", "VarD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
@@ -1589,11 +1589,13 @@ struct Parser {
 						DefaultValue dvalue = this.parseDefaultValue();
 
 						return new VariableDefinition(VariableDefinitionEnum.VarD
+							, var
 							, type
 							, dvalue
 						);
 					}
 					return new VariableDefinition(VariableDefinitionEnum.Var
+						, var
 						, type
 					);
 				}

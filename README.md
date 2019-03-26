@@ -81,12 +81,12 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Possible fragment spreads
 - [ ] Provide non-null arguments
 - [ ] Scalar leafs
-- [ ] Unique argument names
+- [x] Unique argument names
 - [ ] Unique directives per location
 - [x] Unique fragment names
 - [ ] Unique input field names
 - [x] Unique operation names
-- [ ] Unique variable names
+- [x] Unique variable names
 - [ ] Variables are input types
 - [ ] Variables in allowed position
 - [ ] Single root field

@@ -864,10 +864,12 @@ class Visitor {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionEnum.VarD:
+				obj.var.visit(this);
 				obj.type.visit(this);
 				obj.dvalue.visit(this);
 				break;
 			case VariableDefinitionEnum.Var:
+				obj.var.visit(this);
 				obj.type.visit(this);
 				break;
 		}
@@ -881,10 +883,12 @@ class Visitor {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionEnum.VarD:
+				obj.var.visit(this);
 				obj.type.visit(this);
 				obj.dvalue.visit(this);
 				break;
 			case VariableDefinitionEnum.Var:
+				obj.var.visit(this);
 				obj.type.visit(this);
 				break;
 		}
