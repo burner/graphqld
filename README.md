@@ -76,7 +76,7 @@ This graphql implementation is based on June 2018 spec.
 - [x] No fragment cycles
 - [ ] No undefined variables
 - [x] No unused fragments
-- [ ] No unused variables
+- [x] No unused variables
 - [ ] Overlapping fields can be merged
 - [ ] Possible fragment spreads
 - [ ] Provide non-null arguments
