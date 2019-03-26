@@ -3,6 +3,7 @@ module graphql.validation.fragments;
 import std.array : array, back, empty, popBack;
 import std.algorithm.searching : canFind;
 import std.algorithm.sorting : sort;
+import std.algorithm.iteration : each, uniq, filter, map, joiner;
 import std.algorithm.setops : setDifference;
 import std.algorithm.comparison : equal;
 import std.conv : to;
@@ -28,6 +29,17 @@ version(unittest) {
 }
 
 @safe:
+
+struct OperationFragVar {
+	const(OperationDefinition) op;
+	bool[string] fragmentsUsed;
+	bool[string] variablesDefined;
+	bool[string] variablesUsed;
+
+	this(const(OperationDefinition) op) {
+		this.op = op;
+	}
+}
 
 class StaticValidator : Visitor {
 	import std.experimental.typecons : Final;
@@ -62,15 +74,40 @@ class StaticValidator : Visitor {
 	bool variableDefinitionDone;
 	bool[string] variableUsed;
 
+	string[string] variablesUsedByFragments;
+
+	OperationFragVar[] operations;
+
+	override void exit(const(Document) doc) {
+		foreach(ref OperationFragVar op; this.operations) {
+			bool[string] allFragsReached = allReachable(op.fragmentsUsed,
+					this.fragmentChildren
+				);
+			bool[string] varsUsedByOp = computeVariablesUsedByFragments(
+					allFragsReached, this.variablesUsedByFragments
+				);
+
+			auto allVars = op.variablesDefined.byKey().array.sort.uniq;
+			auto varUsed = (varsUsedByOp.byKey().array ~
+					op.variablesUsed.byKey().array)
+					.sort.uniq;
+
+			enforce!UnusedVariablesUsedException(equal(allVars, varUsed),
+					format("Unused Variables [%(%s, %)], avail [%(%s, %)] "
+						~ "used [%(%s, %)]", setDifference(allVars, varUsed),
+						allVars, varUsed)
+				);
+		}
+	}
+
 	override void enter(const(Definition) od) {
 		enforce!NoTypeSystemDefinitionException(
 				od.ruleSelection != DefinitionEnum.T);
 	}
 
 	override void enter(const(OperationDefinition) od) {
-		() @trusted {
-			this.variableUsed.clear();
-		}();
+		this.operations ~= OperationFragVar(od);
+
 		this.variableDefinitionDone = false;
 
 		enforce!LoneAnonymousOperationException(!this.laoFound);
@@ -92,16 +129,6 @@ class StaticValidator : Visitor {
 		}
 	}
 
-	override void exit(const(OperationDefinition) od) {
-		auto vn = this.variableNames.byKey().array.sort;
-		auto vnUsed = this.variableUsed.byKey().array.sort;
-
-		enforce!UnusedVariablesUsedException(equal(vn, vnUsed), format(
-					"Not all variables used [%(%s, %)], avaiable [%(%s, %)] "
-					~ "used [%(%s, %)]", setDifference(vn, vnUsed), vn, vnUsed)
-				);
-	}
-
 	override void enter(const(FragmentDefinition) frag) {
 		enforce!FragmentNameAlreadyInUseException(
 				!canFind(this.allFrags, frag.name.value),
@@ -118,6 +145,10 @@ class StaticValidator : Visitor {
 	}
 
 	override void enter(const(FragmentSpread) fragSpread) {
+		if(!this.operations.empty) {
+			this.operations.back.fragmentsUsed[fragSpread.name.value] = true;
+		}
+
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
 			);
@@ -167,7 +198,11 @@ class StaticValidator : Visitor {
 
 	override void enter(const(Variable) v) {
 		if(variableDefinitionDone) {
-			this.variableUsed[v.name.value] = true;
+			this.operations.back.variablesUsed[v.name.value] = true;
+			if(!this.curFragment.empty) {
+				this.variablesUsedByFragments[this.curFragment.back] =
+					v.name.value;
+			}
 		} else {
 			enforce!VariablesNotUniqueException(
 					v.name.value !in this.variableNames,
@@ -177,8 +212,24 @@ class StaticValidator : Visitor {
 					)
 				);
 			this.variableNames[v.name.value] = true;
+			this.operations.back.variablesDefined[v.name.value] = true;
 		}
 	}
+}
+
+bool[string] computeVariablesUsedByFragments(bool[string] fragmentsUsed,
+		string[string] variablesUsed)
+{
+	bool[string] ret;
+	fragmentsUsed
+		.byKey()
+		.filter!(a => a in variablesUsed)
+		.map!(a => variablesUsed[a])
+		.array
+		.sort
+		.uniq
+		.each!(a => ret[a] = true);
+	return ret;
 }
 
 bool noCylces(string[][string] frags) {
@@ -238,6 +289,15 @@ void allFragmentsReached(StaticValidator fv) {
 		);
 }
 
+version(unittest) {
+	const(Document) lexAndParse(string s) {
+		auto l = Lexer(s);
+		auto p = Parser(l);
+		const(Document) doc = p.parseDocument();
+		return doc;
+	}
+}
+
 unittest {
 	string simpleCylce = `
 fragment Frag0 on Foo {
@@ -252,9 +312,7 @@ query Q {
 	...Frag0
 }`;
 
-	auto l = Lexer(simpleCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(simpleCylce);
 	const(FragmentDefinition) f0 = findFragment(doc, "Frag0");
 	assert(f0 !is null);
 	const(FragmentDefinition) f1 = findFragment(doc, "Frag1");
@@ -284,9 +342,7 @@ query Q {
 	...Frag0
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	fv.accept(doc);
@@ -312,9 +368,7 @@ query Q {
 	...Frag0
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	fv.accept(doc);
@@ -337,9 +391,7 @@ fragment Frag1 on Foo {
 	...Frag
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!FragmentNotFoundException(fv.accept(doc));
@@ -372,9 +424,7 @@ query Q {
 	...Frag0
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
@@ -409,9 +459,7 @@ query Q {
 	foo
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
@@ -427,9 +475,7 @@ unittest {
 	foo
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
@@ -445,9 +491,7 @@ enum Dog {
 	foo
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!NoTypeSystemDefinitionException(fv.accept(doc));
@@ -461,9 +505,7 @@ query foo($x: Int!) {
 	}
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertNotThrown!ArgumentsNotUniqueException(fv.accept(doc));
@@ -485,9 +527,7 @@ query foo {
 	}
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!ArgumentsNotUniqueException(fv.accept(doc));
@@ -501,9 +541,7 @@ query foo($x: Int, $y: Float) {
 	}
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertNotThrown!VariablesNotUniqueException(fv.accept(doc));
@@ -517,9 +555,7 @@ query foo($x: Int, $x: Float) {
 	}
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!VariablesNotUniqueException(fv.accept(doc));
@@ -533,10 +569,53 @@ query foo($x: Int, $y: Float) {
 	}
 }`;
 
-	auto l = Lexer(biggerCylce);
-	auto p = Parser(l);
-	const(Document) doc = p.parseDocument();
+	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!UnusedVariablesUsedException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int) {
+	...Foo
+}
+
+fragment Foo on Bar {
+	bar(x: $x) {
+		i
+	}
+}
+`;
+
+	auto doc = lexAndParse(biggerCylce);
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertNotThrown!UnusedVariablesUsedException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int, $y: Float) {
+	...Foo
+}
+
+fragment Foo on Bar {
+	bar(x: $x) {
+		i
+		...ZZZ
+	}
+}
+
+fragment ZZZ on Bar {
+	bar(x: $y) {
+		i
+	}
+}
+`;
+
+	auto doc = lexAndParse(biggerCylce);
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertNotThrown!UnusedVariablesUsedException(fv.accept(doc));
 }
