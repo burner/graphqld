@@ -62,7 +62,7 @@ class VariablesNotUniqueException : ValidationException {
 	}
 }
 
-class UnusedVariablesUsedException : ValidationException {
+class VariablesUseException : ValidationException {
 	this(string msg, string f, size_t l) {
 		super(msg, f, l);
 	}

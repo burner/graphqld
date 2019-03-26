@@ -92,10 +92,9 @@ class StaticValidator : Visitor {
 					op.variablesUsed.byKey().array)
 					.sort.uniq;
 
-			enforce!UnusedVariablesUsedException(equal(allVars, varUsed),
-					format("Unused Variables [%(%s, %)], avail [%(%s, %)] "
-						~ "used [%(%s, %)]", setDifference(allVars, varUsed),
-						allVars, varUsed)
+			enforce!VariablesUseException(equal(allVars, varUsed),
+					format("Variables available [%(%s, %)], "
+						~ "Variables used [%(%s, %)]", allVars, varUsed)
 				);
 		}
 	}
@@ -572,7 +571,7 @@ query foo($x: Int, $y: Float) {
 	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
-	assertThrown!UnusedVariablesUsedException(fv.accept(doc));
+	assertThrown!VariablesUseException(fv.accept(doc));
 }
 
 unittest {
@@ -591,7 +590,7 @@ fragment Foo on Bar {
 	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
-	assertNotThrown!UnusedVariablesUsedException(fv.accept(doc));
+	assertNotThrown!VariablesUseException(fv.accept(doc));
 }
 
 unittest {
@@ -617,5 +616,5 @@ fragment ZZZ on Bar {
 	auto doc = lexAndParse(biggerCylce);
 
 	StaticValidator fv = new StaticValidator(doc);
-	assertNotThrown!UnusedVariablesUsedException(fv.accept(doc));
+	assertNotThrown!VariablesUseException(fv.accept(doc));
 }
