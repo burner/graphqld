@@ -78,7 +78,7 @@ unittest {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "fooo", ["user"]);
+	const f = findFragment(d, "fooo", ["user"]);
 	assert(f is null);
 }
 
@@ -361,7 +361,7 @@ unittest {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -397,7 +397,7 @@ fragment foo on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -405,7 +405,7 @@ fragment foo on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -442,10 +442,10 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar", ["User"]);
+	const f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -453,7 +453,7 @@ fragment bar on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -491,10 +491,10 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar", ["User"]);
+	const f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -502,7 +502,7 @@ fragment bar on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -543,10 +543,10 @@ fragment bar on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar", ["User"]);
+	const f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -554,7 +554,7 @@ fragment bar on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -600,10 +600,10 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar", ["User"]);
+	const f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -611,7 +611,7 @@ fragment baz on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
@@ -661,10 +661,10 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto f = findFragment(d, "foo", ["User"]);
+	const f = findFragment(d, "foo", ["User"]);
 	assert(f !is null);
 
-	auto f2 = findFragment(d, "bar", ["User"]);
+	const f2 = findFragment(d, "bar", ["User"]);
 	assert(f2 !is null);
 
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
@@ -672,7 +672,7 @@ fragment baz on User {
 	assert(r.front.name == "user");
 	ArgumentRange argL = r.front.arguments();
 	assert(!argL.empty);
-	auto ari = argL.front;
+	const ari = argL.front;
 	assert(ari.name == "id");
 	argL.popFront();
 	assert(argL.empty);
