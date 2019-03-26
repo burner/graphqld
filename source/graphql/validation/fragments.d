@@ -1,6 +1,6 @@
 module graphql.validation.fragments;
 
-import std.array : back, empty, popBack;
+import std.array : array, back, empty, popBack;
 import std.algorithm.searching : canFind;
 import std.conv : to;
 import std.format : format;
@@ -18,8 +18,10 @@ import graphql.validation.exception;
 
 version(unittest) {
 	import std.exception : assertThrown, assertNotThrown;
+	import std.stdio;
 	import graphql.lexer;
 	import graphql.parser;
+	import graphql.treevisitor;
 }
 
 @safe:
@@ -39,6 +41,7 @@ class FragmentValidator : Visitor {
 	string[][string] fragmentChildren;
 	FixedSizeArray!string curFragment;
 	string[] allFrags;
+	bool[string] reachedFragments;
 
 	override void enter(const(FragmentDefinition) frag) {
 		enforce!FragmentNameAlreadyInUseException(
@@ -65,11 +68,13 @@ class FragmentValidator : Visitor {
 					fragSpread.name.value)
 			);
 
+		this.reachedFragments[frag.name.value] = true;
+
 		if(!this.curFragment.empty) {
 			string[]* children =
 				() @trusted {
 					return &(this.fragmentChildren.require(
-							this.curFragment.back, new string[](1)
+							this.curFragment.back, new string[](0)
 						));
 				}();
 			(*children) ~= frag.name.value;
@@ -99,6 +104,44 @@ void noCylcesImpl(string[] toFind, string[][string] frags) {
 	}
 }
 
+bool[string] allReachable(bool[string] reached, string[][string] fragChildren) {
+	bool[string] ret;
+	foreach(string key; reached.byKey()) {
+		enforce(!key.empty);
+		ret[key] = true;
+	}
+	size_t oldLen;
+	do {
+		oldLen = ret.length;
+		foreach(string key; ret.byKey()) {
+			string[]* follow = key in fragChildren;
+			if(follow !is null) {
+				foreach(string f; *follow) {
+					assert(!f.empty, format("%s [%(%s, %)]", key, *follow));
+					ret[f] = true;
+				}
+			}
+		}
+	} while(ret.length > oldLen);
+	return ret;
+}
+
+void allFragmentsReached(FragmentValidator fv) {
+	import std.algorithm.setops : setDifference;
+	import std.algorithm.sorting : sort;
+	import std.algorithm.comparison : equal;
+	bool[string] reached = allReachable(fv.reachedFragments,
+			fv.fragmentChildren);
+	auto af = fv.allFrags.sort;
+	auto r = reached.byKey().array.sort;
+	enforce!UnusedFragmentsException(equal(af, r),
+			format("Fragments [%(%s, %)] are unused, allFrags [%(%s, %)], "
+					~ "reached [%(%s, %)]",
+					setDifference(af, r), af, r
+				)
+		);
+}
+
 unittest {
 	string simpleCylce = `
 fragment Frag0 on Foo {
@@ -124,6 +167,7 @@ query Q {
 	FragmentValidator fv = new FragmentValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
+	assertNotThrown(allFragmentsReached(fv));
 }
 
 unittest {
@@ -151,6 +195,7 @@ query Q {
 	FragmentValidator fv = new FragmentValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
+	assertNotThrown(allFragmentsReached(fv));
 }
 
 unittest {
@@ -178,20 +223,22 @@ query Q {
 	FragmentValidator fv = new FragmentValidator(doc);
 	fv.accept(doc);
 	assertNotThrown(noCylces(fv.fragmentChildren));
+	assertNotThrown(allFragmentsReached(fv));
 }
 
 unittest {
+	import std.stdio;
 	string biggerCylce = `
+query Q {
+	...Frag0
+}
+
 fragment Frag0 on Foo {
 	...Frag1
 }
 
 fragment Frag1 on Foo {
 	...Frag
-}
-
-query Q {
-	...Frag0
 }`;
 
 	auto l = Lexer(biggerCylce);
@@ -200,6 +247,7 @@ query Q {
 
 	FragmentValidator fv = new FragmentValidator(doc);
 	assertThrown!FragmentNotFoundException(fv.accept(doc));
+	assertNotThrown(allFragmentsReached(fv));
 }
 
 unittest {
@@ -220,6 +268,10 @@ fragment Frag2 on Foo {
 	hello
 }
 
+fragment Frag4 on Foo {
+	hello
+}
+
 query Q {
 	...Frag0
 }`;
@@ -230,4 +282,5 @@ query Q {
 
 	FragmentValidator fv = new FragmentValidator(doc);
 	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
+	assertThrown!UnusedFragmentsException(allFragmentsReached(fv));
 }

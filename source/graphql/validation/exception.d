@@ -29,3 +29,10 @@ class FragmentNameAlreadyInUseException : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class UnusedFragmentsException : ValidationException {
+	this(string msg, string f, size_t l) {
+		import std.format : format;
+		super(msg, f, l);
+	}
+}
