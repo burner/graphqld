@@ -74,7 +74,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Lone anonymous operations
 - [x] No fragment cycles
 - [ ] No undefined variables
-- [ ] No unused fragments
+- [x] No unused fragments
 - [ ] No unused variables
 - [ ] Overlapping fields can be merged
 - [ ] Possible fragment spreads
