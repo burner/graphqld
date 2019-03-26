@@ -26,7 +26,7 @@ version(unittest) {
 
 @safe:
 
-class FragmentValidator : Visitor {
+class StaticValidator : Visitor {
 	import std.experimental.typecons : Final;
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -48,6 +48,11 @@ class FragmentValidator : Visitor {
 
 	// Unique Operation Names
 	bool[string] operationNames;
+
+	override void enter(const(Definition) od) {
+		enforce!NoTypeSystemDefinitionException(
+				od.ruleSelection != DefinitionEnum.T);
+	}
 
 	override void enter(const(OperationDefinition) od) {
 		enforce!LoneAnonymousOperationException(!this.laoFound);
@@ -152,7 +157,7 @@ bool[string] allReachable(bool[string] reached, string[][string] fragChildren) {
 	return ret;
 }
 
-void allFragmentsReached(FragmentValidator fv) {
+void allFragmentsReached(StaticValidator fv) {
 	import std.algorithm.setops : setDifference;
 	import std.algorithm.sorting : sort;
 	import std.algorithm.comparison : equal;
@@ -190,7 +195,7 @@ query Q {
 	const(FragmentDefinition) f1 = findFragment(doc, "Frag1");
 	assert(f1 !is null);
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -218,7 +223,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -246,7 +251,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	fv.accept(doc);
 	assertNotThrown(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -271,7 +276,7 @@ fragment Frag1 on Foo {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!FragmentNotFoundException(fv.accept(doc));
 	assertNotThrown(allFragmentsReached(fv));
 }
@@ -306,7 +311,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
 	assertThrown!UnusedFragmentsException(allFragmentsReached(fv));
 }
@@ -325,7 +330,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!NonUniqueOperationNameException(fv.accept(doc));
 }
 
@@ -343,7 +348,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
 }
 
@@ -361,6 +366,24 @@ unittest {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	FragmentValidator fv = new FragmentValidator(doc);
+	StaticValidator fv = new StaticValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+{
+	bar
+}
+
+enum Dog {
+	foo
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	StaticValidator fv = new StaticValidator(doc);
+	assertThrown!NoTypeSystemDefinitionException(fv.accept(doc));
 }

@@ -50,3 +50,10 @@ class NonUniqueOperationNameException : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class NoTypeSystemDefinitionException : ValidationException {
+	this(string msg, string f, size_t l) {
+		import std.format : format;
+		super(msg, f, l);
+	}
+}
