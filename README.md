@@ -71,7 +71,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Known directives
 - [x] Known fragment names
 - [ ] Known type names
-- [ ] Lone anonymous operations
+- [x] Lone anonymous operations
 - [x] No fragment cycles
 - [ ] No undefined variables
 - [x] No unused fragments
@@ -84,7 +84,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Unique directives per location
 - [x] Unique fragment names
 - [ ] Unique input field names
-- [ ] Unique operation names
+- [x] Unique operation names
 - [ ] Unique variable names
 - [ ] Variables are input types
 - [ ] Variables in allowed position

@@ -39,10 +39,10 @@ struct Lexer {
 
 	private bool isTokenStop(const(char) c) const @safe {
 		return
-			c == ' ' || c == '\t' || c == '\n' || c == ';' || c == '('
-			|| c == ')' || c == '{' || c == '}' || c == '!' || c == '='
-			|| c == '|' || c == '*' || c == '/' || c == '[' || c == ':'
-			|| c == ']' || c == ',' || c == '@' || c == '#' || c == '$';
+			c == ' ' || c == '\t' || c == '\n' || c == '(' || c == ')'
+			|| c == '{' || c == '}' || c == '!' || c == '=' || c == '|'
+			|| c == '[' || c == ':' || c == ']' || c == ',' || c == '@'
+			|| c == '$';
 	}
 
 	private void eatComment() @safe {

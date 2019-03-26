@@ -43,6 +43,32 @@ class FragmentValidator : Visitor {
 	string[] allFrags;
 	bool[string] reachedFragments;
 
+	// Lone Anonymous Operation
+	bool laoFound;
+
+	// Unique Operation Names
+	bool[string] operationNames;
+
+	override void enter(const(OperationDefinition) od) {
+		enforce!LoneAnonymousOperationException(!this.laoFound);
+		if(canFind([OperationDefinitionEnum.SelSet,
+					OperationDefinitionEnum.OT,
+					OperationDefinitionEnum.OT_D,
+					OperationDefinitionEnum.OT_V,
+					OperationDefinitionEnum.OT_VD] ,od.ruleSelection))
+		{
+			this.laoFound = true;
+		} else {
+			enforce!NonUniqueOperationNameException(od.name.value !in
+					this.operationNames, format(
+						"Operation name '%s' already present in [%(%s, %)]",
+						od.name.value, this.operationNames.byKey()
+					)
+				);
+			this.operationNames[od.name.value] = true;
+		}
+	}
+
 	override void enter(const(FragmentDefinition) frag) {
 		enforce!FragmentNameAlreadyInUseException(
 				!canFind(this.allFrags, frag.name.value),
@@ -283,4 +309,58 @@ query Q {
 	FragmentValidator fv = new FragmentValidator(doc);
 	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
 	assertThrown!UnusedFragmentsException(allFragmentsReached(fv));
+}
+
+unittest {
+	string biggerCylce = `
+mutation Q {
+	bar
+}
+
+query Q {
+	foo
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	FragmentValidator fv = new FragmentValidator(doc);
+	assertThrown!NonUniqueOperationNameException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+{
+	bar
+}
+
+query Q {
+	foo
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	FragmentValidator fv = new FragmentValidator(doc);
+	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+{
+	bar
+}
+
+{
+	foo
+}`;
+
+	auto l = Lexer(biggerCylce);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+
+	FragmentValidator fv = new FragmentValidator(doc);
+	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
 }
