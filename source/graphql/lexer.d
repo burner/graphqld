@@ -660,7 +660,7 @@ unittest {
 
 unittest {
 	string f = "fragment";
-	auto l = Lexer(f);
+	const l = Lexer(f);
 	assert(!l.empty);
 	assert(l.front.type == TokenType.fragment);
 }

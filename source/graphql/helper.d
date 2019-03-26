@@ -20,7 +20,7 @@ string firstCharUpperCase(string input) {
 		return input;
 	}
 
-	dchar f = input.front;
+	const f = input.front;
 	input.popFront();
 
 	return to!string(toUpper(f)) ~ input;
@@ -147,7 +147,7 @@ Json joinJson(Json a, Json b) {
 unittest {
 	Json a = parseJsonString(`{"overSize":200}`);
 	Json b = parseJsonString(`{}`);
-	Json c = joinJson(b, a);
+	const c = joinJson(b, a);
 	assert(c == a);
 }
 
@@ -219,7 +219,7 @@ unittest {
 			"__typename":"Starship","series":["DeepSpaceNine",
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}}`);
-	string r = d.getWithDefault!string("data.__typename");
+	const r = d.getWithDefault!string("data.__typename");
 	assert(r == "Starship", r);
 }
 
@@ -228,7 +228,7 @@ unittest {
 			"__typename":"Starship","series":["DeepSpaceNine",
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}`);
-	string r = d.getWithDefault!string("data.__typename", "__typename");
+	const r = d.getWithDefault!string("data.__typename", "__typename");
 	assert(r == "Starship", r);
 }
 
@@ -237,7 +237,7 @@ unittest {
 			"__typename":"Starship","series":["DeepSpaceNine",
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}`);
-	string r = d.getWithDefault!string("__typename");
+	const r = d.getWithDefault!string("__typename");
 	assert(r == "Starship", r);
 }
 
