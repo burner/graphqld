@@ -68,6 +68,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Fields on correct type
 - [ ] Fragments on composite types
 - [ ] Known argument names
+- [x] Executable Definition
 - [ ] Known directives
 - [x] Known fragment names
 - [ ] Known type names
