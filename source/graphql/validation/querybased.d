@@ -1,4 +1,4 @@
-module graphql.validation.fragments;
+module graphql.validation.querybased;
 
 import std.array : array, back, empty, popBack;
 import std.algorithm.searching : canFind;
