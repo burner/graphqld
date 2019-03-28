@@ -71,9 +71,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {
+		import std.exception : enforce;
 		if(first !in this.resolver) {
 			this.resolver[first] = QueryResolver[string].init;
 		}
+		enforce(second !in this.resolver[first]);
 		this.resolver[first][second] = resolver;
 	}
 
