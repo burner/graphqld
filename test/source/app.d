@@ -28,19 +28,21 @@ import testdata2;
 
 Data database;
 
-GraphQLD!(Schema) graphqld;
+GraphQLD!(Schema,CustomContext) graphqld;
+
+struct CustomContext {
+	int userId;
+}
 
 void main() {
  	database = new Data();
-	graphqld = new GraphQLD!Schema();
+	graphqld = new GraphQLD!(Schema,CustomContext)();
 
 	writeln(graphqld.schema);
 
-	DefaultContext dc;
-
 	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
+					ref CustomContext con)
 			{
 				logf("%s", args);
 				Json ret = Json.emptyObject;
@@ -58,7 +60,7 @@ void main() {
 
 	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
+					ref CustomContext con)
 			{
 				assert("id" in args);
 				long id = args["id"].get!long();
@@ -78,7 +80,7 @@ void main() {
 
 	graphqld.setResolver("mutationType", "addCrewman",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con) @trusted
+					ref CustomContext con) @trusted
 			{
 				logf("args %s", args);
 				assert("shipId" in args);
@@ -108,7 +110,7 @@ void main() {
 		);
 	graphqld.setResolver("queryType", "shipsselection",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con) @trusted
+					ref CustomContext con) @trusted
 			{
 				assert("ids" in args);
 				Json[] jArr = args["ids"].array();
@@ -127,7 +129,7 @@ void main() {
 
 	graphqld.setResolver("Starship", "commander",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
+					ref CustomContext con)
 			{
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyObject;
@@ -145,7 +147,7 @@ void main() {
 
 	graphqld.setResolver("Starship", "crew",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
+					ref CustomContext con)
 			{
 				import std.algorithm.searching : canFind;
 				Json ret = Json.emptyObject();
@@ -166,7 +168,7 @@ void main() {
 
 	graphqld.setResolver("Character", "ship",
 			delegate(string name, Json parent, Json args,
-					ref DefaultContext con)
+					ref CustomContext con)
 			{
 				Json ret = Json.emptyObject();
 				if("shipId" !in parent
@@ -247,7 +249,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		return;
 	}
 
-	DefaultContext con;
+	CustomContext con;
 	Json gqld = graphqld.execute(d, vars, con);
 
 	res.writeJsonBody(gqld);
