@@ -2,6 +2,7 @@ module graphql.helper;
 
 import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;
+import std.format : format;
 import std.exception : enforce;
 import std.experimental.logger;
 
@@ -281,4 +282,30 @@ unittest {
 	//c1.accessNN!(["b", "a"]) = new A;
 	c1.b.a = new A;
 	assert(c1.accessNN!(["b", "a"]) !is null);
+}
+
+T extract(T)(Json data, string name) {
+	enforce(data.type == Json.Type.object, format!
+			"Trying to get a '%s' by name '%s' but passed Json is not an object"
+			(T.stringof, name)
+		);
+
+	Json* item = name in data;
+
+	enforce(item !is null, format!(
+			"Trying to get a '%s' by name '%s' which is not present in passed "
+			~ "object"
+			)(T.stringof, name)
+		);
+
+	return (*item).to!T();
+}
+
+unittest {
+	import std.exception : assertThrown;
+	Json j = parseJsonString(`{ "foo": 1337 }`);
+	auto foo = j.extract!int("foo");
+
+	assertThrown(Json.emptyObject().extract!float("Hello"));
+	assertThrown(j.extract!string("Hello"));
 }
