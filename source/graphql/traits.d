@@ -6,6 +6,8 @@ import std.traits;
 import std.typecons : Nullable;
 import std.experimental.logger : logf;
 
+import nullablestore;
+
 template AllIncarnations(T, SCH...) {
 	static if(SCH.length > 0 && is(T : SCH[0])) {
 		alias AllIncarnations = AliasSeq!(SCH[0],
@@ -42,7 +44,7 @@ template InheritedClassImpl(T) {
 		alias interfs = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
 		alias tmp = AliasSeq!(T, interfs);
 		alias InheritedClassImpl = tmp;
-	} else static if(is(T : Nullable!F, F)) {
+	} else static if(is(T : Nullable!F, F) || is(T : NullableStore!F, F)) {
 		alias interfs = staticMap!(.InheritedClassImpl, F);
 		alias tmp = AliasSeq!(T, interfs);
 		alias InheritedClassImpl = tmp;
@@ -132,6 +134,8 @@ template collectTypesImpl(Type) {
 		alias collectTypesImpl = AliasSeq!(Type, InheritedClasses!Type);
 	} else static if(is(Type : Nullable!F, F)) {
 		alias collectTypesImpl = .collectTypesImpl!(F);
+	} else static if(is(Type : NullableStore!F, F)) {
+		alias collectTypesImpl = .collectTypesImpl!(F);
 	} else static if(is(Type == struct)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
@@ -208,6 +212,9 @@ template fixupBasicTypes(T) {
 	} else static if(is(T : Nullable!F, F)) {
 		alias ElemFix = fixupBasicTypes!(F);
 		alias fixupBasicTypes = Nullable!(ElemFix);
+	} else static if(is(T : NullableStore!F, F)) {
+		alias ElemFix = fixupBasicTypes!(F);
+		alias fixupBasicTypes = NullableStore!(ElemFix);
 	} else {
 		alias fixupBasicTypes = T;
 	}
@@ -215,6 +222,8 @@ template fixupBasicTypes(T) {
 
 template noArrayOrNullable(T) {
 	static if(is(T : Nullable!F, F)) {
+		enum noArrayOrNullable = false;
+	} else static if(is(T : NullableStore!F, F)) {
 		enum noArrayOrNullable = false;
 	} else static if(!isSomeString!T && isArray!T) {
 		enum noArrayOrNullable = false;
@@ -226,11 +235,13 @@ template noArrayOrNullable(T) {
 unittest {
 	static assert(is(Nullable!int : Nullable!F, F));
 	static assert(!is(int : Nullable!F, F));
+	static assert(!is(int : NullableStore!F, F));
 	static assert( noArrayOrNullable!(int));
 	static assert( noArrayOrNullable!(string));
 	static assert(!noArrayOrNullable!(int[]));
 	static assert(!noArrayOrNullable!(Nullable!int));
 	static assert(!noArrayOrNullable!(Nullable!int));
+	static assert(!noArrayOrNullable!(NullableStore!int));
 }
 
 template collectTypes(T...) {
@@ -302,6 +313,8 @@ unittest {
 
 template stripArrayAndNullable(T) {
 	static if(is(T : Nullable!F, F)) {
+		alias stripArrayAndNullable = .stripArrayAndNullable!F;
+	} else static if(is(T : NullableStore!F, F)) {
 		alias stripArrayAndNullable = .stripArrayAndNullable!F;
 	} else static if(!isSomeString!T && isArray!T) {
 		alias stripArrayAndNullable =

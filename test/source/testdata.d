@@ -11,6 +11,8 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
+import nullablestore;
+
 import graphql.schema.directives;
 import graphql.helper;
 
@@ -88,6 +90,8 @@ abstract class Character {
 	Character[] commands;
 	Nullable!Starship ship;
 	Character[] commanders;
+
+	NullableStore!AddCrewmanData data;
 }
 
 abstract class Humanoid : Character {
