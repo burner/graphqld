@@ -11,6 +11,8 @@ import std.range : ElementEncodingType;
 
 import vibe.data.json;
 
+import nullablestore;
+
 import graphql.schema.types;
 import graphql.traits;
 import graphql.uda;
@@ -84,6 +86,8 @@ template typeToFieldType(Type) {
 		enum typeToFieldType = "__listType";
 	} else static if(is(Type : Nullable!F, F)) {
 		enum typeToFieldType = F.stringof;
+	} else static if(is(Type : NullableStore!F, F)) {
+		enum typeToFieldType = Type.TypeValue.stringof;
 	} else {
 		enum typeToFieldType = "__nonNullType";
 	}
@@ -192,6 +196,8 @@ Json emptyType() {
 Json typeToJson(Type,Schema)() {
 	static if(is(Type : Nullable!F, F)) {
 		return typeToJson1!(F,Schema,Type)();
+	} else static if(is(Type : NullableStore!F, F)) {
+		return typeToJson1!(Type.TypeValue,Schema,Type)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
@@ -218,6 +224,8 @@ Json typeToJson1(Type,Schema,Orig)() {
 Json typeToJson2(Type,Schema,Orig)() {
 	static if(is(Type : Nullable!F, F)) {
 		return typeToJsonImpl!(F, Schema, Orig)();
+	} else static if(is(Type : NullableStore!F, F)) {
+		return typeToJsonImpl!(Type.TypeValue, Schema, Orig)();
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
@@ -251,7 +259,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
-			&& !is(Type : Nullable!K, K))
+			&& !is(Type : Nullable!K, K) && !is(Type : NullableStore!K, K))
 	{
 		ret[Constants.fields] = typeFields!Type();
 	} else {
@@ -305,7 +313,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	}
 
 	// needed to resolve ofType
-	static if(is(Type : Nullable!F, F)) {
+	static if(is(Type : Nullable!F, F) || is(Type : NullableStore!F, F)) {
 		ret[Constants.ofTypeName] = F.stringof;
 	} else static if(isArray!Type) {
 		ret[Constants.ofTypeName] = ElementEncodingType!(Type).stringof;

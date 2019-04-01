@@ -13,6 +13,8 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
+import nullablestore;
+
 import graphql.helper;
 import graphql.traits;
 import graphql.constants;
@@ -570,6 +572,8 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		}
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
+		return new GQLDNullable(typeToGQLDType!(F)(ret));
+	} else static if(is(Type : NullableStore!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {
 		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret)
