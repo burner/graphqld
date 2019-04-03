@@ -20,12 +20,45 @@ struct GQLDUdaData {
 	TypeKind typeKind;
 	GQLDDeprecatedData deprecationInfo;
 	GQLDDescription description;
+	Ignore ignore;
+	GQLDCustomLeafData customLeaf;
+}
+
+enum Ignore {
+	undefined,
+	yes,
+	no
 }
 
 enum IsDeprecated {
 	undefined,
 	yes,
 	no
+}
+
+GQLDCustomLeafData GQLDCustomLeaf(T)() {
+	return GQLDCustomLeafData(T.stringof);
+}
+
+struct GQLDCustomLeafData {
+	import vibe.data.json;
+	string typeName;
+
+	bool isCustomLeaf() const pure @nogc nothrow {
+		import std.array : empty;
+		return !this.typeName.empty();
+	}
+}
+
+unittest {
+	import std.datetime : DateTime;
+	import vibe.data.json;
+
+	Json fun(DateTime dt) {
+		return Json(dt.toISOExtString());
+	}
+
+	auto f = GQLDCustomLeaf!DateTime();
 }
 
 struct GQLDDeprecatedData {

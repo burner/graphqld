@@ -1,6 +1,7 @@
 module testdata;
 
 import std.stdio;
+import std.datetime : DateTime;
 import std.conv : to;
 import std.array : array, back;
 import std.format : format;
@@ -19,6 +20,10 @@ import graphql.helper;
 import graphql.uda;
 
 @safe:
+
+Json datetimeToJson(DateTime dt) {
+	return Json(dt.toISOExtString());
+}
 
 // The Schema used by graphqld
 
@@ -45,6 +50,10 @@ struct Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
+	@GQLDUda(
+		GQLDCustomLeaf!DateTime()
+	)
+	DateTime currentTime();
 }
 
 unittest {
@@ -96,6 +105,11 @@ abstract class Character {
 
 abstract class Humanoid : Character {
 	string species;
+
+	//@GQLDUda(
+	//	GQLDCustomLeaf!DateTime()
+	//)
+	DateTime birthday;
 }
 
 abstract class Android : Character {
