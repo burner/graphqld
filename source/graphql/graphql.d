@@ -4,6 +4,7 @@ import std.array : array, front, empty;
 import std.stdio;
 import std.experimental.logger;
 import std.traits;
+import std.meta : AliasSeq;
 import std.format : format;
 
 import vibe.data.json;
@@ -399,4 +400,34 @@ class GraphQLD(T, QContext = DefaultContext) {
 		ae.accept(cast(const(Field))item.f);
 		return ae.arguments;
 	}
+}
+
+version(unittest) {
+	import graphql.uda;
+
+	@GQLDUda(TypeKind.OBJECT)
+	private struct Query {
+		import std.datetime : DateTime;
+
+		@GQLDUda(
+			GQLDCustomLeaf!DateTime()
+		)
+		DateTime current();
+	}
+
+	private class Schema {
+		Query queryTyp;
+	}
+}
+
+unittest {
+	import graphql.schema.typeconversions;
+	import graphql.traits;
+
+	alias a = collectTypes!(Schema);
+	static assert(is(a == AliasSeq!(Schema, Query, string, long, bool)));
+
+	pragma(msg, InheritedClasses!Schema);
+
+	auto g = new GraphQLD!(Schema,int)();
 }

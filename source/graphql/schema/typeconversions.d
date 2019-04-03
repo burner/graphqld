@@ -94,14 +94,18 @@ template typeToFieldType(Type) {
 }
 
 Json typeFields(T)() {
+	import graphql.uda;
 	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
 			"opEquals", "Monitor", "factory"];
 	Json ret = Json.emptyArray();
 	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
 	static foreach(Type; TplusParents) {{
 		static foreach(mem; __traits(allMembers, Type)) {{
-			static if(!canFind(memsToIgnore, mem)) {
-				enum GQLDUdaData udaData = getUdaData!(Type, mem);
+			enum GQLDUdaData udaData = getUdaData!(Type, mem);
+			static if(!canFind(memsToIgnore, mem)
+					&& udaData.ignore != Ignore.yes
+					&& !udaData.customLeaf.isCustomLeaf())
+			{
 				Json tmp = Json.emptyObject();
 				tmp[Constants.name] = mem;
 				tmp[Constants.__typename] = "__Field"; // needed for interfacesForType
@@ -123,7 +127,10 @@ Json typeFields(T)() {
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
-					tmp[Constants.typenameOrig] = typeToTypeName!(RT);
+					enum GQLDUdaData udas = getUdaData!RT;
+					static if(!udas.customLeaf.isCustomLeaf()) {
+						tmp[Constants.typenameOrig] = typeToTypeName!(RT);
+					}
 
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(

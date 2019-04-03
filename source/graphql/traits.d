@@ -29,19 +29,34 @@ template InheritedClasses(T) {
 	alias InheritedClasses = NOT;
 }
 
+template isNotCustomLeafOrIgnore(T) {
+	import graphql.uda;
+	enum GQLDUdaData u = getUdaData!T;
+	enum isNotCustomLeafOrIgnore = !u.customLeaf.isCustomLeaf()
+		&& u.ignore != Ignore.yes;
+}
+
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	static if(is(T == union)) {
-		alias fields = staticMap!(.InheritedClassImpl, FieldTypeTuple!T);
+		alias fields = staticMap!(.InheritedClassImpl,
+				Filter!(isNotCustomLeafOrIgnore, FieldTypeTuple!T)
+			);
 		alias tmp = AliasSeq!(T, fields);
 		alias InheritedClassImpl = tmp;
 	} else static if(is(T == class)) {
-		alias clss = staticMap!(.InheritedClassImpl, BaseClassesTuple!T);
-		alias interfs = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
+		alias clss = staticMap!(.InheritedClassImpl,
+				Filter!(isNotCustomLeafOrIgnore, BaseClassesTuple!T)
+			);
+		alias interfs = staticMap!(.InheritedClassImpl,
+				Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+			);
 		alias tmp = AliasSeq!(T, clss, interfs);
 		alias InheritedClassImpl = tmp;
 	} else static if(is(T == interface)) {
-		alias interfs = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
+		alias interfs = staticMap!(.InheritedClassImpl,
+				Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+			);
 		alias tmp = AliasSeq!(T, interfs);
 		alias InheritedClassImpl = tmp;
 	} else static if(is(T : Nullable!F, F) || is(T : NullableStore!F, F)) {
@@ -162,14 +177,33 @@ template collectTypesImpl(Type) {
 }
 
 template collectReturnType(Type, Names...) {
-	static if(Names.length > 0) {
-		static if(isCallable!(__traits(getMember, Type, Names[0]))) {
-			alias collectReturnType = AliasSeq!(
-					ReturnType!(__traits(getMember, Type, Names[0])),
-					.collectReturnType!(Type, Names[1 .. $])
-				);
+	import graphql.uda : getUdaData, GQLDUdaData;
+	enum GQLDUdaData udaDataT = getUdaData!(Type);
+	static if(Names.length > 0 && !udaDataT.customLeaf.isCustomLeaf()) {
+		static if(__traits(getProtection, __traits(getMember, Type, Names[0]))
+				== "public"
+				&& isCallable!(__traits(getMember, Type, Names[0])))
+		{
+			alias rt = ReturnType!(__traits(getMember, Type, Names[0]));
+			enum GQLDUdaData udaData = getUdaData!(Type, Names[0]);
+			pragma(msg, "Hereer ", Type, " ", Names[0], " ",
+					udaData.customLeaf.isCustomLeaf());
+			static if(udaData.customLeaf.isCustomLeaf()) {
+				alias tmp = AliasSeq!(.collectReturnType!(Type, Names[1 .. $]));
+				pragma(msg, "YES ", Type.stringof, " ", tmp);
+				alias collectReturnType = tmp;
+			} else {
+				alias tmp = AliasSeq!(
+						rt,
+						.collectReturnType!(Type, Names[1 .. $])
+					);
+				pragma(msg, "NO ", Type.stringof, " ", tmp);
+				alias collectReturnType = tmp;
+			}
 		} else {
-			alias collectReturnType = .collectReturnType!(Type, Names[1 .. $]);
+			alias tmp = .collectReturnType!(Type, Names[1 .. $]);
+			pragma(msg, "ELSE ", Type.stringof, " ", tmp);
+			alias collectReturnType = tmp;
 		}
 	} else {
 		alias collectReturnType = AliasSeq!();
@@ -178,7 +212,10 @@ template collectReturnType(Type, Names...) {
 
 template collectParameterTypes(Type, Names...) {
 	static if(Names.length > 0) {
-		static if(isCallable!(__traits(getMember, Type, Names[0]))) {
+		static if(__traits(getProtection, __traits(getMember, Type, Names[0]))
+				== "public"
+				&& isCallable!(__traits(getMember, Type, Names[0])))
+		{
 			alias ArgTypes = ParameterTypeTuple!(
 					__traits(getMember, Type, Names[0])
 				);
@@ -255,7 +292,8 @@ template collectTypes(T...) {
 	static if(rslt.length == T.length) {
 		alias collectTypes = rslt;
 	} else {
-		alias collectTypes = .collectTypes!(rslt);
+		alias tmp = .collectTypes!(rslt);
+		alias collectTypes = tmp;
 	}
 }
 
