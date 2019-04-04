@@ -18,6 +18,7 @@ import nullablestore;
 import graphql.helper;
 import graphql.traits;
 import graphql.constants;
+import graphql.uda;
 
 @safe:
 
@@ -26,6 +27,7 @@ enum GQLDKind {
 	Float,
 	Int,
 	Bool,
+	CustomLeaf,
 	Object_,
 	List,
 	Enum,
@@ -40,7 +42,6 @@ enum GQLDKind {
 }
 
 abstract class GQLDType {
-
 	const GQLDKind kind;
 	string name;
 
@@ -60,6 +61,13 @@ abstract class GQLDType {
 class GQLDScalar : GQLDType {
 	this(GQLDKind kind) {
 		super(kind);
+	}
+}
+
+class GQLDLeaf : GQLDScalar {
+	this(string name) {
+		super(GQLDKind.CustomLeaf);
+		super.name = name;
 	}
 }
 
@@ -467,7 +475,8 @@ class GQLDSchema(Type) : GQLDMap {
 			} else if(field in map.member) {
 				ret = map.member[field];
 			} else if(field == "__typename") {
-				ret = this.types["string"];
+				assert(false, format("%s %s", field, t.toString()));
+				//ret = this.types["string"];
 			} else {
 				// if we couldn't find it in the passed map, maybe it is in some
 				// of its derivatives
@@ -573,6 +582,8 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
+	} else static if(is(Type : GQLDCustomLeaf!F, F)) {
+		return new GQLDLeaf(F.stringof);
 	} else static if(is(Type : NullableStore!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {

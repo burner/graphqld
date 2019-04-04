@@ -50,10 +50,8 @@ struct Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
-	@GQLDUda(
-		GQLDCustomLeaf!DateTime()
-	)
-	DateTime currentTime();
+	GQLDCustomLeaf!DateTime currentTime();
+	int currentTime();
 }
 
 unittest {
@@ -100,16 +98,11 @@ abstract class Character {
 	Nullable!Starship ship;
 	Character[] commanders;
 
-	NullableStore!AddCrewmanData data;
+	//NullableStore!AddCrewmanData data;
 }
 
 abstract class Humanoid : Character {
 	string species;
-
-	//@GQLDUda(
-	//	GQLDCustomLeaf!DateTime()
-	//)
-	DateTime birthday;
 }
 
 abstract class Android : Character {

@@ -21,7 +21,6 @@ struct GQLDUdaData {
 	GQLDDeprecatedData deprecationInfo;
 	GQLDDescription description;
 	Ignore ignore;
-	GQLDCustomLeafData customLeaf;
 }
 
 enum Ignore {
@@ -36,18 +35,9 @@ enum IsDeprecated {
 	no
 }
 
-GQLDCustomLeafData GQLDCustomLeaf(T)() {
-	return GQLDCustomLeafData(T.stringof);
-}
-
-struct GQLDCustomLeafData {
-	import vibe.data.json;
-	string typeName;
-
-	bool isCustomLeaf() const pure @nogc nothrow {
-		import std.array : empty;
-		return !this.typeName.empty();
-	}
+struct GQLDCustomLeaf(T) {
+	alias Type = T;
+	Type value;
 }
 
 unittest {

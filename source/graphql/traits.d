@@ -5,8 +5,11 @@ import std.range : ElementEncodingType;
 import std.traits;
 import std.typecons : Nullable;
 import std.experimental.logger : logf;
+import std.meta : AliasSeq, Filter;
 
 import nullablestore;
+
+import graphql.uda;
 
 template AllIncarnations(T, SCH...) {
 	static if(SCH.length > 0 && is(T : SCH[0])) {
@@ -32,30 +35,33 @@ template InheritedClasses(T) {
 template isNotCustomLeafOrIgnore(T) {
 	import graphql.uda;
 	enum GQLDUdaData u = getUdaData!T;
-	enum isNotCustomLeafOrIgnore = !u.customLeaf.isCustomLeaf()
-		&& u.ignore != Ignore.yes;
+	enum isNotCustomLeafOrIgnore = u.ignore != Ignore.yes;
 }
 
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	static if(is(T == union)) {
 		alias fields = staticMap!(.InheritedClassImpl,
-				Filter!(isNotCustomLeafOrIgnore, FieldTypeTuple!T)
+				//Filter!(isNotCustomLeafOrIgnore, FieldTypeTuple!T)
+				FieldTypeTuple!T
 			);
 		alias tmp = AliasSeq!(T, fields);
 		alias InheritedClassImpl = tmp;
 	} else static if(is(T == class)) {
 		alias clss = staticMap!(.InheritedClassImpl,
-				Filter!(isNotCustomLeafOrIgnore, BaseClassesTuple!T)
+				//Filter!(isNotCustomLeafOrIgnore, BaseClassesTuple!T)
+				BaseClassesTuple!T
 			);
 		alias interfs = staticMap!(.InheritedClassImpl,
-				Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+				//Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+				InterfacesTuple!T
 			);
 		alias tmp = AliasSeq!(T, clss, interfs);
 		alias InheritedClassImpl = tmp;
 	} else static if(is(T == interface)) {
 		alias interfs = staticMap!(.InheritedClassImpl,
-				Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+				//Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
+				InterfacesTuple!T
 			);
 		alias tmp = AliasSeq!(T, interfs);
 		alias InheritedClassImpl = tmp;
@@ -121,17 +127,32 @@ template isNotObject(Type) {
 	enum isNotObject = !is(Type == Object);
 }
 
+template isNotCustomLeaf(Type) {
+	import graphql.uda;
+	enum isNotCustomLeaf = !is(Type : GQLDCustomLeaf!F, F);
+}
+
+unittest {
+	alias t = AliasSeq!(int, GQLDCustomLeaf!int);
+	alias f = Filter!(isNotCustomLeaf, t);
+	static assert(is(f == AliasSeq!(int)));
+}
+
 template collectTypesImpl(Type) {
-	static if(is(Type == interface)) {
+	import graphql.uda;
+	static if(is(Type : GQLDCustomLeaf!F, F)) {
+		alias collectTypesImpl = AliasSeq!(Type);
+	} else static if(is(Type == interface)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
 			);
 		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
-		alias collectTypesImpl = AliasSeq!(Type, RetTypes, ArgTypes,
-					InterfacesTuple!Type
-				);
+		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
+		alias collectTypesImpl =
+				AliasSeq!(Type, RetTypes, ArgTypes, InterfacesTuple!Type)
+			;
 	} else static if(is(Type == class)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
@@ -144,7 +165,10 @@ template collectTypesImpl(Type) {
 				InheritedClasses!Type,
 				InterfacesTuple!Type
 			);
-		alias collectTypesImpl = AliasSeq!(Type, tmp, RetTypes, ArgTypes);
+		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
+		alias collectTypesImpl =
+				AliasSeq!(Type, tmp, RetTypes, ArgTypes)
+			;
 	} else static if(is(Type == union)) {
 		alias collectTypesImpl = AliasSeq!(Type, InheritedClasses!Type);
 	} else static if(is(Type : Nullable!F, F)) {
@@ -158,7 +182,10 @@ template collectTypesImpl(Type) {
 		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
-		alias collectTypesImpl = AliasSeq!(Type, RetTypes, ArgTypes);
+		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
+		alias collectTypesImpl =
+				AliasSeq!(Type, RetTypes, ArgTypes)
+			;
 	} else static if(isSomeString!Type) {
 		alias collectTypesImpl = string;
 	} else static if(is(Type == bool)) {
@@ -179,30 +206,20 @@ template collectTypesImpl(Type) {
 template collectReturnType(Type, Names...) {
 	import graphql.uda : getUdaData, GQLDUdaData;
 	enum GQLDUdaData udaDataT = getUdaData!(Type);
-	static if(Names.length > 0 && !udaDataT.customLeaf.isCustomLeaf()) {
+	static if(Names.length > 0) {
 		static if(__traits(getProtection, __traits(getMember, Type, Names[0]))
 				== "public"
 				&& isCallable!(__traits(getMember, Type, Names[0])))
 		{
 			alias rt = ReturnType!(__traits(getMember, Type, Names[0]));
-			enum GQLDUdaData udaData = getUdaData!(Type, Names[0]);
-			pragma(msg, "Hereer ", Type, " ", Names[0], " ",
-					udaData.customLeaf.isCustomLeaf());
-			static if(udaData.customLeaf.isCustomLeaf()) {
-				alias tmp = AliasSeq!(.collectReturnType!(Type, Names[1 .. $]));
-				pragma(msg, "YES ", Type.stringof, " ", tmp);
-				alias collectReturnType = tmp;
-			} else {
-				alias tmp = AliasSeq!(
-						rt,
-						.collectReturnType!(Type, Names[1 .. $])
-					);
-				pragma(msg, "NO ", Type.stringof, " ", tmp);
-				alias collectReturnType = tmp;
-			}
+			alias before = AliasSeq!(rt,
+					.collectReturnType!(Type, Names[1 .. $])
+				);
+			//alias tmp = Filter!(isNotCustomLeaf, before);
+			alias collectReturnType = before;
 		} else {
 			alias tmp = .collectReturnType!(Type, Names[1 .. $]);
-			pragma(msg, "ELSE ", Type.stringof, " ", tmp);
+			//alias collectReturnType = Filter!(isNotCustomLeaf, tmp);
 			alias collectReturnType = tmp;
 		}
 	} else {
@@ -282,13 +299,20 @@ unittest {
 }
 
 template collectTypes(T...) {
+	pragma(msg, "287 ", T);
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
+	pragma(msg, "289 ", oneLevelDown);
 	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
+	pragma(msg, "291 ", basicT);
 	alias elemTypes = Filter!(noArrayOrNullable, basicT);
+	pragma(msg, "293 ", elemTypes);
 	alias noVoid = EraseAll!(void, elemTypes);
+	//alias noCustomLeaf = Filter!(isNotCustomLeaf, noVoid);
+	pragma(msg, "295 ", noVoid);
 	alias rslt = NoDuplicates!(EraseAll!(Object, basicT),
 			EraseAll!(Object, noVoid)
 		);
+	pragma(msg, "299 ", rslt);
 	static if(rslt.length == T.length) {
 		alias collectTypes = rslt;
 	} else {

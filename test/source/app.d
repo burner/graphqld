@@ -40,6 +40,19 @@ void main() {
 
 	writeln(graphqld.schema);
 
+	graphqld.setResolver("queryType", "currentTime",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con)
+			{
+				import std.datetime;
+				SysTime ct = Clock.currTime();
+				DateTime dt = cast(DateTime)ct;
+				Json ret = Json.emptyObject;
+				ret["data"] = Json(dt.toISOExtString());
+				return ret;
+			}
+		);
+
 	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con)

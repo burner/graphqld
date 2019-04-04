@@ -32,6 +32,8 @@ template typeToTypeEnum(Type) {
 		enum typeToTypeEnum = "ENUM";
 	} else static if(is(Type == bool)) {
 		enum typeToTypeEnum = "SCALAR";
+	} else static if(is(Type : GQLDCustomLeaf!F, F)) {
+		enum typeToTypeEnum = "SCALAR";
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(isIntegral!(Type)) {
@@ -54,6 +56,8 @@ template typeToTypeName(Type) {
 		enum typeToTypeName = Type.stringof;
 	} else static if(is(Type == bool)) {
 		enum typeToTypeName = "Bool";
+	} else static if(is(Type == GQLDCustomLeaf!F, F)) {
+		enum typeToTypeName = F.stringof;
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeName = "Float";
 	} else static if(isIntegral!(Type)) {
@@ -67,6 +71,8 @@ template typeToTypeName(Type) {
 
 template isScalarType(Type) {
 	static if(is(Type == bool)) {
+		enum isScalarType = true;
+	} else static if(is(Type == GQLDCustomLeaf!F, F)) {
 		enum isScalarType = true;
 	} else static if(isFloatingPoint!(Type)) {
 		enum isScalarType = true;
@@ -103,8 +109,7 @@ Json typeFields(T)() {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			enum GQLDUdaData udaData = getUdaData!(Type, mem);
 			static if(!canFind(memsToIgnore, mem)
-					&& udaData.ignore != Ignore.yes
-					&& !udaData.customLeaf.isCustomLeaf())
+					&& udaData.ignore != Ignore.yes)
 			{
 				Json tmp = Json.emptyObject();
 				tmp[Constants.name] = mem;
@@ -127,10 +132,7 @@ Json typeFields(T)() {
 				static if(isCallable!(__traits(getMember, Type, mem))) {
 					alias RT = ReturnType!(__traits(getMember, Type, mem));
 					alias RTS = stripArrayAndNullable!RT;
-					enum GQLDUdaData udas = getUdaData!RT;
-					static if(!udas.customLeaf.isCustomLeaf()) {
-						tmp[Constants.typenameOrig] = typeToTypeName!(RT);
-					}
+					tmp[Constants.typenameOrig] = typeToTypeName!(RT);
 
 					// InputValue
 					alias paraNames = ParameterIdentifierTuple!(
@@ -266,7 +268,8 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
-			&& !is(Type : Nullable!K, K) && !is(Type : NullableStore!K, K))
+			&& !is(Type : Nullable!K, K) && !is(Type : NullableStore!K, K)
+			&& !is(Type : GQLDCustomLeaf!K, K))
 	{
 		ret[Constants.fields] = typeFields!Type();
 	} else {
@@ -320,7 +323,9 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	}
 
 	// needed to resolve ofType
-	static if(is(Type : Nullable!F, F) || is(Type : NullableStore!F, F)) {
+	static if(is(Type : Nullable!F, F) || is(Type : NullableStore!F, F)
+			|| is(Type : GQLDCustomLeaf!F, F))
+	{
 		ret[Constants.ofTypeName] = F.stringof;
 	} else static if(isArray!Type) {
 		ret[Constants.ofTypeName] = ElementEncodingType!(Type).stringof;
