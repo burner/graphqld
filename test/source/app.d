@@ -1,3 +1,4 @@
+import core.time : seconds;
 import std.array;
 import std.stdio;
 import std.traits;
@@ -96,18 +97,21 @@ void main() {
 					ref CustomContext con) @trusted
 			{
 				logf("args %s", args);
-				assert("shipId" in args);
-				long shipId = args["shipId"].get!long();
-				assert("name" in args);
-				string nname = args["name"].get!string();
-				logf("%s %s", shipId, nname);
+				long shipId;
+				bool ok = hasPathTo(args, "input.shipId", shipId);
+				writefln("%s %s", ok, shipId);
+				string nname;
+				ok = hasPathTo(args, "input.name", nname);
+				writefln("%s %s", ok, nname);
+				logf("%s %s %s", shipId, nname);
 
 				Json ret;
 
 				auto theShip = database.ships.find!(s => shipId == s.id);
 				if(!theShip.empty) {
 					Starship ship = theShip.front;
-					auto nh = new HumanoidImpl(database.i++, nname, "Human");
+					auto nh = new HumanoidImpl(database.i++, nname, "Human",
+							Date(1986, 7, 2));
 					ship.crew ~= nh;
 					nh.ship = nullable(ship);
 					ret = characterToJson(nh);
@@ -207,7 +211,33 @@ void main() {
 	listenHTTP(settings, &hello);
 
 	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
+	Task t = runTask({
+			import std.exception : enforce;
+			import testqueries;
+			foreach(q; queries) {
+				sleep(1.seconds);
+				Task qt = runTask({
+					requestHTTP("http://127.0.0.1:8080",
+						(scope req) {
+							req.method = HTTPMethod.POST;
+							Json b = Json.emptyObject();
+							b["query"] = Json(q);
+							req.writeJsonBody(b);
+						},
+						(scope res) {
+							Json ret = parseJsonString(
+									res.bodyReader.readAllUTF8()
+								);
+							enforce("error" in ret && ret["error"].length == 0);
+							enforce("data" in ret && ret["data"].length != 0);
+						}
+					);
+				});
+				qt.join();
+			}
+		});
 	runApplication();
+	t.join();
 }
 
 void hello(HTTPServerRequest req, HTTPServerResponse res) {
@@ -247,7 +277,12 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 
 	Document d;
 	try {
+		import graphql.validation.querybased;
 		d = p.parseDocument();
+		StaticValidator fv = new StaticValidator(d);
+	    fv.accept(d);
+	    noCylces(fv.fragmentChildren);
+	    allFragmentsReached(fv);
 	} catch(Throwable e) {
 		auto app = appender!string();
 		while(e) {

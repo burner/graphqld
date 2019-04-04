@@ -475,8 +475,8 @@ class GQLDSchema(Type) : GQLDMap {
 			} else if(field in map.member) {
 				ret = map.member[field];
 			} else if(field == "__typename") {
-				assert(false, format("%s %s", field, t.toString()));
-				//ret = this.types["string"];
+				// the type of the field __typename is always a string
+				ret = this.types["string"];
 			} else {
 				// if we couldn't find it in the passed map, maybe it is in some
 				// of its derivatives
