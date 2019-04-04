@@ -299,20 +299,13 @@ unittest {
 }
 
 template collectTypes(T...) {
-	pragma(msg, "287 ", T);
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
-	pragma(msg, "289 ", oneLevelDown);
 	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
-	pragma(msg, "291 ", basicT);
 	alias elemTypes = Filter!(noArrayOrNullable, basicT);
-	pragma(msg, "293 ", elemTypes);
 	alias noVoid = EraseAll!(void, elemTypes);
-	//alias noCustomLeaf = Filter!(isNotCustomLeaf, noVoid);
-	pragma(msg, "295 ", noVoid);
 	alias rslt = NoDuplicates!(EraseAll!(Object, basicT),
 			EraseAll!(Object, noVoid)
 		);
-	pragma(msg, "299 ", rslt);
 	static if(rslt.length == T.length) {
 		alias collectTypes = rslt;
 	} else {
