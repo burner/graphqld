@@ -3,7 +3,7 @@
 		"burner"
 	],
 	"copyright": "Copyright © 2019, burner",
-	"dflags" : ["-v", "-cov"],
+	"dflags" : [],
 	"dependencies": {
 		"vibe-d": "~>0.8.2",
 		"vibe-d:tls": "~>0.8.2",
