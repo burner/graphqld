@@ -38,6 +38,7 @@ enum IsDeprecated {
 struct GQLDCustomLeaf(T) {
 	alias Type = T;
 	Type value;
+	alias value this;
 }
 
 unittest {

@@ -1,7 +1,7 @@
 module testdata;
 
 import std.stdio;
-import std.datetime : DateTime;
+import std.datetime : DateTime, Date;
 import std.conv : to;
 import std.array : array, back;
 import std.format : format;
@@ -103,6 +103,7 @@ abstract class Character {
 
 abstract class Humanoid : Character {
 	string species;
+	GQLDCustomLeaf!Date dateOfBirth;
 }
 
 abstract class Android : Character {
@@ -178,6 +179,7 @@ Json characterToJson(Character c) {
 	if(Humanoid h = cast(Humanoid)c) {
 		ret["data"]["species"] = h.species;
 		ret["data"]["__typename"] = "Humanoid";
+		ret["data"]["dateOfBirth"] = Json(h.dateOfBirth.toISOExtString());
 	}
 
 	if(Android a = cast(Android)c) {
@@ -197,10 +199,11 @@ class CharacterImpl : Character {
 }
 
 class HumanoidImpl : Humanoid {
-	this(long id, string name, string species) {
+	this(long id, string name, string species, Date dob) {
 		this.id = id;
 		this.name = name;
 		this.species = species;
+		this.dateOfBirth = dob;
 	}
 
 	override string toString() const @safe {
@@ -264,17 +267,19 @@ class Data {
 	long i;
 
 	this() @trusted {
-		auto picard = new HumanoidImpl(i++, "Jean-Luc Picard", "Human");
-		auto worf = new HumanoidImpl(i++, "Worf", "Klingon");
+		auto picard = new HumanoidImpl(i++, "Jean-Luc Picard", "Human",
+				Date(2305, 7, 13));
+		auto worf = new HumanoidImpl(i++, "Worf", "Klingon", Date(2340, 5, 23));
 		picard.series ~= Series.TheNextGeneration;
 		auto tng = [
-			new HumanoidImpl(i++, "William Riker", "Human"),
-			new HumanoidImpl(i++, "Deanna Troi", "Betazoid "),
-			new HumanoidImpl(i++, "Dr. Beverly Crusher", "Human"),
+			new HumanoidImpl(i++, "William Riker", "Human", Date(2335, 8, 19)),
+			new HumanoidImpl(i++, "Deanna Troi", "Betazoid", Date(2336, 3, 29)),
+			new HumanoidImpl(i++, "Dr. Beverly Crusher", "Human",
+					Date(2324, 10, 13)),
 			worf,
 			new AndroidImpl(i++, "Data", "Becoming Human"),
-			new HumanoidImpl(i++, "Geordi La Forge", "Human"),
-			new HumanoidImpl(i++, "Miles O'Brien", "Human")
+			new HumanoidImpl(i++, "Geordi La Forge", "Human", Date(2335, 2, 16)),
+			new HumanoidImpl(i++, "Miles O'Brien", "Human", Date(2328, 9, 1))
 		];
 		picard.commands = tng;
 		picard.series ~= Series.DeepSpaceNine;
@@ -286,15 +291,16 @@ class Data {
 		tng[3].series ~= Series.DeepSpaceNine;
 		tng[6].series ~= Series.DeepSpaceNine;
 
-		auto sisko = new HumanoidImpl(i++, "Benjamin Sisko", "Human");
+		auto sisko = new HumanoidImpl(i++, "Benjamin Sisko", "Human",
+				Date(2332, 1, 1));
 		sisko.series ~= Series.DeepSpaceNine;
 		auto ds9 = [
-			new HumanoidImpl(i++, "Odo", "Changeling"),
-			new HumanoidImpl(i++, "Jadzia Dax", "Trill"),
-			new HumanoidImpl(i++, "Dr. Julian Bashir", "Human"),
+			new HumanoidImpl(i++, "Odo", "Changeling", Date(1970, 1, 1)),
+			new HumanoidImpl(i++, "Jadzia Dax", "Trill", Date(2346, 8, 20)),
+			new HumanoidImpl(i++, "Dr. Julian Bashir", "Human", Date(2341, 1, 1)),
 			worf,
-			new HumanoidImpl(i++, "Kira Nerys", "Bajoran"),
-			new HumanoidImpl(i++, "Elim Garak", "Cardassian")
+			new HumanoidImpl(i++, "Kira Nerys", "Bajoran", Date(2343, 1, 1)),
+			new HumanoidImpl(i++, "Elim Garak", "Cardassian", Date(2320, 1, 1))
 		];
 		sisko.commands = cast(Character[])ds9;
 		ds9.map!(a => a.series ~= Series.DeepSpaceNine).each;
@@ -302,52 +308,57 @@ class Data {
 
 		tng[6].commanders ~= sisko;
 
-		auto janeway = new HumanoidImpl(i++, "Kathryn Janeway", "Human");
+		auto janeway = new HumanoidImpl(i++, "Kathryn Janeway", "Human",
+				Date(2330, 5, 20));
 		auto voyager = [
-			new HumanoidImpl(i++, "Chakotay", "Human"),
-			new HumanoidImpl(i++, "Tuvok", "Vulcan"),
-			new HumanoidImpl(i++, "Neelix", "Talaxian"),
-			new HumanoidImpl(i++, "Seven of Nine", "Human"),
-			new HumanoidImpl(i++, "B'Elanna Torres", "Klingon"),
-			new HumanoidImpl(i++, "Tom Paris", "Human"),
-			new HumanoidImpl(i++, "Harry Kim", "Human"),
+			new HumanoidImpl(i++, "Chakotay", "Human", Date(2329, 1, 1)),
+			new HumanoidImpl(i++, "Tuvok", "Vulcan", Date(2361, 10, 10)),
+			new HumanoidImpl(i++, "Neelix", "Talaxian", Date(2340, 1, 1)),
+			new HumanoidImpl(i++, "Seven of Nine", "Human", Date(2348, 6, 24)),
+			new HumanoidImpl(i++, "B'Elanna Torres", "Klingon", Date(2349, 2, 1)),
+			new HumanoidImpl(i++, "Tom Paris", "Human", Date(2346, 2, 1)),
+			new HumanoidImpl(i++, "Harry Kim", "Human", Date(2349, 2, 1)),
 		];
 		janeway.commands = cast(Character[])voyager;
 		voyager.map!(a => a.series ~= Series.Voyager).each;
 		voyager.map!(a => a.commanders ~= janeway).each;
 
-		auto archer = new HumanoidImpl(i++, "Jonathan Archer", "Human");
+		auto archer = new HumanoidImpl(i++, "Jonathan Archer", "Human",
+				Date(2112, 10, 9));
 		auto enterprise = [
-			new HumanoidImpl(i++, "Charles Tucer III", "Human"),
-			new HumanoidImpl(i++, "Hoshi Sato", "Human"),
-			new HumanoidImpl(i++, "Dr. Phlox", "Denobulan"),
-			new HumanoidImpl(i++, "Malcolm Reed", "Human"),
-			new HumanoidImpl(i++, "Travis Mayweather", "Human"),
-			new HumanoidImpl(i++, "T'Pol", "Vulcan")
+			new HumanoidImpl(i++, "Charles Tucker III", "Human", Date(2121, 2,
+						1)),
+			new HumanoidImpl(i++, "Hoshi Sato", "Human", Date(2129, 7, 9)),
+			new HumanoidImpl(i++, "Dr. Phlox", "Denobulan", Date(2080, 2, 1)),
+			new HumanoidImpl(i++, "Malcolm Reed", "Human", Date(2117, 9, 2)),
+			new HumanoidImpl(i++, "Travis Mayweather", "Human", Date(2121, 2, 1)),
+			new HumanoidImpl(i++, "T'Pol", "Vulcan", Date(2088, 2, 1))
 		];
 		archer.commands = cast(Character[])enterprise;
 		enterprise.map!(a => a.series ~= Series.Enterprise).each;
 
-		auto kirk = new HumanoidImpl(i++, "James T. Kirk", "Human");
+		auto kirk = new HumanoidImpl(i++, "James T. Kirk", "Human",
+				Date(2202, 2, 1));
 		auto tos = [
-			new HumanoidImpl(i++, "Hikaru Sulu", "Human"),
-			new HumanoidImpl(i++, "Uhura", "Human"),
-			new HumanoidImpl(i++, "Montgomery Scott", "Human"),
-			new HumanoidImpl(i++, "Dr. Leonard McCoy", "Human"),
-			new HumanoidImpl(i++, "Spock", "Vulcan"),
+			new HumanoidImpl(i++, "Hikaru Sulu", "Human", Date(2237, 2, 1)),
+			new HumanoidImpl(i++, "Uhura", "Human", Date(2239, 2, 1)),
+			new HumanoidImpl(i++, "Montgomery Scott", "Human", Date(2222, 2, 1)),
+			new HumanoidImpl(i++, "Dr. Leonard McCoy", "Human", Date(2227, 2, 1)),
+			new HumanoidImpl(i++, "Spock", "Vulcan", Date(2230, 2, 1)),
 		];
 		kirk.commands = cast(Character[])tos;
 		tos.map!(a => a.series ~= Series.TheOriginalSeries).each;
 		tos.map!(a => a.commanders ~= kirk).each;
 
-		auto georgiou = new HumanoidImpl(i++, "Philippa Georgiou", "Human");
+		auto georgiou = new HumanoidImpl(i++, "Philippa Georgiou", "Human",
+				Date(2202, 2, 1));
 		auto discovery = [
-			new HumanoidImpl(i++, "Michael Burnham", "Human"),
-			new HumanoidImpl(i++, "Paum Stamets", "Human"),
-			new HumanoidImpl(i++, "Sylvia Tilly", "Human"),
-			new HumanoidImpl(i++, "Ash Tyler", "Klingon"),
-			new HumanoidImpl(i++, "Saru", "Kelpien"),
-			new HumanoidImpl(i++, "Hugh Culber", "Human"),
+			new HumanoidImpl(i++, "Michael Burnham", "Human", Date(2226, 2, 1)),
+			new HumanoidImpl(i++, "Paul Stamets", "Human", Date(2225, 2, 1)),
+			new HumanoidImpl(i++, "Sylvia Tilly", "Human", Date(2230, 2, 1)),
+			new HumanoidImpl(i++, "Ash Tyler", "Klingon", Date(2230, 2, 1)),
+			new HumanoidImpl(i++, "Saru", "Kelpien", Date(2230, 2, 1)),
+			new HumanoidImpl(i++, "Hugh Culber", "Human", Date(2227, 2, 1)),
 		];
 		georgiou.commands = cast(Character[])discovery;
 		discovery.map!(a => a.series ~= Series.Discovery).each;
