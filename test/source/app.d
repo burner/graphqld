@@ -96,14 +96,11 @@ void main() {
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @trusted
 			{
-				logf("args %s", args);
 				long shipId;
 				bool ok = hasPathTo(args, "input.shipId", shipId);
-				writefln("%s %s", ok, shipId);
 				string nname;
 				ok = hasPathTo(args, "input.name", nname);
-				writefln("%s %s", ok, nname);
-				logf("%s %s %s", shipId, nname);
+				//logf("%s %s %s", shipId, nname);
 
 				Json ret;
 
