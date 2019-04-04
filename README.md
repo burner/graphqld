@@ -114,6 +114,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Query AST cache
 - [ ] Json to resolver argument extractor
 - [ ] SQL query generation from AST
+- [x] Custom Leaf types (e.g. GQLDCustomLeaf!(std.datetime.DateTime))
 
 Thank you to [graphql-dot](https://github.com/graphql-dotnet/graphql-dotnet)
 for the excelent list of features
