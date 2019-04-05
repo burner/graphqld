@@ -39,6 +39,10 @@ struct GQLDCustomLeaf(T) {
 	alias Type = T;
 	Type value;
 	alias value this;
+
+	this(Type value) {
+		this.value = value;
+	}
 }
 
 unittest {
@@ -50,6 +54,8 @@ unittest {
 	}
 
 	auto f = GQLDCustomLeaf!DateTime();
+
+	GQLDCustomLeaf!DateTime dt = DateTime(1337, 1, 1);
 }
 
 struct GQLDDeprecatedData {
