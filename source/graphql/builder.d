@@ -231,15 +231,13 @@ struct FieldRange {
 		{
 			Selections follow = this.cur.back.follow;
 			Selections f;
-			if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread) {
-				f = findFragment(doc,
-						this.cur.back.sel.frag.name.value, this.typenames
-					);
-			} else {
-				f = resolveInlineFragment(this.cur.back.sel.ifrag,
+			f = this.cur.back.sel.ruleSelection == SelectionEnum.Spread
+				? findFragment(doc, this.cur.back.sel.frag.name.value,
+						this.typenames
+					)
+				: resolveInlineFragment(this.cur.back.sel.ifrag,
 						this.typenames
 					);
-			}
 
 			this.cur.removeBack();
 
