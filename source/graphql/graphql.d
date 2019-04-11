@@ -412,7 +412,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 				)
 			{
 				tasks ~= runTask({
-					writefln("ALSDJKALÖSDJASLÖDJALÖSJ");
 					this.toRun(ss, elemType, item, variables, ret, doc,
 							context
 						);
