@@ -17,16 +17,15 @@ import fixedsizearray;
 
 import graphql.ast;
 import graphql.builder;
+import graphql.helper : lexAndParse;
 import graphql.visitor;
 import graphql.validation.exception;
 
-version(unittest) {
-	import std.exception : assertThrown, assertNotThrown;
-	import std.stdio;
-	import graphql.lexer;
-	import graphql.parser;
-	import graphql.treevisitor;
-}
+import std.exception : assertThrown, assertNotThrown;
+import std.stdio;
+import graphql.lexer;
+import graphql.parser;
+import graphql.treevisitor;
 
 @safe:
 
@@ -41,7 +40,7 @@ struct OperationFragVar {
 	}
 }
 
-class StaticValidator : Visitor {
+class QueryValidator : Visitor {
 	import std.experimental.typecons : Final;
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -275,7 +274,7 @@ bool[string] allReachable(bool[string] reached, string[][string] fragChildren) {
 	return ret;
 }
 
-void allFragmentsReached(StaticValidator fv) {
+void allFragmentsReached(QueryValidator fv) {
 	bool[string] reached = allReachable(fv.reachedFragments,
 			fv.fragmentChildren);
 	auto af = fv.allFrags.sort;
@@ -286,15 +285,6 @@ void allFragmentsReached(StaticValidator fv) {
 					setDifference(af, r), af, r
 				)
 		);
-}
-
-version(unittest) {
-	const(Document) lexAndParse(string s) {
-		auto l = Lexer(s);
-		auto p = Parser(l);
-		const(Document) doc = p.parseDocument();
-		return doc;
-	}
 }
 
 unittest {
@@ -317,7 +307,7 @@ query Q {
 	const(FragmentDefinition) f1 = findFragment(doc, "Frag1");
 	assert(f1 !is null);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -343,7 +333,7 @@ query Q {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	fv.accept(doc);
 	assertThrown!(FragmentCycleException)(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -369,7 +359,7 @@ query Q {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	fv.accept(doc);
 	assertNotThrown(noCylces(fv.fragmentChildren));
 	assertNotThrown(allFragmentsReached(fv));
@@ -392,7 +382,7 @@ fragment Frag1 on Foo {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!FragmentNotFoundException(fv.accept(doc));
 	assertNotThrown(allFragmentsReached(fv));
 }
@@ -425,7 +415,7 @@ query Q {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!FragmentNameAlreadyInUseException(fv.accept(doc));
 	assertThrown!UnusedFragmentsException(allFragmentsReached(fv));
 }
@@ -444,7 +434,7 @@ query Q {
 	auto p = Parser(l);
 	const(Document) doc = p.parseDocument();
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!NonUniqueOperationNameException(fv.accept(doc));
 }
 
@@ -460,7 +450,7 @@ query Q {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
 }
 
@@ -476,7 +466,7 @@ unittest {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!LoneAnonymousOperationException(fv.accept(doc));
 }
 
@@ -492,7 +482,7 @@ enum Dog {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!NoTypeSystemDefinitionException(fv.accept(doc));
 }
 
@@ -506,7 +496,7 @@ query foo($x: Int!) {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertNotThrown!ArgumentsNotUniqueException(fv.accept(doc));
 }
 
@@ -528,7 +518,7 @@ query foo {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!ArgumentsNotUniqueException(fv.accept(doc));
 }
 
@@ -542,7 +532,7 @@ query foo($x: Int, $y: Float) {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertNotThrown!VariablesNotUniqueException(fv.accept(doc));
 }
 
@@ -556,7 +546,7 @@ query foo($x: Int, $x: Float) {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!VariablesNotUniqueException(fv.accept(doc));
 }
 
@@ -570,7 +560,7 @@ query foo($x: Int, $y: Float) {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!VariablesUseException(fv.accept(doc));
 }
 
@@ -589,7 +579,7 @@ fragment Foo on Bar {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertNotThrown!VariablesUseException(fv.accept(doc));
 }
 
@@ -615,6 +605,6 @@ fragment ZZZ on Bar {
 
 	auto doc = lexAndParse(biggerCylce);
 
-	StaticValidator fv = new StaticValidator(doc);
+	QueryValidator fv = new QueryValidator(doc);
 	assertNotThrown!VariablesUseException(fv.accept(doc));
 }

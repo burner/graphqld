@@ -278,7 +278,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	try {
 		import graphql.validation.querybased;
 		d = p.parseDocument();
-		StaticValidator fv = new StaticValidator(d);
+		QueryValidator fv = new QueryValidator(d);
 	    fv.accept(d);
 	    noCylces(fv.fragmentChildren);
 	    allFragmentsReached(fv);
