@@ -40,7 +40,28 @@ template isNotCustomLeafOrIgnore(T) {
 
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
-	static if(is(T == union)) {
+	import std.traits : Select;
+	alias em() = AliasSeq;
+	alias getInheritedFields() = staticMap!(.InheritedClassImpl, FieldTypeTuple!T);
+	alias ftt = Select!(is(T == union), getInheritedFields, em);
+
+	alias getBaseTuple() = staticMap!(.InheritedClassImpl, BaseClassesTuple!T);
+	alias clss = Select!(is(T == class), getBaseTuple, em);
+
+	alias getInter() = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
+	alias inter = Select!(is(T == interface) || is(T == interface),
+			getInter, em);
+
+	static if(is(T : Nullable!F, F) || is(T : NullableStore!F, F)) {
+		alias interfs = staticMap!(.InheritedClassImpl, F);
+		alias tmp = AliasSeq!(interfs);
+		alias nn = tmp;
+	} else {
+		alias nn = T;
+	}
+
+	alias InheritedClassImpl = AliasSeq!(ftt, clss, inter, nn);
+	/*static if(is(T == union)) {
 		alias fields = staticMap!(.InheritedClassImpl,
 				//Filter!(isNotCustomLeafOrIgnore, FieldTypeTuple!T)
 				FieldTypeTuple!T
@@ -71,7 +92,7 @@ template InheritedClassImpl(T) {
 		alias InheritedClassImpl = tmp;
 	} else {
 		alias InheritedClassImpl = T;
-	}
+	}*/
 }
 
 unittest {
