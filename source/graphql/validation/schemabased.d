@@ -112,3 +112,19 @@ fragment multipleSubscriptions on Subscription {
 	QueryValidator fv = new QueryValidator(doc);
 	assertThrown!SingleRootField(fv.accept(doc));
 }
+
+unittest {
+	string str = `
+subscription sub {
+  newMessage {
+    body
+    sender
+  }
+  __typename
+}`;
+
+	auto doc = lexAndParse(str);
+
+	QueryValidator fv = new QueryValidator(doc);
+	assertThrown!SingleRootField(fv.accept(doc));
+}
