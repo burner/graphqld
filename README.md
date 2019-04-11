@@ -89,7 +89,7 @@ This graphql implementation is based on June 2018 spec.
 - [x] Unique variable names
 - [ ] Variables are input types
 - [ ] Variables in allowed position
-- [ ] Single root field
+- [x] Single root field
 
 ### Schema Introspection
 - [x] __typename
