@@ -5,7 +5,7 @@ Given a query like for the schema in folder test.
 
 ```
 {
-	shipsselection(ids:[44,45]) {
+  shipsselection(ids:[44,45]) {
     id
     commander {
       name
