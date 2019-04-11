@@ -8,6 +8,8 @@ import std.experimental.logger;
 
 import vibe.data.json;
 
+import graphql.ast;
+
 @safe:
 
 enum d = "data";
@@ -309,3 +311,13 @@ unittest {
 	assertThrown(Json.emptyObject().extract!float("Hello"));
 	assertThrown(j.extract!string("Hello"));
 }
+
+const(Document) lexAndParse(string s) {
+	import graphql.lexer;
+	import graphql.parser;
+	auto l = Lexer(s, QueryParser.no);
+	auto p = Parser(l);
+	const(Document) doc = p.parseDocument();
+	return doc;
+}
+
