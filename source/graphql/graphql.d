@@ -7,6 +7,7 @@ import std.traits;
 import std.meta : AliasSeq;
 import std.format : format;
 
+import vibe.core.core;
 import vibe.data.json;
 
 import graphql.builder;
@@ -19,6 +20,15 @@ import graphql.schema.resolver;
 
 @safe:
 
+enum AsyncList {
+	no,
+	yes
+}
+
+struct GQLDOptions {
+	AsyncList asyncList;
+}
+
 struct DefaultContext {
 }
 
@@ -28,6 +38,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json args, ref Con context) @safe;
 
 	alias Schema = GQLDSchema!(T);
+	immutable GQLDOptions options;
 
 	Schema schema;
 
@@ -40,7 +51,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 	QueryResolver[string][string] resolver;
 	QueryResolver defaultResolver;
 
-	this() {
+	this(GQLDOptions options = GQLDOptions.init) {
+		this.options = options;
 		this.schema = toSchema!(T)();
 		this.executationTraceLog = new MultiLogger(LogLevel.off);
 		this.defaultResolverLog = new MultiLogger(LogLevel.off);
@@ -357,6 +369,28 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return rslt;
 	}
 
+	private void toRun(SelectionSet ss, GQLDType elemType, Json item,
+			Json variables, ref Json ret, Document doc, ref Con context)
+		@trusted
+	{
+		this.executationTraceLog.logf("ET: %s, item %s", elemType.name,
+				item
+			);
+		Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
+				doc, context
+			);
+		if(tmp.type == Json.Type.object) {
+			if("data" in tmp) {
+				ret["data"] ~= tmp["data"];
+			}
+			foreach(err; tmp["error"]) {
+				ret["error"] ~= err;
+			}
+		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
+			ret["data"] ~= tmp;
+		}
+	}
+
 	Json executeList(SelectionSet ss, GQLDList objectType,
 			Json objectValue, Json variables, Document doc, ref Con context)
 			@trusted
@@ -365,31 +399,36 @@ class GraphQLD(T, QContext = DefaultContext) {
 				objectType.name, objectValue, variables
 			);
 		assert("data" in objectValue, objectValue.toString());
-		auto elemType = objectType.elementType;
+		GQLDType elemType = objectType.elementType;
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
 		ret["data"] = Json.emptyArray();
-		foreach(Json item;
-				objectValue["data"].type == Json.Type.array
-					? objectValue["data"]
-					: Json.emptyArray()
-			)
-		{
-			this.executationTraceLog.logf("ET: %s, item %s", elemType.name,
-					item
-				);
-			Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
-					doc, context
-				);
-			if(tmp.type == Json.Type.object) {
-				if("data" in tmp) {
-					ret["data"] ~= tmp["data"];
-				}
-				foreach(err; tmp["error"]) {
-					ret["error"] ~= err;
-				}
-			} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-				ret["data"] ~= tmp;
+		if(this.options.asyncList == AsyncList.yes) {
+			Task[] tasks;
+			foreach(Json item;
+					objectValue["data"].type == Json.Type.array
+						? objectValue["data"]
+						: Json.emptyArray()
+				)
+			{
+				tasks ~= runTask({
+					writefln("ALSDJKALÖSDJASLÖDJALÖSJ");
+					this.toRun(ss, elemType, item, variables, ret, doc,
+							context
+						);
+				});
+			}
+			foreach(task; tasks) {
+				task.join();
+			}
+		} else {
+			foreach(Json item;
+					objectValue["data"].type == Json.Type.array
+						? objectValue["data"]
+						: Json.emptyArray()
+				)
+			{
+				this.toRun(ss, elemType, item, variables, ret, doc, context);
 			}
 		}
 		return ret;
