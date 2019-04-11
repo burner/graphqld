@@ -37,7 +37,9 @@ struct CustomContext {
 
 void main() {
  	database = new Data();
-	graphqld = new GraphQLD!(Schema,CustomContext)();
+	GQLDOptions opts;
+	opts.asyncList = AsyncList.no;
+	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
 
 	writeln(graphqld.schema);
 

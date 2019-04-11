@@ -146,7 +146,8 @@ class Starship {
 // The database impl
 
 Json characterToJson(Character c) {
-	Json ret = returnTemplate();
+	Json ret = Json.emptyObject();
+	ret["data"] = Json.emptyObject();
 
 	// direct
 	ret["data"]["id"] = c.id;

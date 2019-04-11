@@ -149,10 +149,8 @@ template collectTypesImpl(Type) {
 		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
-		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
 		alias collectTypesImpl =
-				AliasSeq!(Type, RetTypes, ArgTypes, InterfacesTuple!Type)
-			;
+				AliasSeq!(Type, RetTypes, ArgTypes, InterfacesTuple!Type);
 	} else static if(is(Type == class)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
