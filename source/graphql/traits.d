@@ -41,64 +41,31 @@ template isNotCustomLeafOrIgnore(T) {
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	import std.traits : Select;
-	alias em() = AliasSeq;
 	alias getInheritedFields() = staticMap!(.InheritedClassImpl, FieldTypeTuple!T);
-	alias ftt = Select!(is(T == union), getInheritedFields, em);
+	alias ftt = Select!(is(T == union), getInheritedFields, AliasSeq);
 
 	alias getBaseTuple() = staticMap!(.InheritedClassImpl, BaseClassesTuple!T);
-	alias clss = Select!(is(T == class), getBaseTuple, em);
+	alias clss = Select!(is(T == class), getBaseTuple, AliasSeq);
 
 	alias getInter() = staticMap!(.InheritedClassImpl, InterfacesTuple!T);
-	alias inter = Select!(is(T == interface) || is(T == interface),
-			getInter, em);
+	alias inter = Select!(is(T == class) || is(T == interface),
+			getInter, AliasSeq);
 
 	static if(is(T : Nullable!F, F) || is(T : NullableStore!F, F)) {
 		alias interfs = staticMap!(.InheritedClassImpl, F);
-		alias tmp = AliasSeq!(interfs);
+		alias tmp = AliasSeq!(T, interfs);
 		alias nn = tmp;
 	} else {
 		alias nn = T;
 	}
 
-	alias InheritedClassImpl = AliasSeq!(ftt, clss, inter, nn);
-	/*static if(is(T == union)) {
-		alias fields = staticMap!(.InheritedClassImpl,
-				//Filter!(isNotCustomLeafOrIgnore, FieldTypeTuple!T)
-				FieldTypeTuple!T
-			);
-		alias tmp = AliasSeq!(T, fields);
-		alias InheritedClassImpl = tmp;
-	} else static if(is(T == class)) {
-		alias clss = staticMap!(.InheritedClassImpl,
-				//Filter!(isNotCustomLeafOrIgnore, BaseClassesTuple!T)
-				BaseClassesTuple!T
-			);
-		alias interfs = staticMap!(.InheritedClassImpl,
-				//Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
-				InterfacesTuple!T
-			);
-		alias tmp = AliasSeq!(T, clss, interfs);
-		alias InheritedClassImpl = tmp;
-	} else static if(is(T == interface)) {
-		alias interfs = staticMap!(.InheritedClassImpl,
-				//Filter!(isNotCustomLeafOrIgnore, InterfacesTuple!T)
-				InterfacesTuple!T
-			);
-		alias tmp = AliasSeq!(T, interfs);
-		alias InheritedClassImpl = tmp;
-	} else static if(is(T : Nullable!F, F) || is(T : NullableStore!F, F)) {
-		alias interfs = staticMap!(.InheritedClassImpl, F);
-		alias tmp = AliasSeq!(T, interfs);
-		alias InheritedClassImpl = tmp;
-	} else {
-		alias InheritedClassImpl = T;
-	}*/
+	alias InheritedClassImpl = AliasSeq!(ftt!(), clss!(), inter!(), nn);
 }
 
 unittest {
 	alias Bases = InheritedClasses!Union;
 	static assert(is(Bases ==
-			AliasSeq!(Nullable!Bar, Bar, Nullable!Impl, Impl, Base))
+			AliasSeq!(Nullable!Bar, Bar, Nullable!Impl, Base, Impl))
 		);
 }
 
@@ -121,7 +88,7 @@ unittest {
 	static assert(is(inter == AliasSeq!(H)));
 
 	alias inter2 = InheritedClasses!J;
-	static assert(is(inter2 == AliasSeq!(I,G,H)));
+	static assert(is(inter2 == AliasSeq!(H,G,I)));
 }
 
 version(unittest) {
