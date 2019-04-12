@@ -63,7 +63,7 @@ interface Mutation {
 }
 
 interface Subscription {
-	Character crewmanAdded(Series series);
+	Starship[] starships();
 }
 
 class Schema {
