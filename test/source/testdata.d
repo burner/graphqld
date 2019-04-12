@@ -15,6 +15,7 @@ import vibe.data.json;
 import nullablestore;
 
 import graphql.testschema;
+import graphql.helper : returnTemplate;
 
 // The database impl
 
