@@ -3,7 +3,7 @@ module graphql.helper;
 import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;
 import std.format : format;
-import std.exception : enforce;
+import std.exception : enforce, assertThrown;
 import std.experimental.logger;
 
 import vibe.data.json;
@@ -53,7 +53,12 @@ void insertPayload(ref Json result, string field, Json data) {
 			result[d] = Json.emptyObject();
 		}
 		enforce(result[d].type == Json.Type.object);
-		result[d][field] = data[d];
+		Json* df = field in result[d];
+		if(df) {
+			result[d][field] = joinJson(*df, data[d]);
+		} else {
+			result[d][field] = data[d];
+		}
 	}
 	if(e in data) {
 		if(e !in result) {
@@ -64,6 +69,23 @@ void insertPayload(ref Json result, string field, Json data) {
 			result[e] ~= data[e];
 		}
 	}
+}
+
+unittest {
+	Json old = returnTemplate();
+	old["data"]["foo"] = Json.emptyObject();
+	old["data"]["foo"]["a"] = 1337;
+
+	Json n = returnTemplate();
+	n["data"] = Json.emptyObject();
+	n["data"]["b"] = 1338;
+
+	old.insertPayload("foo", n);
+	assert(old["data"]["foo"].length == 2, format("%s %s",
+			old["data"]["foo"].length, old.toPrettyString())
+		);
+	assert("a" in old["data"]["foo"]);
+	assert("b" in old["data"]["foo"]);
 }
 
 bool isScalar(ref const(Json) data) {
@@ -138,8 +160,16 @@ Json joinJson(Json a, Json b) {
 	if(a.type == Json.Type.object && b.type == Json.Type.object) {
 		Json ret = a.clone();
 		foreach(key, value; b.byKeyValue()) {
-			if(key !in ret) {
+			Json* ap = key in ret;
+			if(ap is null) {
 				ret[key] = value;
+			} else if(ap.type == Json.Type.object
+					&& value.type == Json.Type.object)
+			{
+				ret[key] = joinJson(*ap, value);
+			} else {
+				throw new Exception(format("Can not join '%s' and '%s'",
+						ap.type, value.type));
 			}
 		}
 		return ret;
@@ -152,6 +182,32 @@ unittest {
 	Json b = parseJsonString(`{}`);
 	const c = joinJson(b, a);
 	assert(c == a);
+
+	b = parseJsonString(`{"underSize":-100}`);
+	const d = joinJson(b, a);
+	Json r = parseJsonString(`{"overSize":200, "underSize":-100}`);
+	assert(d == r);
+}
+
+unittest {
+	Json j = joinJson(parseJsonString(`{"underSize": {"a": -100}}`),
+			parseJsonString(`{"underSize": {"b": 100}}`)
+		);
+
+	Json r = parseJsonString(`{"underSize": {"a": -100, "b": 100}}`);
+	assert(j == r, format("%s\n\n%s", j.toPrettyString(), r.toPrettyString()));
+}
+
+unittest {
+	assertThrown(joinJson(parseJsonString(`{"underSize": {"a": -100}}`),
+			parseJsonString(`{"underSize": {"a": 100}}`)
+		));
+}
+
+unittest {
+	assertThrown(joinJson(parseJsonString(`{"underSize": -100}`),
+			parseJsonString(`{"underSize": {"a": 100}}`)
+		));
 }
 
 template toType(T) {
