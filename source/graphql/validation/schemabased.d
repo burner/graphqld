@@ -1,6 +1,8 @@
 module graphql.validation.schemabased;
 
+import std.array : array, back, empty, front, popBack;
 import std.exception : enforce, assertThrown, assertNotThrown;
+import std.stdio;
 
 import fixedsizearray;
 
@@ -30,9 +32,13 @@ class SchemaValidator(Type) : Visitor {
 	int ssCnt;
 	int selCnt;
 
+	// Field Selections on Objects
+	GQLDType[] schemaStack;
+
 	this(const(Document) doc, GQLDSchema!(Type) schema) {
 		this.doc = doc;
 		this.schema = schema;
+		this.schemaStack ~= this.schema;
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -62,6 +68,24 @@ class SchemaValidator(Type) : Visitor {
 				fragSpread.name.value
 			);
 		frag.ss.visit(this);
+	}
+
+	override void enter(const(OperationDefinition) op) {
+		auto t = this.schema.__schema;
+		this.schemaStack ~= op.ruleSelection == OperationDefinitionEnum.SelSet
+			? this.schema.getReturnType(t, "queryType")
+			: op.ot.ruleSelection == OperationTypeEnum.Query
+				? this.schema.getReturnType(t, "queryType")
+				: op.ot.ruleSelection == OperationTypeEnum.Mutation
+					? this.schema.getReturnType(t, "mutationType")
+					: op.ot.ruleSelection == OperationTypeEnum.Sub
+						? this.schema.getReturnType(t, "subscriptionType")
+						: null;
+		enforce(this.schemaStack.back !is null);
+	}
+
+	override void exit(const(OperationDefinition) op) {
+		this.schemaStack.popBack();
 	}
 }
 
