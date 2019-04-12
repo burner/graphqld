@@ -38,7 +38,7 @@ class SchemaValidator(Type) : Visitor {
 	this(const(Document) doc, GQLDSchema!(Type) schema) {
 		this.doc = doc;
 		this.schema = schema;
-		this.schemaStack ~= this.schema;
+		this.schemaStack ~= this.schema.__schema;
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -71,17 +71,30 @@ class SchemaValidator(Type) : Visitor {
 	}
 
 	override void enter(const(OperationDefinition) op) {
-		auto t = this.schema.__schema;
 		this.schemaStack ~= op.ruleSelection == OperationDefinitionEnum.SelSet
-			? this.schema.getReturnType(t, "queryType")
+			? this.schema.getReturnType(this.schemaStack.back, "queryType")
 			: op.ot.ruleSelection == OperationTypeEnum.Query
-				? this.schema.getReturnType(t, "queryType")
+				? this.schema.getReturnType(this.schemaStack.back, "queryType")
 				: op.ot.ruleSelection == OperationTypeEnum.Mutation
-					? this.schema.getReturnType(t, "mutationType")
+					? this.schema.getReturnType(this.schemaStack.back,
+							"mutationType"
+						)
 					: op.ot.ruleSelection == OperationTypeEnum.Sub
-						? this.schema.getReturnType(t, "subscriptionType")
+						? this.schema.getReturnType(this.schemaStack.back,
+								"subscriptionType"
+							)
 						: null;
 		enforce(this.schemaStack.back !is null);
+	}
+
+	override void enter(const(FieldName) fn) {
+		this.schemaStack ~= this.schema.getReturnType(this.schemaStack.back,
+				fn.name.value
+			);
+	}
+
+	override void exit(const(Selection) op) {
+		this.schemaStack.popBack();
 	}
 
 	override void exit(const(OperationDefinition) op) {
