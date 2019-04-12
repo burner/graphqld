@@ -13,9 +13,16 @@ import graphql.schema.types;
 import graphql.validation.exception;
 import graphql.helper : lexAndParse;
 
+@safe:
+
 enum IsSubscription {
 	no,
 	yes
+}
+
+struct TypePlusName {
+	GQLDType type;
+	string name;
 }
 
 class SchemaValidator(Type) : Visitor {
@@ -33,12 +40,20 @@ class SchemaValidator(Type) : Visitor {
 	int selCnt;
 
 	// Field Selections on Objects
-	GQLDType[] schemaStack;
+	TypePlusName[] schemaStack;
+
+	void addToTypeStack(string name) {
+		GQLDType t = this.schema.getReturnType(this.schemaStack.back.type,
+				name
+			);
+		enforce(t !is null);
+		this.schemaStack ~= TypePlusName(t, name);
+	}
 
 	this(const(Document) doc, GQLDSchema!(Type) schema) {
 		this.doc = doc;
 		this.schema = schema;
-		this.schemaStack ~= this.schema.__schema;
+		this.schemaStack ~= TypePlusName(this.schema.__schema, "schema");
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -71,26 +86,20 @@ class SchemaValidator(Type) : Visitor {
 	}
 
 	override void enter(const(OperationDefinition) op) {
-		this.schemaStack ~= op.ruleSelection == OperationDefinitionEnum.SelSet
-			? this.schema.getReturnType(this.schemaStack.back, "queryType")
-			: op.ot.ruleSelection == OperationTypeEnum.Query
-				? this.schema.getReturnType(this.schemaStack.back, "queryType")
-				: op.ot.ruleSelection == OperationTypeEnum.Mutation
-					? this.schema.getReturnType(this.schemaStack.back,
-							"mutationType"
-						)
-					: op.ot.ruleSelection == OperationTypeEnum.Sub
-						? this.schema.getReturnType(this.schemaStack.back,
-								"subscriptionType"
-							)
-						: null;
-		enforce(this.schemaStack.back !is null);
+		string name = op.ruleSelection == OperationDefinitionEnum.SelSet
+				|| op.ot.ruleSelection == OperationTypeEnum.Query
+			? "queryType"
+			: op.ot.ruleSelection == OperationTypeEnum.Mutation
+				?  "mutationType"
+				: op.ot.ruleSelection == OperationTypeEnum.Sub
+					? "subscriptionType"
+					: "";
+		enforce(!name.empty);
+		this.addToTypeStack(name);
 	}
 
 	override void enter(const(FieldName) fn) {
-		this.schemaStack ~= this.schema.getReturnType(this.schemaStack.back,
-				fn.name.value
-			);
+		this.addToTypeStack(fn.name.value);
 	}
 
 	override void exit(const(Selection) op) {
