@@ -7,6 +7,7 @@ import fixedsizearray;
 import graphql.ast;
 import graphql.builder;
 import graphql.visitor;
+import graphql.schema.types;
 import graphql.validation.exception;
 import graphql.helper : lexAndParse;
 
@@ -15,21 +16,23 @@ enum IsSubscription {
 	yes
 }
 
-class QueryValidator : Visitor {
+class SchemaValidator(Type) : Visitor {
 	import std.experimental.typecons : Final;
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
 	alias accept = Visitor.accept;
 
 	const(Document) doc;
+	GQLDSchema!(Type) schema;
 
 	// Single root field
 	IsSubscription isSubscription;
 	int ssCnt;
 	int selCnt;
 
-	this(const(Document) doc) {
+	this(const(Document) doc, GQLDSchema!(Type) schema) {
 		this.doc = doc;
+		this.schema = schema;
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -62,6 +65,7 @@ class QueryValidator : Visitor {
 	}
 }
 
+import graphql.testschema;
 unittest {
 	string str = `
 subscription sub {
@@ -71,9 +75,10 @@ subscription sub {
 	}
 }`;
 
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
 
-	QueryValidator fv = new QueryValidator(doc);
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertNotThrown!SingleRootField(fv.accept(doc));
 }
 
@@ -87,9 +92,10 @@ subscription sub {
   disallowedSecondRootField
 }`;
 
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
 
-	QueryValidator fv = new QueryValidator(doc);
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertThrown!SingleRootField(fv.accept(doc));
 }
 
@@ -107,9 +113,10 @@ fragment multipleSubscriptions on Subscription {
   disallowedSecondRootField
 }`;
 
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
 
-	QueryValidator fv = new QueryValidator(doc);
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertThrown!SingleRootField(fv.accept(doc));
 }
 
@@ -123,8 +130,9 @@ subscription sub {
   __typename
 }`;
 
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
 
-	QueryValidator fv = new QueryValidator(doc);
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertThrown!SingleRootField(fv.accept(doc));
 }
