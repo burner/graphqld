@@ -201,6 +201,15 @@ Json emptyType() {
 	return ret;
 }
 
+Json removeNonNullAndList(Json j) {
+	string t = j["kind"].get!string();
+	if(t == "NON_NULL" || t == "LIST") {
+		return removeNonNullAndList(j["ofType"]);
+	} else {
+		return j;
+	}
+}
+
 // remove the top nullable to find out if we have a NON_NULL or not
 Json typeToJson(Type,Schema)() {
 	static if(is(Type : Nullable!F, F)) {
@@ -397,4 +406,22 @@ Json directivesToJson(Directives)() {
 		}}
 	}}
 	return ret;
+}
+
+Json getField(Json j, string name) {
+	import graphql.constants;
+
+	if(j.type != Json.Type.object || Constants.fields !in j
+			|| j[Constants.fields].type != Json.Type.array)
+	{
+		return Json.init;
+	}
+
+	foreach(it; j[Constants.fields].byValue) {
+		string itName = it[Constants.name].get!string();
+		if(itName == name) {
+			return it;
+		}
+	}
+	return Json.init;
 }
