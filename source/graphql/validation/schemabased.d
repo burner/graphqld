@@ -2,14 +2,19 @@ module graphql.validation.schemabased;
 
 import std.array : array, back, empty, front, popBack;
 import std.exception : enforce, assertThrown, assertNotThrown;
+import std.format : format;
 import std.stdio;
+
+import vibe.data.json;
 
 import fixedsizearray;
 
 import graphql.ast;
 import graphql.builder;
+import graphql.constants;
 import graphql.visitor;
 import graphql.schema.types;
+import graphql.schema.helper;
 import graphql.validation.exception;
 import graphql.helper : lexAndParse;
 
@@ -21,12 +26,18 @@ enum IsSubscription {
 }
 
 struct TypePlusName {
-	GQLDType type;
+	Json type;
 	string name;
+
+	string toString() const {
+		return format("%s %s", this.name, this.type);
+	}
 }
 
 class SchemaValidator(Type) : Visitor {
 	import std.experimental.typecons : Final;
+	import graphql.schema.typeconversions;
+
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
 	alias accept = Visitor.accept;
@@ -43,17 +54,50 @@ class SchemaValidator(Type) : Visitor {
 	TypePlusName[] schemaStack;
 
 	void addToTypeStack(string name) {
-		GQLDType t = this.schema.getReturnType(this.schemaStack.back.type,
-				name
+		import graphql.traits;
+
+		enforce!FieldDoesNotExist(
+				Constants.fields in this.schemaStack.back.type,
+				format("Type '%s' does not have fields",
+					this.schemaStack.back.name)
 			);
-		enforce(t !is null);
-		this.schemaStack ~= TypePlusName(t, name);
+
+		enforce!FieldDoesNotExist(
+				this.schemaStack.back.type.type == Json.Type.object,
+				format("Field '%s' of type '%s' is not a Json.Type.object",
+					name, this.schemaStack.back.name)
+			);
+
+		Json field = this.schemaStack.back.type.getField(name);
+		enforce!FieldDoesNotExist(
+				field.type == Json.Type.object,
+				format("Type '%s' does not have fields named '%s'",
+					this.schemaStack.back.name, name)
+			);
+
+		//writeln(field);
+		string followType = field[Constants.typenameOrig].get!string();
+
+		l: switch(followType) {
+			static foreach(type; collectTypes!(Type)) {{
+				case typeToTypeName!(type): {
+					this.schemaStack ~= TypePlusName(
+							removeNonNullAndList(typeToJson!(type,Type)()), name
+						);
+					break l;
+				}
+			}}
+			default:
+				assert(false, format("%s %s", name, followType));
+		}
 	}
 
 	this(const(Document) doc, GQLDSchema!(Type) schema) {
 		this.doc = doc;
 		this.schema = schema;
-		this.schemaStack ~= TypePlusName(this.schema.__schema, "schema");
+		this.schemaStack ~= TypePlusName(
+				removeNonNullAndList(typeToJson!(Type,Type)()), Type.stringof
+			);
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -62,6 +106,7 @@ class SchemaValidator(Type) : Visitor {
 	}
 
 	override void enter(const(SelectionSet) ss) {
+		//writeln(this.schemaStack);
 		++this.ssCnt;
 	}
 
@@ -99,6 +144,7 @@ class SchemaValidator(Type) : Visitor {
 	}
 
 	override void enter(const(FieldName) fn) {
+		//enforce(fn.name.value
 		this.addToTypeStack(fn.name.value);
 	}
 
@@ -112,12 +158,13 @@ class SchemaValidator(Type) : Visitor {
 }
 
 import graphql.testschema;
+
 unittest {
 	string str = `
 subscription sub {
-	newMessage {
-		body
-		sender
+	starships {
+		id
+		name
 	}
 }`;
 
@@ -131,11 +178,13 @@ subscription sub {
 unittest {
 	string str = `
 subscription sub {
-  newMessage {
-    body
-    sender
-  }
-  disallowedSecondRootField
+	starships {
+		id
+		name
+	}
+	starships {
+		size
+	}
 }`;
 
 	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
@@ -152,11 +201,13 @@ subscription sub {
 }
 
 fragment multipleSubscriptions on Subscription {
-  newMessage {
-    body
-    sender
+  starships {
+    id
+    name
   }
-  disallowedSecondRootField
+  starships {
+	size
+  }
 }`;
 
 	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
@@ -169,9 +220,9 @@ fragment multipleSubscriptions on Subscription {
 unittest {
 	string str = `
 subscription sub {
-  newMessage {
-    body
-    sender
+  starships {
+    id
+    name
   }
   __typename
 }`;
@@ -181,4 +232,54 @@ subscription sub {
 
 	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertThrown!SingleRootField(fv.accept(doc));
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		id
+	}
+}
+`;
+
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	assertNotThrown(fv.accept(doc));
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		fieldDoesNotExist
+	}
+}
+`;
+
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	assertThrown!FieldDoesNotExist(fv.accept(doc));
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		id {
+			name
+		}
+	}
+}
+`;
+
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	assertThrown!FieldDoesNotExist(fv.accept(doc));
 }

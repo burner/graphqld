@@ -73,3 +73,10 @@ class SingleRootField : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class FieldDoesNotExist : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+

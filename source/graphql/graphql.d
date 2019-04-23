@@ -462,7 +462,7 @@ unittest {
 	alias a = collectTypes!(Schema);
 //	static assert(is(a == AliasSeq!(Schema, Query, string, long, bool)));
 
-	pragma(msg, InheritedClasses!Schema);
+	//pragma(msg, InheritedClasses!Schema);
 
 	//auto g = new GraphQLD!(Schema,int)();
 }
