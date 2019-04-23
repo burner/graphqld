@@ -55,6 +55,7 @@ class SchemaValidator(Type) : Visitor {
 
 	void addToTypeStack(string name) {
 		import graphql.traits;
+		writefln("\n\nFoo '%s'", name);
 
 		enforce!FieldDoesNotExist(
 				Constants.fields in this.schemaStack.back.type,
@@ -75,7 +76,6 @@ class SchemaValidator(Type) : Visitor {
 					this.schemaStack.back.name, name)
 			);
 
-		//writeln(field);
 		string followType = field[Constants.typenameOrig].get!string();
 
 		l: switch(followType) {
@@ -84,6 +84,7 @@ class SchemaValidator(Type) : Visitor {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()), name
 						);
+					writeln(this.schemaStack.back.type.toPrettyString());
 					break l;
 				}
 			}}
@@ -282,4 +283,39 @@ unittest {
 
 	auto fv = new SchemaValidator!Schema(doc, testSchema);
 	assertThrown!FieldDoesNotExist(fv.accept(doc));
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		shipId
+	}
+}`;
+
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	assertThrown!FieldDoesNotExist(fv.accept(doc));
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		...ShipFrag
+	}
+}
+
+fragment ShipFrag on Starship {
+	shipId
+}
+`;
+
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	assertNotThrown(fv.accept(doc));
 }
