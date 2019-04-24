@@ -430,7 +430,7 @@ Json getIntrospectionField(string name) {
 	import std.format : format;
 	Json ret = Json.emptyObject();
 	ret[Constants.typenameOrig] = name == Constants.__typename
-		? "__Type"
+		? "String"
 		: name == Constants.__schema
 			? "__Schema"
 			: format("Not known introspection name '%s'", name);
