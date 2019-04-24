@@ -59,19 +59,19 @@ This graphql implementation is based on June 2018 spec.
 - [x] Input Objects
 - [x] Mutations
 - [ ] Subscriptions (This needs vibe.d websocket integration)
-- [ ] Async execution (when used with vibe.d blocking resolver are async by
+- [x] Async execution (when used with vibe.d blocking resolver are async by
   default)
 
 ### Validation
 - [ ] Arguments of correct type
 - [ ] Default values of correct type
 - [x] Fields on correct type
-- [ ] Fragments on composite types
+- [x] Fragments on composite types
 - [ ] Known argument names
 - [x] Executable Definition
 - [ ] Known directives
 - [x] Known fragment names
-- [ ] Known type names
+- [x] Known type names
 - [x] Lone anonymous operations
 - [x] No fragment cycles
 - [x] No undefined variables
