@@ -1,10 +1,14 @@
 module graphql.validation.schemabased;
 
 import std.algorithm.iteration : map;
+import std.algorithm.searching : canFind;
 import std.array : array, back, empty, front, popBack;
+import std.conv : to;
+import std.meta : staticMap, NoDuplicates;
 import std.exception : enforce, assertThrown, assertNotThrown;
 import std.format : format;
 import std.stdio;
+import std.string : strip;
 
 import vibe.data.json;
 
@@ -39,6 +43,7 @@ class SchemaValidator(Type) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
 	import graphql.traits;
+	import graphql.helper : stringTypeStrip;
 
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -70,7 +75,8 @@ class SchemaValidator(Type) : Visitor {
 					name, this.schemaStack.back.name)
 			);
 
-		Json field = name == Constants.__typename
+		immutable toFindIn = [Constants.__typename, Constants.__schema];
+		Json field = canFind(toFindIn, name)
 			? getIntrospectionField(name)
 			: this.schemaStack.back.type.getField(name);
 		enforce!FieldDoesNotExist(
@@ -80,11 +86,13 @@ class SchemaValidator(Type) : Visitor {
 			);
 
 		string followType = field[Constants.typenameOrig].get!string();
+		followType = followType.stringTypeStrip();
 
 		l: switch(followType) {
 			alias AllTypes = collectTypesPlusIntrospection!(Type);
-			pragma(msg, AllTypes);
-			static foreach(type; AllTypes) {{
+			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
+			alias NoDups = NoDuplicates!(Stripped);
+			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()), name
@@ -94,7 +102,10 @@ class SchemaValidator(Type) : Visitor {
 				}
 			}}
 			default:
-				assert(false, format("%s %s", name, followType));
+				writefln("\n\nBar '%s' %s", name, this.schemaStack.map!(a => a.name));
+				writeln(this.schemaStack.back.type.toPrettyString());
+				assert(false, format("%s %s %s %s", name, followType,
+							field.toPrettyString()));
 		}
 	}
 
@@ -133,7 +144,10 @@ class SchemaValidator(Type) : Visitor {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
 		l: switch(typeName) {
-			static foreach(type; collectTypesPlusIntrospection!(Type)) {{
+			alias AllTypes = collectTypesPlusIntrospection!(Type);
+			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
+			alias NoDups = NoDuplicates!(Stripped);
+			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()),
@@ -366,6 +380,36 @@ unittest {
 {
 	starships {
 		__typename
+	}
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	__schema {
+		types {
+			name
+		}
+	}
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	__schema {
+		types {
+			enumValues {
+				name
+			}
+		}
 	}
 }
 `;

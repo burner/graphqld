@@ -377,3 +377,47 @@ const(Document) lexAndParse(string s) {
 	return doc;
 }
 
+string stringTypeStrip(string str) {
+	import std.algorithm : startsWith, endsWith, canFind;
+	import std.string : capitalize;
+	immutable na = "Nullable!";
+	immutable arr = "[]";
+	while(true) {
+		if(str.startsWith(na)) {
+			str = str[na.length .. $];
+			continue;
+		} else if(str.endsWith(arr)) {
+			str = str[0 .. str.length - arr.length];
+			continue;
+		} else if(str.startsWith("[")) {
+			str = str[1 .. $];
+			continue;
+		} else if(str.endsWith("]")) {
+			str = str[0 .. $ - 1];
+			continue;
+		} else if(str.startsWith("(")) {
+			str = str[1 .. $];
+			continue;
+		} else if(str.endsWith(")")) {
+			str = str[0 .. $ - 1];
+			continue;
+		}
+		break;
+	}
+
+	str = canFind(["string", "long", "float", "bool"], str)
+		? capitalize(str)
+		: str;
+
+	return str;
+}
+
+unittest {
+	string t = "Nullable!string";
+	string r = t.stringTypeStrip();
+	assert(r == "String", r);
+
+	t = "Nullable!(string[])";
+	r = t.stringTypeStrip();
+	assert(r == "String", r);
+}
