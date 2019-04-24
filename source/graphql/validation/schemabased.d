@@ -70,7 +70,9 @@ class SchemaValidator(Type) : Visitor {
 					name, this.schemaStack.back.name)
 			);
 
-		Json field = this.schemaStack.back.type.getField(name);
+		Json field = name == Constants.__typename
+			? getIntrospectionField(name)
+			: this.schemaStack.back.type.getField(name);
 		enforce!FieldDoesNotExist(
 				field.type == Json.Type.object,
 				format("Type '%s' does not have fields named '%s'",
@@ -80,7 +82,9 @@ class SchemaValidator(Type) : Visitor {
 		string followType = field[Constants.typenameOrig].get!string();
 
 		l: switch(followType) {
-			static foreach(type; collectTypes!(Type)) {{
+			alias AllTypes = collectTypes!(Type);
+			pragma(msg, AllTypes);
+			static foreach(type; AllTypes) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()), name
@@ -309,6 +313,60 @@ query q {
 
 fragment ShipFrag on Starship {
 	designation
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		...ShipFrag
+		...CharFrag
+	}
+}
+
+fragment ShipFrag on Starship {
+	designation
+}
+
+fragment CharFrag on Character {
+	foobar
+}
+`;
+
+	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		...ShipFrag
+		...CharFrag
+	}
+}
+
+fragment ShipFrag on Starship {
+	designation
+}
+
+fragment CharFrag on Character {
+	name
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		__typename
+	}
 }
 `;
 

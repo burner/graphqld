@@ -65,7 +65,7 @@ This graphql implementation is based on June 2018 spec.
 ### Validation
 - [ ] Arguments of correct type
 - [ ] Default values of correct type
-- [ ] Fields on correct type
+- [x] Fields on correct type
 - [ ] Fragments on composite types
 - [ ] Known argument names
 - [x] Executable Definition
