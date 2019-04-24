@@ -92,3 +92,8 @@ class FragmentNotOnCompositeType : ValidationException {
 	}
 }
 
+class LeafIsNotAScalar : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
