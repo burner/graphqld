@@ -1,5 +1,6 @@
 module graphql.validation.schemabased;
 
+import std.algorithm.iteration : map;
 import std.array : array, back, empty, front, popBack;
 import std.exception : enforce, assertThrown, assertNotThrown;
 import std.format : format;
@@ -37,6 +38,7 @@ struct TypePlusName {
 class SchemaValidator(Type) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
+	import graphql.traits;
 
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -54,8 +56,7 @@ class SchemaValidator(Type) : Visitor {
 	TypePlusName[] schemaStack;
 
 	void addToTypeStack(string name) {
-		import graphql.traits;
-		writefln("\n\nFoo '%s'", name);
+		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
 
 		enforce!FieldDoesNotExist(
 				Constants.fields in this.schemaStack.back.type,
@@ -84,7 +85,7 @@ class SchemaValidator(Type) : Visitor {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()), name
 						);
-					writeln(this.schemaStack.back.type.toPrettyString());
+					//writeln(this.schemaStack.back.type.toPrettyString());
 					break l;
 				}
 			}}
@@ -124,11 +125,30 @@ class SchemaValidator(Type) : Visitor {
 		enforce!SingleRootField(!notSingleRootField);
 	}
 
+	override void enter(const(FragmentDefinition) fragDef) {
+		string typeName = fragDef.tc.value;
+		//writefln("%s %s", typeName, fragDef.name.value);
+		l: switch(typeName) {
+			static foreach(type; collectTypes!(Type)) {{
+				case typeToTypeName!(type): {
+					this.schemaStack ~= TypePlusName(
+							removeNonNullAndList(typeToJson!(type,Type)()),
+							typeName
+						);
+					//writeln(this.schemaStack.back.type.toPrettyString());
+					break l;
+				}
+			}}
+			default:
+				assert(false, format("%s %s", typeName, fragDef.name.value));
+		}
+	}
+
 	override void enter(const(FragmentSpread) fragSpread) {
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
 			);
-		frag.ss.visit(this);
+		frag.visit(this);
 	}
 
 	override void enter(const(OperationDefinition) op) {
@@ -160,6 +180,18 @@ class SchemaValidator(Type) : Visitor {
 
 import graphql.testschema;
 
+private void test(T)(string str) {
+	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto doc = lexAndParse(str);
+	auto fv = new SchemaValidator!Schema(doc, testSchema);
+
+	static if(is(T == void)) {
+		assertNotThrown(fv.accept(doc));
+	} else {
+		assertThrown!T(fv.accept(doc));
+	}
+}
+
 unittest {
 	string str = `
 subscription sub {
@@ -168,12 +200,7 @@ subscription sub {
 		name
 	}
 }`;
-
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertNotThrown!SingleRootField(fv.accept(doc));
+	test!void(str);
 }
 
 unittest {
@@ -188,11 +215,7 @@ subscription sub {
 	}
 }`;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!SingleRootField(fv.accept(doc));
+	test!SingleRootField(str);
 }
 
 unittest {
@@ -211,11 +234,7 @@ fragment multipleSubscriptions on Subscription {
   }
 }`;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!SingleRootField(fv.accept(doc));
+	test!SingleRootField(str);
 }
 
 unittest {
@@ -228,11 +247,7 @@ subscription sub {
   __typename
 }`;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!SingleRootField(fv.accept(doc));
+	test!SingleRootField(str);
 }
 
 unittest {
@@ -244,11 +259,7 @@ unittest {
 }
 `;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertNotThrown(fv.accept(doc));
+	test!void(str);
 }
 
 unittest {
@@ -260,11 +271,7 @@ unittest {
 }
 `;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!FieldDoesNotExist(fv.accept(doc));
+	test!FieldDoesNotExist(str);
 }
 
 unittest {
@@ -278,11 +285,7 @@ unittest {
 }
 `;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!FieldDoesNotExist(fv.accept(doc));
+	test!FieldDoesNotExist(str);
 }
 
 unittest {
@@ -293,11 +296,7 @@ query q {
 	}
 }`;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertThrown!FieldDoesNotExist(fv.accept(doc));
+	test!FieldDoesNotExist(str);
 }
 
 unittest {
@@ -309,13 +308,9 @@ query q {
 }
 
 fragment ShipFrag on Starship {
-	shipId
+	designation
 }
 `;
 
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
-	auto doc = lexAndParse(str);
-
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
-	assertNotThrown(fv.accept(doc));
+	test!void(str);
 }
