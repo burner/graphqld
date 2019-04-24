@@ -285,6 +285,7 @@ unittest {
 }
 
 template collectTypes(T...) {
+	import graphql.schema.introspectiontypes;
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
 	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
 	alias elemTypes = Filter!(noArrayOrNullable, basicT);
@@ -298,6 +299,13 @@ template collectTypes(T...) {
 		alias tmp = .collectTypes!(rslt);
 		alias collectTypes = tmp;
 	}
+}
+
+template collectTypesPlusIntrospection(T) {
+	import graphql.schema.introspectiontypes;
+	alias collectTypesPlusIntrospection = AliasSeq!(collectTypes!T,
+			IntrospectionTypes
+		);
 }
 
 version(unittest) {
