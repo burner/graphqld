@@ -144,10 +144,17 @@ bool dataIsNull(ref const(Json) data) {
 	return false;
 }
 
+enum JoinJsonPrecedence {
+	none,
+	a,
+	b
+}
+
 /** Merge two Json objects.
 Values in a take precedence over values in b.
 */
-Json joinJson(Json a, Json b) {
+Json joinJson(JoinJsonPrecedence jjp = JoinJsonPrecedence.none)(Json a, Json b)
+{
 	// we can not merge null or undefined values
 	if(a.type == Json.Type.null_ || a.type == Json.Type.undefined) {
 		return b;
@@ -168,8 +175,14 @@ Json joinJson(Json a, Json b) {
 			{
 				ret[key] = joinJson(*ap, value);
 			} else {
-				throw new Exception(format("Can not join '%s' and '%s'",
-						ap.type, value.type));
+				static if(jjp == JoinJsonPrecedence.none) {
+					throw new Exception(format(
+							"Can not join '%s' and '%s' on key '%s'",
+							ap.type, value.type, key));
+				} else static if(jjp == JoinJsonPrecedence.a) {
+				} else {
+					ret[key] = value;
+				}
 			}
 		}
 		return ret;

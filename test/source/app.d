@@ -23,6 +23,7 @@ import graphql.schema;
 import graphql.traits;
 import graphql.argumentextractor;
 import graphql.graphql;
+import graphql.testschema;
 
 import testdata;
 import testdata2;
@@ -45,7 +46,7 @@ void main() {
 
 	graphqld.setResolver("queryType", "currentTime",
 			delegate(string name, Json parent, Json args,
-					ref CustomContext con)
+					ref CustomContext con) @safe
 			{
 				import std.datetime;
 				SysTime ct = Clock.currTime();
@@ -58,7 +59,7 @@ void main() {
 
 	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
-					ref CustomContext con)
+					ref CustomContext con) @safe
 			{
 				logf("%s", args);
 				Json ret = Json.emptyObject;
@@ -76,7 +77,7 @@ void main() {
 
 	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
-					ref CustomContext con)
+					ref CustomContext con) @safe
 			{
 				assert("id" in args);
 				long id = args["id"].get!long();
@@ -215,7 +216,7 @@ void main() {
 			import testqueries;
 			foreach(q; queries) {
 				sleep(1.seconds);
-				Task qt = runTask({
+				//Task qt = runTask({
 					requestHTTP("http://127.0.0.1:8080",
 						(scope req) {
 							req.method = HTTPMethod.POST;
@@ -231,8 +232,9 @@ void main() {
 							enforce("data" in ret && ret["data"].length != 0);
 						}
 					);
-				});
-				qt.join();
+				//});
+				//qt.join();
+				sleep(3.seconds);
 			}
 		});
 	runApplication();

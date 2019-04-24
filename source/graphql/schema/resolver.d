@@ -98,7 +98,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			} else {
 				typeCap = typeName;
 			}
-			pragma(msg, collectTypes!(T));
+			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(typeCap == typeConst) {
