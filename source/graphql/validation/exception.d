@@ -80,3 +80,15 @@ class FieldDoesNotExist : ValidationException {
 	}
 }
 
+class UnknownTypeName : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+
+class FragmentNotOnCompositeType : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+

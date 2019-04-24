@@ -102,10 +102,9 @@ class SchemaValidator(Type) : Visitor {
 				}
 			}}
 			default:
-				writefln("\n\nBar '%s' %s", name, this.schemaStack.map!(a => a.name));
-				writeln(this.schemaStack.back.type.toPrettyString());
-				assert(false, format("%s %s %s %s", name, followType,
-							field.toPrettyString()));
+				throw new UnknownTypeName(
+						format("No type with name '%s' is known",
+							followType), __FILE__, __LINE__);
 		}
 	}
 
@@ -158,11 +157,20 @@ class SchemaValidator(Type) : Visitor {
 				}
 			}}
 			default:
-				assert(false, format("%s %s", typeName, fragDef.name.value));
+				throw new UnknownTypeName(
+						format("No type with name '%s' is known",
+							typeName), __FILE__, __LINE__);
 		}
 	}
 
 	override void enter(const(FragmentSpread) fragSpread) {
+		enum uo = ["OBJECT", "UNION", "INTERFACE"];
+		enforce!FragmentNotOnCompositeType(
+				"kind" in this.schemaStack.back.type
+				&& canFind(uo, this.schemaStack.back.type["kind"].get!string()),
+				format("'%s' is not an %(%s, %)",
+					this.schemaStack.back.type.toPrettyString(), uo)
+			);
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
 			);
@@ -356,6 +364,64 @@ fragment CharFrag on Character {
 
 unittest {
 	string str = `
+mutation q {
+	addCrewman {
+		...CharFrag
+	}
+}
+
+fragment CharFrag on Character {
+	name
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+mutation q {
+	addCrewman {
+		...CharFrag
+	}
+}
+
+fragment CharFrag on Character {
+	foobar
+}
+`;
+
+	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+subscription q {
+	starships {
+		id
+		designation
+	}
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+subscription q {
+	starships {
+		id
+		doesNotExist
+	}
+}
+`;
+
+	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
 query q {
 	search {
 		...ShipFrag
@@ -415,4 +481,72 @@ unittest {
 `;
 
 	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	__schema {
+		types {
+			enumValues {
+				doesNotExist
+			}
+		}
+	}
+}
+`;
+
+	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		...CharFrag
+	}
+}
+
+fragment CharFrag on NonExistingType {
+	name
+}
+`;
+
+	test!UnknownTypeName(str);
+}
+
+unittest {
+	string str = `
+query q {
+	search {
+		...CharFrag
+	}
+}
+
+fragment CharFrag on Character {
+	name
+}
+`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q {
+	starships {
+		id {
+			...CharFrag
+		}
+	}
+}
+
+fragment CharFrag on Character {
+	name {
+		foo
+	}
+}
+`;
+
+	test!FragmentNotOnCompositeType(str);
 }
