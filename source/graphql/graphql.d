@@ -96,7 +96,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			ref Con context)
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
-		Json joinedArgs = joinJson(args, defaultArgs);
+		Json joinedArgs = joinJson!(JoinJsonPrecedence.a)(args, defaultArgs);
 		this.resolverLog.logf("%s %s %s %s %s %s", type, field,
 				defaultArgs, parent, args, joinedArgs
 			);

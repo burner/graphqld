@@ -17,6 +17,8 @@ import nullablestore;
 import graphql.testschema;
 import graphql.helper : returnTemplate;
 
+@safe:
+
 // The database impl
 
 Json characterToJson(Character c) {
