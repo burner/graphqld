@@ -82,7 +82,7 @@ class SchemaValidator(Type) : Visitor {
 		string followType = field[Constants.typenameOrig].get!string();
 
 		l: switch(followType) {
-			alias AllTypes = collectTypes!(Type);
+			alias AllTypes = collectTypesPlusIntrospection!(Type);
 			pragma(msg, AllTypes);
 			static foreach(type; AllTypes) {{
 				case typeToTypeName!(type): {
@@ -133,7 +133,7 @@ class SchemaValidator(Type) : Visitor {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
 		l: switch(typeName) {
-			static foreach(type; collectTypes!(Type)) {{
+			static foreach(type; collectTypesPlusIntrospection!(Type)) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
 							removeNonNullAndList(typeToJson!(type,Type)()),
