@@ -77,10 +77,10 @@ This graphql implementation is based on June 2018 spec.
 - [x] No undefined variables
 - [x] No unused fragments
 - [x] No unused variables
-- [ ] Overlapping fields can be merged
+- [x] Overlapping fields can be merged (this is done during execution)
 - [ ] Possible fragment spreads
 - [ ] Provide non-null arguments
-- [ ] Scalar leafs
+- [x] Scalar leafs
 - [x] Unique argument names
 - [ ] Unique directives per location
 - [x] Unique fragment names

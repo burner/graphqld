@@ -190,6 +190,16 @@ class SchemaValidator(Type) : Visitor {
 		this.addToTypeStack(name);
 	}
 
+	override void accept(const(Field) f) {
+		super.accept(f);
+		enforce!LeafIsNotAScalar(f.ss !is null ||
+				this.schemaStack.back.type["kind"].get!string() == "SCALAR",
+				format("Leaf field '%s' is not a SCALAR but '%s'",
+					this.schemaStack.back.name,
+					this.schemaStack.back.type.toPrettyString())
+				);
+	}
+
 	override void enter(const(FieldName) fn) {
 		//enforce(fn.name.value
 		this.addToTypeStack(fn.name.value);
@@ -549,4 +559,30 @@ fragment CharFrag on Character {
 `;
 
 	test!FragmentNotOnCompositeType(str);
+}
+
+unittest {
+	string str = `
+query q {
+	starships {
+		crew
+	}
+}
+`;
+
+	test!LeafIsNotAScalar(str);
+}
+
+unittest {
+	string str = `
+query q {
+	starships {
+		crew {
+			name
+		}
+	}
+}
+`;
+
+	test!void(str);
 }
