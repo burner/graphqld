@@ -160,7 +160,7 @@ template collectTypesImpl(Type) {
 	} else static if(is(Type : Nullable!F, F)) {
 		alias collectTypesImpl = .collectTypesImpl!(F);
 	} else static if(is(Type : NullableStore!F, F)) {
-		alias collectTypesImpl = .collectTypesImpl!(F);
+		alias collectTypesImpl = .collectTypesImpl!(Type.TypeValue);
 	} else static if(is(Type == struct)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
@@ -168,9 +168,10 @@ template collectTypesImpl(Type) {
 		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
+		alias Fi = staticMap!(.collectTypesImpl, Fields!Type);
 		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
 		alias collectTypesImpl =
-				AliasSeq!(Type, RetTypes, ArgTypes)
+				AliasSeq!(Type, RetTypes, ArgTypes, Fi)
 			;
 	} else static if(isSomeString!Type) {
 		alias collectTypesImpl = string;
@@ -187,6 +188,19 @@ template collectTypesImpl(Type) {
 	} else {
 		alias collectTypesImpl = AliasSeq!();
 	}
+}
+
+unittest {
+	struct Foo {
+		int a;
+	}
+	alias Type = NullableStore!Foo;
+	static if(is(Type : NullableStore!F, F)) {
+		alias T = Type.TypeValue;
+	} else {
+		alias T = int;
+	}
+	static assert(is(T == Foo));
 }
 
 template collectReturnType(Type, Names...) {
@@ -358,6 +372,19 @@ unittest {
 		enum canBeFound = tmp;
 	}
 	static assert(allSatisfy!(canBeFound, ts));
+}
+
+unittest {
+	struct Foo {
+		int a;
+	}
+
+	struct Bar {
+		import nullablestore;
+		NullableStore!Foo foo;
+	}
+
+	static assert(is(collectTypes!Bar : AliasSeq!(Bar, Foo, long)));
 }
 
 template stripArrayAndNullable(T) {
