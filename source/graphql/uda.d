@@ -43,6 +43,10 @@ struct GQLDCustomLeaf(T) {
 	this(Type value) {
 		this.value = value;
 	}
+
+	void opAssign(Type value) {
+		this.value = value;
+	}
 }
 
 unittest {
@@ -56,6 +60,12 @@ unittest {
 	auto f = GQLDCustomLeaf!DateTime();
 
 	GQLDCustomLeaf!DateTime dt = DateTime(1337, 1, 1);
+}
+
+unittest {
+	import std.typecons : Nullable, nullable;
+	import std.datetime : DateTime;
+	Nullable!(GQLDCustomLeaf!DateTime) dt;
 }
 
 struct GQLDDeprecatedData {

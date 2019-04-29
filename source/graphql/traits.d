@@ -161,6 +161,8 @@ template collectTypesImpl(Type) {
 		alias collectTypesImpl = .collectTypesImpl!(F);
 	} else static if(is(Type : NullableStore!F, F)) {
 		alias collectTypesImpl = .collectTypesImpl!(Type.TypeValue);
+	} else static if(is(Type : WrapperStore!F, F)) {
+		alias collectTypesImpl = AliasSeq!(Type);
 	} else static if(is(Type == struct)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
 				__traits(allMembers, Type))
@@ -168,7 +170,7 @@ template collectTypesImpl(Type) {
 		alias ArgTypes = AliasSeq!(collectParameterTypes!(Type,
 				__traits(allMembers, Type))
 			);
-		alias Fi = staticMap!(.collectTypesImpl, Fields!Type);
+		alias Fi = Fields!Type;
 		//alias collectTypesImpl = Filter!(isNotCustomLeaf,
 		alias collectTypesImpl =
 				AliasSeq!(Type, RetTypes, ArgTypes, Fi)
@@ -375,16 +377,16 @@ unittest {
 }
 
 unittest {
+	import nullablestore;
 	struct Foo {
 		int a;
 	}
 
 	struct Bar {
-		import nullablestore;
 		NullableStore!Foo foo;
 	}
 
-	static assert(is(collectTypes!Bar : AliasSeq!(Bar, Foo, long)));
+	static assert(is(collectTypes!Bar : AliasSeq!(Bar, NullableStore!Foo, Foo, long)));
 }
 
 template stripArrayAndNullable(T) {
