@@ -393,17 +393,16 @@ const(Document) lexAndParse(string s) {
 string stringTypeStrip(string str) {
 	import std.algorithm : startsWith, endsWith, canFind;
 	import std.string : capitalize;
-	immutable na = "Nullable!";
-	immutable ns = "NullableStore!";
+	immutable fs = ["Nullable!", "NullableStore!", "GQLDCustomLeaf!"];
 	immutable arr = "[]";
-	while(true) {
-		if(str.startsWith(na)) {
-			str = str[na.length .. $];
-			continue;
-		} else if(str.startsWith(ns)) {
-			str = str[ns.length .. $];
-			continue;
-		} else if(str.endsWith(arr)) {
+	outer: while(true) {
+		foreach(f; fs) {
+			if(str.startsWith(f)) {
+				str = str[f.length .. $];
+				continue outer;
+			}
+		}
+		if(str.endsWith(arr)) {
 			str = str[0 .. str.length - arr.length];
 			continue;
 		} else if(str.startsWith("[")) {
