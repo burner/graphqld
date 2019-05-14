@@ -194,7 +194,8 @@ class SchemaValidator(Type) : Visitor {
 	override void accept(const(Field) f) {
 		super.accept(f);
 		enforce!LeafIsNotAScalar(f.ss !is null ||
-				this.schemaStack.back.type["kind"].get!string() == "SCALAR",
+				(this.schemaStack.back.type["kind"].get!string() == "SCALAR"
+				|| this.schemaStack.back.type["kind"].get!string() == "ENUM"),
 				format("Leaf field '%s' is not a SCALAR but '%s'",
 					this.schemaStack.back.name,
 					this.schemaStack.back.type.toPrettyString())
