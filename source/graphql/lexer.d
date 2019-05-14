@@ -45,10 +45,11 @@ struct Lexer {
 			|| c == '$';
 	}
 
-	private void eatComment() @safe {
+	private bool eatComment() @safe {
 		if(this.stringPos < this.input.length &&
 				this.input[this.stringPos] == '#')
 		{
+			++this.stringPos;
 			while(this.stringPos < this.input.length &&
 				this.input[this.stringPos] != '\n')
 			{
@@ -56,14 +57,19 @@ struct Lexer {
 			}
 			++this.stringPos;
 			++this.line;
+			this.column = 1;
+			return true;
+		} else {
+			return false;
 		}
 	}
 
 	private void eatWhitespace() @safe {
 		import std.ascii : isWhite;
 		while(this.stringPos < this.input.length) {
-			this.eatComment();
-			if(this.input[this.stringPos] == ' ') {
+			if(this.eatComment()) {
+				continue;
+			} else if(this.input[this.stringPos] == ' ') {
 				++this.column;
 			} else if(this.input[this.stringPos] == '\t') {
 				++this.column;
@@ -709,4 +715,24 @@ unittest {
 	l.popFront();
 	assert(!l.empty);
 	assert(l.front.type == TokenType.rparen);
+}
+
+// Issue #20
+unittest {
+	string f = `# asldf
+#
+{ foo }
+`;
+
+	auto l = Lexer(f);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.lcurly, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.rcurly, l.front.toString());
+	l.popFront();
+	assert(l.empty);
 }
