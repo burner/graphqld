@@ -421,7 +421,11 @@ string stringTypeStrip(string str) {
 		break;
 	}
 
-	str = canFind(["string", "long", "float", "bool"], str)
+	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
+		? "Int"
+		: str;
+
+	str = canFind(["string", "int", "float", "bool"], str)
 		? capitalize(str)
 		: str;
 
