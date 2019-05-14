@@ -394,10 +394,14 @@ string stringTypeStrip(string str) {
 	import std.algorithm : startsWith, endsWith, canFind;
 	import std.string : capitalize;
 	immutable na = "Nullable!";
+	immutable ns = "NullableStore!";
 	immutable arr = "[]";
 	while(true) {
 		if(str.startsWith(na)) {
 			str = str[na.length .. $];
+			continue;
+		} else if(str.startsWith(ns)) {
+			str = str[ns.length .. $];
 			continue;
 		} else if(str.endsWith(arr)) {
 			str = str[0 .. str.length - arr.length];

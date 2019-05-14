@@ -6,6 +6,7 @@ import std.typecons : Nullable;
 import std.format : format;
 
 import vibe.data.json;
+import nullablestore;
 
 import graphql.schema.directives;
 import graphql.helper;
@@ -89,6 +90,7 @@ abstract class Character {
 	Series[] series;
 	Character[] commands;
 	Nullable!Starship ship;
+	NullableStore!Starship ships;
 	Character[] commanders;
 
 	//NullableStore!AddCrewmanData data;

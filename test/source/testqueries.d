@@ -1,6 +1,7 @@
 module testqueries;
 
-string[] queries = [`
+string[] queries = [
+`
 query IntrospectionQuery {
   __schema {
     queryType { name }
@@ -120,6 +121,11 @@ fragment charac on Character {
   ...hyooman
   name
   series
+}
+`,
+`
+{
+  starships
 }
 `,
 `

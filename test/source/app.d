@@ -217,6 +217,7 @@ void main() {
 			foreach(q; queries) {
 				sleep(1.seconds);
 				//Task qt = runTask({
+				try {
 					requestHTTP("http://127.0.0.1:8080",
 						(scope req) {
 							req.method = HTTPMethod.POST;
@@ -232,6 +233,9 @@ void main() {
 							enforce("data" in ret && ret["data"].length != 0);
 						}
 					);
+				} catch(Exception e) {
+					writefln("%s %s\n%s", __LINE__, e, q);
+				}
 				//});
 				//qt.join();
 				sleep(3.seconds);
@@ -276,14 +280,24 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	auto l = Lexer(toParse);
 	auto p = Parser(l);
 
-	Document d;
 	try {
 		import graphql.validation.querybased;
-		d = p.parseDocument();
+		import graphql.validation.schemabased;
+		Document d = p.parseDocument();
+		const(Document) cd = d;
 		QueryValidator fv = new QueryValidator(d);
-	    fv.accept(d);
+	    fv.accept(cd);
 	    noCylces(fv.fragmentChildren);
 	    allFragmentsReached(fv);
+		SchemaValidator!Schema sv = new SchemaValidator!Schema(d,
+				graphqld.schema
+			);
+		sv.accept(cd);
+		CustomContext con;
+		Json gqld = graphqld.execute(d, vars, con);
+
+		res.writeJsonBody(gqld);
+		return;
 	} catch(Throwable e) {
 		auto app = appender!string();
 		while(e) {
@@ -297,9 +311,4 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		res.writeJsonBody(ret);
 		return;
 	}
-
-	CustomContext con;
-	Json gqld = graphqld.execute(d, vars, con);
-
-	res.writeJsonBody(gqld);
 }
