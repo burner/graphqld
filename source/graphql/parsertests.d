@@ -397,6 +397,17 @@ query h {
           }
         }`);
 
+	// Issue 20
+	tests ~= TestCase(30, QueryParser.yes,
+			`# a stupid comment that crashed Steven's tests
+			# more comments
+			query IntrospectionDroidDescriptionQuery {
+          __type(name: "Droid") {
+            name
+            description
+          }
+        }`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str, test.qp);
 		auto p = Parser(l);

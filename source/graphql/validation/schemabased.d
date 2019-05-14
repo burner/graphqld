@@ -95,7 +95,8 @@ class SchemaValidator(Type) : Visitor {
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Type)()), name
+							removeNonNullAndList(typeToJson!(type,Type)()),
+							name
 						);
 					//writeln(this.schemaStack.back.type.toPrettyString());
 					break l;
@@ -585,4 +586,42 @@ query q {
 `;
 
 	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		crew {
+			id
+			ship
+		}
+	}
+}
+`;
+
+	test!LeafIsNotAScalar(str);
+}
+
+unittest {
+	string str = `
+{
+	starships {
+		crew {
+			id
+			ships
+		}
+	}
+}`;
+
+	test!LeafIsNotAScalar(str);
+}
+
+unittest {
+	string str = `
+{
+	starships
+}`;
+
+	test!LeafIsNotAScalar(str);
 }

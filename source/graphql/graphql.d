@@ -6,6 +6,7 @@ import std.experimental.logger;
 import std.traits;
 import std.meta : AliasSeq;
 import std.format : format;
+import std.exception : enforce;
 
 import vibe.core.core;
 import vibe.data.json;
@@ -330,6 +331,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json rslt;
 		if(GQLDMap map = objectType.toMap()) {
 			this.executationTraceLog.logf("map %s %s", map.name, ss !is null);
+			enforce(ss !is null && ss.sel !is null);
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables,
 					doc, context
 				);
