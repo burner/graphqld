@@ -97,3 +97,9 @@ class LeafIsNotAScalar : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class ContradictingDirectives : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
