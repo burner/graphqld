@@ -1,7 +1,16 @@
 module testqueries;
 
-string[] queries = [
-`
+import std.typecons : Flag;
+
+alias ShouldThrow = Flag!"ShouldThrow";
+
+struct TestQuery {
+	string query;
+	ShouldThrow st;
+}
+
+TestQuery[] queries = [
+TestQuery(`
 query IntrospectionQuery {
   __schema {
     queryType { name }
@@ -93,8 +102,9 @@ fragment TypeRef on __Type {
     }
   }
 }
-`,
-`
+`, ShouldThrow.no)
+,
+TestQuery(`
 query a {
   starships(overSize: 10) {
     name
@@ -122,13 +132,13 @@ fragment charac on Character {
   name
   series
 }
-`,
-`
+`, ShouldThrow.no),
+TestQuery(`
 {
   starships
 }
-`,
-`
+`, ShouldThrow.yes),
+TestQuery(`
 {
   starships {
     designation
@@ -142,8 +152,8 @@ fragment charac on Character {
   currentTime
 }
 
-`,
-`
+`, ShouldThrow.no),
+TestQuery(`
 query a {
   __type(name: "Starship") {
 		...FullType
@@ -224,8 +234,8 @@ fragment TypeRef on __Type {
     }
   }
 }
-`,
-`
+`, ShouldThrow.no),
+TestQuery(`
 {
 	shipsselection(ids:[42,45]) {
     id
@@ -236,8 +246,8 @@ fragment TypeRef on __Type {
     designation
   }
 }
-`,
-`
+`, ShouldThrow.no),
+TestQuery(`
 mutation one {
   addCrewman(input: {name: "Robert", shipId: 44, series: [Enterprise, DeepSpaceNice]}) {
     id
@@ -248,5 +258,5 @@ mutation one {
     }
   }
 }
-`
+`, ShouldThrow.no)
 ];

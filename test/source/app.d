@@ -214,27 +214,51 @@ void main() {
 	Task t = runTask({
 			import std.exception : enforce;
 			import testqueries;
-			foreach(q; queries) {
+			foreach(TestQuery q; queries) {
 				sleep(1.seconds);
+				bool hasThrown;
 				//Task qt = runTask({
 				try {
 					requestHTTP("http://127.0.0.1:8080",
 						(scope req) {
 							req.method = HTTPMethod.POST;
 							Json b = Json.emptyObject();
-							b["query"] = Json(q);
+							b["query"] = Json(q.query);
 							req.writeJsonBody(b);
 						},
 						(scope res) {
 							Json ret = parseJsonString(
 									res.bodyReader.readAllUTF8()
 								);
-							enforce("error" in ret && ret["error"].length == 0);
-							enforce("data" in ret && ret["data"].length != 0);
+							if(q.st == ShouldThrow.yes) {
+								enforce("error" in ret
+										&& ret["error"].length != 1,
+										format("%s", ret.toPrettyString())
+									);
+							} else {
+								enforce("error" in ret
+										&& ret["error"].length == 0,
+										format("%s", ret.toPrettyString())
+									);
+								enforce("data" in ret
+										&& ret["data"].length != 0,
+										format("%s", ret.toPrettyString())
+									);
+							}
 						}
 					);
 				} catch(Exception e) {
-					writefln("%s %s\n%s", __LINE__, e, q);
+					hasThrown = true;
+					if(q.st == ShouldThrow.no) {
+						writefln("IM DIENING NOW %s %s\n%s", __LINE__, e, q);
+						assert(false, e.msg);
+					}
+				}
+				if(q.st == ShouldThrow.yes && !hasThrown) {
+					writefln("I SHOULD HAVE THROWN NOW %s %s\n%s", __LINE__, e,
+							q
+						);
+					assert(false);
 				}
 				//});
 				//qt.join();

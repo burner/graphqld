@@ -101,6 +101,7 @@ bool dataIsEmpty(ref const(Json) data) {
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
 			if(key != "error" && !value.dataIsEmpty()) {
+			//if(key != "error") { // Issue #22 place to look at
 				return false;
 			}
 		}
@@ -127,12 +128,31 @@ bool dataIsEmpty(ref const(Json) data) {
 
 unittest {
 	string t = `{
+              "error": {}
+            }`;
+	Json j = parseJsonString(t);
+	assert(j.dataIsEmpty());
+}
+
+unittest {
+	string t = `{
               "kind": {},
               "fields": null,
               "name": {}
             }`;
 	Json j = parseJsonString(t);
-	assert(j.dataIsEmpty());
+	assert(!j.dataIsEmpty());
+}
+
+unittest {
+	string t =
+`{
+	"name" : {
+		"foo" : null
+	}
+}`;
+	Json j = parseJsonString(t);
+	assert(!j.dataIsEmpty());
 }
 
 bool dataIsNull(ref const(Json) data) {
@@ -417,6 +437,9 @@ string stringTypeStrip(string str) {
 		} else if(str.endsWith(")")) {
 			str = str[0 .. $ - 1];
 			continue;
+		} else if(str.endsWith("'")) {
+			str = str[0 .. $ - 1];
+			continue;
 		}
 		break;
 	}
@@ -428,6 +451,12 @@ string stringTypeStrip(string str) {
 	str = canFind(["string", "int", "float", "bool"], str)
 		? capitalize(str)
 		: str;
+
+	str = str == "__type" ? "__Type" : str;
+	str = str == "__schema" ? "__Schema" : str;
+	str = str == "__inputvalue" ? "__InputValue" : str;
+	str = str == "__directive" ? "__Directive" : str;
+	str = str == "__field" ? "__Field" : str;
 
 	return str;
 }
@@ -442,6 +471,15 @@ unittest {
 	assert(r == "String", r);
 }
 
+unittest {
+	string t = "Nullable!__type";
+	string r = t.stringTypeStrip();
+	assert(r == "__Type", r);
+
+	t = "Nullable!(__type[])";
+	r = t.stringTypeStrip();
+	assert(r == "__Type", r);
+}
 
 Json toGraphqlJson(T)(auto ref T obj) {
     import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
