@@ -141,7 +141,8 @@ unittest {
               "name": {}
             }`;
 	Json j = parseJsonString(t);
-	assert(!j.dataIsEmpty());
+	//assert(!j.dataIsEmpty()); // Enable if you don't want to trim. Issue #22
+	assert(j.dataIsEmpty());
 }
 
 unittest {
@@ -152,7 +153,8 @@ unittest {
 	}
 }`;
 	Json j = parseJsonString(t);
-	assert(!j.dataIsEmpty());
+	//assert(!j.dataIsEmpty()); // Enable if you don't want to trim. Issue #22
+	assert(j.dataIsEmpty());
 }
 
 bool dataIsNull(ref const(Json) data) {

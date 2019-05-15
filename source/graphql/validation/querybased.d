@@ -40,11 +40,11 @@ struct OperationFragVar {
 	}
 }
 
-class QueryValidator : Visitor {
+class QueryValidator : ConstVisitor {
 	import std.experimental.typecons : Final;
-	alias enter = Visitor.enter;
-	alias exit = Visitor.exit;
-	alias accept = Visitor.accept;
+	alias enter = ConstVisitor.enter;
+	alias exit = ConstVisitor.exit;
+	alias accept = ConstVisitor.accept;
 
 	const(Document) doc;
 

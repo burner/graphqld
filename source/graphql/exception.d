@@ -15,8 +15,8 @@ class ParseException : Exception {
 	this(string msg, string f, int l, string[] subRules, string[] follows) {
 		import std.format : format;
 		super(format(
-			"%s [%(%s,%)]: While in subRules [%(%s, %)]",
-			msg, follows, subRules), f, l
+			"%s [%(%s,%)]: While in subRules [%(%s, %)] at %s:%s",
+			msg, follows, subRules, f, l), f, l
 		);
 		this.line = l;
 		this.subRules = subRules;

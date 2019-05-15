@@ -94,7 +94,6 @@ class SchemaValidator(Type) : Visitor {
 			alias AllTypes = collectTypesPlusIntrospection!(Type);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
 			alias NoDups = NoDuplicates!(Stripped);
-			pragma(msg, NoDups);
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(

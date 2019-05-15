@@ -12,10 +12,10 @@ import graphql.ast;
 
 @safe:
 
-class ArgumentExtractor : Visitor {
-	alias enter = Visitor.enter;
-	alias exit = Visitor.exit;
-	alias accept = Visitor.accept;
+class ArgumentExtractor : ConstVisitor {
+	alias enter = ConstVisitor.enter;
+	alias exit = ConstVisitor.exit;
+	alias accept = ConstVisitor.accept;
 
 	Json arguments;
 	Json variables;
