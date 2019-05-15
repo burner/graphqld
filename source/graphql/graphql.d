@@ -232,6 +232,48 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return ret;
 	}
 
+	struct SkipInclude {
+		bool include;
+		bool skip;
+
+		SkipInclude join(SkipInclude other) {
+			SkipInclude ret = this;
+			ret.include = ret.include || other.include;
+			ret.skip = ret.skip || other.skip;
+			return ret;
+		}
+	}
+
+	bool continueAfterDirectives(Directives dirs, Json vars) {
+		import graphql.validation.exception;
+
+		SkipInclude si = this.extractSkipInclude(dirs, vars);
+
+		if(!si.include && !si.skip) { // default case aka. no directives
+			return true;
+		} else if(!si.include && si.skip) {
+			return false;
+		} else if(si.include && !si.skip) {
+			return true;
+		}
+		throw new ContradictingDirectives(format(
+				"include %s and skip %s contridict each other", si.include,
+				si.skip), __FILE__, __LINE__);
+	}
+
+	SkipInclude extractSkipInclude(Directives dirs, Json vars) {
+		SkipInclude ret;
+		if(dirs is null) {
+			return ret;
+		}
+		Json args = this.getArguments(dirs.dir, vars);
+		bool if_ = args.extract!bool("if");
+		ret.include = dirs.dir.name.value == "include" && if_;
+		ret.skip = dirs.dir.name.value == "skip" && if_;
+
+		return ret.join(this.extractSkipInclude(dirs.follow, vars));
+	}
+
 	static OperationDefinition[] getOperations(Document doc) {
 		import std.algorithm : map;
 		return opDefRange(doc).map!(op => op.def.op).array;
@@ -240,6 +282,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeOperation(OperationDefinition op, Json variables,
 			Document doc, ref Con context)
 	{
+		bool dirSaysToContinue = this.continueAfterDirectives(op.d, variables);
+		if(!dirSaysToContinue) {
+			return returnTemplate();
+		}
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{
@@ -437,6 +483,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		return ret;
+	}
+
+	Json getArguments(Directive dir, Json variables) {
+		auto ae = new ArgumentExtractor(variables);
+		ae.accept(cast(const(Directive))dir);
+		return ae.arguments;
 	}
 
 	Json getArguments(FieldRangeItem item, Json variables) {
