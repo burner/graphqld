@@ -32,6 +32,24 @@ TestQuery(`
 }
 `),
 TestQuery(`
+{
+	starships(overSize: 600) {
+		commander {
+			alsoAllwaysNull
+		}
+	}
+}`, ShouldThrow.no,
+`{
+	"starships" : [
+		{
+			"commander" : {
+				"alsoAllwaysNull": null
+			}
+		}
+	]
+}
+`),
+TestQuery(`
 query IntrospectionQuery {
   __schema {
     queryType { name }

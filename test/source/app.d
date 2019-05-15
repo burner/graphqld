@@ -183,6 +183,16 @@ void main() {
 			}
 		);
 
+	graphqld.setResolver("Character", "alsoAllwaysNull",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con)
+			{
+				Json ret = Json.emptyObject();
+				ret["data"] = Json(null);
+				return ret;
+			}
+		);
+
 	graphqld.setResolver("Character", "allwaysNull",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con)
@@ -281,6 +291,8 @@ void main() {
 				//qt.join();
 				sleep(3.seconds);
 			}
+			writeln("Automated tests are done, use graphiql-app for further"
+					~ " manual tests");
 		});
 	runApplication();
 	t.join();
