@@ -72,9 +72,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"] = parent[name];
 				} else {
 					ret["error"] = Json.emptyArray();
-					ret["error"] = Json(format("no field name '%s' found",
-										name)
-									);
+					ret["error"] = Json(format(
+							"no field name '%s' found on type '%s'",
+									name,
+									parent.getWithDefault!string("__typename")
+							)
+						);
 				}
 				this.defaultResolverLog.logf("default ret %s", ret);
 				return ret;
@@ -331,7 +334,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json rslt;
 		if(GQLDMap map = objectType.toMap()) {
 			this.executationTraceLog.logf("map %s %s", map.name, ss !is null);
-			enforce(ss !is null && ss.sel !is null);
+			enforce(ss !is null && ss.sel !is null, format(
+					"ss null %s, ss.sel null %s", ss is null,
+					(ss is null) ? true : ss.sel is null));
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables,
 					doc, context
 				);

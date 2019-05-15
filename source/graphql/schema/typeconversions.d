@@ -433,6 +433,8 @@ Json getIntrospectionField(string name) {
 		? "String"
 		: name == Constants.__schema
 			? "__Schema"
-			: format("Not known introspection name '%s'", name);
+			: name == Constants.__type
+				? "__Type"
+				: format("Not known introspection name '%s'", name);
 	return ret;
 }

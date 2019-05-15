@@ -75,7 +75,8 @@ class SchemaValidator(Type) : Visitor {
 					name, this.schemaStack.back.name)
 			);
 
-		immutable toFindIn = [Constants.__typename, Constants.__schema];
+		immutable toFindIn = [Constants.__typename, Constants.__schema,
+				  Constants.__type];
 		Json field = canFind(toFindIn, name)
 			? getIntrospectionField(name)
 			: this.schemaStack.back.type.getField(name);
@@ -86,12 +87,14 @@ class SchemaValidator(Type) : Visitor {
 			);
 
 		string followType = field[Constants.typenameOrig].get!string();
+		string old = followType;
 		followType = followType.stringTypeStrip();
 
 		l: switch(followType) {
 			alias AllTypes = collectTypesPlusIntrospection!(Type);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
 			alias NoDups = NoDuplicates!(Stripped);
+			pragma(msg, NoDups);
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
@@ -104,8 +107,8 @@ class SchemaValidator(Type) : Visitor {
 			}}
 			default:
 				throw new UnknownTypeName(
-						format("No type with name '%s' is known",
-							followType), __FILE__, __LINE__);
+						format("No type with name '%s' '%s' is known",
+							followType, old), __FILE__, __LINE__);
 		}
 	}
 
