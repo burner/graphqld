@@ -183,6 +183,16 @@ void main() {
 			}
 		);
 
+	graphqld.setResolver("Character", "allwaysNull",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con)
+			{
+				Json ret = Json.emptyObject();
+				ret["data"] = Json(null);
+				return ret;
+			}
+		);
+
 	graphqld.setResolver("Character", "ship",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con)
@@ -244,6 +254,13 @@ void main() {
 										&& ret["data"].length != 0,
 										format("%s", ret.toPrettyString())
 									);
+								if(!q.expectedResult.empty) {
+									Json p = parseJsonString(q.expectedResult);
+									assert(p == ret["data"], format(
+												"got: %s\nexpeteced: %s",
+												p.toPrettyString(),
+												ret["data"].toPrettyString()));
+								}
 							}
 						}
 					);

@@ -92,6 +92,7 @@ abstract class Character {
 	Nullable!Starship ship;
 	NullableStore!Starship ships;
 	Character[] commanders;
+	Nullable!Starship allwaysNull;
 
 	//NullableStore!AddCrewmanData data;
 }

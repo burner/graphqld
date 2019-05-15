@@ -7,9 +7,30 @@ alias ShouldThrow = Flag!"ShouldThrow";
 struct TestQuery {
 	string query;
 	ShouldThrow st;
+	string expectedResult;
 }
 
 TestQuery[] queries = [
+TestQuery(`
+{
+	starships(overSize: 600) {
+		commander {
+			allwaysNull {
+				id
+			}
+		}
+	}
+}`, ShouldThrow.no,
+`{
+	"starships" : [
+		{
+			"commander" : {
+				"allwaysNull": null
+			}
+		}
+	]
+}
+`),
 TestQuery(`
 query IntrospectionQuery {
   __schema {

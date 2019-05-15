@@ -362,7 +362,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			if(rslt.dataIsEmpty()) {
 				rslt["data"] = null;
 				rslt.remove("error");
-			} else {
 			}
 		} else if(GQLDList list = objectType.toList()) {
 			this.executationTraceLog.logf("list %s", list.name);
