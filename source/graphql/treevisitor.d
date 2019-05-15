@@ -7,10 +7,10 @@ import graphql.tokenmodule;
 
 @safe:
 
-class TreeVisitor : Visitor {
+class TreeVisitor : ConstVisitor {
 	import std.stdio : write, writeln;
 
-	alias accept = Visitor.accept;
+	alias accept = ConstVisitor.accept;
 
 	int depth;
 

@@ -76,6 +76,12 @@ struct Token {
 		this.value = value;
 	}
 
+	void visit(ConstVisitor vis) {
+	}
+
+	void visit(ConstVisitor vis) const {
+	}
+
 	void visit(Visitor vis) {
 	}
 
