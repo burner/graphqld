@@ -45,6 +45,9 @@ void main(string[] args) {
 	GQLDOptions opts;
 	opts.asyncList = AsyncList.no;
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
+	graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
+	graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
+	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
 
@@ -65,7 +68,7 @@ void main(string[] args) {
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
-				logf("%s", args);
+				//logf("%s", args);
 				Json ret = Json.emptyObject;
 				ret["data"] = Json.emptyArray;
 				float overSize = args["overSize"].to!float();
@@ -94,7 +97,7 @@ void main(string[] args) {
 					ret = Json.emptyObject;
 					ret["data"] = Json.emptyObject;
 				}
-				logf("%s", ret);
+				//logf("%s", ret);
 				return ret;
 			}
 		);
@@ -143,7 +146,7 @@ void main(string[] args) {
 					Json tmp = starshipToJson(ship);
 					ret["data"] ~= tmp["data"];
 				}
-				logf("%s", ret);
+				//logf("%s", ret);
 				return ret;
 			}
 		);
@@ -161,7 +164,7 @@ void main(string[] args) {
 						break;
 					}
 				}
-				logf("cid %s, %s", commanderId, ret["data"]);
+				//logf("cid %s, %s", commanderId, ret["data"]);
 				return ret;
 			}
 		);
@@ -182,7 +185,7 @@ void main(string[] args) {
 						}
 					}
 				}
-				logf("%s", ret["data"].toPrettyString());
+				//logf("%s", ret["data"].toPrettyString());
 				return ret;
 			}
 		);
@@ -224,7 +227,7 @@ void main(string[] args) {
 					Starship ship = theShip.front;
 					ret = starshipToJson(ship);
 				}
-				logf("%s", ret);
+				//logf("%s", ret);
 				return ret;
 			}
 		);
@@ -236,72 +239,73 @@ void main(string[] args) {
 
 	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
 	Task t = runTask({
-			import std.exception : enforce;
-			import testqueries;
-			foreach(TestQuery q; queries) {
-				sleep(1.seconds);
-				bool hasThrown;
-				//Task qt = runTask({
-				try {
-					requestHTTP("http://127.0.0.1:8080",
-						(scope req) {
-							req.method = HTTPMethod.POST;
-							Json b = Json.emptyObject();
-							b["query"] = Json(q.query);
-							req.writeJsonBody(b);
-						},
-						(scope res) {
-							Json ret = parseJsonString(
-									res.bodyReader.readAllUTF8()
+		import std.exception : enforce;
+		import testqueries;
+		foreach(tqIdx, TestQuery q; queries) {
+			writefln("%s", tqIdx);
+			sleep(1.seconds);
+			bool hasThrown;
+			//Task qt = runTask({
+			try {
+				requestHTTP("http://127.0.0.1:8080",
+					(scope req) {
+						req.method = HTTPMethod.POST;
+						Json b = Json.emptyObject();
+						b["query"] = Json(q.query);
+						req.writeJsonBody(b);
+					},
+					(scope res) {
+						Json ret = parseJsonString(
+								res.bodyReader.readAllUTF8()
+							);
+						if(q.st == ShouldThrow.yes) {
+							enforce("error" in ret
+									&& ret["error"].length != 1,
+									format("%s", ret.toPrettyString())
 								);
-							if(q.st == ShouldThrow.yes) {
-								enforce("error" in ret
-										&& ret["error"].length != 1,
-										format("%s", ret.toPrettyString())
-									);
-							} else {
-								enforce("error" in ret
-										&& ret["error"].length == 0,
-										format("%s", ret.toPrettyString())
-									);
-								enforce("data" in ret
-										&& ret["data"].length != 0,
-										format("%s", ret.toPrettyString())
-									);
-								if(!q.expectedResult.empty) {
-									Json p = parseJsonString(q.expectedResult);
-									assert(p == ret["data"], format(
-												"got: %s\nexpeteced: %s",
-												p.toPrettyString(),
-												ret["data"].toPrettyString()));
-								}
+						} else {
+							enforce("error" in ret
+									&& ret["error"].length == 0,
+									format("%s", ret.toPrettyString())
+								);
+							enforce("data" in ret
+									&& ret["data"].length != 0,
+									format("%s", ret.toPrettyString())
+								);
+							if(!q.expectedResult.empty) {
+								Json p = parseJsonString(q.expectedResult);
+								assert(p == ret["data"], format(
+											"got: %s\nexpeteced: %s",
+											p.toPrettyString(),
+											ret["data"].toPrettyString()));
 							}
 						}
-					);
-				} catch(Exception e) {
-					hasThrown = true;
-					if(q.st == ShouldThrow.no) {
-						writefln("IM DIENING NOW %s %s\n%s", __LINE__, e, q);
-						assert(false, e.msg);
 					}
+				);
+			} catch(Exception e) {
+				hasThrown = true;
+				if(q.st == ShouldThrow.no) {
+					writefln("IM DIENING NOW %s %s\n%s", __LINE__, e, q);
+					assert(false, e.msg);
 				}
-				if(q.st == ShouldThrow.yes && !hasThrown) {
-					writefln("I SHOULD HAVE THROWN NOW %s %s\n%s", __LINE__, e,
-							q
-						);
-					assert(false);
-				}
-				//});
-				//qt.join();
-				sleep(3.seconds);
 			}
-			writeln("Automated tests are done, use graphiql-app for further"
-					~ " manual tests");
-			if(onlyRunTests) {
-				import vibe.core.core;
-				exitEventLoop(true);
+			if(q.st == ShouldThrow.yes && !hasThrown) {
+				writefln("I SHOULD HAVE THROWN NOW %s %s\n%s", __LINE__, e,
+						q
+					);
+				assert(false);
 			}
-		});
+			//});
+			//qt.join();
+			sleep(3.seconds);
+		}
+		writeln("Automated tests are done, use graphiql-app for further"
+				~ " manual tests");
+		if(onlyRunTests) {
+			import vibe.core.core;
+			exitEventLoop(true);
+		}
+	});
 	runApplication();
 	t.join();
 	import core.stdc.stdlib;
@@ -319,7 +323,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	res.headers.addField("Access-Control-Allow-Headers",
                 "Origin, X-Requested-With, Content-Type, Accept, " ~ "X-CSRF-TOKEN");
 	Json j = req.json;
-	writefln("input %s req %s headers %s", j, req.toString(), req.headers);
+	//writefln("input %s req %s headers %s", j, req.toString(), req.headers);
 	string toParse;
 	if(j.type == Json.Type.object && "query" in j) {
 		toParse = j["query"].get!string();
@@ -332,13 +336,13 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		if(idx != -1) {
 			toParse = toParse[idx + toFind.length .. $];
 		}
-		writeln(toParse);
+		//writeln(toParse);
 	}
 	Json vars = Json.emptyObject();
 	if(j.type == Json.Type.object && "variables" in j) {
 		vars = j["variables"];
 	}
-	writeln(j.toPrettyString());
+	//writeln(j.toPrettyString());
 
 	auto l = Lexer(toParse);
 	auto p = Parser(l);

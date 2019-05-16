@@ -134,7 +134,7 @@ Json starshipToJson(Starship s) {
 		ret["data"]["crewIds"] ~= cm.id;
 	}
 
-	logf("%s", ret.toPrettyString());
+	//logf("%s", ret.toPrettyString());
 	return ret;
 }
 
