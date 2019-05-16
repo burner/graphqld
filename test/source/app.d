@@ -298,8 +298,8 @@ void main(string[] args) {
 			writeln("Automated tests are done, use graphiql-app for further"
 					~ " manual tests");
 			if(onlyRunTests) {
-				import core.stdc.stdlib : exit;
-				exit(0);
+				import vibe.core.core;
+				exitEventLoop(true);
 			}
 		});
 	runApplication();
