@@ -275,7 +275,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	static OperationDefinition[] getOperations(Document doc) {
-		import std.algorithm : map;
+		import std.algorithm.iteration : map;
 		return opDefRange(doc).map!(op => op.def.op).array;
 	}
 
@@ -336,9 +336,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 					.getWithDefault!string("data.__typename", "__typename")))
 			)
 		{
-			Json rslt = this.executeFieldSelection(field, objectType,
-					objectValue, variables, doc, context
-				);
+			bool dirSaysToContinue = this.continueAfterDirectives(
+					field.f.dirs,
+					variables);
+
+			Json rslt = dirSaysToContinue
+				? this.executeFieldSelection(field, objectType,
+						objectValue, variables, doc, context
+					)
+				: Json.emptyObject();
+
 			ret.insertPayload(field.name, rslt);
 		}
 		return ret;

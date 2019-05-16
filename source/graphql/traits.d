@@ -41,7 +41,11 @@ template isNotCustomLeafOrIgnore(T) {
 template InheritedClassImpl(T) {
 	import std.meta : staticMap, AliasSeq, NoDuplicates;
 	import std.traits : Select;
-	alias getInheritedFields() = staticMap!(.InheritedClassImpl, FieldTypeTuple!T);
+
+	alias getInheritedFields() = staticMap!(.InheritedClassImpl,
+			FieldTypeTuple!T
+		);
+
 	alias ftt = Select!(is(T == union), getInheritedFields, AliasSeq);
 
 	alias getBaseTuple() = staticMap!(.InheritedClassImpl, BaseClassesTuple!T);
@@ -386,7 +390,9 @@ unittest {
 		NullableStore!Foo foo;
 	}
 
-	static assert(is(collectTypes!Bar : AliasSeq!(Bar, NullableStore!Foo, Foo, long)));
+	static assert(is(collectTypes!Bar : AliasSeq!(Bar, NullableStore!Foo, Foo,
+			long))
+		);
 }
 
 template stripArrayAndNullable(T) {

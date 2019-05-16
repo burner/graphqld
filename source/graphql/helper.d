@@ -127,19 +127,13 @@ bool dataIsEmpty(ref const(Json) data) {
 }
 
 unittest {
-	string t = `{
-              "error": {}
-            }`;
+	string t = `{ "error": {} }`;
 	Json j = parseJsonString(t);
 	assert(j.dataIsEmpty());
 }
 
 unittest {
-	string t = `{
-              "kind": {},
-              "fields": null,
-              "name": {}
-            }`;
+	string t = `{ "kind": {}, "fields": null, "name": {} }`;
 	Json j = parseJsonString(t);
 	//assert(!j.dataIsEmpty()); // Enable if you don't want to trim. Issue #22
 	assert(j.dataIsEmpty());
@@ -413,7 +407,7 @@ const(Document) lexAndParse(string s) {
 }
 
 string stringTypeStrip(string str) {
-	import std.algorithm : startsWith, endsWith, canFind;
+	import std.algorithm.searching : startsWith, endsWith, canFind;
 	import std.string : capitalize;
 	immutable fs = ["Nullable!", "NullableStore!", "GQLDCustomLeaf!"];
 	immutable arr = "[]";
@@ -484,46 +478,46 @@ unittest {
 }
 
 Json toGraphqlJson(T)(auto ref T obj) {
-    import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
+	import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
 	import std.array : empty;
 	import std.typecons : Nullable;
 	import nullablestore;
 
-    alias names = FieldNameTuple!(T);
-    alias types = FieldTypeTuple!(T);
+	alias names = FieldNameTuple!(T);
+	alias types = FieldTypeTuple!(T);
 
-    static if(isArray!T) {
-        Json ret = Json.emptyArray();
-        foreach(ref it; obj) {
-            ret ~= toGraphqlJson(it);
-        }
-    } else {
-        Json ret = Json.emptyObject();
+	static if(isArray!T) {
+		Json ret = Json.emptyArray();
+		foreach(ref it; obj) {
+			ret ~= toGraphqlJson(it);
+		}
+	} else {
+		Json ret = Json.emptyObject();
 
 		// the important bit is the setting of the __typename field
 		ret["__typename"] = T.stringof;
 
-        static foreach(idx; 0 .. names.length) {{
-            static if(!names[idx].empty) {
-                //writefln("%s %s", __LINE__, names[idx]);
-                static if(is(types[idx] : Nullable!Type, Type)) {
-                    if(__traits(getMember, obj, names[idx]).isNull()) {
-                        ret[names[idx]] = Json(null);
-                    } else {
-                        ret[names[idx]] = serializeToJson(
-                                __traits(getMember, obj, names[idx])
-                            );
-                    }
-                } else static if(is(types[idx] : NullableStore!Type, Type)) {
-                } else {
-                    ret[names[idx]] = serializeToJson(
-                            __traits(getMember, obj, names[idx])
-                        );
-                }
-            }
-        }}
-    }
-    return ret;
+		static foreach(idx; 0 .. names.length) {{
+			static if(!names[idx].empty) {
+				//writefln("%s %s", __LINE__, names[idx]);
+				static if(is(types[idx] : Nullable!Type, Type)) {
+					if(__traits(getMember, obj, names[idx]).isNull()) {
+						ret[names[idx]] = Json(null);
+					} else {
+						ret[names[idx]] = serializeToJson(
+								__traits(getMember, obj, names[idx])
+							);
+					}
+				} else static if(is(types[idx] : NullableStore!Type, Type)) {
+				} else {
+					ret[names[idx]] = serializeToJson(
+							__traits(getMember, obj, names[idx])
+						);
+				}
+			}
+		}}
+	}
+	return ret;
 }
 
 unittest {

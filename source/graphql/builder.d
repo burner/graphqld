@@ -22,7 +22,9 @@ const(FragmentDefinition) findFragment(const(Document) doc, string name) {
 	return findFragmentImpl(cur, name);
 }
 
-const(FragmentDefinition) findFragmentImpl(const(Definitions) cur, string name) {
+const(FragmentDefinition) findFragmentImpl(const(Definitions) cur,
+		string name)
+{
 	if(cur is null) {
 		return null;
 	} else {
@@ -66,13 +68,13 @@ Selections findFragment(Document doc, string name, string[] typenames) {
 
 unittest {
 	string s = `{
- user(id: 1) {
-   friends {
-     name
-   }
-   name
-   age
- }
+	user(id: 1) {
+		friends {
+			name
+		}
+		name
+		age
+	}
 }`;
 	auto l = Lexer(s);
 	auto p = Parser(l);
@@ -85,7 +87,7 @@ unittest {
 unittest {
 	string s = `
 fragment fooo on Hero {
-  name
+	name
 }`;
 	auto l = Lexer(s);
 	auto p = Parser(l);
@@ -342,13 +344,13 @@ OpDefRange opDefRange(Document doc) {
 
 unittest {
 	string s = `{
- user(id: 1) {
-   friends {
-     name
-   }
-   name
-   age
- }
+	user(id: 1) {
+	    friends {
+	   	 name
+	    }
+	    name
+	    age
+	}
 }`;
 	auto l = Lexer(s);
 	auto p = Parser(l);
@@ -381,9 +383,9 @@ unittest {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 ...foo
- }
+	user(id: 1) {
+	    ...foo
+	}
 }
 
 fragment foo on User {
@@ -422,10 +424,10 @@ fragment foo on User {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 ...foo
-	 ...bar
- }
+	user(id: 1) {
+	    ...foo
+	    ...bar
+	}
 }
 
 fragment foo on User {
@@ -470,11 +472,11 @@ fragment bar on User {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 ...foo
-	 ...bar
-	 hello
- }
+	user(id: 1) {
+	    ...foo
+	    ...bar
+	    hello
+	}
 }
 
 fragment foo on User {
@@ -522,11 +524,11 @@ fragment bar on User {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 hello
-	 ...foo
-	 ...bar
- }
+	user(id: 1) {
+	    hello
+	    ...foo
+	    ...bar
+	}
 }
 
 fragment foo on User {
@@ -574,11 +576,11 @@ fragment bar on User {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 hello
-	 ...foo
-	 ...bar
- }
+	user(id: 1) {
+	    hello
+	    ...foo
+	    ...bar
+	}
 }
 
 fragment foo on User {
@@ -634,12 +636,12 @@ fragment baz on User {
 
 unittest {
 	string s = `{
- user(id: 1) {
-	 hello
-	 ...foo
-	 zzzz
-	 ...bar
- }
+	user(id: 1) {
+	    hello
+	    ...foo
+	    zzzz
+	    ...bar
+	}
 }
 
 fragment foo on User {
@@ -701,12 +703,12 @@ unittest {
 	import std.stdio;
 
 	string s = `{
- user(id: 1) {
-	 hello
-	 ...foo
-	 zzzz
-	 ...bar
- }
+	user(id: 1) {
+	    hello
+	    ...foo
+	    zzzz
+	    ...bar
+	}
 }
 
 fragment foo on User {
