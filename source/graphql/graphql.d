@@ -301,7 +301,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeMutation(OperationDefinition op, Json variables,
 			Document doc, ref Con context)
 	{
-		log("mutation");
+		this.executationTraceLog.log("mutation");
 		Json tmp = this.executeSelections(op.ss.sel,
 				this.schema.member["mutationType"], Json.emptyObject(),
 				variables, doc, context
@@ -312,7 +312,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeQuery(OperationDefinition op, Json variables, Document doc,
 			ref Con context)
 	{
-		log("query");
+		this.executationTraceLog.log("query");
 		Json tmp = this.executeSelections(op.ss.sel,
 				this.schema.member["queryType"],
 				Json.emptyObject(), variables, doc, context
