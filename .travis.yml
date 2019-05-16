@@ -8,6 +8,7 @@ d:
 script:
   - make style_lint
   - dub test --compiler=${DC}
+  - cd test && dub -- -o
 
 notifications:
   email: false
