@@ -37,7 +37,7 @@ struct CustomContext {
 	int userId;
 }
 
-int main(string[] args) {
+void main(string[] args) {
 	bool onlyRunTests;
 	getopt(args, "o|onlyRunTests", &onlyRunTests);
 	writeln("onlyRunTests %s", onlyRunTests);
@@ -304,8 +304,8 @@ int main(string[] args) {
 		});
 	runApplication();
 	t.join();
-
-	return 0;
+	import core.stdc.stdlib;
+	exit(0);
 }
 
 void hello(HTTPServerRequest req, HTTPServerResponse res) {
