@@ -6,6 +6,7 @@ import std.conv;
 import std.typecons;
 import std.typecons;
 import std.algorithm;
+import std.getopt;
 
 import std.experimental.logger;
 import std.experimental.logger.filelogger;
@@ -36,7 +37,10 @@ struct CustomContext {
 	int userId;
 }
 
-void main() {
+void main(string[] args) {
+	bool onlyRunTests;
+	getopt(args, "o|onlyRunTests", &onlyRunTests);
+	writeln("onlyRunTests %s", onlyRunTests);
  	database = new Data();
 	GQLDOptions opts;
 	opts.asyncList = AsyncList.no;
@@ -293,6 +297,10 @@ void main() {
 			}
 			writeln("Automated tests are done, use graphiql-app for further"
 					~ " manual tests");
+			if(onlyRunTests) {
+				import core.stdc.stdlib : exit;
+				exit(0);
+			}
 		});
 	runApplication();
 	t.join();
