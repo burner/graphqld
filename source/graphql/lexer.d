@@ -2,7 +2,7 @@ module graphql.lexer;
 
 import std.experimental.logger;
 import std.format : format;
-import std.typecons :Flag;
+import std.typecons : Flag;
 import std.stdio;
 
 import graphql.tokenmodule;

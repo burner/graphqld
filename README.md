@@ -1,5 +1,7 @@
 # GraphqlD: A graphql implementation for the D Programming language
 
+![alt text](https://travis-ci.org/burner/graphqld.svg)
+
 Graphql is a query language for apis.
 Given a query like for the schema in folder test.
 

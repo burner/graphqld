@@ -179,7 +179,10 @@ Json inputFields(Type)() {
 		tmp[Constants.description] = udaData.description.text.empty
 				? Json(null)
 				: Json(udaData.description.text);
-		tmp[Constants.__typename] = Constants.__InputValue; // needed for interfacesForType
+
+		// needed for interfacesForType
+		tmp[Constants.__typename] = Constants.__InputValue;
+
 		tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
 		tmp[Constants.defaultValue] = serializeToJson(
 				__traits(getMember, Type.init, names[idx])

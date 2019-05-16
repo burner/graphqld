@@ -76,7 +76,7 @@ class SchemaValidator(Type) : Visitor {
 			);
 
 		immutable toFindIn = [Constants.__typename, Constants.__schema,
-				  Constants.__type];
+					Constants.__type];
 		Json field = canFind(toFindIn, name)
 			? getIntrospectionField(name)
 			: this.schemaStack.back.type.getField(name);
@@ -185,7 +185,7 @@ class SchemaValidator(Type) : Visitor {
 				|| op.ot.ruleSelection == OperationTypeEnum.Query
 			? "queryType"
 			: op.ot.ruleSelection == OperationTypeEnum.Mutation
-				?  "mutationType"
+				?	"mutationType"
 				: op.ot.ruleSelection == OperationTypeEnum.Sub
 					? "subscriptionType"
 					: "";
@@ -261,17 +261,17 @@ subscription sub {
 unittest {
 	string str = `
 subscription sub {
-  ...multipleSubscriptions
+	...multipleSubscriptions
 }
 
 fragment multipleSubscriptions on Subscription {
-  starships {
-    id
-    name
-  }
-  starships {
+	starships {
+		id
+		name
+	}
+	starships {
 	size
-  }
+	}
 }`;
 
 	test!SingleRootField(str);
@@ -280,11 +280,11 @@ fragment multipleSubscriptions on Subscription {
 unittest {
 	string str = `
 subscription sub {
-  starships {
-    id
-    name
-  }
-  __typename
+	starships {
+		id
+		name
+	}
+	__typename
 }`;
 
 	test!SingleRootField(str);

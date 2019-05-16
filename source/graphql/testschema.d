@@ -1,6 +1,6 @@
 module graphql.testschema;
 
-import std.algorithm : map;
+import std.algorithm.iteration : map;
 import std.datetime : DateTime, Date;
 import std.typecons : Nullable;
 import std.format : format;
