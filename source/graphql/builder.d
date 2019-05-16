@@ -42,6 +42,9 @@ const(FragmentDefinition) findFragmentImpl(const(Definitions) cur,
 Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
 	import std.experimental.logger : logf;
+	if(doc is null) {
+		return null;
+	}
 	Definitions cur = doc.defs;
 	while(cur !is null) {
 		enforce(cur.def !is null);
