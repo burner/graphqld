@@ -297,7 +297,6 @@ void main(string[] args) {
 			}
 			//});
 			//qt.join();
-			sleep(3.seconds);
 		}
 		writeln("Automated tests are done, use graphiql-app for further"
 				~ " manual tests");

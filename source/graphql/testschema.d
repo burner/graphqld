@@ -59,8 +59,14 @@ struct AddCrewmanData {
 	Series[] series;
 }
 
+struct AddCrewmanComplexInput {
+	Character crewman;
+	Starship starship;
+}
+
 interface Mutation {
 	Character addCrewman(AddCrewmanData input);
+	Starship addCrewmanCompley(AddCrewmanComplexInput input);
 }
 
 interface Subscription {
