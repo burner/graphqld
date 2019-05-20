@@ -21,6 +21,13 @@ struct GQLDUdaData {
 	GQLDDeprecatedData deprecationInfo;
 	GQLDDescription description;
 	Ignore ignore;
+	IgnoreForInput ignoreForInput;
+}
+
+enum IgnoreForInput {
+	undefined,
+	yes,
+	no
 }
 
 enum Ignore {
