@@ -145,14 +145,7 @@ class ArgumentExtractor : ConstVisitor {
 	}
 }
 
-private const(Document) lexAndParse(string s) {
-	import graphql.lexer;
-	import graphql.parser;
-
-	auto l = Lexer(s);
-	auto p = Parser(l);
-	return p.parseDocument();
-}
+import graphql.helper : lexAndParse;
 
 unittest {
 	string s = `
