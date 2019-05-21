@@ -9,8 +9,33 @@ import vibe.data.json;
 
 import graphql.visitor;
 import graphql.ast;
+import graphql.builder : FieldRangeItem;
 
 @safe:
+
+Json getArguments(InlineFragment ilf, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(InlineFragment))ilf);
+	return ae.arguments;
+}
+
+Json getArguments(FragmentSpread fs, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(FragmentSpread))fs);
+	return ae.arguments;
+}
+
+Json getArguments(Directive dir, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Directive))dir);
+	return ae.arguments;
+}
+
+Json getArguments(FieldRangeItem item, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Field))item.f);
+	return ae.arguments;
+}
 
 class ArgumentExtractor : ConstVisitor {
 	alias enter = ConstVisitor.enter;
