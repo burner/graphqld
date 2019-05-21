@@ -6,11 +6,13 @@ import graphql.visitor;
 
 @safe:
 
+class Node {}
+
 enum DocumentEnum {
 	Defi,
 }
 
-class Document {
+class Document : Node {
 	DocumentEnum ruleSelection;
 	Definitions defs;
 
@@ -41,7 +43,7 @@ enum DefinitionsEnum {
 	Defs,
 }
 
-class Definitions {
+class Definitions : Node {
 	DefinitionsEnum ruleSelection;
 	Definition def;
 	Definitions follow;
@@ -80,7 +82,7 @@ enum DefinitionEnum {
 	T,
 }
 
-class Definition {
+class Definition : Node {
 	DefinitionEnum ruleSelection;
 	FragmentDefinition frag;
 	TypeSystemDefinition type;
@@ -130,7 +132,7 @@ enum OperationDefinitionEnum {
 	OT,
 }
 
-class OperationDefinition {
+class OperationDefinition : Node {
 	OperationDefinitionEnum ruleSelection;
 	VariableDefinitions vd;
 	OperationType ot;
@@ -224,7 +226,7 @@ enum SelectionSetEnum {
 	SS,
 }
 
-class SelectionSet {
+class SelectionSet : Node {
 	SelectionSetEnum ruleSelection;
 	Selections sel;
 
@@ -256,7 +258,7 @@ enum OperationTypeEnum {
 	Sub,
 }
 
-class OperationType {
+class OperationType : Node {
 	OperationTypeEnum ruleSelection;
 	Token tok;
 
@@ -288,7 +290,7 @@ enum SelectionsEnum {
 	Selsc,
 }
 
-class Selections {
+class Selections : Node {
 	SelectionsEnum ruleSelection;
 	Selection sel;
 	Selections follow;
@@ -327,7 +329,7 @@ enum SelectionEnum {
 	IFrag,
 }
 
-class Selection {
+class Selection : Node {
 	SelectionEnum ruleSelection;
 	FragmentSpread frag;
 	Field field;
@@ -370,7 +372,7 @@ enum FragmentSpreadEnum {
 	F,
 }
 
-class FragmentSpread {
+class FragmentSpread : Node {
 	FragmentSpreadEnum ruleSelection;
 	Directives dirs;
 	Token name;
@@ -410,7 +412,7 @@ enum InlineFragmentEnum {
 	S,
 }
 
-class InlineFragment {
+class InlineFragment : Node {
 	InlineFragmentEnum ruleSelection;
 	Token tc;
 	Directives dirs;
@@ -468,7 +470,7 @@ enum FieldEnum {
 	F,
 }
 
-class Field {
+class Field : Node {
 	FieldEnum ruleSelection;
 	SelectionSet ss;
 	Arguments args;
@@ -549,7 +551,7 @@ enum FieldNameEnum {
 	N,
 }
 
-class FieldName {
+class FieldName : Node {
 	FieldNameEnum ruleSelection;
 	Token aka;
 	Token name;
@@ -587,7 +589,7 @@ enum ArgumentsEnum {
 	Empty,
 }
 
-class Arguments {
+class Arguments : Node {
 	ArgumentsEnum ruleSelection;
 	ArgumentList arg;
 
@@ -623,7 +625,7 @@ enum ArgumentListEnum {
 	AS,
 }
 
-class ArgumentList {
+class ArgumentList : Node {
 	ArgumentListEnum ruleSelection;
 	Argument arg;
 	ArgumentList follow;
@@ -660,7 +662,7 @@ enum ArgumentEnum {
 	Name,
 }
 
-class Argument {
+class Argument : Node {
 	ArgumentEnum ruleSelection;
 	ValueOrVariable vv;
 	Token name;
@@ -693,7 +695,7 @@ enum FragmentDefinitionEnum {
 	FTS,
 }
 
-class FragmentDefinition {
+class FragmentDefinition : Node {
 	FragmentDefinitionEnum ruleSelection;
 	SelectionSet ss;
 	Token tc;
@@ -737,7 +739,7 @@ enum DirectivesEnum {
 	Dirs,
 }
 
-class Directives {
+class Directives : Node {
 	DirectivesEnum ruleSelection;
 	Directive dir;
 	Directives follow;
@@ -775,7 +777,7 @@ enum DirectiveEnum {
 	N,
 }
 
-class Directive {
+class Directive : Node {
 	DirectiveEnum ruleSelection;
 	Arguments arg;
 	Token name;
@@ -813,7 +815,7 @@ enum VariableDefinitionsEnum {
 	Vars,
 }
 
-class VariableDefinitions {
+class VariableDefinitions : Node {
 	VariableDefinitionsEnum ruleSelection;
 	VariableDefinitionList vars;
 
@@ -849,7 +851,7 @@ enum VariableDefinitionListEnum {
 	VF,
 }
 
-class VariableDefinitionList {
+class VariableDefinitionList : Node {
 	VariableDefinitionListEnum ruleSelection;
 	VariableDefinitionList follow;
 	VariableDefinition var;
@@ -887,7 +889,7 @@ enum VariableDefinitionEnum {
 	Var,
 }
 
-class VariableDefinition {
+class VariableDefinition : Node {
 	VariableDefinitionEnum ruleSelection;
 	Type type;
 	DefaultValue dvalue;
@@ -927,7 +929,7 @@ enum VariableEnum {
 	Var,
 }
 
-class Variable {
+class Variable : Node {
 	VariableEnum ruleSelection;
 	Token name;
 
@@ -957,7 +959,7 @@ enum DefaultValueEnum {
 	DV,
 }
 
-class DefaultValue {
+class DefaultValue : Node {
 	DefaultValueEnum ruleSelection;
 	Value value;
 
@@ -988,7 +990,7 @@ enum ValueOrVariableEnum {
 	Var,
 }
 
-class ValueOrVariable {
+class ValueOrVariable : Node {
 	ValueOrVariableEnum ruleSelection;
 	Value val;
 	Variable var;
@@ -1031,7 +1033,7 @@ enum ValueEnum {
 	E,
 }
 
-class Value {
+class Value : Node {
 	ValueEnum ruleSelection;
 	Token tok;
 	Array arr;
@@ -1076,7 +1078,7 @@ enum TypeEnum {
 	L,
 }
 
-class Type {
+class Type : Node {
 	TypeEnum ruleSelection;
 	ListType list;
 	Token tname;
@@ -1112,7 +1114,7 @@ enum ListTypeEnum {
 	T,
 }
 
-class ListType {
+class ListType : Node {
 	ListTypeEnum ruleSelection;
 	Type type;
 
@@ -1143,7 +1145,7 @@ enum ValuesEnum {
 	Vals,
 }
 
-class Values {
+class Values : Node {
 	ValuesEnum ruleSelection;
 	Value val;
 	Values follow;
@@ -1181,7 +1183,7 @@ enum ArrayEnum {
 	Value,
 }
 
-class Array {
+class Array : Node {
 	ArrayEnum ruleSelection;
 	Values vals;
 
@@ -1217,7 +1219,7 @@ enum ObjectValuesEnum {
 	Vs,
 }
 
-class ObjectValues {
+class ObjectValues : Node {
 	ObjectValuesEnum ruleSelection;
 	Value val;
 	ObjectValues follow;
@@ -1257,7 +1259,7 @@ enum ObjectTypeEnum {
 	Var,
 }
 
-class ObjectType {
+class ObjectType : Node {
 	ObjectTypeEnum ruleSelection;
 	ObjectValues vals;
 
@@ -1290,7 +1292,7 @@ enum TypeSystemDefinitionEnum {
 	D,
 }
 
-class TypeSystemDefinition {
+class TypeSystemDefinition : Node {
 	TypeSystemDefinitionEnum ruleSelection;
 	DirectiveDefinition dd;
 	TypeExtensionDefinition ted;
@@ -1343,7 +1345,7 @@ enum TypeDefinitionEnum {
 	IO,
 }
 
-class TypeDefinition {
+class TypeDefinition : Node {
 	TypeDefinitionEnum ruleSelection;
 	ObjectTypeDefinition otd;
 	ScalarTypeDefinition std;
@@ -1404,7 +1406,7 @@ enum SchemaDefinitionEnum {
 	O,
 }
 
-class SchemaDefinition {
+class SchemaDefinition : Node {
 	SchemaDefinitionEnum ruleSelection;
 	Directives dir;
 	OperationTypeDefinitions otds;
@@ -1443,7 +1445,7 @@ enum OperationTypeDefinitionsEnum {
 	OS,
 }
 
-class OperationTypeDefinitions {
+class OperationTypeDefinitions : Node {
 	OperationTypeDefinitionsEnum ruleSelection;
 	OperationTypeDefinition otd;
 	OperationTypeDefinitions follow;
@@ -1480,7 +1482,7 @@ enum OperationTypeDefinitionEnum {
 	O,
 }
 
-class OperationTypeDefinition {
+class OperationTypeDefinition : Node {
 	OperationTypeDefinitionEnum ruleSelection;
 	OperationType ot;
 	Token nt;
@@ -1513,7 +1515,7 @@ enum ScalarTypeDefinitionEnum {
 	S,
 }
 
-class ScalarTypeDefinition {
+class ScalarTypeDefinition : Node {
 	ScalarTypeDefinitionEnum ruleSelection;
 	Directives dir;
 	Token name;
@@ -1553,7 +1555,7 @@ enum ObjectTypeDefinitionEnum {
 	F,
 }
 
-class ObjectTypeDefinition {
+class ObjectTypeDefinition : Node {
 	ObjectTypeDefinitionEnum ruleSelection;
 	Directives dir;
 	ImplementsInterfaces ii;
@@ -1611,7 +1613,7 @@ enum FieldDefinitionsEnum {
 	FNC,
 }
 
-class FieldDefinitions {
+class FieldDefinitions : Node {
 	FieldDefinitionsEnum ruleSelection;
 	FieldDefinitions follow;
 	FieldDefinition fd;
@@ -1651,7 +1653,7 @@ enum FieldDefinitionEnum {
 	T,
 }
 
-class FieldDefinition {
+class FieldDefinition : Node {
 	FieldDefinitionEnum ruleSelection;
 	ArgumentsDefinition arg;
 	Type typ;
@@ -1707,7 +1709,7 @@ enum ImplementsInterfacesEnum {
 	N,
 }
 
-class ImplementsInterfaces {
+class ImplementsInterfaces : Node {
 	ImplementsInterfacesEnum ruleSelection;
 	NamedTypes nts;
 
@@ -1739,7 +1741,7 @@ enum NamedTypesEnum {
 	NS,
 }
 
-class NamedTypes {
+class NamedTypes : Node {
 	NamedTypesEnum ruleSelection;
 	NamedTypes follow;
 	Token name;
@@ -1776,7 +1778,7 @@ enum ArgumentsDefinitionEnum {
 	A,
 }
 
-class ArgumentsDefinition {
+class ArgumentsDefinition : Node {
 	ArgumentsDefinitionEnum ruleSelection;
 
 	this(ArgumentsDefinitionEnum ruleSelection) {
@@ -1806,7 +1808,7 @@ enum InputValueDefinitionsEnum {
 	IF,
 }
 
-class InputValueDefinitions {
+class InputValueDefinitions : Node {
 	InputValueDefinitionsEnum ruleSelection;
 	InputValueDefinitions follow;
 	InputValueDefinition iv;
@@ -1846,7 +1848,7 @@ enum InputValueDefinitionEnum {
 	T,
 }
 
-class InputValueDefinition {
+class InputValueDefinition : Node {
 	InputValueDefinitionEnum ruleSelection;
 	Type type;
 	DefaultValue df;
@@ -1903,7 +1905,7 @@ enum InterfaceTypeDefinitionEnum {
 	NF,
 }
 
-class InterfaceTypeDefinition {
+class InterfaceTypeDefinition : Node {
 	InterfaceTypeDefinitionEnum ruleSelection;
 	FieldDefinitions fds;
 	Directives dirs;
@@ -1944,7 +1946,7 @@ enum UnionTypeDefinitionEnum {
 	NU,
 }
 
-class UnionTypeDefinition {
+class UnionTypeDefinition : Node {
 	UnionTypeDefinitionEnum ruleSelection;
 	UnionMembers um;
 	Directives dirs;
@@ -1986,7 +1988,7 @@ enum UnionMembersEnum {
 	SF,
 }
 
-class UnionMembers {
+class UnionMembers : Node {
 	UnionMembersEnum ruleSelection;
 	UnionMembers follow;
 	Token name;
@@ -2024,7 +2026,7 @@ enum EnumTypeDefinitionEnum {
 	NE,
 }
 
-class EnumTypeDefinition {
+class EnumTypeDefinition : Node {
 	EnumTypeDefinitionEnum ruleSelection;
 	EnumValueDefinitions evds;
 	Directives dir;
@@ -2066,7 +2068,7 @@ enum EnumValueDefinitionsEnum {
 	DE,
 }
 
-class EnumValueDefinitions {
+class EnumValueDefinitions : Node {
 	EnumValueDefinitionsEnum ruleSelection;
 	EnumValueDefinition evd;
 	EnumValueDefinitions follow;
@@ -2104,7 +2106,7 @@ enum EnumValueDefinitionEnum {
 	E,
 }
 
-class EnumValueDefinition {
+class EnumValueDefinition : Node {
 	EnumValueDefinitionEnum ruleSelection;
 	Directives dirs;
 	Token name;
@@ -2142,7 +2144,7 @@ enum InputTypeDefinitionEnum {
 	NE,
 }
 
-class InputTypeDefinition {
+class InputTypeDefinition : Node {
 	InputTypeDefinitionEnum ruleSelection;
 	InputValueDefinitions ivds;
 	Directives dir;
@@ -2182,7 +2184,7 @@ enum TypeExtensionDefinitionEnum {
 	O,
 }
 
-class TypeExtensionDefinition {
+class TypeExtensionDefinition : Node {
 	TypeExtensionDefinitionEnum ruleSelection;
 	ObjectTypeDefinition otd;
 
@@ -2213,7 +2215,7 @@ enum DirectiveDefinitionEnum {
 	D,
 }
 
-class DirectiveDefinition {
+class DirectiveDefinition : Node {
 	DirectiveDefinitionEnum ruleSelection;
 	DirectiveLocations dl;
 	ArgumentsDefinition ad;
@@ -2255,7 +2257,7 @@ enum DirectiveLocationsEnum {
 	NF,
 }
 
-class DirectiveLocations {
+class DirectiveLocations : Node {
 	DirectiveLocationsEnum ruleSelection;
 	DirectiveLocations follow;
 	Token name;
@@ -2293,7 +2295,7 @@ enum InputObjectTypeDefinitionEnum {
 	NI,
 }
 
-class InputObjectTypeDefinition {
+class InputObjectTypeDefinition : Node {
 	InputObjectTypeDefinitionEnum ruleSelection;
 	Directives dirs;
 	Token name;

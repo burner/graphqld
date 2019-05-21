@@ -7,7 +7,7 @@
 		"fixedsizearray": ">=1.2.0",
 		"vibe-d:data": "~>0.8.4",
 		"vibe-d:core": "~>0.8.4",
-		"darser": ">=0.1.0",
+		"darser": ">=0.3.0",
 		"nullablestore": ">=2.1.0"
 	},
 	"description": "A library to handle the GraphQL Protocol",
