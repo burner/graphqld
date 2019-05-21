@@ -13,6 +13,7 @@ import vibe.data.json;
 
 import graphql.builder;
 import graphql.ast;
+import graphql.argumentextractor;
 import graphql.helper;
 import graphql.tokenmodule;
 import graphql.schema.types;
