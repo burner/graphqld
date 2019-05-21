@@ -150,18 +150,6 @@ fragment fooo on Hero {
 	assert(f is null);
 }
 
-struct ArgumentRangeItem {
-	Argument arg;
-
-	@property string name() const pure {
-		return arg.name.value;
-	}
-
-	@property ValueOrVariable value() {
-		return arg.vv;
-	}
-}
-
 struct FieldRangeItem {
 	Field f;
 	Document doc;
@@ -173,11 +161,6 @@ struct FieldRangeItem {
 	@property string aka() {
 		return f.name.aka.value;
 	}
-
-	bool hasSelectionSet() pure @safe {
-		return f.ss !is null;
-	}
-
 }
 
 struct FieldRange {
@@ -449,7 +432,6 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	assert(r.front.hasSelectionSet());
 }
 
 unittest {
@@ -482,7 +464,6 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	assert(r.front.hasSelectionSet());
 }
 
 unittest {
@@ -515,7 +496,6 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	assert(r.front.hasSelectionSet());
 }
 
 unittest {
@@ -553,7 +533,6 @@ fragment baz on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	assert(r.front.hasSelectionSet());
 }
 
 unittest {
@@ -592,7 +571,6 @@ fragment baz on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	assert(r.front.hasSelectionSet());
 }
 
 unittest {
