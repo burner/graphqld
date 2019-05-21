@@ -22,9 +22,16 @@ struct GQLDUdaData {
 	GQLDDescription description;
 	Ignore ignore;
 	IgnoreForInput ignoreForInput;
+	RequiredForInput requiredForInput;
 }
 
 enum IgnoreForInput {
+	undefined,
+	yes,
+	no
+}
+
+enum RequiredForInput {
 	undefined,
 	yes,
 	no
