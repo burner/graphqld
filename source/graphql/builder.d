@@ -52,7 +52,8 @@ SkipInclude extractSkipInclude(Directives dirs, Json vars) {
 	if(dirs is null) {
 		return ret;
 	}
-	Json args = getArguments(dirs.dir, vars);
+	//Json args = getArguments(dirs.dir, vars);
+	Json args = vars;
 	bool if_ = args.extract!bool("if");
 	ret.include = dirs.dir.name.value == "include" && if_;
 	ret.skip = dirs.dir.name.value == "skip" && if_;
@@ -175,7 +176,7 @@ struct FieldRange {
 		this.vars = vars;
 		this.cur.insertBack(sels);
 		this.build();
-		this.test();
+		//this.test();
 	}
 
 	@property bool empty() const pure {
@@ -206,15 +207,54 @@ struct FieldRange {
 		return continueAfterDirectives(dirs, vars);
 	}
 
-	/*void popFront() {
+	void popFront() {
 		this.cur.back = this.cur.back.follow;
+		this.build();
+	}
+
+	void build() {
+		if(this.cur.empty) {
+			return;
+		}
 		if(this.cur.back !is null
 				&& directivesAllowContinue(this.cur.back.sel, vars))
 		{
-		}
-	}*/
+			const SelectionEnum se = this.cur.back.sel.ruleSelection;
+			if(se == SelectionEnum.Field) {
+				return;
+			} else {
+				Selections follow = this.cur.back.follow;
+				Selections f = se == SelectionEnum.Spread
+					? findFragment(doc, this.cur.back.sel.frag.name.value,
+							this.typenames
+						)
+					: resolveInlineFragment(this.cur.back.sel.ifrag,
+							this.typenames
+						);
 
-	void popFront() {
+				this.cur.removeBack();
+
+				if(follow !is null) {
+					this.cur.insertBack(follow);
+					this.build();
+					//this.test();
+				}
+				if(f !is null) {
+					this.cur.insertBack(f);
+					this.build();
+					//this.test();
+				}
+			}
+		} else if(this.cur.back is null) {
+			this.cur.removeBack();
+			this.build();
+		} else {
+			this.cur.back = this.cur.back.follow;
+			this.build();
+		}
+	}
+
+	/*void popFront() {
 		this.cur.back = this.cur.back.follow;
 		this.build();
 		this.test();
@@ -271,7 +311,7 @@ struct FieldRange {
 				this.test();
 			}
 		}
-	}
+	}*/
 }
 
 Selections resolveInlineFragment(InlineFragment ilf, string[] typenames) {
@@ -300,10 +340,17 @@ FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames) {
 }
 
 FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
+		string[] typenames, Json vars)
+{
+	import std.array : array;
+	return FieldRange(sel, doc, typenames, vars).array;
+}
+
+FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
 		string[] typenames)
 {
 	import std.array : array;
-	return FieldRange(sel, doc, typenames, Json.emptyObject()).array;
+	return fieldRangeArr(sel, doc, typenames, Json.emptyObject());
 }
 
 struct OpDefRangeItem {
