@@ -4,15 +4,85 @@ import std.experimental.allocator;
 import std.experimental.logger : logf;
 import std.experimental.allocator.mallocator : Mallocator;
 import std.exception : enforce;
+import std.format : format;
+
+import vibe.data.json;
 
 import fixedsizearray;
 
+import graphql.argumentextractor;
 import graphql.helper;
 import graphql.ast;
 import graphql.parser;
 import graphql.lexer;
 
 @safe:
+
+struct SkipInclude {
+	bool include;
+	bool skip;
+
+	SkipInclude join(SkipInclude other) {
+		SkipInclude ret = this;
+		ret.include = ret.include || other.include;
+		ret.skip = ret.skip || other.skip;
+		return ret;
+	}
+}
+
+bool continueAfterDirectives(Directives dirs, Json vars) {
+	import graphql.validation.exception;
+
+	SkipInclude si = extractSkipInclude(dirs, vars);
+
+	if(!si.include && !si.skip) { // default case aka. no directives
+		return true;
+	} else if(!si.include && si.skip) {
+		return false;
+	} else if(si.include && !si.skip) {
+		return true;
+	}
+	throw new ContradictingDirectives(format(
+			"include %s and skip %s contridict each other", si.include,
+			si.skip), __FILE__, __LINE__);
+}
+
+SkipInclude extractSkipInclude(Directives dirs, Json vars) {
+	SkipInclude ret;
+	if(dirs is null) {
+		return ret;
+	}
+	Json args = getArguments(dirs.dir, vars);
+	bool if_ = args.extract!bool("if");
+	ret.include = dirs.dir.name.value == "include" && if_;
+	ret.skip = dirs.dir.name.value == "skip" && if_;
+
+	return ret.join(extractSkipInclude(dirs.follow, vars));
+}
+
+Json getArguments(InlineFragment ilf, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(InlineFragment))ilf);
+	return ae.arguments;
+}
+
+Json getArguments(FragmentSpread fs, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(FragmentSpread))fs);
+	return ae.arguments;
+}
+
+Json getArguments(Directive dir, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Directive))dir);
+	return ae.arguments;
+}
+
+Json getArguments(FieldRangeItem item, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Field))item.f);
+	return ae.arguments;
+}
 
 const(FragmentDefinition) findFragment(const(Document) doc, string name) {
 	import std.algorithm.searching : canFind;
@@ -116,26 +186,6 @@ struct ArgumentRangeItem {
 	}
 }
 
-struct ArgumentRange {
-	ArgumentList cur;
-
-	@property bool empty() const pure {
-		return this.cur is null;
-	}
-
-	@property ArgumentRangeItem front() {
-		return ArgumentRangeItem(this.cur.arg);
-	}
-
-	void popFront() {
-		this.cur = this.cur.follow;
-	}
-
-	@property ArgumentRange save() {
-		return ArgumentRange(this.cur);
-	}
-}
-
 struct FieldRangeItem {
 	Field f;
 	Document doc;
@@ -148,21 +198,13 @@ struct FieldRangeItem {
 		return f.name.aka.value;
 	}
 
-	ArgumentRange arguments() {
-		if(this.f.args !is null) {
-			return ArgumentRange(f.args.arg);
-		} else {
-			return ArgumentRange(null);
-		}
-	}
-
 	bool hasSelectionSet() pure @safe {
 		return f.ss !is null;
 	}
 
-	FieldRange selectionSet(string[] typenames) {
-		return FieldRange(this.f.ss.sel, this.doc, typenames);
-	}
+	//FieldRange selectionSet(string[] typenames) {
+	//	return FieldRange(this.f.ss.sel, this.doc, typenames);
+	//}
 
 }
 
@@ -170,36 +212,25 @@ struct FieldRange {
 	FixedSizeArray!(Selections,32) cur;
 	Document doc;
 	string[] typenames;
+	Json vars;
 
-	void test() {
-		import std.format : format;
-		import std.conv : to;
-		import std.algorithm.iteration : map;
-		//logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
-		//		i !is null ? to!string(i.sel.ruleSelection) : "null"))
-		//	);
-		foreach(it; this.cur[]) {
-			assert(it !is null);
-			assert(it.sel.ruleSelection == SelectionEnum.Field);
-		}
-	}
-
-	this(Selections sels, Document doc, string[] typenames) {
+	this(Selections sels, Document doc, string[] typenames, Json vars) {
 		this.doc = doc;
 		this.typenames = typenames;
+		this.vars = vars;
 		this.cur.insertBack(sels);
 		this.build();
 		this.test();
 	}
 
-	this(ref FieldRange old) {
+	/*this(ref FieldRange old) {
 		this.cur = old.cur;
 		this.doc = doc;
 	}
 
 	@property FieldRange save() {
 		return FieldRange(this);
-	}
+	}*/
 
 	@property bool empty() const pure {
 		return this.cur.length == 0;
@@ -213,10 +244,47 @@ struct FieldRange {
 		return FieldRangeItem(this.cur.back.sel.field, this.doc);
 	}
 
+	bool directivesAllowContinue(Selection sel, Json vars) {
+		Directives dirs;
+		final switch(sel.ruleSelection) {
+			case SelectionEnum.Field:
+				dirs = sel.field.dirs;
+				break;
+			case SelectionEnum.Spread:
+				dirs = sel.frag.dirs;
+				break;
+			case SelectionEnum.IFrag:
+				dirs = sel.ifrag.dirs;
+				break;
+		}
+		return continueAfterDirectives(dirs, vars);
+	}
+
+	/*void popFront() {
+		this.cur.back = this.cur.back.follow;
+		if(this.cur.back !is null
+				&& directivesAllowContinue(this.cur.back.sel, vars))
+		{
+		}
+	}*/
+
 	void popFront() {
 		this.cur.back = this.cur.back.follow;
 		this.build();
 		this.test();
+	}
+
+	void test() {
+		import std.format : format;
+		import std.conv : to;
+		import std.algorithm.iteration : map;
+		//logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
+		//		i !is null ? to!string(i.sel.ruleSelection) : "null"))
+		//	);
+		foreach(it; this.cur[]) {
+			assert(it !is null);
+			assert(it.sel.ruleSelection == SelectionEnum.Field);
+		}
 	}
 
 	void build() {
@@ -235,14 +303,14 @@ struct FieldRange {
 				|| this.cur.back.sel.ruleSelection == SelectionEnum.IFrag)
 		{
 			Selections follow = this.cur.back.follow;
-			Selections f;
-			f = this.cur.back.sel.ruleSelection == SelectionEnum.Spread
-				? findFragment(doc, this.cur.back.sel.frag.name.value,
-						this.typenames
-					)
-				: resolveInlineFragment(this.cur.back.sel.ifrag,
-						this.typenames
-					);
+			Selections f =
+				this.cur.back.sel.ruleSelection == SelectionEnum.Spread
+					? findFragment(doc, this.cur.back.sel.frag.name.value,
+							this.typenames
+						)
+					: resolveInlineFragment(this.cur.back.sel.ifrag,
+							this.typenames
+						);
 
 			this.cur.removeBack();
 
@@ -277,18 +345,19 @@ Selections resolveInlineFragment(InlineFragment ilf, string[] typenames) {
 FieldRange fieldRange(OperationDefinition od, Document doc,
 		string[] typenames)
 {
-	return FieldRange(od.accessNN!(["ss", "sel"]), doc, typenames);
+	return FieldRange(od.accessNN!(["ss", "sel"]), doc, typenames,
+			Json.emptyObject());
 }
 
 FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames) {
-	return FieldRange(ss.sel, doc, typenames);
+	return FieldRange(ss.sel, doc, typenames, Json.emptyObject());
 }
 
 FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
 		string[] typenames)
 {
 	import std.array : array;
-	return FieldRange(sel, doc, typenames).array;
+	return FieldRange(sel, doc, typenames, Json.emptyObject()).array;
 }
 
 struct OpDefRangeItem {
@@ -362,26 +431,20 @@ unittest {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
-	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "friends");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "name");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//assert(r.front.hasSelectionSet());
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "friends");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -406,23 +469,17 @@ fragment foo on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
-	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "name", fss.front.name);
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//assert(r.front.hasSelectionSet());
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name", fss.front.name);
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -454,23 +511,17 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "name", fss.front.name);
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name", fss.front.name);
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -503,12 +554,6 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
 	auto fss = r.front.selectionSet(["User"]);
 	assert(!fss.empty);
@@ -555,26 +600,20 @@ fragment bar on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "hello", fss.front.name);
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "name");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "hello", fss.front.name);
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -612,29 +651,23 @@ fragment baz on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "hello", fss.front.name);
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "name");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "args");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "hello", fss.front.name);
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "args");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -673,32 +706,26 @@ fragment baz on User {
 	FieldRange r = fieldRange(d.defs.def.op, d, ["User"]);
 	assert(!r.empty);
 	assert(r.front.name == "user");
-	ArgumentRange argL = r.front.arguments();
-	assert(!argL.empty);
-	const ari = argL.front;
-	assert(ari.name == "id");
-	argL.popFront();
-	assert(argL.empty);
 	assert(r.front.hasSelectionSet());
-	auto fss = r.front.selectionSet(["User"]);
-	assert(!fss.empty);
-	assert(fss.front.name == "hello", fss.front.name);
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "name");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "zzzz");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "age");
-	fss.popFront();
-	assert(!fss.empty);
-	assert(fss.front.name == "args");
-	fss.popFront();
-	assert(fss.empty);
-	r.popFront();
-	assert(r.empty);
+	//auto fss = r.front.selectionSet(["User"]);
+	//assert(!fss.empty);
+	//assert(fss.front.name == "hello", fss.front.name);
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "name");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "zzzz");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "age");
+	//fss.popFront();
+	//assert(!fss.empty);
+	//assert(fss.front.name == "args");
+	//fss.popFront();
+	//assert(fss.empty);
+	//r.popFront();
+	//assert(r.empty);
 }
 
 unittest {
@@ -738,17 +765,17 @@ fragment baz on User {
 		long idx;
 		foreach(jt; it.fieldRange(["User"])) {
 			//writef("%s(", jt.name);
-			foreach(var; jt.arguments()) {
+			/*foreach(var; jt.arguments()) {
 				//writef("%s, ", var.name());
-			}
+			}*/
 			//writeln(")");
-			foreach(kt; jt.selectionSet(["User"])) {
+			/*foreach(kt; jt.selectionSet(["User"])) {
 				//writeln("\t", kt.name);
 				assert(kt.name == nn[idx],
 						format("%s == %d(%s)", kt.name, idx, nn[idx])
 					);
 				++idx;
-			}
+			}*/
 		}
 	}
 	assert(cnt == 1);
