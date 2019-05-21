@@ -290,8 +290,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 					.getWithDefault!string("data.__typename", "__typename")
 			));
 		foreach(FieldRangeItem field;
-				fieldRangeArr(sel, doc, interfacesForType!(T)(objectValue
-					.getWithDefault!string("data.__typename", "__typename")))
+				fieldRangeArr(
+					sel,
+					doc,
+					interfacesForType!(T)(objectValue.getWithDefault!string(
+							"data.__typename", "__typename")
+						),
+					variables)
 			)
 		{
 			bool dirSaysToContinue = continueAfterDirectives(

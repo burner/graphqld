@@ -381,8 +381,8 @@ T extract(T)(Json data, string name) {
 
 	enforce(item !is null, format!(
 			"Trying to get a '%s' by name '%s' which is not present in passed "
-			~ "object"
-			)(T.stringof, name)
+			~ "object '%s'"
+			)(T.stringof, name, data)
 		);
 
 	return (*item).to!T();

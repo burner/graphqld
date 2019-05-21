@@ -109,7 +109,8 @@ class ArgumentExtractor : ConstVisitor {
 	override void enter(const(Variable) var) {
 		string varName = var.name.value;
 		enforce(varName in this.variables,
-				format("Variable with name %s required", varName)
+				format("Variable with name '%s' required available '%s'",
+					varName, this.variables)
 			);
 		this.assign(this.variables[varName]);
 	}
@@ -144,3 +145,23 @@ class ArgumentExtractor : ConstVisitor {
 	}
 }
 
+private const(Document) lexAndParse(string s) {
+	import graphql.lexer;
+	import graphql.parser;
+
+	auto l = Lexer(s);
+	auto p = Parser(l);
+	return p.parseDocument();
+}
+
+unittest {
+	string s = `
+{
+	starships(overSize: 10) {
+		name
+	}
+}
+`;
+
+	auto d = lexAndParse(s);
+}
