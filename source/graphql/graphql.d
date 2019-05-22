@@ -298,9 +298,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 					variables)
 			)
 		{
+			Json args = getArguments(field, variables);
 			bool dirSaysToContinue = continueAfterDirectives(
-					field.f.dirs,
-					variables);
+					field.f.dirs, args);
 
 			Json rslt = dirSaysToContinue
 				? this.executeFieldSelection(field, objectType,

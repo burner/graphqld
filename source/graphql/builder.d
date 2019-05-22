@@ -217,7 +217,8 @@ struct FieldRange {
 			return;
 		}
 		if(this.cur.back !is null
-				&& directivesAllowContinue(this.cur.back.sel, vars))
+				&& directivesAllowContinue(this.cur.back.sel,
+					getArguments(this.cur.back, vars)))
 		{
 			const SelectionEnum se = this.cur.back.sel.ruleSelection;
 			if(se == SelectionEnum.Field) {
