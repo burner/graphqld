@@ -150,71 +150,6 @@ class AstSelector : ConstVisitor {
 	}
 }
 
-import std.range : take;
-import graphql.helper : lexAndParse;
-
-struct RandomPaths {
-	import std.random : choice, Random;
-	import std.algorithm : splitter, map, sort, uniq, joiner;
-	import std.conv : to;
-	import std.range : take, iota;
-	import std.array : array;
-	import std.ascii : isWhite;
-	import std.string : strip, split;
-	string[] elems;
-	string toIgnore;
-	size_t len;
-
-	string front;
-	Random rnd;
-
-	static RandomPaths opCall(string elems, string toIgnore, uint seed) {
-		RandomPaths ret;
-
-		ret.elems = elems.splitter!isWhite()
-			.map!(e => e.strip(" \t\n"))
-			.array
-			.sort
-			.uniq
-			.array;
-
-		ret.toIgnore = toIgnore;
-		ret.rnd = Random(seed);
-		ret.len = toIgnore.split('.').length;
-		return ret;
-	}
-
-	private void build() {
-		do {
-			this.front = iota(this.len)
-				.map!(i => choice(this.elems, this.rnd))
-				.joiner(".")
-				.to!string();
-		} while(this.front == this.toIgnore);
-	}
-
-	void popFront() {
-		this.build();
-	}
-
-	enum bool empty = false;
-}
-
-unittest {
-	import std.array : array;
-	import std.algorithm : sort, uniq;
-	import std.format : format;
-
-	string s = ` query foo { a { b } c { b } foo ( args : 10 ) { ... on Foo {
-			bar } } } mutation a { foo @ ship ( if : true) { b } } `;
-	string toIgnore = "foo.a.b";
-
-	string[] r = take(RandomPaths(s, toIgnore, 1337), 10).array.sort.release;
-	string[] su = r.dup.sort.uniq.array;
-	assert(r == su, format("\n%s\n%s", r, su));
-}
-
-
 unittest {
 	string s = `
 query foo {
@@ -339,6 +274,70 @@ query foo {
 	assert(a !is null);
 	assert(a.dirs !is null);
 	assert(a.dirs.dir.name.value == "skip");
+}
+
+import std.range : take;
+import graphql.helper : lexAndParse;
+
+struct RandomPaths {
+	import std.random : choice, Random;
+	import std.algorithm : splitter, map, sort, uniq, joiner;
+	import std.conv : to;
+	import std.range : take, iota;
+	import std.array : array;
+	import std.ascii : isWhite;
+	import std.string : strip, split;
+	string[] elems;
+	string toIgnore;
+	size_t len;
+
+	string front;
+	Random rnd;
+
+	static RandomPaths opCall(string elems, string toIgnore, uint seed) {
+		RandomPaths ret;
+
+		ret.elems = elems.splitter!isWhite()
+			.map!(e => e.strip(" \t\n"))
+			.array
+			.sort
+			.uniq
+			.array;
+
+		ret.toIgnore = toIgnore;
+		ret.rnd = Random(seed);
+		ret.len = toIgnore.split('.').length;
+		return ret;
+	}
+
+	private void build() {
+		do {
+			this.front = iota(this.len)
+				.map!(i => choice(this.elems, this.rnd))
+				.joiner(".")
+				.to!string();
+		} while(this.front == this.toIgnore);
+	}
+
+	void popFront() {
+		this.build();
+	}
+
+	enum bool empty = false;
+}
+
+unittest {
+	import std.array : array;
+	import std.algorithm : sort, uniq;
+	import std.format : format;
+
+	string s = ` query foo { a { b } c { b } foo ( args : 10 ) { ... on Foo {
+			bar } } } mutation a { foo @ ship ( if : true) { b } } `;
+	string toIgnore = "foo.a.b";
+
+	string[] r = take(RandomPaths(s, toIgnore, 1337), 10).array.sort.release;
+	string[] su = r.dup.sort.uniq.array;
+	assert(r == su, format("\n%s\n%s", r, su));
 }
 
 unittest {
