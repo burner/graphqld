@@ -34,9 +34,9 @@ Json getArguments(FragmentSpread fs, Json variables) {
 	return ae.arguments;
 }
 
-Json getArguments(Directive dir, Json variables) {
+Json getArguments(const(Directive) dir, Json variables) {
 	auto ae = new ArgumentExtractor(variables);
-	ae.accept(cast(const(Directive))dir);
+	ae.accept(dir);
 	return ae.arguments;
 }
 
@@ -105,10 +105,8 @@ class ArgumentExtractor : ConstVisitor {
 				break;
 			case FieldEnum.FDS:
 				obj.dirs.visit(this);
-				obj.ss.visit(this);
 				break;
 			case FieldEnum.FS:
-				obj.ss.visit(this);
 				break;
 			case FieldEnum.FD:
 				obj.dirs.visit(this);

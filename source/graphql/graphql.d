@@ -15,6 +15,7 @@ import graphql.builder;
 import graphql.ast;
 import graphql.argumentextractor;
 import graphql.helper;
+import graphql.directives;
 import graphql.tokenmodule;
 import graphql.schema.types;
 import graphql.schema.resolver;
@@ -298,9 +299,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 					variables)
 			)
 		{
-			Json args = getArguments(field, variables);
+			//Json args = getArguments(field, variables);
 			bool dirSaysToContinue = continueAfterDirectives(
-					field.f.dirs, args);
+					field.f.dirs, variables);
 
 			Json rslt = dirSaysToContinue
 				? this.executeFieldSelection(field, objectType,
