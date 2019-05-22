@@ -15,51 +15,9 @@ import graphql.helper;
 import graphql.ast;
 import graphql.parser;
 import graphql.lexer;
+import graphql.directives;
 
 @safe:
-
-struct SkipInclude {
-	bool include;
-	bool skip;
-
-	SkipInclude join(SkipInclude other) {
-		SkipInclude ret = this;
-		ret.include = ret.include || other.include;
-		ret.skip = ret.skip || other.skip;
-		return ret;
-	}
-}
-
-bool continueAfterDirectives(Directives dirs, Json vars) {
-	import graphql.validation.exception;
-
-	SkipInclude si = extractSkipInclude(dirs, vars);
-
-	if(!si.include && !si.skip) { // default case aka. no directives
-		return true;
-	} else if(!si.include && si.skip) {
-		return false;
-	} else if(si.include && !si.skip) {
-		return true;
-	}
-	throw new ContradictingDirectives(format(
-			"include %s and skip %s contridict each other", si.include,
-			si.skip), __FILE__, __LINE__);
-}
-
-SkipInclude extractSkipInclude(Directives dirs, Json vars) {
-	SkipInclude ret;
-	if(dirs is null) {
-		return ret;
-	}
-	//Json args = getArguments(dirs.dir, vars);
-	Json args = vars;
-	bool if_ = args.extract!bool("if");
-	ret.include = dirs.dir.name.value == "include" && if_;
-	ret.skip = dirs.dir.name.value == "skip" && if_;
-
-	return ret.join(extractSkipInclude(dirs.follow, vars));
-}
 
 const(FragmentDefinition) findFragment(const(Document) doc, string name) {
 	import std.algorithm.searching : canFind;
@@ -217,8 +175,7 @@ struct FieldRange {
 			return;
 		}
 		if(this.cur.back !is null
-				&& directivesAllowContinue(this.cur.back.sel,
-					getArguments(this.cur.back, vars)))
+				&& directivesAllowContinue(this.cur.back.sel, vars))
 		{
 			const SelectionEnum se = this.cur.back.sel.ruleSelection;
 			if(se == SelectionEnum.Field) {

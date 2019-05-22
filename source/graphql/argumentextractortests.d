@@ -61,10 +61,7 @@ fragment charac on Character {
 		assert(crew !is null);
 
 		Json args = getArguments(cast()crew, vars);
-		assert(args == parseJsonString(
-					`{"if" : false}`
-				), format("%s", args)
-			);
+		assert(args == parseJsonString(`{"if" : false}`), format("%s", args));
 	}
 
 	{
@@ -72,9 +69,6 @@ fragment charac on Character {
 		assert(name !is null);
 
 		Json args = getArguments(cast()name, vars);
-		assert(args == parseJsonString(
-					`{"get" : false}`
-				), format("%s", args)
-			);
+		assert(args == parseJsonString(`{"get" : false}`), format("%s", args));
 	}
 }
