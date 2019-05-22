@@ -3,6 +3,7 @@ module graphql.astselector;
 import std.array : back, empty, front, popBack;
 import std.exception : enforce;
 
+import graphql.tokenmodule;
 import graphql.ast;
 import graphql.visitor : ConstVisitor;
 
@@ -84,51 +85,20 @@ class AstSelector : ConstVisitor {
 	}
 
 	override void accept(const(OperationDefinition) obj) {
-		bool shouldPop;
-		final switch(obj.ruleSelection) {
-			case OperationDefinitionEnum.SelSet:
-				obj.ss.visit(this);
-				break;
-			case OperationDefinitionEnum.OT_N_VD:
-				shouldPop = this.takeName(obj.name.value, obj);
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case OperationDefinitionEnum.OT_N_V:
-				shouldPop = this.takeName(obj.name.value, obj);
-				obj.vd.visit(this);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case OperationDefinitionEnum.OT_N_D:
-				shouldPop = this.takeName(obj.name.value, obj);
-				obj.d.visit(this);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case OperationDefinitionEnum.OT_N:
-				shouldPop = this.takeName(obj.name.value, obj);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case OperationDefinitionEnum.OT_VD:
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
-				break;
-			case OperationDefinitionEnum.OT_V:
-				obj.vd.visit(this);
-				obj.ss.visit(this);
-				break;
-			case OperationDefinitionEnum.OT_D:
-				obj.d.visit(this);
-				obj.ss.visit(this);
-				break;
-			case OperationDefinitionEnum.OT:
-				obj.ss.visit(this);
-				break;
+		if(obj.name.type != TokenType.undefined) {
+			bool shouldPop = this.takeName(obj.name.value, obj);
+			if(shouldPop) {
+				if(obj.vd !is null) {
+					obj.vd.visit(this);
+				}
+				if(obj.d !is null) {
+					obj.d.visit(this);
+				}
+				if(obj.ss !is null) {
+					obj.ss.visit(this);
+				}
+			}
+			this.popStack(shouldPop);
 		}
 	}
 
@@ -139,68 +109,33 @@ class AstSelector : ConstVisitor {
 			this.popStack(shouldPop);
 		}
 
-		final switch(obj.ruleSelection) {
-			case FieldEnum.FADS:
-				shouldPop = this.takeName(obj.name.name.value, obj);
+		shouldPop = this.takeName(obj.name.name.value, obj);
+
+		if(shouldPop) {
+			if(obj.args !is null) {
 				obj.args.visit(this);
+			}
+			if(obj.dirs !is null) {
 				obj.dirs.visit(this);
+			}
+			if(obj.ss !is null) {
 				obj.ss.visit(this);
-				break;
-			case FieldEnum.FAS:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.args.visit(this);
-				obj.ss.visit(this);
-				break;
-			case FieldEnum.FAD:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.args.visit(this);
-				obj.dirs.visit(this);
-				break;
-			case FieldEnum.FDS:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
-				break;
-			case FieldEnum.FS:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.ss.visit(this);
-				break;
-			case FieldEnum.FD:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.dirs.visit(this);
-				break;
-			case FieldEnum.FA:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				obj.args.visit(this);
-				break;
-			case FieldEnum.F:
-				shouldPop = this.takeName(obj.name.name.value, obj);
-				break;
+			}
 		}
 	}
 
 	override void accept(const(InlineFragment) obj) {
-		bool shouldPop;
-		final switch(obj.ruleSelection) {
-			case InlineFragmentEnum.TDS:
-				shouldPop = this.takeName(obj.tc.value, obj);
-				obj.tc.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case InlineFragmentEnum.TS:
-				shouldPop = this.takeName(obj.tc.value, obj);
-				obj.ss.visit(this);
-				this.popStack(shouldPop);
-				break;
-			case InlineFragmentEnum.DS:
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
-				break;
-			case InlineFragmentEnum.S:
-				obj.ss.visit(this);
-				break;
+		if(obj.tc.type != TokenType.undefined) {
+			bool shouldPop = this.takeName(obj.tc.value, obj);
+			if(shouldPop) {
+				if(obj.dirs !is null) {
+					obj.dirs.visit(this);
+				}
+				if(obj.ss !is null) {
+					obj.ss.visit(this);
+				}
+			}
+			this.popStack(shouldPop);
 		}
 	}
 
@@ -297,6 +232,31 @@ mutation a {
 	auto d = lexAndParse(s);
 	auto foo = d.astSelect!Field("a.foo");
 	assert(foo !is null);
+}
+
+unittest {
+	string s = `
+query foo {
+	a {
+		b
+	}
+	c {
+		b
+	}
+}
+
+mutation a {
+	foo {
+		b
+	}
+}
+
+`;
+
+	auto d = lexAndParse(s);
+	auto foo = d.astSelect!Field("foo.a.b");
+	assert(foo !is null);
+	assert(foo.name.name.value == "b");
 }
 
 unittest {
