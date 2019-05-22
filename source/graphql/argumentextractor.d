@@ -4,6 +4,8 @@ import std.array : back, empty, popBack;
 import std.conv : to;
 import std.format : format;
 import std.exception : enforce;
+import std.stdio : writefln;
+import std.experimental.logger;
 
 import vibe.data.json;
 
@@ -12,6 +14,13 @@ import graphql.ast;
 import graphql.builder : FieldRangeItem;
 
 @safe:
+
+Json getArguments(Selections sels, Json variables) {
+	//writefln("%s", variables);
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Selections))sels);
+	return ae.arguments;
+}
 
 Json getArguments(InlineFragment ilf, Json variables) {
 	auto ae = new ArgumentExtractor(variables);
@@ -72,6 +81,7 @@ class ArgumentExtractor : ConstVisitor {
 		} else {
 			((*arg)[this.curNames.back]) = toAssign;
 		}
+		//logf("%s", this.arguments);
 	}
 
 	override void enter(const(Argument) arg) {
@@ -88,6 +98,13 @@ class ArgumentExtractor : ConstVisitor {
 				obj.val.visit(this);
 				break;
 			case ValueOrVariableEnum.Var:
+				string varName = obj.var.name.value;
+				enforce(varName in this.variables,
+						format("Variable with name '%s' required available '%s'",
+							varName, this.variables)
+					);
+				//writefln("%s %s", varName, this.variables);
+				this.assign(this.variables[varName]);
 				break;
 		}
 	}
@@ -114,15 +131,6 @@ class ArgumentExtractor : ConstVisitor {
 				break;
 		}
 		exit(obj);
-	}
-
-	override void enter(const(Variable) var) {
-		string varName = var.name.value;
-		enforce(varName in this.variables,
-				format("Variable with name '%s' required available '%s'",
-					varName, this.variables)
-			);
-		this.assign(this.variables[varName]);
 	}
 
 	override void enter(const(Value) val) {
