@@ -281,7 +281,8 @@ import graphql.helper : lexAndParse;
 
 struct RandomPaths {
 	import std.random : choice, Random;
-	import std.algorithm : splitter, map, sort, uniq, joiner;
+	import std.algorithm.sorting : sort;
+	import std.algorithm.iteration : uniq, splitter, map, joiner;
 	import std.conv : to;
 	import std.range : take, iota;
 	import std.array : array;
@@ -328,7 +329,8 @@ struct RandomPaths {
 
 unittest {
 	import std.array : array;
-	import std.algorithm : sort, uniq;
+	import std.algorithm.sorting : sort;
+	import std.algorithm.iteration : uniq;
 	import std.format : format;
 
 	string s = ` query foo { a { b } c { b } foo ( args : 10 ) { ... on Foo {

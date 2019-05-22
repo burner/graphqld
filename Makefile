@@ -17,7 +17,9 @@ handWrittenFiles=source/graphql/argumentextractor.d \
 	source/graphql/schema/types.d \
 	source/graphql/validation/exception.d \
 	source/graphql/validation/querybased.d \
-	source/graphql/validation/schemabased.d
+	source/graphql/validation/schemabased.d \
+	source/graphql/astselector.d \
+	source/graphql/directives.d
 
 gen:
 	../Darser/darser -i graphql.yaml \
