@@ -1,8 +1,12 @@
 module graphql.argumentextractortests;
 
+import vibe.data.json;
+
 import graphql.ast;
 import graphql.helper : lexAndParse;
 import graphql.argumentextractor;
+import graphql.testschema;
+import graphql.graphql;
 
 unittest {
 	string q = `
@@ -34,6 +38,10 @@ fragment charac on Character {
   series
 }`;
 
+	Json vars = parseJsonString(`{ "s": false }`);
+
 	Document doc = cast()lexAndParse(q);
 	assert(doc !is null);
+
+	auto gql = new GraphQLD!Schema();
 }
