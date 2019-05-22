@@ -71,7 +71,6 @@ class QueryValidator : ConstVisitor {
 
 	// Variable usage
 	bool variableDefinitionDone;
-	bool[string] variableUsed;
 
 	string[string] variablesUsedByFragments;
 
@@ -137,6 +136,7 @@ class QueryValidator : ConstVisitor {
 		this.allFrags ~= frag.name.value;
 		this.curFragment.insertBack(frag.name.value);
 	}
+
 
 	override void exit(const(FragmentDefinition) frag) {
 		this.curFragment.removeBack();
