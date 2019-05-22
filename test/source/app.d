@@ -12,6 +12,7 @@ import std.experimental.logger;
 import std.experimental.logger.filelogger;
 
 import vibe.vibe;
+import vibe.core.core;
 import vibe.data.json;
 
 import graphql.parser;
@@ -37,10 +38,7 @@ struct CustomContext {
 	int userId;
 }
 
-void main(string[] args) {
-	bool onlyRunTests;
-	getopt(args, "o|onlyRunTests", &onlyRunTests);
-	writeln("onlyRunTests %s", onlyRunTests);
+void main() {
  	database = new Data();
 	GQLDOptions opts;
 	opts.asyncList = AsyncList.no;
@@ -237,8 +235,23 @@ void main(string[] args) {
 	settings.bindAddresses = ["::1", "127.0.0.1"];
 	listenHTTP(settings, &hello);
 
+	bool onlyRunTests = false;
+	bool doNotRunTests = false;
+	string[] args = new string[0];
+	finalizeCommandLineOptions(&args);
+	getopt(args,
+			"o|onlyRunTests", &onlyRunTests,
+			"doNotRunTests", &doNotRunTests);
+	writefln("args %s\nonlyRunTests %s\ndoNotRunTests %s", args, onlyRunTests,
+			doNotRunTests
+		);
+
+	lowerPrivileges();
+
 	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
-	Task t = runTask({
+	Task t;
+	if(!doNotRunTests) {
+	t = runTask({
 		import std.exception : enforce;
 		import testqueries;
 		foreach(tqIdx, TestQuery q; queries) {
@@ -305,7 +318,8 @@ void main(string[] args) {
 			exitEventLoop(true);
 		}
 	});
-	runApplication();
+	}
+	runEventLoop();
 	t.join();
 	import core.stdc.stdlib;
 	exit(0);

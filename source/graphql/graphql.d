@@ -84,7 +84,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			};
 
 		setDefaultSchemaResolver(this);
-		writeln(this.schema.toString());
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {
@@ -321,6 +320,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				field.name, objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
+		//writefln("var %s\narg %s", variables, arguments);
 		Json de = this.resolve(objectType.name, field.name,
 				"data" in objectValue ? objectValue["data"] : objectValue,
 				arguments, context
@@ -339,7 +339,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			return ret;
 		}
 		this.executationTraceLog.logf("retType %s, de: %s", retType.name, de);
-		return this.executeSelectionSet(field.f.ss, retType, de, arguments,
+		return this.executeSelectionSet(field.f.ss, retType, de, variables,
 				doc, context
 			);
 	}

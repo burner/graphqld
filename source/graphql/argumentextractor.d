@@ -82,6 +82,16 @@ class ArgumentExtractor : ConstVisitor {
 		this.curNames.popBack();
 	}
 
+	override void accept(const(ValueOrVariable) obj) {
+		final switch(obj.ruleSelection) {
+			case ValueOrVariableEnum.Val:
+				obj.val.visit(this);
+				break;
+			case ValueOrVariableEnum.Var:
+				break;
+		}
+	}
+
 	override void accept(const(ObjectValues) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
