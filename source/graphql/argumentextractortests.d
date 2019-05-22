@@ -14,31 +14,31 @@ import graphql.graphql;
 unittest {
 	string q = `
 query a($s: boolean) {
-  starships(overSize: 10) {
-    name
-    crew @skip(if: $s) {
-      ...hyooman
-      ...robot
-      ...charac
-    }
-  }
+	starships(overSize: 10) {
+		name
+		crew @skip(if: $s) {
+			...hyooman
+			...robot
+			...charac
+		}
+	}
 }
 
 fragment hyooman on Humanoid {
-  species
-  dateOfBirth
+	species
+	dateOfBirth
 }
 
 fragment robot on Android {
-  primaryFunction
+	primaryFunction
 }
 
 fragment charac on Character {
-  ...robot
-  id
-  ...hyooman
-  name(get: $s)
-  series
+	...robot
+	id
+	...hyooman
+	name(get: $s)
+	series
 }`;
 
 	Json vars = parseJsonString(`{ "s": false }`);

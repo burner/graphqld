@@ -98,12 +98,12 @@ SkipInclude extractSkipInclude(const(Directives) dirs, Json vars) {
 unittest {
 	string q = `
 query a($s: boolean) {
-  starships(overSize: 10) {
-    name @include(if: $s)
-    crew @skip(if: $s) {
+	starships(overSize: 10) {
+		name @include(if: $s)
+		crew @skip(if: $s) {
 		id
-    }
-  }
+		}
+	}
 }`;
 
 	Json vars = parseJsonString(`{ "s": false }`);
