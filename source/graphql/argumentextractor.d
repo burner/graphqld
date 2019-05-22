@@ -46,6 +46,12 @@ Json getArguments(FieldRangeItem item, Json variables) {
 	return ae.arguments;
 }
 
+Json getArguments(Field field, Json variables) {
+	auto ae = new ArgumentExtractor(variables);
+	ae.accept(cast(const(Field))field);
+	return ae.arguments;
+}
+
 class ArgumentExtractor : ConstVisitor {
 	alias enter = ConstVisitor.enter;
 	alias exit = ConstVisitor.exit;
@@ -82,6 +88,37 @@ class ArgumentExtractor : ConstVisitor {
 			((*arg)[this.curNames.back]) = toAssign;
 		}
 		//logf("%s", this.arguments);
+	}
+
+	override void accept(const(Field) obj) {
+		final switch(obj.ruleSelection) {
+			case FieldEnum.FADS:
+				obj.args.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case FieldEnum.FAS:
+				obj.args.visit(this);
+				break;
+			case FieldEnum.FAD:
+				obj.args.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case FieldEnum.FDS:
+				obj.dirs.visit(this);
+				obj.ss.visit(this);
+				break;
+			case FieldEnum.FS:
+				obj.ss.visit(this);
+				break;
+			case FieldEnum.FD:
+				obj.dirs.visit(this);
+				break;
+			case FieldEnum.FA:
+				obj.args.visit(this);
+				break;
+			case FieldEnum.F:
+				break;
+		}
 	}
 
 	override void enter(const(Argument) arg) {
