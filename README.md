@@ -54,8 +54,8 @@ This graphql implementation is based on June 2018 spec.
 - [x] Variables
 - [x] Fragments
 - [x] Directives
-  - [ ] Include
-  - [ ] Skip
+  - [x] Include
+  - [x] Skip
   - [ ] Custom
 - [x] Enumerations
 - [x] Input Objects
