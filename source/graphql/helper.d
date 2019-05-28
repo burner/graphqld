@@ -315,6 +315,12 @@ bool hasPathTo(T)(Json data, string path, ref T ret) {
 	}
 }
 
+unittest {
+	Json d = parseJsonString(`{ "foo" : { "path" : "foo" } }`);
+	Json ret;
+	assert(hasPathTo!Json(d, "foo", ret));
+}
+
 /**
 params:
 	path = A "." seperated path

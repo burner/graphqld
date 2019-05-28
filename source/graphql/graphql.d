@@ -457,19 +457,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 }
 
-version(unittest) {
-	import graphql.uda;
+import graphql.uda;
 
-	@GQLDUda(TypeKind.OBJECT)
-	private struct Query {
-		import std.datetime : DateTime;
+@GQLDUda(TypeKind.OBJECT)
+private struct Query {
+	import std.datetime : DateTime;
 
-		GQLDCustomLeaf!DateTime current();
-	}
+	GQLDCustomLeaf!DateTime current();
+}
 
-	private class Schema {
-		Query queryTyp;
-	}
+private class Schema {
+	Query queryTyp;
 }
 
 unittest {

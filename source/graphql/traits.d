@@ -95,8 +95,7 @@ unittest {
 	static assert(is(inter2 == AliasSeq!(H,G,I)));
 }
 
-version(unittest) {
-private:
+private: {
 	abstract class Base {
 		int a;
 	}
@@ -328,7 +327,6 @@ template collectTypesPlusIntrospection(T) {
 		);
 }
 
-version(unittest) {
 package {
 	enum Enum {
 		one,
@@ -338,29 +336,35 @@ package {
 		string f;
 		Baz baz;
 		Enum e;
+
+		override string toString() { return "U"; }
 	}
 	class W {
 		Nullable!(Nullable!(U)[]) us;
+		override string toString() { return "W"; }
 	}
 	class Y {
 		bool b;
 		Nullable!W w;
+		override string toString() { return "Y"; }
 	}
 	class Z : Y {
 		long id;
+		override string toString() { return "Z"; }
 	}
 	class Baz {
 		string id;
 		Z[] zs;
+		override string toString() { return "Baz"; }
 	}
 	class Args {
 		float value;
+		override string toString() { return "Args"; }
 	}
 	interface Foo {
 		Baz bar();
 		Args args();
 	}
-}
 }
 
 unittest {
