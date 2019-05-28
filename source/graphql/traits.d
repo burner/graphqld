@@ -95,23 +95,21 @@ unittest {
 	static assert(is(inter2 == AliasSeq!(H,G,I)));
 }
 
-private: {
-	abstract class Base {
-		int a;
-	}
+private abstract class Base {
+	int a;
+}
 
-	class Impl : Base {
-		float b;
-	}
+private class Impl : Base {
+	float b;
+}
 
-	class Bar {
-		string c;
-	}
+private class Bar {
+	string c;
+}
 
-	union Union {
-		Nullable!Bar foo;
-		Nullable!Impl impl;
-	}
+private union Union {
+	Nullable!Bar foo;
+	Nullable!Impl impl;
 }
 
 template isNotObject(Type) {
