@@ -160,6 +160,34 @@ bool dataIsNull(ref const(Json) data) {
 	return false;
 }
 
+Json getWithPath(Json input, string path) {
+	auto sp = path.splitter(".");
+	foreach(s; sp) {
+		Json* n = s in input;
+		enforce(n !is null, "failed to traverse the input at " ~ s);
+		input = *n;
+	}
+	return input;
+}
+
+unittest {
+	string t =
+`{
+	"name" : {
+		"foo" : 13
+	}
+}`;
+	Json j = parseJsonString(t);
+	Json f = j.getWithPath("name");
+	assert("foo" in f);
+
+	f = j.getWithPath("name.foo");
+	enforce(f.to!int() == 13);
+
+	assertThrown(j.getWithPath("doesnotexist"));
+	assertThrown(j.getWithPath("name.alsoNotThere"));
+}
+
 enum JoinJsonPrecedence {
 	none,
 	a,
