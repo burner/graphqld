@@ -115,18 +115,18 @@ GQLDUdaData GQLDUda(Args...)(Args args) {
 	return ret;
 }
 
-template isGQLDUdaData(alias Type) {
+private template isGQLDUdaData(alias Type) {
 	enum isGQLDUdaData = is(typeof(Type) == GQLDUdaData);
 }
 
-template getGQLDUdaData(Type, string mem) {
+private template getGQLDUdaData(Type, string mem) {
 	import std.meta : Filter;
 	alias getGQLDUdaData =
 		Filter!(isGQLDUdaData,
 				__traits(getAttributes, __traits(getMember, Type, mem)));
 }
 
-template getGQLDUdaData(Type) {
+private template getGQLDUdaData(Type) {
 	import std.meta : Filter;
 	alias getGQLDUdaData =
 		Filter!(isGQLDUdaData, __traits(getAttributes, Type));
