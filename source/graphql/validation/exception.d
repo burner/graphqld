@@ -103,3 +103,22 @@ class ContradictingDirectives : ValidationException {
 		super(msg, f, l);
 	}
 }
+
+class DirectiveNotUnique : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+
+class VariableInputTypeMismatch : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+
+class ArgumentDoesNotExist : ValidationException {
+	this(string msg, string f, size_t l) {
+		super(msg, f, l);
+	}
+}
+
