@@ -247,9 +247,17 @@ class SchemaValidator(Schema) : Visitor {
 		const parent = this.schemaStack[$ - 2];
 		const curName = this.schemaStack.back.name;
 		auto fields = parent.type[Constants.fields];
-		auto curNameField = fields.byValue
-			.find!(f => f[Constants.name].to!string() == curName)
-			.front;
+		if(fields.type != Json.Type.Array) {
+			return;
+		}
+		auto curNameFieldRange = fields.byValue
+			.find!(f => f[Constants.name].to!string() == curName);
+		if(curNameFieldRange.empty) {
+			return;
+		}
+
+		auto curNameField = curNameFieldRange.front;
+
 		Json curArgs = curNameField[Constants.args];
 		auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
 
