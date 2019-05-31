@@ -455,6 +455,9 @@ string stringTypeStrip(string str) {
 		if(str.endsWith(arr)) {
 			str = str[0 .. str.length - arr.length];
 			continue;
+		} else if(str.endsWith("!")) {
+			str = str[0 .. $ - 1];
+			continue;
 		} else if(str.startsWith("[")) {
 			str = str[1 .. $];
 			continue;
