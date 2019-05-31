@@ -25,6 +25,19 @@ import graphql.helper : lexAndParse;
 
 @safe:
 
+string astTypeToString(const(Type) input) pure {
+	final switch(input.ruleSelection) {
+		case TypeEnum.TN:
+			return format!"%s!"(input.tname.value);
+		case TypeEnum.LN:
+			return format!"[%s]!"(astTypeToString(input.list.type));
+		case TypeEnum.T:
+			return format!"%s"(input.tname.value);
+		case TypeEnum.L:
+			return format!"[%s]"(astTypeToString(input.list.type));
+	}
+}
+
 enum IsSubscription {
 	no,
 	yes
@@ -39,7 +52,7 @@ struct TypePlusName {
 	}
 }
 
-class SchemaValidator(Type) : Visitor {
+class SchemaValidator(Schema) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
 	import graphql.traits;
@@ -50,7 +63,7 @@ class SchemaValidator(Type) : Visitor {
 	alias accept = Visitor.accept;
 
 	const(Document) doc;
-	GQLDSchema!(Type) schema;
+	GQLDSchema!(Schema) schema;
 
 	// Single root field
 	IsSubscription isSubscription;
@@ -59,6 +72,9 @@ class SchemaValidator(Type) : Visitor {
 
 	// Field Selections on Objects
 	TypePlusName[] schemaStack;
+
+	// Variables of operation
+	Type[string] variables;
 
 	void addToTypeStack(string name) {
 		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
@@ -91,13 +107,13 @@ class SchemaValidator(Type) : Visitor {
 		followType = followType.stringTypeStrip();
 
 		l: switch(followType) {
-			alias AllTypes = collectTypesPlusIntrospection!(Type);
+			alias AllTypes = collectTypesPlusIntrospection!(Schema);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
 			alias NoDups = NoDuplicates!(Stripped);
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Type)()),
+							removeNonNullAndList(typeToJson!(type,Schema)()),
 							name
 						);
 					//writeln(this.schemaStack.back.type.toPrettyString());
@@ -111,11 +127,12 @@ class SchemaValidator(Type) : Visitor {
 		}
 	}
 
-	this(const(Document) doc, GQLDSchema!(Type) schema) {
+	this(const(Document) doc, GQLDSchema!(Schema) schema) {
 		this.doc = doc;
 		this.schema = schema;
 		this.schemaStack ~= TypePlusName(
-				removeNonNullAndList(typeToJson!(Type,Type)()), Type.stringof
+				removeNonNullAndList(typeToJson!(Schema,Schema)()),
+				Schema.stringof
 			);
 	}
 
@@ -146,13 +163,13 @@ class SchemaValidator(Type) : Visitor {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
 		l: switch(typeName) {
-			alias AllTypes = collectTypesPlusIntrospection!(Type);
+			alias AllTypes = collectTypesPlusIntrospection!(Schema);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
 			alias NoDups = NoDuplicates!(Stripped);
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
 					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Type)()),
+							removeNonNullAndList(typeToJson!(type,Schema)()),
 							typeName
 						);
 					//writeln(this.schemaStack.back.type.toPrettyString());
@@ -215,6 +232,42 @@ class SchemaValidator(Type) : Visitor {
 
 	override void exit(const(OperationDefinition) op) {
 		this.schemaStack.popBack();
+	}
+
+	override void enter(const(VariableDefinition) vd) {
+		const vdName = vd.var.name.value;
+		() @trusted {
+			this.variables[vdName] = cast()vd.type;
+		}();
+	}
+
+	override void enter(const(Argument) arg) {
+		import std.algorithm.searching : find;
+		const argName = arg.name.value;
+		const parent = this.schemaStack[$ - 2];
+		const curName = this.schemaStack.back.name;
+		auto fields = parent.type[Constants.fields];
+		auto curNameField = fields.byValue
+			.find!(f => f[Constants.name].to!string() == curName)
+			.front;
+		Json curArgs = curNameField[Constants.args];
+		auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
+
+		enforce!ArgumentDoesNotExist(!argElem.empty, format!(
+				"Argument with name '%s' does not exist for field '%s' of type "
+				~ " '%s'")(argName, curName, parent.type[Constants.name]));
+
+		if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+			const varName = arg.vv.var.name.value;
+			auto varType = varName in this.variables;
+			enforce(varName !is null);
+
+			string typeStr = astTypeToString(*varType);
+			enforce!VariableInputTypeMismatch(
+					argElem.front[Constants.typenameOrig] == typeStr,
+					format!"Variable type '%s' does not match argument type '%s'"
+					(argElem.front[Constants.typenameOrig], typeStr));
+		}
 	}
 }
 
@@ -627,4 +680,15 @@ unittest {
 }`;
 
 	test!LeafIsNotAScalar(str);
+}
+
+unittest {
+	string str = `
+query q($size: String) {
+	starships(overSize: $size) {
+		id
+	}
+}`;
+
+	test!VariableInputTypeMismatch(str);
 }

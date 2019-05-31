@@ -76,6 +76,9 @@ class QueryValidator : ConstVisitor {
 
 	OperationFragVar[] operations;
 
+	// Unique directives per Field
+	bool[string][] directiveNames;
+
 	override void exit(const(Document) doc) {
 		foreach(ref OperationFragVar op; this.operations) {
 			bool[string] allFragsReached = allReachable(op.fragmentsUsed,
@@ -97,9 +100,37 @@ class QueryValidator : ConstVisitor {
 		}
 	}
 
+	override void enter(const(InlineFragment) f) {
+		// Unique directive names
+		bool[string] tmp;
+		this.directiveNames ~= tmp;
+	}
+
+	override void exit(const(InlineFragment) f) {
+		this.directiveNames.popBack();
+	}
+
+	override void enter(const(Field) f) {
+		// Unique directive names
+		bool[string] tmp;
+		this.directiveNames ~= tmp;
+	}
+
+	override void exit(const(Field) f) {
+		this.directiveNames.popBack();
+	}
+
 	override void enter(const(Definition) od) {
 		enforce!NoTypeSystemDefinitionException(
 				od.ruleSelection != DefinitionEnum.T);
+	}
+
+	override void enter(const(Directive) dir) {
+		enforce!DirectiveNotUnique(dir.name.value !in this.directiveNames.back,
+			format!"Directive '%s' must be unique at %s:%s"(dir.name.value,
+				dir.name.line, dir.name.column));
+
+		this.directiveNames.back[dir.name.value] = true;
 	}
 
 	override void enter(const(OperationDefinition) od) {
@@ -124,6 +155,14 @@ class QueryValidator : ConstVisitor {
 				);
 			this.operationNames[od.name.value] = true;
 		}
+
+		// Unique directive names
+		bool[string] tmp;
+		this.directiveNames ~= tmp;
+	}
+
+	override void exit(const(OperationDefinition) od) {
+		this.directiveNames.popBack();
 	}
 
 	override void enter(const(FragmentDefinition) frag) {
@@ -135,11 +174,17 @@ class QueryValidator : ConstVisitor {
 
 		this.allFrags ~= frag.name.value;
 		this.curFragment.insertBack(frag.name.value);
+
+		// Unique directive names
+		bool[string] tmp;
+		this.directiveNames ~= tmp;
 	}
 
 
 	override void exit(const(FragmentDefinition) frag) {
 		this.curFragment.removeBack();
+
+		this.directiveNames.popBack();
 	}
 
 	override void enter(const(FragmentSpread) fragSpread) {
@@ -167,6 +212,10 @@ class QueryValidator : ConstVisitor {
 				}();
 			(*children) ~= frag.name.value;
 		}
+
+		// Unique directive names
+		bool[string] tmp;
+		this.directiveNames ~= tmp;
 	}
 
 	override void enter(const(Arguments) al) {
@@ -607,4 +656,30 @@ fragment ZZZ on Bar {
 
 	QueryValidator fv = new QueryValidator(doc);
 	assertNotThrown!VariablesUseException(fv.accept(doc));
+}
+
+unittest {
+	string biggerCylce = `
+query foo($x: Int, $y: Float) @skip(if: true) @skip(if: false) {
+	...Foo
+}
+
+fragment Foo on Bar {
+	bar(x: $x) {
+		i
+		...ZZZ
+	}
+}
+
+fragment ZZZ on Bar {
+	bar(x: $y) {
+		i
+	}
+}
+`;
+
+	auto doc = lexAndParse(biggerCylce);
+
+	QueryValidator fv = new QueryValidator(doc);
+	assertThrown!DirectiveNotUnique(fv.accept(doc));
 }

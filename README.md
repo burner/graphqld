@@ -84,7 +84,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Provide non-null arguments
 - [x] Scalar leafs
 - [x] Unique argument names
-- [ ] Unique directives per location
+- [x] Unique directives per location
 - [x] Unique fragment names
 - [ ] Unique input field names
 - [x] Unique operation names
