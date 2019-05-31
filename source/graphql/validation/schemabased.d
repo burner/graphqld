@@ -692,3 +692,25 @@ query q($size: String) {
 
 	test!VariableInputTypeMismatch(str);
 }
+
+unittest {
+	string str = `
+query q($size: Float!) {
+	starships(overSize: $size) {
+		id
+	}
+}`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q($ships: [Int!]!) {
+	shipsselection(ids: $ships) {
+		id
+	}
+}`;
+
+	test!void(str);
+}

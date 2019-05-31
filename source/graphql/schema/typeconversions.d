@@ -69,6 +69,45 @@ template typeToTypeName(Type) {
 	}
 }
 
+template typeToParameterTypeName(Type) {
+	template level2(Type) {
+		static if(is(Type : Nullable!F, F)) {
+			enum level2 = typeToTypeName!F;
+		} else {
+			enum level2 = typeToTypeName!Type ~ "!";
+		}
+	}
+
+	template level1(Type) {
+		static if(isArray!Type && !isSomeString!Type) {
+			enum level1 = "[" ~ level2!(ElementEncodingType!Type) ~ "]";
+		} else {
+			enum level1 = typeToTypeName!Type;
+		}
+	}
+
+	template level0(Type) {
+		static if(is(Type : Nullable!F, F)) {
+			enum level0 = level1!F;
+		} else {
+			enum level0 = level1!Type ~ "!";
+		}
+	}
+
+	enum typeToParameterTypeName = level0!Type;
+}
+
+unittest {
+	static assert(typeToParameterTypeName!(int) == "Int!");
+	static assert(typeToParameterTypeName!(Nullable!int) == "Int");
+	static assert(typeToParameterTypeName!(double) == "Float!");
+	static assert(typeToParameterTypeName!(Nullable!double) == "Float");
+	static assert(typeToParameterTypeName!(double[]) == "[Float!]!");
+	static assert(typeToParameterTypeName!(Nullable!(double)[]) == "[Float]!");
+	static assert(typeToParameterTypeName!(Nullable!(Nullable!(double)[])) ==
+			"[Float]");
+}
+
 template isScalarType(Type) {
 	static if(is(Type == bool)) {
 		enum isScalarType = true;
@@ -149,7 +188,8 @@ Json typeFields(T)() {
 						iv[Constants.name] = paraNames[idx];
 						// needed for interfacesForType
 						iv[Constants.__typename] = Constants.__InputValue;
-						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
+						iv[Constants.typenameOrig] =
+							typeToParameterTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();
