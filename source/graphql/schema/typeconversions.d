@@ -270,7 +270,7 @@ Json typeToJson(Type,Schema)() {
 
 // remove the array is present
 Json typeToJson1(Type,Schema,Orig)() {
-	static if(isArray!Type && !isSomeString!Type) {
+	static if(isArray!Type && !isSomeString!Type && !is(Type == enum)) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
 		ret[Constants.__typename] = "__Type";
