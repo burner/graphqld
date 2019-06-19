@@ -207,26 +207,21 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json ret = returnTemplate();
 		foreach(op; ops) {
 			Json tmp = this.executeOperation(op, variables, doc, context);
-			this.executationTraceLog.logf("%s\n%s", ret, tmp);
-			if(canFind([OperationDefinitionEnum.OT_N,
-					OperationDefinitionEnum.OT_N_D,
-					OperationDefinitionEnum.OT_N_V,
-					OperationDefinitionEnum.OT_N_VD], op.ruleSelection))
-			{
-				if(tmp.type == Json.Type.object && "data" in tmp) {
-					foreach(key, value; tmp["data"].byKeyValue()) {
-						if(key in ret["data"]) {
-							this.executationTraceLog.logf(
-									"key %s already present", key
-								);
-							continue;
-						}
-						ret["data"][key] = value;
+			this.executationTraceLog.logf("%s\n%s\n%s", op.ruleSelection, ret,
+					tmp);
+			if(tmp.type == Json.Type.object && "data" in tmp) {
+				foreach(key, value; tmp["data"].byKeyValue()) {
+					if(key in ret["data"]) {
+						this.executationTraceLog.logf(
+								"key %s already present", key
+							);
+						continue;
 					}
+					ret["data"][key] = value;
 				}
-				foreach(err; tmp["error"]) {
-					ret["error"] ~= err;
-				}
+			}
+			foreach(err; tmp["error"]) {
+				ret["error"] ~= err;
 			}
 		}
 		return ret;
