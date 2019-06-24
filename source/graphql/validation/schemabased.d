@@ -105,7 +105,10 @@ class SchemaValidator(Schema) : Visitor {
 		string followType = field[Constants.typenameOrig].get!string();
 		string old = followType;
 		followType = followType.stringTypeStrip();
+		this.addTypeToStackImpl(name, followType, old);
+	}
 
+	void addTypeToStackImpl(string name, string followType, string old) {
 		l: switch(followType) {
 			alias AllTypes = collectTypesPlusIntrospection!(Schema);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
@@ -222,8 +225,15 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(FieldName) fn) {
-		//enforce(fn.name.value
 		this.addToTypeStack(fn.name.value);
+	}
+
+	override void enter(const(InlineFragment) inF) {
+		this.addTypeToStackImpl("InlineFragment", inF.tc.value, "");
+	}
+
+	override void exit(const(InlineFragment) inF) {
+		this.schemaStack.popBack();
 	}
 
 	override void exit(const(Selection) op) {
@@ -718,6 +728,21 @@ query q($ships: [Int!]!) {
 	shipsselection(ids: $ships) {
 		id
 	}
+}`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+{
+  starships {
+    crew {
+      ... on Humanoid {
+        dateOfBirth
+      }
+    }
+  }
 }`;
 
 	test!void(str);

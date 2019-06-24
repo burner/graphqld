@@ -49,10 +49,25 @@ enum IsDeprecated {
 	no
 }
 
-struct GQLDCustomLeaf(T) {
+string toStringImpl(T)(T t) {
+	static if(__traits(hasMember, T, "toString")) {
+		return t.toString();
+	} else {
+		import std.format : format;
+		return format("%s", t);
+	}
+}
+
+/* The wrapped
+   T = the wrapped type
+   SerializationFun = the function to use to serialize T
+*/
+struct GQLDCustomLeaf(T, alias SerializationFun = toStringImpl!T) {
 	alias Type = T;
 	Type value;
 	alias value this;
+
+	alias Fun = SerializationFun;
 
 	this(Type value) {
 		this.value = value;

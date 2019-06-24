@@ -5,6 +5,7 @@ import std.algorithm.iteration : splitter;
 import std.format : format;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
+import std.datetime : DateTime;
 
 import vibe.data.json;
 
@@ -546,6 +547,10 @@ Json toGraphqlJson(T)(auto ref T obj) {
 							);
 					}
 				} else static if(is(types[idx] : NullableStore!Type, Type)) {
+				} else static if(is(types[idx] : GQLDCustomLeaf!Type, Type...)) {
+					ret[names[idx]] = Type[1](
+								__traits(getMember, obj, names[idx])
+								);
 				} else {
 					ret[names[idx]] = serializeToJson(
 							__traits(getMember, obj, names[idx])
@@ -557,18 +562,33 @@ Json toGraphqlJson(T)(auto ref T obj) {
 	return ret;
 }
 
+string dtToString(DateTime dt) {
+	return dt.toISOExtString();
+}
+
 unittest {
-	import std.typecons : Nullable;
+	import std.typecons : nullable, Nullable;
+	import graphql.uda;
 	import nullablestore;
 
 	struct Foo {
 		int a;
 		Nullable!int b;
 		NullableStore!float c;
+		Nullable!(GQLDCustomLeaf!(DateTime, dtToString)) dt;
 	}
 
+	DateTime dt = DateTime(1337, 7, 1, 1, 1, 1);
+
 	Foo foo;
+	foo.dt = nullable(GQLDCustomLeaf!(DateTime, dtToString)(dt));
 	Json j = toGraphqlJson(foo);
 	assert(j["a"].to!int() == 0);
 	assert(j["b"].type == Json.Type.null_);
+	assert(j["dt"].type == Json.Type.string, format("%s\n%s", j["dt"].type,
+				j.toPrettyString()
+			)
+		);
+	string exp = j["dt"].to!string();
+	assert(exp == "1337-07-1", exp);
 }

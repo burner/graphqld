@@ -27,6 +27,10 @@ union SearchResult {
 	Starship ship;
 }
 
+string dtToString(DateTime dt) {
+	return dt.toISOExtString();
+}
+
 @GQLDUda(TypeKind.OBJECT)
 struct Query {
 	@GQLDUda(
@@ -44,7 +48,7 @@ struct Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
-	GQLDCustomLeaf!DateTime currentTime();
+	GQLDCustomLeaf!(DateTime, dtToString) currentTime();
 	int currentTime();
 }
 
