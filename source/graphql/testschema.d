@@ -59,14 +59,15 @@ struct AddCrewmanData {
 	Series[] series;
 }
 
+/*@GQLDUda(TypeKind.INPUT_OBJECT)
 struct AddCrewmanComplexInput {
 	Character crewman;
 	Starship starship;
-}
+}*/
 
 interface Mutation {
 	Character addCrewman(AddCrewmanData input);
-	Starship addCrewmanCompley(AddCrewmanComplexInput input);
+	//Starship addCrewmanCompley(AddCrewmanComplexInput input);
 }
 
 interface Subscription {
