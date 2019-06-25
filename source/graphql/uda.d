@@ -161,16 +161,12 @@ template getUdaData(Type) {
 }
 
 template getUdaData(Type, string mem) {
-	//static if(isBuiltinType!(typeof(__traits(getMember, Type, mem)))) {
-	//	enum  getUdaData = GQLDUdaData.init;
-	//} else {
-		alias GQLDUdaDataAS = getGQLDUdaData!(Type, mem);
-		static if(GQLDUdaDataAS.length > 0) {
-			enum  getUdaData = GQLDUdaDataAS[0];
-		} else {
-			enum  getUdaData = GQLDUdaData.init;
-		}
-	//}
+	alias GQLDUdaDataAS = getGQLDUdaData!(Type, mem);
+	static if(GQLDUdaDataAS.length > 0) {
+		enum  getUdaData = GQLDUdaDataAS[0];
+	} else {
+		enum  getUdaData = GQLDUdaData.init;
+	}
 }
 
 unittest {

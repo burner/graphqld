@@ -56,7 +56,7 @@ This graphql implementation is based on June 2018 spec.
 - [x] Directives
   - [x] Include
   - [x] Skip
-  - [ ] Custom
+  - [?] Custom (Requires changing the graphqld source)
 - [x] Enumerations
 - [x] Input Objects
 - [x] Mutations

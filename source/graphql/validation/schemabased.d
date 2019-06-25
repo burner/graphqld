@@ -747,3 +747,18 @@ unittest {
 
 	test!void(str);
 }
+
+unittest {
+	string str = `
+{
+  starships {
+    crew {
+      ... on Humanoid {
+        doesNotExist
+      }
+    }
+  }
+}`;
+
+	test!FieldDoesNotExist(str);
+}
