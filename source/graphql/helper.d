@@ -516,6 +516,7 @@ unittest {
 }
 
 Json toGraphqlJson(T)(auto ref T obj) {
+	import graphql.uda : GQLDCustomLeaf;
 	import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
 	import std.array : empty;
 	import std.typecons : Nullable;
@@ -529,6 +530,8 @@ Json toGraphqlJson(T)(auto ref T obj) {
 		foreach(ref it; obj) {
 			ret ~= toGraphqlJson(it);
 		}
+	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
+		Json ret = Json(Type[1](obj));
 	} else {
 		Json ret = Json.emptyObject();
 
@@ -542,15 +545,15 @@ Json toGraphqlJson(T)(auto ref T obj) {
 					if(__traits(getMember, obj, names[idx]).isNull()) {
 						ret[names[idx]] = Json(null);
 					} else {
-						ret[names[idx]] = serializeToJson(
-								__traits(getMember, obj, names[idx])
+						ret[names[idx]] = toGraphqlJson(
+								__traits(getMember, obj, names[idx]).get()
 							);
 					}
-				} else static if(is(types[idx] : NullableStore!Type, Type)) {
 				} else static if(is(types[idx] : GQLDCustomLeaf!Type, Type...)) {
-					ret[names[idx]] = Type[1](
-								__traits(getMember, obj, names[idx])
-								);
+					ret[names[idx]] = Json(Type[1](
+							__traits(getMember, obj, names[idx]))
+						);
+				} else static if(is(types[idx] : NullableStore!Type, Type)) {
 				} else {
 					ret[names[idx]] = serializeToJson(
 							__traits(getMember, obj, names[idx])
@@ -575,12 +578,15 @@ unittest {
 		int a;
 		Nullable!int b;
 		NullableStore!float c;
+		GQLDCustomLeaf!(DateTime, dtToString) dt2;
 		Nullable!(GQLDCustomLeaf!(DateTime, dtToString)) dt;
 	}
 
 	DateTime dt = DateTime(1337, 7, 1, 1, 1, 1);
+	DateTime dt2 = DateTime(2337, 7, 1, 1, 1, 3);
 
 	Foo foo;
+	foo.dt2 = GQLDCustomLeaf!(DateTime, dtToString)(dt2);
 	foo.dt = nullable(GQLDCustomLeaf!(DateTime, dtToString)(dt));
 	Json j = toGraphqlJson(foo);
 	assert(j["a"].to!int() == 0);
@@ -590,5 +596,7 @@ unittest {
 			)
 		);
 	string exp = j["dt"].to!string();
-	assert(exp == "1337-07-1", exp);
+	assert(exp == "1337-07-01T01:01:01", exp);
+	string exp2 = j["dt2"].to!string();
+	assert(exp2 == "2337-07-01T01:01:03", exp2);
 }
