@@ -118,7 +118,7 @@ template isNotObject(Type) {
 
 template isNotCustomLeaf(Type) {
 	import graphql.uda;
-	enum isNotCustomLeaf = !is(Type : GQLDCustomLeaf!F, F);
+	enum isNotCustomLeaf = !is(Type : GQLDCustomLeaf!Fs, Fs...);
 }
 
 unittest {
@@ -129,7 +129,7 @@ unittest {
 
 template collectTypesImpl(Type) {
 	import graphql.uda;
-	static if(is(Type : GQLDCustomLeaf!F, F)) {
+	static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
 		alias collectTypesImpl = AliasSeq!(Type);
 	} else static if(is(Type == interface)) {
 		alias RetTypes = AliasSeq!(collectReturnType!(Type,
@@ -266,6 +266,9 @@ template fixupBasicTypes(T) {
 	} else static if(isArray!T) {
 		alias ElemFix = fixupBasicTypes!(ElementEncodingType!T);
 		alias fixupBasicTypes = ElemFix[];
+	} else static if(is(T : GQLDCustomLeaf!Fs, Fs...)) {
+		alias ElemFix = fixupBasicTypes!(Fs[0]);
+		alias fixupBasicTypes = GQLDCustomLeaf!(ElemFix, Fs[1 .. $]);
 	} else static if(is(T : Nullable!F, F)) {
 		alias ElemFix = fixupBasicTypes!(F);
 		alias fixupBasicTypes = Nullable!(ElemFix);

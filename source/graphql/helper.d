@@ -443,10 +443,11 @@ const(Document) lexAndParse(string s) {
 
 string stringTypeStrip(string str) {
 	import std.algorithm.searching : startsWith, endsWith, canFind;
-	import std.string : capitalize;
+	import std.string : capitalize, indexOf, strip;
 	immutable fs = ["Nullable!", "NullableStore!", "GQLDCustomLeaf!"];
 	immutable arr = "[]";
 	outer: while(true) {
+		str = str.strip();
 		foreach(f; fs) {
 			if(str.startsWith(f)) {
 				str = str[f.length .. $];
@@ -477,6 +478,9 @@ string stringTypeStrip(string str) {
 		}
 		break;
 	}
+
+	const comma = str.indexOf(',');
+	str = comma == -1 ? str : str[0 .. comma].strip();
 
 	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
 		? "Int"
@@ -515,9 +519,57 @@ unittest {
 	assert(r == "__Type", r);
 }
 
-Json toGraphqlJson(T)(auto ref T obj) {
+Json toGraphqlJson(T)(auto ref T input) {
+	import std.typecons : Nullable;
+	import std.array : empty;
+	import std.traits : isArray, isAggregateType, isBasicType, isSomeString,
+		   isScalarType, isSomeString, FieldNameTuple, FieldTypeTuple;
+
+	import nullablestore;
+
 	import graphql.uda : GQLDCustomLeaf;
-	import std.traits : isArray, FieldNameTuple, FieldTypeTuple;
+	static if(isArray!T && !isSomeString!T) {
+		Json ret = Json.emptyArray();
+		foreach(ref it; input) {
+			ret ~= toGraphqlJson(it);
+		}
+		return ret;
+	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
+		return Json(Type[1](input));
+	} else static if(is(T : Nullable!Type, Type)) {
+		return input.isNull() ? Json(null) : toGraphqlJson(input.get());
+	} else static if(isBasicType!T || isScalarType!T || isSomeString!T) {
+		return serializeToJson(input);
+	} else static if(isAggregateType!T) {
+		Json ret = Json.emptyObject();
+
+		// the important bit is the setting of the __typename field
+		ret["__typename"] = T.stringof;
+		alias names = FieldNameTuple!(T);
+		alias types = FieldTypeTuple!(T);
+		static foreach(idx; 0 .. names.length) {{
+			static if(!names[idx].empty) {
+				static if(is(types[idx] : NullableStore!Type, Type)) {
+				} else static if(is(types[idx] == enum)) {
+					ret[names[idx]] = serializeToJson(
+							__traits(getMember, input, names[idx])
+						);
+				} else {
+					ret[names[idx]] = toGraphqlJson(
+							__traits(getMember, input, names[idx])
+						);
+				}
+			}
+		}}
+		return ret;
+	} else {
+		static assert(false, T.stringof ~ " not supported");
+	}
+}
+
+/*Json toGraphqlJson(T)(auto ref T obj) {
+	import graphql.uda : GQLDCustomLeaf;
+	import std.traits : isArray, isSomeString, FieldNameTuple, FieldTypeTuple;
 	import std.array : empty;
 	import std.typecons : Nullable;
 	import nullablestore;
@@ -525,7 +577,7 @@ Json toGraphqlJson(T)(auto ref T obj) {
 	alias names = FieldNameTuple!(T);
 	alias types = FieldTypeTuple!(T);
 
-	static if(isArray!T) {
+	static if(isArray!T && !isSomeString!T) {
 		Json ret = Json.emptyArray();
 		foreach(ref it; obj) {
 			ret ~= toGraphqlJson(it);
@@ -563,7 +615,7 @@ Json toGraphqlJson(T)(auto ref T obj) {
 		}}
 	}
 	return ret;
-}
+}*/
 
 string dtToString(DateTime dt) {
 	return dt.toISOExtString();

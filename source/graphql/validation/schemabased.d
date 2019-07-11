@@ -102,6 +102,7 @@ class SchemaValidator(Schema) : Visitor {
 					this.schemaStack.back.name, name)
 			);
 
+
 		string followType = field[Constants.typenameOrig].get!string();
 		string old = followType;
 		followType = followType.stringTypeStrip();

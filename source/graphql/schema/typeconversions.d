@@ -52,12 +52,13 @@ template typeToTypeEnum(Type) {
 }
 
 template typeToTypeName(Type) {
+	import graphql.uda : GQLDCustomLeaf;
 	static if(is(Type == enum)) {
 		enum typeToTypeName = Type.stringof;
 	} else static if(is(Type == bool)) {
 		enum typeToTypeName = "Bool";
-	} else static if(is(Type == GQLDCustomLeaf!F, F)) {
-		enum typeToTypeName = F.stringof;
+	} else static if(is(Type == GQLDCustomLeaf!Fs, Fs...)) {
+		enum typeToTypeName = Fs[0].stringof;
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeName = "Float";
 	} else static if(isIntegral!(Type)) {
@@ -67,6 +68,11 @@ template typeToTypeName(Type) {
 	} else {
 		enum typeToTypeName = Type.stringof;
 	}
+}
+
+unittest {
+	import std.datetime : Date;
+	static assert(typeToTypeName!(GQLDCustomLeaf!Date) == "Date");
 }
 
 template typeToParameterTypeName(Type) {
@@ -111,7 +117,7 @@ unittest {
 template isScalarType(Type) {
 	static if(is(Type == bool)) {
 		enum isScalarType = true;
-	} else static if(is(Type == GQLDCustomLeaf!F, F)) {
+	} else static if(is(Type == GQLDCustomLeaf!Fs, Fs...)) {
 		enum isScalarType = true;
 	} else static if(isFloatingPoint!(Type)) {
 		enum isScalarType = true;
@@ -321,7 +327,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	// fields
 	static if((is(Type == class) || is(Type == interface) || is(Type == struct))
 			&& !is(Type : Nullable!K, K) && !is(Type : NullableStore!K, K)
-			&& !is(Type : GQLDCustomLeaf!K, K))
+			&& !is(Type : GQLDCustomLeaf!Ks, Ks...))
 	{
 		ret[Constants.fields] = typeFields!Type();
 	} else {
@@ -376,9 +382,9 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 	// needed to resolve ofType
 	static if(is(Type : Nullable!F, F) || is(Type : NullableStore!F, F)
-			|| is(Type : GQLDCustomLeaf!F, F))
+			|| is(Type : GQLDCustomLeaf!Fs, Fs...))
 	{
-		ret[Constants.ofTypeName] = F.stringof;
+		ret[Constants.ofTypeName] = Fs[0].stringof;
 	} else static if(isArray!Type) {
 		ret[Constants.ofTypeName] = ElementEncodingType!(Type).stringof;
 	}
