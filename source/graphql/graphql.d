@@ -11,14 +11,15 @@ import std.exception : enforce;
 import vibe.core.core;
 import vibe.data.json;
 
-import graphql.builder;
-import graphql.ast;
 import graphql.argumentextractor;
-import graphql.helper;
+import graphql.ast;
+import graphql.builder;
+import graphql.constants;
 import graphql.directives;
-import graphql.tokenmodule;
-import graphql.schema.types;
+import graphql.helper;
 import graphql.schema.resolver;
+import graphql.schema.types;
+import graphql.tokenmodule;
 
 @safe:
 
@@ -72,8 +73,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"] = Json.emptyObject();
 					ret["data"] = parent[name];
 				} else {
-					ret["error"] = Json.emptyArray();
-					ret["error"] = Json(format(
+					ret[Constants.errors] = Json.emptyArray();
+					ret[Constants.errors] = Json(format(
 							"no field name '%s' found on type '%s'",
 									name,
 									parent.getWithDefault!string("__typename")
@@ -220,8 +221,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"][key] = value;
 				}
 			}
-			foreach(err; tmp["error"]) {
-				ret["error"] ~= err;
+			foreach(err; tmp[Constants.errors]) {
+				ret[Constants.errors] ~= err;
 			}
 		}
 		return ret;
@@ -321,14 +322,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 				"data" in objectValue ? objectValue["data"] : objectValue,
 				arguments, context
 			);
+		if(de.dataIsEmpty()) {
+			return de;
+		}
 		auto retType = this.schema.getReturnType(objectType, field.name);
 		if(retType is null) {
 			this.executationTraceLog.logf("ERR %s %s", objectType.name,
 					field.name
 				);
 			Json ret = Json.emptyObject();
-			ret["error"] = Json.emptyArray();
-			ret["error"] ~= Json(format(
+			ret[Constants.errors] = Json.emptyArray();
+			ret[Constants.errors] ~= Json(format(
 					"No return type for member '%s' of type '%s' found",
 					field.name, objectType.name
 				));
@@ -361,7 +365,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				);
 			if(rslt.dataIsNull()) {
 				this.executationTraceLog.logf("%s", rslt);
-				rslt["error"] ~= Json("NonNull was null");
+				rslt[Constants.errors] ~= Json("NonNull was null");
 			}
 		} else if(GQLDNullable nullType = objectType.toNullable()) {
 			this.executationTraceLog.logf("nullable %s", nullType.name);
@@ -373,7 +377,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				);
 			if(rslt.dataIsEmpty()) {
 				rslt["data"] = null;
-				rslt.remove("error");
+				rslt.remove(Constants.errors);
 			}
 		} else if(GQLDList list = objectType.toList()) {
 			this.executationTraceLog.logf("list %s", list.name);
@@ -401,8 +405,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 			if("data" in tmp) {
 				ret["data"] ~= tmp["data"];
 			}
-			foreach(err; tmp["error"]) {
-				ret["error"] ~= err;
+			foreach(err; tmp[Constants.errors]) {
+				ret[Constants.errors] ~= err;
 			}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
 			ret["data"] ~= tmp;

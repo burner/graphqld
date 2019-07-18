@@ -194,11 +194,14 @@ Json typeFields(T)() {
 						iv[Constants.name] = paraNames[idx];
 						// needed for interfacesForType
 						iv[Constants.__typename] = Constants.__InputValue;
+						iv[Constants.description] = Json(null);
 						iv[Constants.typenameOrig] =
 							typeToParameterTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();
+						} else {
+							iv[Constants.defaultValue] = Json(null);
 						}
 						tmp[Constants.args] ~= iv;
 					}}
@@ -440,12 +443,15 @@ Json directivesToJson(Directives)() {
 						// two default directives of GraphQL skip and include
 						// both have one parameter named "if".
 						iv[Constants.name] = stripLeft(paraNames[idx], "_");
+						iv[Constants.description] = Json(null);
 						// needed for interfacesForType
 						iv[Constants.__typename] = Constants.__InputValue;
 						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();
+						} else {
+							iv[Constants.defaultValue] = Json(null);
 						}
 						tmp[Constants.args] ~= iv;
 					}}

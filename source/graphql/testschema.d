@@ -42,6 +42,7 @@ struct Query {
 	)
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
+	Starship starshipDoesNotExist();
 	Starship[] starships(float overSize = 100.0);
 	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);

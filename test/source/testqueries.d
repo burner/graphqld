@@ -297,5 +297,22 @@ mutation one {
     }
   }
 }
-`, ShouldThrow.no)
+`, ShouldThrow.no),
+TestQuery(`
+{
+	starshipDoesNotExist {
+		id
+		commander {
+			name
+		}
+	}
+}`, ShouldThrow.yes,
+`{
+	"error" : [
+		"That ship does not exists"
+	],
+	"data" : {
+	}
+}`
+)
 ];

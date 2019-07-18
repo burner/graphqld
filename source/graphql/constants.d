@@ -45,6 +45,7 @@ enum Constants {
 	interfacesNames = "interfacesNames",
 	isDeprecated = "isDeprecated",
 	kind = "kind",
+	errors = "errors",
 	locations = "locations",
 	mutation = "mutation",
 	mutationType = "mutationType",

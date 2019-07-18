@@ -10,11 +10,12 @@ import std.datetime : DateTime;
 import vibe.data.json;
 
 import graphql.ast;
+import graphql.constants;
 
 @safe:
 
 enum d = "data";
-enum e = "error";
+enum e = Constants.errors;
 
 string firstCharUpperCase(string input) {
 	import std.conv : to;
@@ -33,7 +34,7 @@ string firstCharUpperCase(string input) {
 Json returnTemplate() {
 	Json ret = Json.emptyObject();
 	ret["data"] = Json.emptyObject();
-	ret["error"] = Json.emptyArray();
+	ret[Constants.errors] = Json.emptyArray();
 	return ret;
 }
 
@@ -101,8 +102,8 @@ bool dataIsEmpty(ref const(Json) data) {
 	import std.experimental.logger;
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
-			if(key != "error" && !value.dataIsEmpty()) {
-			//if(key != "error") { // Issue #22 place to look at
+			if(key != Constants.errors && !value.dataIsEmpty()) {
+			//if(key != Constants.errors) { // Issue #22 place to look at
 				return false;
 			}
 		}
@@ -128,7 +129,7 @@ bool dataIsEmpty(ref const(Json) data) {
 }
 
 unittest {
-	string t = `{ "error": {} }`;
+	string t = `{ "errors" : {} }`;
 	Json j = parseJsonString(t);
 	assert(j.dataIsEmpty());
 }
@@ -338,7 +339,7 @@ T getWithDefault(T)(Json data, string[] paths...) {
 }
 
 unittest {
-	Json d = parseJsonString(`{"error":[],"data":{"commanderId":8,
+	Json d = parseJsonString(`{"errors":[],"data":{"commanderId":8,
 			"__typename":"Starship","series":["DeepSpaceNine",
 			"TheOriginalSeries"],"id":43,"name":"Defiant","size":130,
 			"crewIds":[9,10,11,1,12,13,8],"designation":"NX-74205"}}`);

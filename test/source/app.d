@@ -80,6 +80,17 @@ void main() {
 			}
 		);
 
+	graphqld.setResolver("queryType", "starshipDoesNotExist",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				Json ret = Json.emptyObject();
+				ret["errors"] = Json.emptyArray();
+				ret["errors"] ~= Json("That ship does not exists");
+				return ret;
+			}
+		);
+
 	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
@@ -272,13 +283,20 @@ void main() {
 								res.bodyReader.readAllUTF8()
 							);
 						if(q.st == ShouldThrow.yes) {
-							enforce("error" in ret
-									&& ret["error"].length != 1,
+							enforce("errors" in ret
+									&& ret["errors"].length != 1,
 									format("%s", ret.toPrettyString())
 								);
+							Json p = parseJsonString(q.expectedResult);
+							writefln("%s\n%s", p.toPrettyString(),
+									ret.toPrettyString());
+							assert(p == ret, format(
+										"got: %s\nexpeteced: %s",
+										p.toPrettyString(),
+										ret.toPrettyString()));
 						} else {
-							enforce("error" in ret
-									&& ret["error"].length == 0,
+							enforce("errors" in ret
+									&& ret["errors"].length == 0,
 									format("%s", ret.toPrettyString())
 								);
 							enforce("data" in ret
@@ -298,15 +316,17 @@ void main() {
 			} catch(Exception e) {
 				hasThrown = true;
 				if(q.st == ShouldThrow.no) {
-					writefln("IM DIENING NOW %s %s\n%s", __LINE__, e, q);
-					assert(false, e.msg);
+					writefln("IM DIENING NOW %s %s %s\n%s", tqIdx, __LINE__, e,
+							q
+						);
+					assert(false, format("%s %s", tqIdx, e.msg));
 				}
 			}
 			if(q.st == ShouldThrow.yes && !hasThrown) {
-				writefln("I SHOULD HAVE THROWN NOW %s %s\n%s", __LINE__, e,
-						q
+				writefln("I SHOULD HAVE THROWN NOW %s %s %s\n%s", tqIdx,
+						__LINE__, e, q
 					);
-				assert(false);
+				assert(false, format("%s", tqIdx));
 			}
 			//});
 			//qt.join();
@@ -386,8 +406,8 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			e = cast(Exception)e.next;
 		}
 		Json ret = Json.emptyObject;
-		ret["error"] = Json.emptyArray;
-		ret["error"] ~= Json(app.data);
+		ret["errors"] = Json.emptyArray;
+		ret["errors"] ~= Json(app.data);
 		res.writeJsonBody(ret);
 		return;
 	}
