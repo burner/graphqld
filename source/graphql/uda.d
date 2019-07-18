@@ -59,8 +59,8 @@ string toStringImpl(T)(T t) {
 }
 
 /* The wrapped
-   T = the wrapped type
-   SerializationFun = the function to use to serialize T
+	T = the wrapped type
+	SerializationFun = the function to use to serialize T
 */
 struct GQLDCustomLeaf(T, alias SerializationFun = toStringImpl!T) {
 	alias Type = T;

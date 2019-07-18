@@ -737,13 +737,13 @@ query q($ships: [Int!]!) {
 unittest {
 	string str = `
 {
-  starships {
-    crew {
-      ... on Humanoid {
-        dateOfBirth
-      }
-    }
-  }
+	starships {
+		crew {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
 }`;
 
 	test!void(str);
@@ -752,13 +752,13 @@ unittest {
 unittest {
 	string str = `
 {
-  starships {
-    crew {
-      ... on Humanoid {
-        doesNotExist
-      }
-    }
-  }
+	starships {
+		crew {
+			... on Humanoid {
+				doesNotExist
+			}
+		}
+	}
 }`;
 
 	test!FieldDoesNotExist(str);
