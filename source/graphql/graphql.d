@@ -36,7 +36,7 @@ struct DefaultContext {
 }
 
 class GQLDExecutionException : Exception {
-	this(string msg, string f = __FILE__, int l = __LINE__) {
+	this(string msg, string f = __FILE__, size_t l = __LINE__) {
 		super(msg, f, l);
 		this.line = l;
 	}
