@@ -39,14 +39,13 @@ Json returnTemplate() {
 }
 
 void insertError(T)(ref Json result, T t) {
-	Json err = serializeToJson(t);
+	Json tmp = Json.emptyObject();
+	tmp["message"] = serializeToJson(t);
 	if(e !in result) {
 		result[e] = Json.emptyArray();
 	}
 	enforce(result[e].type == Json.Type.array);
-	if(!canFind(result[e].byValue(), err)) {
-		result[e] ~= err;
-	}
+	result[e] ~= tmp;
 }
 
 void insertPayload(ref Json result, string field, Json data) {

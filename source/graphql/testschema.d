@@ -49,6 +49,7 @@ struct Query {
 	Character[] character(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
+	Android[] resolverWillThrow();
 	GQLDCustomLeaf!(DateTime, dtToString) currentTime();
 	int currentTime();
 }

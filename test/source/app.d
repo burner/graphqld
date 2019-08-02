@@ -85,9 +85,22 @@ void main() {
 					ref CustomContext con) @safe
 			{
 				Json ret = Json.emptyObject();
-				ret["errors"] = Json.emptyArray();
-				ret["errors"] ~= Json("That ship does not exists");
+				ret.insertError("That ship does not exists");
 				return ret;
+			}
+		);
+
+	graphqld.setResolver("queryType", "resolverWillThrow",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				if(name == "resolverWillThrow") {
+					throw new GQLDExecutionException("you can not pass");
+				} else {
+					Json ret = Json.emptyObject();
+					ret["data"] = "foo";
+					return ret;
+				}
 			}
 		);
 
@@ -283,8 +296,8 @@ void main() {
 								res.bodyReader.readAllUTF8()
 							);
 						if(q.st == ShouldThrow.yes) {
-							enforce("errors" in ret
-									&& ret["errors"].length != 1,
+							enforce("errors" in ret &&
+									ret["errors"].empty,
 									format("%s", ret.toPrettyString())
 								);
 							Json p = parseJsonString(q.expectedResult);
@@ -320,6 +333,13 @@ void main() {
 							q
 						);
 					assert(false, format("%s %s", tqIdx, e.msg));
+				} else {
+					if(!q.expectedResult.empty) {
+						Json c = parseJsonString(e.msg);
+						Json exp = parseJsonString(q.expectedResult);
+						assert(exp == c, format("expec: %s\nfound: %s",
+								exp.toPrettyString(), c.toPrettyString()));
+					}
 				}
 			}
 			if(q.st == ShouldThrow.yes && !hasThrown) {
@@ -406,8 +426,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			e = cast(Exception)e.next;
 		}
 		Json ret = Json.emptyObject;
-		ret["errors"] = Json.emptyArray;
-		ret["errors"] ~= Json(app.data);
+		ret.insertError(app.data);
 		res.writeJsonBody(ret);
 		return;
 	}

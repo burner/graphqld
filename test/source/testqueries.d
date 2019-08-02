@@ -308,8 +308,22 @@ TestQuery(`
 	}
 }`, ShouldThrow.yes,
 `{
-	"error" : [
-		"That ship does not exists"
+	"errors" : [
+		{ "message" : "That ship does not exists" }
+	],
+	"data" : {
+	}
+}`
+),
+TestQuery(`
+{
+	resolverWillThrow {
+		primaryFunction
+	}
+}`, ShouldThrow.yes,
+`{
+	"errors" : [
+		{ "message": "you can not pass" }
 	],
 	"data" : {
 	}

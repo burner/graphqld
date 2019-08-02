@@ -35,6 +35,13 @@ struct GQLDOptions {
 struct DefaultContext {
 }
 
+class GQLDExecutionException : Exception {
+	this(string msg, string f = __FILE__, int l = __LINE__) {
+		super(msg, f, l);
+		this.line = l;
+	}
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
@@ -74,7 +81,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"] = parent[name];
 				} else {
 					ret[Constants.errors] = Json.emptyArray();
-					ret[Constants.errors] = Json(format(
+					ret.insertError(format(
 							"no field name '%s' found on type '%s'",
 									name,
 									parent.getWithDefault!string("__typename")
@@ -318,10 +325,18 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		Json arguments = getArguments(field, variables);
 		//writefln("var %s\narg %s", variables, arguments);
-		Json de = this.resolve(objectType.name, field.name,
+		Json de;
+		try {
+			de = this.resolve(objectType.name, field.name,
 				"data" in objectValue ? objectValue["data"] : objectValue,
 				arguments, context
 			);
+		} catch(GQLDExecutionException e) {
+			auto ret = Json.emptyObject();
+			ret[Constants.errors] = Json.emptyArray();
+			ret.insertError(e.msg);
+			return ret;
+		}
 		if(de.dataIsEmpty()) {
 			return de;
 		}
@@ -332,7 +347,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				);
 			Json ret = Json.emptyObject();
 			ret[Constants.errors] = Json.emptyArray();
-			ret[Constants.errors] ~= Json(format(
+			ret.insertError(format(
 					"No return type for member '%s' of type '%s' found",
 					field.name, objectType.name
 				));
@@ -365,7 +380,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				);
 			if(rslt.dataIsNull()) {
 				this.executationTraceLog.logf("%s", rslt);
-				rslt[Constants.errors] ~= Json("NonNull was null");
+				rslt.insertError("NonNull was null");
 			}
 		} else if(GQLDNullable nullType = objectType.toNullable()) {
 			this.executationTraceLog.logf("nullable %s", nullType.name);
