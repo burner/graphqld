@@ -115,7 +115,8 @@ struct FieldRangeItem {
 	Document doc;
 
 	@property string name() {
-		return f.name.aka.value.empty ? f.name.name.value : f.name.aka.value;
+		return f.name.name.value;
+		//return f.name.aka.value.empty ? f.name.name.value : f.name.aka.value;
 	}
 
 	@property string aka() {

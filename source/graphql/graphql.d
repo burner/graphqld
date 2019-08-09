@@ -307,7 +307,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 					)
 				: Json.emptyObject();
 
-			ret.insertPayload(field.aka.empty ? field.name : field.aka, rslt);
+			const string name = field.f.name.name.value;
+			ret.insertPayload(name, rslt);
 		}
 		return ret;
 	}
@@ -322,7 +323,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 		//writefln("var %s\narg %s", variables, arguments);
 		Json de;
 		try {
-			de = this.resolve(objectType.name, field.name,
+			de = this.resolve(objectType.name,
+					field.aka.empty ? field.name : field.aka,
 				"data" in objectValue ? objectValue["data"] : objectValue,
 				arguments, context
 			);
@@ -335,7 +337,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 		if(de.dataIsEmpty()) {
 			return de;
 		}
-		auto retType = this.schema.getReturnType(objectType, field.name);
+
+		auto retType = this.schema.getReturnType(objectType,
+				field.aka.empty ? field.name : field.aka
+			);
 		if(retType is null) {
 			this.executationTraceLog.logf("ERR %s %s", objectType.name,
 					field.name
