@@ -520,8 +520,9 @@ unittest {
 }
 
 Json toGraphqlJson(T)(auto ref T input) {
-	import std.typecons : Nullable;
 	import std.array : empty;
+	import std.conv : to;
+	import std.typecons : Nullable;
 	import std.traits : isArray, isAggregateType, isBasicType, isSomeString,
 		   isScalarType, isSomeString, FieldNameTuple, FieldTypeTuple;
 
@@ -538,6 +539,8 @@ Json toGraphqlJson(T)(auto ref T input) {
 		return Json(Type[1](input));
 	} else static if(is(T : Nullable!Type, Type)) {
 		return input.isNull() ? Json(null) : toGraphqlJson(input.get());
+	} else static if(is(T == enum)) {
+		return Json(to!string(input));
 	} else static if(isBasicType!T || isScalarType!T || isSomeString!T) {
 		return serializeToJson(input);
 	} else static if(isAggregateType!T) {
@@ -551,9 +554,10 @@ Json toGraphqlJson(T)(auto ref T input) {
 			static if(!names[idx].empty) {
 				static if(is(types[idx] : NullableStore!Type, Type)) {
 				} else static if(is(types[idx] == enum)) {
-					ret[names[idx]] = serializeToJson(
+					ret[names[idx]] = /*serializeToJson(
 							__traits(getMember, input, names[idx])
-						);
+						);*/
+						to!string(__traits(getMember, input, names[idx]));
 				} else {
 					ret[names[idx]] = toGraphqlJson(
 							__traits(getMember, input, names[idx])
@@ -566,56 +570,6 @@ Json toGraphqlJson(T)(auto ref T input) {
 		static assert(false, T.stringof ~ " not supported");
 	}
 }
-
-/*Json toGraphqlJson(T)(auto ref T obj) {
-	import graphql.uda : GQLDCustomLeaf;
-	import std.traits : isArray, isSomeString, FieldNameTuple, FieldTypeTuple;
-	import std.array : empty;
-	import std.typecons : Nullable;
-	import nullablestore;
-
-	alias names = FieldNameTuple!(T);
-	alias types = FieldTypeTuple!(T);
-
-	static if(isArray!T && !isSomeString!T) {
-		Json ret = Json.emptyArray();
-		foreach(ref it; obj) {
-			ret ~= toGraphqlJson(it);
-		}
-	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
-		Json ret = Json(Type[1](obj));
-	} else {
-		Json ret = Json.emptyObject();
-
-		// the important bit is the setting of the __typename field
-		ret["__typename"] = T.stringof;
-
-		static foreach(idx; 0 .. names.length) {{
-			static if(!names[idx].empty) {
-				//writefln("%s %s", __LINE__, names[idx]);
-				static if(is(types[idx] : Nullable!Type, Type)) {
-					if(__traits(getMember, obj, names[idx]).isNull()) {
-						ret[names[idx]] = Json(null);
-					} else {
-						ret[names[idx]] = toGraphqlJson(
-								__traits(getMember, obj, names[idx]).get()
-							);
-					}
-				} else static if(is(types[idx] : GQLDCustomLeaf!Type, Type...)) {
-					ret[names[idx]] = Json(Type[1](
-							__traits(getMember, obj, names[idx]))
-						);
-				} else static if(is(types[idx] : NullableStore!Type, Type)) {
-				} else {
-					ret[names[idx]] = serializeToJson(
-							__traits(getMember, obj, names[idx])
-						);
-				}
-			}
-		}}
-	}
-	return ret;
-}*/
 
 string dtToString(DateTime dt) {
 	return dt.toISOExtString();

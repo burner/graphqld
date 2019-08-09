@@ -156,15 +156,7 @@ class GQLDMap : GQLDType {
 }
 
 class GQLDObject : GQLDMap {
-	GQLDObject _base;
-
-	@property const(GQLDObject) base() const {
-		return cast(const)this._base;
-	}
-
-	@property void base(GQLDObject nb) {
-		this._base = nb;
-	}
+	GQLDObject base;
 
 	this(string name) {
 		super(GQLDKind.Object_);
@@ -458,6 +450,7 @@ class GQLDSchema(Type) : GQLDMap {
 
 	GQLDType getReturnType(GQLDType t, string field) {
 		GQLDType ret;
+		GQLDObject ob = t.toObject();
 		if(auto s = t.toScalar()) {
 			ret = s;
 		} else if(auto op = t.toOperation()) {
@@ -475,6 +468,8 @@ class GQLDSchema(Type) : GQLDMap {
 				}
 			} else if(field in map.member) {
 				ret = map.member[field];
+			} else if(ob && ob.base && field in ob.base.member) {
+				return ob.base.member[field];
 			} else if(field == "__typename") {
 				// the type of the field __typename is always a string
 				ret = this.types["string"];
