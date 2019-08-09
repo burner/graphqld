@@ -44,8 +44,9 @@ Json query(string s, Json args) {
 						ret["data"] = Json(null);
 						return ret;
 					}
-					Json hj = toGraphqlJson(h);
-					Json cj = toGraphqlJson(cast(Character)h);
+					Json hj = toGraphqlJson!StarWarsSchema(h);
+					writefln("Foo %s", hj.toPrettyString());
+					Json cj = toGraphqlJson!StarWarsSchema(cast(Character)h);
 					cj.remove("__typename");
 					ret["data"] = joinJson(hj, cj);
 				}
@@ -59,7 +60,7 @@ Json query(string s, Json args) {
 			{
 				auto e = "episode" in args;
 				Json ret = Json.emptyObject();
-				ret["data"] = toGraphqlJson(getHero(
+				ret["data"] = toGraphqlJson!StarWarsSchema(getHero(
 						e ? nullable(cast(Episode)(*e).to!int)
 							: Nullable!(Episode).init
 					));
@@ -77,7 +78,7 @@ Json query(string s, Json args) {
 				if(idPtr) {
 					string id = idPtr.to!string();
 					foreach(it; getFriends(getCharacter(id))) {
-						ret["data"] ~= toGraphqlJson(it);
+						ret["data"] ~= toGraphqlJson!StarWarsSchema(it);
 					}
 				}
 				return ret;
@@ -339,9 +340,11 @@ Json query(string s, Json args) {
 	Json rslt = query(`
 		query UseFragment {
 			luke: human(id: "1000") {
+				__typename
 				...HumanFragment
 			}
 			leia: human(id: "1003") {
+				__typename
 				...HumanFragment
 			}
 		}

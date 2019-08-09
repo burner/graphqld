@@ -5,6 +5,7 @@ import std.algorithm.iteration : splitter;
 import std.format : format;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
+import std.stdio;
 import std.datetime : DateTime;
 
 import vibe.data.json;
@@ -519,7 +520,51 @@ unittest {
 	assert(r == "__Type", r);
 }
 
-Json toGraphqlJson(T)(auto ref T input) {
+template isClass(T) {
+	enum isClass = is(T == class);
+}
+
+unittest {
+	static assert(!isClass!int);
+	static assert( isClass!Object);
+}
+
+template isNotInTypeSet(T, R...) {
+	import std.meta : staticIndexOf;
+	enum isInTypeSet = staticIndexOf!(T, R) == -1;
+}
+
+string getTypename(Schema,T)(auto ref T input) @trusted {
+	import std.meta : Filter, Erase, EraseAll;
+	import std.traits : BaseTypeTuple, BaseClassesTuple;
+	import std.stdio : writefln;
+	import graphql.traits : collectTypes;
+	pragma(msg, T);
+	writefln("To %s", T.stringof);
+	static if(!isClass!(T)) {
+		return T.stringof;
+	} else {
+		alias BTT = BaseClassesTuple!T;
+		alias All = collectTypes!(Schema);
+		alias AllCls = Filter!(isClass, All);
+		alias NoT = EraseAll!(T, AllCls);
+		alias NoT2 = EraseAll!(Object, NoT);
+		alias Test = isNotInTypeSet!T;
+		alias NoDownCasts = Erase!(Test, BTT);
+		pragma(msg, "\n" ~ T.stringof);
+		pragma(msg, NoDownCasts);
+		static foreach(Cls; NoDownCasts) {{
+			Cls t = cast(Cls)input;
+			writefln("Chk %s %s", Cls.stringof, t !is null);
+			if(t !is null) {
+				return Cls.stringof;
+			}
+		}}
+		return T.stringof;
+	}
+}
+
+Json toGraphqlJson(Schema,T)(auto ref T input) {
 	import std.array : empty;
 	import std.conv : to;
 	import std.typecons : Nullable;
@@ -532,13 +577,13 @@ Json toGraphqlJson(T)(auto ref T input) {
 	static if(isArray!T && !isSomeString!T) {
 		Json ret = Json.emptyArray();
 		foreach(ref it; input) {
-			ret ~= toGraphqlJson(it);
+			ret ~= toGraphqlJson!Schema(it);
 		}
 		return ret;
 	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
 		return Json(Type[1](input));
 	} else static if(is(T : Nullable!Type, Type)) {
-		return input.isNull() ? Json(null) : toGraphqlJson(input.get());
+		return input.isNull() ? Json(null) : toGraphqlJson!Schema(input.get());
 	} else static if(is(T == enum)) {
 		return Json(to!string(input));
 	} else static if(isBasicType!T || isScalarType!T || isSomeString!T) {
@@ -547,19 +592,19 @@ Json toGraphqlJson(T)(auto ref T input) {
 		Json ret = Json.emptyObject();
 
 		// the important bit is the setting of the __typename field
-		ret["__typename"] = T.stringof;
+		ret["__typename"] = getTypename!(Schema)(input);
+		writefln("Got %s", ret["__typename"].to!string());
+
 		alias names = FieldNameTuple!(T);
 		alias types = FieldTypeTuple!(T);
 		static foreach(idx; 0 .. names.length) {{
 			static if(!names[idx].empty) {
 				static if(is(types[idx] : NullableStore!Type, Type)) {
 				} else static if(is(types[idx] == enum)) {
-					ret[names[idx]] = /*serializeToJson(
-							__traits(getMember, input, names[idx])
-						);*/
+					ret[names[idx]] =
 						to!string(__traits(getMember, input, names[idx]));
 				} else {
-					ret[names[idx]] = toGraphqlJson(
+					ret[names[idx]] = toGraphqlJson!Schema(
 							__traits(getMember, input, names[idx])
 						);
 				}
@@ -594,7 +639,7 @@ unittest {
 	Foo foo;
 	foo.dt2 = GQLDCustomLeaf!(DateTime, dtToString)(dt2);
 	foo.dt = nullable(GQLDCustomLeaf!(DateTime, dtToString)(dt));
-	Json j = toGraphqlJson(foo);
+	Json j = toGraphqlJson!int(foo);
 	assert(j["a"].to!int() == 0);
 	assert(j["b"].type == Json.Type.null_);
 	assert(j["dt"].type == Json.Type.string, format("%s\n%s", j["dt"].type,
