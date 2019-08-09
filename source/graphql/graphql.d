@@ -307,7 +307,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					)
 				: Json.emptyObject();
 
-			ret.insertPayload(field.name, rslt);
+			ret.insertPayload(field.aka.empty ? field.name : field.aka, rslt);
 		}
 		return ret;
 	}

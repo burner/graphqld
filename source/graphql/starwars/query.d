@@ -263,7 +263,6 @@ Json query(string s, Json args) {
 			exp.toPrettyString(), rslt.toPrettyString()));
 }
 
-
 @safe unittest {
 	auto args = `{ "id" : "not a valid id" }`;
 	Json rslt = query(`
@@ -274,6 +273,38 @@ Json query(string s, Json args) {
 		}`, parseJson(args));
 
 	string s = `{ "data" : { "human" : null } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query FetchLukeAliased {
+			luke: human(id: "1000") {
+				name
+			}
+		}`);
+
+	string s = `{ "data" : { "luke" : { "name" : "Luke Skywalker" } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query FetchLukeAndLeiaAliased {
+			luke: human(id: "1000") {
+				name
+			}
+			leia: human(id: "1003") {
+				name
+			}
+		}`);
+
+	string s = `{ "data" : { "luke" : { "name" : "Luke Skywalker" },
+		"leia" : { "name" : "Leia Organa" } } }`;
 	Json exp = parseJson(s);
 	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
 			exp.toPrettyString(), rslt.toPrettyString()));
