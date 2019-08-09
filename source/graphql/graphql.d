@@ -482,9 +482,12 @@ private class Schema {
 unittest {
 	import graphql.schema.typeconversions;
 	import graphql.traits;
+	import std.datetime : DateTime;
 
 	alias a = collectTypes!(Schema);
-//	static assert(is(a == AliasSeq!(Schema, Query, string, long, bool)));
+	alias exp = AliasSeq!(Schema, Query, string, long, bool,
+					GQLDCustomLeaf!(DateTime, toStringImpl));
+	//static assert(is(a == exp), format("\n%s\n%s", a.stringof, exp.stringof));
 
 	//pragma(msg, InheritedClasses!Schema);
 

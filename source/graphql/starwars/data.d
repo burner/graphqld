@@ -59,7 +59,7 @@ Character getCharacter(string id) {
 Character[] getFriends(Character c) {
 	import std.array : array;
 	import std.algorithm.iteration : map;
-	return c.friends.map!(id => getCharacter(id)).array;
+	return c.friendsId.map!(id => getCharacter(id)).array;
 }
 
 Character getHero(Nullable!Episode episode) {

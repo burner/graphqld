@@ -38,6 +38,23 @@ Json query(string s, Json args) {
 			}
 		);
 
+	graphqld.setResolver("Character", "friends",
+			delegate(string name, Json parent, Json args,
+					ref DefaultContext con) @safe
+			{
+				auto idPtr = "id" in parent;
+				Json ret = Json.emptyObject();
+				ret["data"] = Json.emptyArray();
+				if(idPtr) {
+					string id = idPtr.to!string();
+					foreach(it; getFriends(getCharacter(id))) {
+						ret["data"] ~= toGraphqlJson(it);
+					}
+				}
+				return ret;
+			}
+		);
+
 	auto l = Lexer(s);
 	auto p = Parser(l);
 
@@ -56,7 +73,7 @@ Json query(string s, Json args) {
 	return gqld;
 }
 
-unittest {
+@safe unittest {
 	Json rslt = query(
 		`query HeroNameQuery {
 			hero {
@@ -65,6 +82,52 @@ unittest {
 		}`);
 
 	string s = `{ "data" : { "hero" : { "name" : "R2-D2" } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, rslt.toPrettyString() ~ "\n" ~ exp.toPrettyString());
+}
+
+@safe unittest {
+	Json rslt = query(
+		`query HeroNameQuery {
+			hero {
+				name
+			}
+		}`);
+	string s = `{ "data" : { "hero" : { "name" : "R2-D2" } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, rslt.toPrettyString() ~ "\n" ~ exp.toPrettyString());
+}
+
+@safe unittest {
+	Json rslt = query(
+		`query HeroNameAndFriendsQuery {
+			hero {
+				id
+				name
+				friends {
+					name
+				}
+			}
+		}`);
+	string s = `{
+			"data": {
+				"hero": {
+					"id": "2001",
+					"name": "R2-D2",
+					"friends": [
+						{
+							"name": "Luke Skywalker",
+						},
+						{
+							"name": "Han Solo",
+						},
+						{
+							"name": "Leia Organa",
+						}
+					]
+				}
+			}
+		}`;
 	Json exp = parseJson(s);
 	assert(rslt == exp, rslt.toPrettyString() ~ "\n" ~ exp.toPrettyString());
 }

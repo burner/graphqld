@@ -45,8 +45,8 @@ void main() {
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
 	graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
 	graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
-	graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-	//graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
+	//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
 

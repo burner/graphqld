@@ -2,6 +2,8 @@ module graphql.starwars.types;
 
 import std.typecons : Nullable, nullable;
 
+import nullablestore;
+
 import graphql.uda;
 
 @safe:
@@ -30,7 +32,9 @@ abstract class Character {
 			~ "they have none."
 		)
 	)
-	Nullable!(string)[] friends;
+	NullableStore!(Character[]) friends;
+
+	string[] friendsId;
 
 	@GQLDUda(GQLDDescription("Which movies they appear in."))
 	Episode[] appearsIn;
@@ -40,7 +44,7 @@ abstract class Character {
 		import std.algorithm.iteration : map;
 		this.id = id;
 		this.name = name;
-		this.friends = friends.map!(f => nullable(f)).array;
+		this.friendsId = friends;
 		this.appearsIn = appearsIn.map!(e => cast(Episode)e).array;
 	}
 }
