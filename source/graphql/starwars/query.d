@@ -46,7 +46,7 @@ Json query(string s, Json args) {
 					}
 					Json hj = toGraphqlJson(h);
 					Json cj = toGraphqlJson(cast(Character)h);
-					hj.remove("__typename");
+					cj.remove("__typename");
 					ret["data"] = joinJson(hj, cj);
 				}
 				return ret;
@@ -305,6 +305,74 @@ Json query(string s, Json args) {
 
 	string s = `{ "data" : { "luke" : { "name" : "Luke Skywalker" },
 		"leia" : { "name" : "Leia Organa" } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query DuplicateFields {
+			luke: human(id: "1000") {
+				name
+				homePlanet
+			}
+			leia: human(id: "1003") {
+				name
+				homePlanet
+			}
+		}`);
+
+	string s = `{ "data" :
+		{ "luke" :
+			{ "name" : "Luke Skywalker", "homePlanet" : "Tatooine" }
+		, "leia" :
+			{ "name" : "Leia Organa", "homePlanet" : "Alderaan" }
+		}
+	}`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query UseFragment {
+			luke: human(id: "1000") {
+				...HumanFragment
+			}
+			leia: human(id: "1003") {
+				...HumanFragment
+			}
+		}
+		fragment HumanFragment on Human {
+			name
+			homePlanet
+		}`);
+
+	string s = `{ "data" :
+		{ "luke" :
+			{ "name" : "Luke Skywalker", "homePlanet" : "Tatooine" }
+		, "leia" :
+			{ "name" : "Leia Organa", "homePlanet" : "Alderaan" }
+		}
+	}`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		 query CheckTypeOfR2 {
+			hero {
+				__typename
+				name
+			}
+		}`);
+
+	string s = `{"data" : { "hero" : { "__typename": "Droid", "name": "R2-D2" }
+	} }`;
 	Json exp = parseJson(s);
 	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
 			exp.toPrettyString(), rslt.toPrettyString()));
