@@ -34,6 +34,7 @@ enum Constants {
 	__type = "__type",
 	__typename = "__typename",
 	args = "args",
+	data = "data",
 	defaultValue = "defaultValue",
 	deprecationReason = "deprecationReason",
 	description = "description",

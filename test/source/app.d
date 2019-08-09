@@ -45,7 +45,8 @@ void main() {
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
 	graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
 	graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
-	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
+	graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+	//graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
 
@@ -308,8 +309,8 @@ void main() {
 										p.toPrettyString(),
 										ret.toPrettyString()));
 						} else {
-							enforce("errors" in ret
-									&& ret["errors"].length == 0,
+							enforce("errors" !in ret,
+									//&& ret["errors"].length == 0,
 									format("%s", ret.toPrettyString())
 								);
 							enforce("data" in ret

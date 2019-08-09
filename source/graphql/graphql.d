@@ -201,32 +201,27 @@ class GraphQLD(T, QContext = DefaultContext) {
 		import std.algorithm.searching : canFind, find;
 		OperationDefinition[] ops = this.getOperations(doc);
 
-		auto selSet = ops
-			.find!(op => op.ruleSelection == OperationDefinitionEnum.SelSet);
-		if(!selSet.empty) {
-			if(ops.length > 1) {
-				throw new Exception(
-					"If SelectionSet the number of Operations must be 1"
-					);
-			}
-			return this.executeOperation(selSet.front, variables, doc, context);
-		}
-
-		Json ret = returnTemplate();
+		Json ret = Json.emptyObject();
+		ret[Constants.data] = Json.emptyObject();
 		foreach(op; ops) {
 			Json tmp = this.executeOperation(op, variables, doc, context);
 			this.executationTraceLog.logf("%s\n%s\n%s", op.ruleSelection, ret,
 					tmp);
-			if(tmp.type == Json.Type.object && "data" in tmp) {
-				foreach(key, value; tmp["data"].byKeyValue()) {
-					if(key in ret["data"]) {
+			if(tmp.type == Json.Type.object && Constants.data in tmp) {
+				foreach(key, value; tmp[Constants.data].byKeyValue()) {
+					if(key in ret[Constants.data]) {
 						this.executationTraceLog.logf(
 								"key %s already present", key
 							);
 						continue;
 					}
-					ret["data"][key] = value;
+					ret[Constants.data][key] = value;
 				}
+			}
+			this.executationTraceLog.logf("%s", tmp);
+			if(Constants.errors in tmp && !tmp[Constants.errors].dataIsEmpty())
+			{
+				ret[Constants.errors] = Json.emptyArray();
 			}
 			foreach(err; tmp[Constants.errors]) {
 				ret[Constants.errors] ~= err;
