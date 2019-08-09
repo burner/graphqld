@@ -45,7 +45,6 @@ Json query(string s, Json args) {
 						return ret;
 					}
 					Json hj = toGraphqlJson!StarWarsSchema(h);
-					writefln("Foo %s", hj.toPrettyString());
 					Json cj = toGraphqlJson!StarWarsSchema(cast(Character)h);
 					cj.remove("__typename");
 					ret["data"] = joinJson(hj, cj);
@@ -340,11 +339,9 @@ Json query(string s, Json args) {
 	Json rslt = query(`
 		query UseFragment {
 			luke: human(id: "1000") {
-				__typename
 				...HumanFragment
 			}
 			leia: human(id: "1003") {
-				__typename
 				...HumanFragment
 			}
 		}

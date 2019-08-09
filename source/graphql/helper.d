@@ -531,7 +531,7 @@ unittest {
 
 template isNotInTypeSet(T, R...) {
 	import std.meta : staticIndexOf;
-	enum isInTypeSet = staticIndexOf!(T, R) == -1;
+	enum isNotInTypeSet = staticIndexOf!(T, R) == -1;
 }
 
 string getTypename(Schema,T)(auto ref T input) @trusted {
@@ -539,8 +539,8 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 	import std.traits : BaseTypeTuple, BaseClassesTuple;
 	import std.stdio : writefln;
 	import graphql.traits : collectTypes;
-	pragma(msg, T);
-	writefln("To %s", T.stringof);
+	//pragma(msg, T);
+	//writefln("To %s", T.stringof);
 	static if(!isClass!(T)) {
 		return T.stringof;
 	} else {
@@ -549,17 +549,18 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 		alias AllCls = Filter!(isClass, All);
 		alias NoT = EraseAll!(T, AllCls);
 		alias NoT2 = EraseAll!(Object, NoT);
-		alias Test = isNotInTypeSet!T;
-		alias NoDownCasts = Erase!(Test, BTT);
-		pragma(msg, "\n" ~ T.stringof);
-		pragma(msg, NoDownCasts);
-		static foreach(Cls; NoDownCasts) {{
-			Cls t = cast(Cls)input;
-			writefln("Chk %s %s", Cls.stringof, t !is null);
-			if(t !is null) {
-				return Cls.stringof;
-			}
-		}}
+
+		//pragma(msg, "\n" ~ T.stringof);
+		//pragma(msg, NoT2);
+		static foreach(Cls; NoT2) {
+			static if(isNotInTypeSet!(Cls, BTT)) {{
+				Cls t = cast(Cls)input;
+				//writefln("Chk %s %s", Cls.stringof, t !is null);
+				if(t !is null) {
+					return Cls.stringof;
+				}
+			}}
+		}
 		return T.stringof;
 	}
 }
@@ -593,7 +594,7 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 
 		// the important bit is the setting of the __typename field
 		ret["__typename"] = getTypename!(Schema)(input);
-		writefln("Got %s", ret["__typename"].to!string());
+		//writefln("Got %s", ret["__typename"].to!string());
 
 		alias names = FieldNameTuple!(T);
 		alias types = FieldTypeTuple!(T);
