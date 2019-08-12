@@ -315,7 +315,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
-				ret["data"] = tr["data"]["ofType"];
+				Json d = tr["data"];
+				writeln("InputValue ", tr.toPrettyString());
+				writeln("ret ", ret["data"].type == Json.Type.object);
+				writeln("d ", d["ofType"].type == Json.Type.object);
+				ret["data"] = d["ofType"];
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString()
 					);

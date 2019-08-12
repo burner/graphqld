@@ -446,3 +446,94 @@ Json query(string s, Json args) {
 	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
 			rslt.toPrettyString()));
 }
+
+@safe unittest {
+	Json rslt = query(`
+		query IntrospectionQueryTypeQuery {
+			__schema {
+				queryType {
+					fields {
+						name
+						args {
+							name
+							description
+							type {
+								name
+								kind
+								ofType {
+									name
+									kind
+								}
+							}
+							defaultValue
+						}
+					}
+				}
+			}
+		}
+		`);
+
+	string s = ` {
+		"__schema": {
+			"queryType": {
+				"fields": [
+					{
+						"name": "hero",
+						"args": [
+							{
+								"defaultValue": null,
+								"description":
+									"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
+								"name": "episode",
+								"type": {
+									"kind": "ENUM",
+									"name": "Episode",
+									"ofType": null
+								}
+							}
+						]
+					},
+					{
+						"name": "human",
+						"args": [
+							{
+								"name": "id",
+								"description": "id of the human",
+								"type": {
+									"kind": "NON_NULL",
+									"name": null,
+									"ofType": {
+										"kind": "SCALAR",
+										"name": "String"
+									}
+								},
+								"defaultValue": null
+							}
+						]
+					},
+					{
+						"name": "droid",
+						"args": [
+							{
+								"name": "id",
+								"description": "id of the droid",
+								"type": {
+									"kind": "NON_NULL",
+									"name": null,
+									"ofType": {
+										"kind": "SCALAR",
+										"name": "String"
+									}
+								},
+								"defaultValue": null
+							}
+						]
+					}
+				]
+			}
+		}
+	}`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
+			rslt.toPrettyString()));
+}
