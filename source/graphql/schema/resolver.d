@@ -167,6 +167,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			}
 			string typeCap;
 			string old;
+			StringTypeStrip stripType;
 			if(typeName.empty) {
 				ret.insertError("unknown type");
 				goto retLabel;
@@ -174,20 +175,20 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				typeCap = typeName;
 				old = typeName;
 			}
-			typeCap = typeCap.stringTypeStrip();
+			stripType = typeCap.stringTypeStrip();
 			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
-				if(typeCap == typeConst) {
-					writeln(old, " ", typeCap, " ", type.stringof);
+				if(stripType.str == typeConst) {
+					writeln(old, " ", stripType.str, " ", type.stringof);
 					ret["data"] = typeToJson!(type,T)();
-					graphql.defaultResolverLog.logf("%s %s %s", typeCap,
+					graphql.defaultResolverLog.logf("%s %s %s", stripType.str,
 							typeConst, ret["data"]
 						);
 					goto retLabel;
 				} else {
 					graphql.defaultResolverLog.logf("||||||||||| %s %s",
-							typeCap, typeConst
+							stripType.str, typeConst
 						);
 				}
 			}}

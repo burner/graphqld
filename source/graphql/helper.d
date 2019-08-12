@@ -2,6 +2,7 @@ module graphql.helper;
 
 import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;
+import std.conv : to;
 import std.format : format;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
@@ -442,6 +443,8 @@ const(Document) lexAndParse(string s) {
 	return doc;
 }
 
+
+/*
 string stringTypeStrip(string str) {
 	import std.algorithm.searching : startsWith, endsWith, canFind;
 	import std.string : capitalize, indexOf, strip;
@@ -498,26 +501,140 @@ string stringTypeStrip(string str) {
 	str = str == "__field" ? "__Field" : str;
 
 	return str;
+}*/
+
+struct StringTypeStrip {
+	string input;
+	string str;
+	bool outerNull;
+	bool arr;
+	bool innerNull;
+
+	string toString() const {
+		import std.format : format;
+		return format("StringTypeStrip(input:'%s', str:'%s', outerNull:'%s', "
+			   ~ "arr:'%s', innerNull:'%s')", this.input, this.str,
+			   this.outerNull, this.arr, this.innerNull);
+	}
+}
+
+StringTypeStrip stringTypeStrip(string str) {
+	import std.algorithm.searching : startsWith, endsWith, canFind;
+	import std.string : capitalize, indexOf, strip;
+
+	StringTypeStrip ret;
+	ret.input = str;
+
+	immutable ns = "NullableStore!";
+	immutable ns1 = "NullableStore!(";
+	immutable leaf = "GQLDCustomLeaf!";
+	immutable leaf1 = "GQLDCustomLeaf!(";
+	immutable nll = "Nullable!";
+	immutable nll1 = "Nullable!(";
+
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
+	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	// GQLDCustomLeaf!( .... )
+	if(str.startsWith(leaf1) && str.endsWith(")")) {
+		str = str[leaf1.length .. $ - 1];
+	}
+
+	// Nullable!( .... )
+	if(str.startsWith(nll1) && str.endsWith(")")) {
+		ret.outerNull = true;
+		str = str[nll1.length .. $ - 1];
+	}
+
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
+	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	// xxxxxxx[]
+	if(str.endsWith("[]")) {
+		ret.arr = true;
+		str = str[0 .. $ - 2];
+	}
+
+	// Nullable!( .... )
+	if(str.startsWith(nll1) && str.endsWith(")")) {
+		ret.innerNull = true;
+		str = str[nll1.length .. $ - 1];
+	}
+
+	// Nullable! ....
+	if(str.startsWith(nll)) {
+		ret.innerNull = true;
+		str = str[nll.length .. $];
+	}
+
+	// NullableStore!( .... )
+	if(str.startsWith(ns1) && str.endsWith(")")) {
+		str = str[ns1.length .. $ - 1];
+	}
+
+	// NullableStore!....
+	if(str.startsWith(ns)) {
+		str = str[ns.length .. $];
+	}
+
+	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
+		? "Int"
+		: str;
+
+	str = canFind(["string", "int", "float", "bool"], str)
+		? capitalize(str)
+		: str;
+
+	str = str == "__type" ? "__Type" : str;
+	str = str == "__schema" ? "__Schema" : str;
+	str = str == "__inputvalue" ? "__InputValue" : str;
+	str = str == "__directive" ? "__Directive" : str;
+	str = str == "__field" ? "__Field" : str;
+
+	ret.str = str;
+	return ret;
 }
 
 unittest {
+	bool oNN;
+	bool arr;
+	bool iNN;
 	string t = "Nullable!string";
-	string r = t.stringTypeStrip();
-	assert(r == "String", r);
+	StringTypeStrip r = t.stringTypeStrip();
+	assert(r.str == "String", to!string(r));
+	assert(r.innerNull, to!string(r));
 
 	t = "Nullable!(string[])";
 	r = t.stringTypeStrip();
-	assert(r == "String", r);
+	assert(r.str == "String", to!string(r));
+	assert(r.outerNull, to!string(r));
+	assert(r.arr, to!string(r));
 }
 
 unittest {
 	string t = "Nullable!__type";
-	string r = t.stringTypeStrip();
-	assert(r == "__Type", r);
+	StringTypeStrip r = t.stringTypeStrip();
+	assert(r.str == "__Type", to!string(r));
 
 	t = "Nullable!(__type[])";
 	r = t.stringTypeStrip();
-	assert(r == "__Type", r);
+	assert(r.str == "__Type", to!string(r));
+	assert(r.outerNull);
+	assert(r.arr);
 }
 
 template isClass(T) {

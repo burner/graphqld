@@ -56,7 +56,7 @@ class SchemaValidator(Schema) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
 	import graphql.traits;
-	import graphql.helper : stringTypeStrip;
+	import graphql.helper : StringTypeStrip, stringTypeStrip;
 
 	alias enter = Visitor.enter;
 	alias exit = Visitor.exit;
@@ -105,8 +105,8 @@ class SchemaValidator(Schema) : Visitor {
 
 		string followType = field[Constants.typenameOrig].get!string();
 		string old = followType;
-		followType = followType.stringTypeStrip();
-		this.addTypeToStackImpl(name, followType, old);
+		StringTypeStrip stripped = followType.stringTypeStrip();
+		this.addTypeToStackImpl(name, stripped.str, old);
 	}
 
 	void addTypeToStackImpl(string name, string followType, string old) {
