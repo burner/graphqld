@@ -330,6 +330,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		} catch(GQLDExecutionException e) {
 			auto ret = Json.emptyObject();
+			ret[Constants.data] = Json(null);
 			ret[Constants.errors] = Json.emptyArray();
 			ret.insertError(e.msg);
 			return ret;

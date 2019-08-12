@@ -7,6 +7,7 @@ import std.stdio;
 
 import vibe.data.json;
 
+import graphql.constants;
 import graphql.parser;
 import graphql.builder;
 import graphql.lexer;
@@ -57,12 +58,25 @@ Json query(string s, Json args) {
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @safe
 			{
+				import std.conv : to;
 				auto e = "episode" in args;
 				Json ret = Json.emptyObject();
 				ret["data"] = toGraphqlJson!StarWarsSchema(getHero(
-						e ? nullable(cast(Episode)(*e).to!int)
+						e ? nullable((*e).to!string().to!Episode())
 							: Nullable!(Episode).init
 					));
+				return ret;
+			}
+		);
+
+	graphqld.setResolver("Character", "secretBackstory",
+			delegate(string name, Json parent, Json args,
+					ref DefaultContext con) @safe
+			{
+				Json ret = Json.emptyObject();
+				ret[Constants.data] = Json(null);
+				ret[Constants.errors] = Json.emptyArray();
+				ret.insertError("secretBackstory is secret");
 				return ret;
 			}
 		);
@@ -373,6 +387,97 @@ Json query(string s, Json args) {
 
 	string s = `{"data" : { "hero" : { "__typename": "Droid", "name": "R2-D2" }
 	} }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query CheckTypeOfLuke {
+			hero(episode: EMPIRE) {
+				__typename
+				name
+			}
+		}`);
+
+	string s = `{"data" : { "hero" : { "__typename": "Human",
+		"name": "Luke Skywalker" }
+	} }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query HeroNameQuery {
+			hero {
+				name
+				secretBackstory
+			}
+		}`);
+
+	string s = `{"data" : { "hero" : { "name": "R2-D2",
+            "secretBackstory": null, } }, "errors" : [ {
+				"message": "secretBackstory is secret" } ]}`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query HeroNameQuery {
+			hero {
+				name
+				friends {
+					name
+					secretBackstory
+				}
+			}
+		}`);
+
+	string s = `{
+		"errors" : [
+			{ "message": "secretBackstory is secret" },
+			{ "message": "secretBackstory is secret" },
+			{ "message": "secretBackstory is secret" }
+		],
+		"data": { "hero": { "name": "R2-D2",
+				"friends": [
+					{ "name": "Luke Skywalker", "secretBackstory": null },
+					{ "name": "Han Solo", "secretBackstory": null },
+					{ "name": "Leia Organa", "secretBackstory": null }
+				]
+			}
+		}
+	}`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query HeroNameQuery {
+			mainHero: hero {
+				name
+				story: secretBackstory
+			}
+		}`);
+
+	string s = `{
+		"data": {
+			"mainHero": {
+				"name": "R2-D2",
+				"story": null,
+			},
+		},
+		"errors" : [
+			{ "message": "secretBackstory is secret" },
+		]
+	}`;
 	Json exp = parseJson(s);
 	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
 			exp.toPrettyString(), rslt.toPrettyString()));

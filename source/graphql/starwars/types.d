@@ -39,6 +39,12 @@ abstract class Character {
 	@GQLDUda(GQLDDescription("Which movies they appear in."))
 	Episode[] appearsIn;
 
+	@GQLDUda(
+		GQLDDescription("Where are they from and how they came to be who they "
+			~ " are.")
+	)
+	string secretBackstory;
+
 	this(string id, string name, string[] friends, int[] appearsIn) {
 		import std.array : array;
 		import std.algorithm.iteration : map;
