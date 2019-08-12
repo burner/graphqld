@@ -121,11 +121,11 @@ class GQLDEnum : GQLDScalar {
 class GQLDBool : GQLDScalar {
 	this() {
 		super(GQLDKind.Bool);
-		super.name = "Bool";
+		super.name = "Boolean";
 	}
 
 	override string toString() const {
-		return "Bool";
+		return "Boolean";
 	}
 }
 
@@ -328,7 +328,7 @@ class GQLDSchema(Type) : GQLDMap {
 
 	void createInbuildTypes() {
 		this.types["string"] = new GQLDString();
-		foreach(t; ["String", "Int", "Float", "Bool"]) {
+		foreach(t; ["String", "Int", "Float", "Boolean"]) {
 			GQLDObject tmp = new GQLDObject(t);
 			this.types[t] = tmp;
 			tmp.member[Constants.name] = new GQLDString();
@@ -428,7 +428,7 @@ class GQLDSchema(Type) : GQLDMap {
 			);
 
 
-		foreach(t; ["String", "Int", "Float", "Bool"]) {
+		foreach(t; ["String", "Int", "Float", "Boolean"]) {
 			this.types[t].toObject().member[Constants.fields] =
 				this.__listOfNonNullField;
 		}

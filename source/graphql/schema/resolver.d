@@ -32,7 +32,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 }
 
 GQLDSchema!(Type) toSchema(Type)() {
-	typeof(return) ret = new typeof(return)();
+	typeof(return) ret = new GQLDSchema!Type();
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
 		GQLDMap cur = new GQLDMap();
@@ -75,7 +75,81 @@ GQLDSchema!(Type) toSchema(Type)() {
 	return ret;
 }
 
+private immutable typeStr = `
+{
+	"kind" : "OBJECT",
+	"name" : "__Type",
+	"interfaces" : null,
+	"fields" : ["kind", "name", "description", "fields", "interfaces",
+		"possibleTypes", "enumValues", "inputFields", "ofType"]
+}
+`;
+
+private immutable typeKindStr = `
+{
+	"kind": "ENUM",
+	"name": "__TypeKind",
+	"enumValues" : [ "SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM",
+		"INPUT_OBJECT", "LIST", "NON_NULL" ],
+	"fields" : null
+}
+`;
+
+private immutable fieldStr = `
+{
+	"kind": "OBJECT",
+	"name": "__Field",
+	"interfaces" : null,
+	"fields" : ["name", "description", "args", "type", "isDeprecated",
+		"deprecationReason"]
+}
+`;
+
+private immutable inputValueStr = `
+{
+	"kind": "OBJECT",
+	"name": "__InputValue",
+	"interfaces" : null,
+	"fields" : ["name", "description", "type", "defaultValue"]
+}
+`;
+
+private immutable enumValueStr = `
+{
+	"kind": "OBJECT",
+	"name": "__EnumValue",
+	"interfaces" : null,
+	"fields" : ["name", "description", "isDeprecated", "deprecationReason"]
+}
+`;
+
+private immutable directiveStr = `
+{
+	"kind": "OBJECT",
+	"name": "__Directive",
+	"interfaces" : null,
+	"fields" : ["name", "description", "locations", "args"]
+}
+`;
+
+private immutable directiveLocationStr = `
+{
+	"kind": "ENUM",
+	"name": "__DirectiveLocation",
+	"interfaces" : null,
+	"fields" : null
+}
+`;
+
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
+	auto typeJS = parseJsonString(typeStr);
+	auto typeKindJS = parseJsonString(typeKindStr);
+	auto fieldJS = parseJsonString(fieldStr);
+	auto enumValueJS = parseJsonString(enumValueStr);
+	auto inputValueJS = parseJsonString(inputValueStr);
+	auto directiveJS = parseJsonString(directiveStr);
+	auto directiveLocationJS = parseJsonString(directiveLocationStr);
+
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
@@ -92,17 +166,20 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				typeName = parent[Constants.name].get!string();
 			}
 			string typeCap;
+			string old;
 			if(typeName.empty) {
 				ret.insertError("unknown type");
 				goto retLabel;
 			} else {
 				typeCap = typeName;
+				old = typeName;
 			}
 			typeCap = typeCap.stringTypeStrip();
 			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(typeCap == typeConst) {
+					writeln(old, " ", typeCap, " ", type.stringof);
 					ret["data"] = typeToJson!(type,T)();
 					graphql.defaultResolverLog.logf("%s %s %s", typeCap,
 							typeConst, ret["data"]
@@ -123,10 +200,17 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			Json args, ref Con context) @safe
 		{
 			//logf("%s %s %s", name, args, parent);
-			Json ret = //returnTemplate();
-				Json.emptyObject();
+			Json ret = Json.emptyObject();
 			ret["data"] = Json.emptyObject();
 			ret["data"]["types"] = Json.emptyArray();
+			ret["data"]["types"] ~= typeJS;
+			ret["data"]["types"] ~= typeKindJS;
+			ret["data"]["types"] ~= fieldJS;
+			ret["data"]["types"] ~= inputValueJS;
+			ret["data"]["types"] ~= enumValueJS;
+			ret["data"]["types"] ~= directiveJS;
+			ret["data"]["types"] ~= directiveLocationJS;
+
 			alias AllTypes = collectTypes!(T);
 			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);
 			alias FixUp = staticMap!(fixupBasicTypes, NoListOrArray);

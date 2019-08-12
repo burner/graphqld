@@ -56,7 +56,7 @@ template typeToTypeName(Type) {
 	static if(is(Type == enum)) {
 		enum typeToTypeName = Type.stringof;
 	} else static if(is(Type == bool)) {
-		enum typeToTypeName = "Bool";
+		enum typeToTypeName = "Boolean";
 	} else static if(is(Type == GQLDCustomLeaf!Fs, Fs...)) {
 		enum typeToTypeName = Fs[0].stringof;
 	} else static if(isFloatingPoint!(Type)) {
@@ -149,6 +149,7 @@ Json typeFields(T)() {
 	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
 			"opEquals", "Monitor", "factory"];
 	Json ret = Json.emptyArray();
+	bool[string] fieldsAlreadyIn;
 	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
 	static foreach(Type; TplusParents) {{
 		static foreach(mem; __traits(allMembers, Type)) {{
@@ -156,61 +157,67 @@ Json typeFields(T)() {
 			static if(!canFind(memsToIgnore, mem)
 					&& udaData.ignore != Ignore.yes)
 			{
-				Json tmp = Json.emptyObject();
-				tmp[Constants.name] = mem;
-				tmp[Constants.__typename] = "__Field"; // needed for interfacesForType
-				tmp[Constants.description] = udaData.description.text.empty
-						? Json(null)
-						: Json(udaData.description.text);
+				if(mem !in fieldsAlreadyIn) {
+					fieldsAlreadyIn[mem] = true;
+					Json tmp = Json.emptyObject();
+					tmp[Constants.name] = mem;
+					// needed for interfacesForType
+					tmp[Constants.__typename] = "__Field";
+					tmp[Constants.description] = udaData.description.text.empty
+							? Json(null)
+							: Json(udaData.description.text);
 
-				tmp[Constants.isDeprecated] =
-					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
-						? true
-						: false;
+					tmp[Constants.isDeprecated] =
+						udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+							? true
+							: false;
 
-				tmp[Constants.deprecationReason] =
-					udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
-						? Json(udaData.deprecationInfo.deprecationReason)
-						: Json(null);
+					tmp[Constants.deprecationReason] =
+						udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
+							? Json(udaData.deprecationInfo.deprecationReason)
+							: Json(null);
 
-				tmp[Constants.args] = Json.emptyArray();
-				static if(isCallable!(__traits(getMember, Type, mem))) {
-					alias RT = ReturnType!(__traits(getMember, Type, mem));
-					alias RTS = stripArrayAndNullable!RT;
-					tmp[Constants.typenameOrig] = typeToTypeName!(RT);
+					tmp[Constants.args] = Json.emptyArray();
+					static if(isCallable!(__traits(getMember, Type, mem))) {
+						alias RT = ReturnType!(__traits(getMember, Type, mem));
+						alias RTS = stripArrayAndNullable!RT;
+						tmp[Constants.typenameOrig] = typeToTypeName!(RT);
 
-					// InputValue
-					alias paraNames = ParameterIdentifierTuple!(
-							__traits(getMember, Type, mem)
-						);
-					alias paraTypes = Parameters!(
-							__traits(getMember, Type, mem)
-						);
-					alias paraDefs = ParameterDefaults!(
-							__traits(getMember, Type, mem)
-						);
-					static foreach(idx; 0 .. paraNames.length) {{
-						Json iv = Json.emptyObject();
-						iv[Constants.name] = paraNames[idx];
-						// needed for interfacesForType
-						iv[Constants.__typename] = Constants.__InputValue;
-						iv[Constants.description] = Json(null);
-						iv[Constants.typenameOrig] =
-							typeToParameterTypeName!(paraTypes[idx]);
-						static if(!is(paraDefs[idx] == void)) {
-							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
-								.toString();
-						} else {
-							iv[Constants.defaultValue] = Json(null);
-						}
-						tmp[Constants.args] ~= iv;
-					}}
-				} else {
-					tmp[Constants.typenameOrig] = typeToTypeName!(
-							typeof(__traits(getMember, Type, mem))
-						);
+						// InputValue
+						alias paraNames = ParameterIdentifierTuple!(
+								__traits(getMember, Type, mem)
+							);
+						alias paraTypes = Parameters!(
+								__traits(getMember, Type, mem)
+							);
+						alias paraDefs = ParameterDefaults!(
+								__traits(getMember, Type, mem)
+							);
+						static foreach(idx; 0 .. paraNames.length) {{
+							Json iv = Json.emptyObject();
+							iv[Constants.name] = paraNames[idx];
+							// needed for interfacesForType
+							iv[Constants.__typename] = Constants.__InputValue;
+							iv[Constants.description] = Json(null);
+							iv[Constants.typenameOrig] =
+								typeToParameterTypeName!(paraTypes[idx]);
+							static if(!is(paraDefs[idx] == void)) {
+								iv[Constants.defaultValue] = serializeToJson(
+										paraDefs[idx]
+									)
+									.toString();
+							} else {
+								iv[Constants.defaultValue] = Json(null);
+							}
+							tmp[Constants.args] ~= iv;
+						}}
+					} else {
+						tmp[Constants.typenameOrig] = typeToTypeName!(
+								typeof(__traits(getMember, Type, mem))
+							);
+					}
+					ret ~= tmp;
 				}
-				ret ~= tmp;
 			}
 		}}
 	}}
@@ -393,6 +400,62 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	}
 
 	return ret;
+}
+
+@safe unittest {
+	import std.format : format;
+	Json r = typeToJson!(string,void)();
+	Json e = parseJsonString(`
+		{
+			"__typename": "__Type",
+			"possibleTypesNames": null,
+			"enumValues": null,
+			"interfacesNames": null,
+			"kind": "NON_NULL",
+			"name": null,
+			"ofType": {
+				"__typename": "__Type",
+				"possibleTypesNames": null,
+				"enumValues": null,
+				"interfacesNames": null,
+				"kind": "SCALAR",
+				"isDeprecated": false,
+				"deprecationReason": null,
+				"name": "String",
+				"description": null,
+				"inputFields": null,
+				"ofTypeName": "immutable(char)",
+				"fields": null
+			},
+			"description": null,
+			"fields": null
+		}
+		`);
+	assert(r == e, format("exp:\n%s\ngot:\n%s", e.toPrettyString(),
+				r.toPrettyString()));
+}
+
+@safe unittest {
+	import std.format : format;
+	Json r = typeToJson!(Nullable!string,void)();
+	Json e = parseJsonString(`
+		{
+			"__typename": "__Type",
+			"possibleTypesNames": null,
+			"enumValues": null,
+			"interfacesNames": null,
+			"kind": "SCALAR",
+			"isDeprecated": false,
+			"deprecationReason": null,
+			"name": "String",
+			"description": null,
+			"inputFields": null,
+			"ofTypeName": "immutable(char)",
+			"fields": null
+		}
+		`);
+	assert(r == e, format("exp:\n%s\ngot:\n%s", e.toPrettyString(),
+				r.toPrettyString()));
 }
 
 Json directivesToJson(Directives)() {

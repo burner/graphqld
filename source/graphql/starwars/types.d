@@ -18,7 +18,8 @@ enum Episode {
 }
 
 @GQLDUda(
-	GQLDDescription("A character in the Star Wars Trilogy")
+	GQLDDescription("A character in the Star Wars Trilogy"),
+	TypeKind.INTERFACE
 )
 abstract class Character {
 	@GQLDUda(GQLDDescription("The id of the character"))
@@ -34,6 +35,7 @@ abstract class Character {
 	)
 	NullableStore!(Character[]) friends;
 
+	@GQLDUda(Ignore.yes)
 	string[] friendsId;
 
 	@GQLDUda(GQLDDescription("Which movies they appear in."))
@@ -56,8 +58,6 @@ abstract class Character {
 }
 
 class Human : Character {
-	string type;
-
 	@GQLDUda(
 		GQLDDescription("The home planet of the human, or null if unknown.")
 	)
@@ -67,13 +67,11 @@ class Human : Character {
 			string homePlanet)
 	{
 		super(id, name, friends, appearsIn);
-		this.type = "Human";
 		this.homePlanet = homePlanet;
 	}
 }
 
 class Droid : Character{
-	string type;
 	@GQLDUda(
 		GQLDDescription("The primary function of the droid.")
 	)
@@ -83,7 +81,6 @@ class Droid : Character{
 			string primaryFunction)
 	{
 		super(id, name, friends, appearsIn);
-		this.type = "Human";
-		this.primaryFunction = primaryFunction;
+		this.primaryFunction = nullable(primaryFunction);
 	}
 }
