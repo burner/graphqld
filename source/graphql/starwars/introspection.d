@@ -354,3 +354,95 @@ Json query(string s, Json args) {
 	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
 			rslt.toPrettyString()));
 }
+
+@safe unittest {
+	Json rslt = query(`
+		query IntrospectionDroidNestedFieldsQuery {
+			__type(name: "Droid") {
+				name
+				fields {
+					name
+					type {
+						name
+						kind
+						ofType {
+							name
+							kind
+						}
+					}
+				}
+			}
+		}
+		`);
+
+	string s = `{
+		"data" : {
+			"__type" : {
+				"name" : "Droid",
+				"fields" : [
+					{
+						"name": "primaryFunction",
+						"type": {
+							"name": "String",
+							"kind": "SCALAR",
+							"ofType": null
+						}
+					},
+					{
+						"name": "id",
+						"type": {
+							"name": null,
+							"kind": "NON_NULL",
+							"ofType": {
+								"name": "String",
+								"kind": "SCALAR"
+							}
+						}
+					},
+					{
+						"name": "name",
+						"type": {
+							"name": "String",
+							"kind": "SCALAR",
+							"ofType": null
+						}
+					},
+					{
+						"name": "friends",
+						"type": {
+							"name": null,
+							"kind": "LIST",
+							"ofType": {
+								"name": "Character",
+								"kind": "INTERFACE"
+							}
+						}
+					},
+					{
+						"name": "appearsIn",
+						"type": {
+							"name": null,
+							"kind": "LIST",
+							"ofType": {
+								"name": "Episode",
+								"kind": "ENUM"
+							}
+						}
+					},
+					{
+						"name": "secretBackstory",
+						"type": {
+							"name": "String",
+							"kind": "SCALAR",
+							"ofType": null
+						}
+					},
+				]
+			}
+		}
+	}
+	`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
+			rslt.toPrettyString()));
+}

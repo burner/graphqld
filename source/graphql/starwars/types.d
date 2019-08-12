@@ -33,13 +33,13 @@ abstract class Character {
 			~ "they have none."
 		)
 	)
-	NullableStore!(Nullable!(Character)[]) friends;
+	NullableStore!(Nullable!(Nullable!(Character)[])) friends;
 
 	@GQLDUda(Ignore.yes)
 	string[] friendsId;
 
 	@GQLDUda(GQLDDescription("Which movies they appear in."))
-	Nullable!(Episode)[] appearsIn;
+	Nullable!(Nullable!(Episode)[]) appearsIn;
 
 	@GQLDUda(
 		GQLDDescription("Where are they from and how they came to be who they "

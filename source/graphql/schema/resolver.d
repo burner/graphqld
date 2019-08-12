@@ -333,6 +333,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				Json ofType;
 				if(parent.hasPathTo("ofType", ofType)) {
 					ret["data"] = ofType;
+				} else {
+					ret["data"] = Json(null);
 				}
 				graphql.defaultResolverLog.logf("%s", ret);
 				return ret;
