@@ -314,7 +314,7 @@ Json typeToJson2(Type,Schema,Orig)() {
 
 Json typeToJsonImpl(Type,Schema,Orig)() {
 	Json ret = Json.emptyObject();
-	enum string kind = typeToTypeEnum!Type;
+	enum string kind = typeToTypeEnum!(stripArrayAndNullable!Type);
 	ret["kind"] = kind;
 	ret[Constants.__typename] = "__Type";
 	ret[Constants.name] = typeToTypeName!Type;
@@ -391,9 +391,11 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	}
 
 	// needed to resolve ofType
-	static if(is(Type : Nullable!F, F) || is(Type : NullableStore!F, F)
-			|| is(Type : GQLDCustomLeaf!Fs, Fs...))
-	{
+	static if(is(Type : Nullable!F, F)) {
+		ret[Constants.ofTypeName] = F.stringof;
+	} else static if(is(Type : NullableStore!F, F)) {
+		ret[Constants.ofTypeName] = F.stringof;
+	} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
 		ret[Constants.ofTypeName] = Fs[0].stringof;
 	} else static if(isArray!Type) {
 		ret[Constants.ofTypeName] = ElementEncodingType!(Type).stringof;

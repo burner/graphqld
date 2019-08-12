@@ -33,19 +33,19 @@ abstract class Character {
 			~ "they have none."
 		)
 	)
-	NullableStore!(Character[]) friends;
+	NullableStore!(Nullable!(Character)[]) friends;
 
 	@GQLDUda(Ignore.yes)
 	string[] friendsId;
 
 	@GQLDUda(GQLDDescription("Which movies they appear in."))
-	Episode[] appearsIn;
+	Nullable!(Episode)[] appearsIn;
 
 	@GQLDUda(
 		GQLDDescription("Where are they from and how they came to be who they "
 			~ " are.")
 	)
-	string secretBackstory;
+	Nullable!string secretBackstory;
 
 	this(string id, string name, string[] friends, int[] appearsIn) {
 		import std.array : array;
@@ -53,7 +53,7 @@ abstract class Character {
 		this.id = id;
 		this.name = name;
 		this.friendsId = friends;
-		this.appearsIn = appearsIn.map!(e => cast(Episode)e).array;
+		this.appearsIn = appearsIn.map!(e => nullable(cast(Episode)e)).array;
 	}
 }
 
@@ -75,7 +75,7 @@ class Droid : Character{
 	@GQLDUda(
 		GQLDDescription("The primary function of the droid.")
 	)
-	string primaryFunction;
+	Nullable!string primaryFunction;
 
 	this(string id, string name, string[] friends, int[] appearsIn,
 			string primaryFunction)

@@ -180,8 +180,39 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
-					writeln(old, " ", stripType.str, " ", type.stringof);
-					ret["data"] = typeToJson!(type,T)();
+					if(stripType.innerNull && stripType.arr
+							&& stripType.outerNull)
+					{
+						alias PassType = Nullable!(Nullable!(type)[]);
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(!stripType.innerNull && stripType.arr
+							&& stripType.outerNull)
+					{
+						alias PassType = Nullable!(type)[];
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(stripType.innerNull && stripType.arr
+							&& !stripType.outerNull)
+					{
+						alias PassType = Nullable!(type[]);
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(!stripType.innerNull && stripType.arr
+							&& !stripType.outerNull)
+					{
+						alias PassType = type[];
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(!stripType.innerNull && !stripType.arr
+							&& !stripType.outerNull)
+					{
+						alias PassType = type;
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(stripType.innerNull && !stripType.arr
+							&& !stripType.outerNull)
+					{
+						alias PassType = Nullable!type;
+						ret["data"] = typeToJson!(PassType,T)();
+					} else {
+						assert(false, format("%s", stripType));
+					}
 					graphql.defaultResolverLog.logf("%s %s %s", stripType.str,
 							typeConst, ret["data"]
 						);
