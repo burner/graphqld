@@ -312,6 +312,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__InputValue", "type",
 			delegate(string name, Json parent, Json args, ref Con context) @safe
 			{
+				writeln(parent.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
