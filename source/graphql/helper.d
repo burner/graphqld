@@ -443,71 +443,13 @@ const(Document) lexAndParse(string s) {
 	return doc;
 }
 
-
-/*
-string stringTypeStrip(string str) {
-	import std.algorithm.searching : startsWith, endsWith, canFind;
-	import std.string : capitalize, indexOf, strip;
-	immutable fs = ["Nullable!", "NullableStore!", "GQLDCustomLeaf!"];
-	immutable arr = "[]";
-	outer: while(true) {
-		str = str.strip();
-		foreach(f; fs) {
-			if(str.startsWith(f)) {
-				str = str[f.length .. $];
-				continue outer;
-			}
-		}
-		if(str.endsWith(arr)) {
-			str = str[0 .. str.length - arr.length];
-			continue;
-		} else if(str.endsWith("!")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.startsWith("[")) {
-			str = str[1 .. $];
-			continue;
-		} else if(str.endsWith("]")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.startsWith("(")) {
-			str = str[1 .. $];
-			continue;
-		} else if(str.endsWith(")")) {
-			str = str[0 .. $ - 1];
-			continue;
-		} else if(str.endsWith("'")) {
-			str = str[0 .. $ - 1];
-			continue;
-		}
-		break;
-	}
-
-	const comma = str.indexOf(',');
-	str = comma == -1 ? str : str[0 .. comma].strip();
-
-	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
-		? "Int"
-		: str;
-
-	str = canFind(["string", "int", "float", "bool"], str)
-		? capitalize(str)
-		: str;
-
-	str = str == "__type" ? "__Type" : str;
-	str = str == "__schema" ? "__Schema" : str;
-	str = str == "__inputvalue" ? "__InputValue" : str;
-	str = str == "__directive" ? "__Directive" : str;
-	str = str == "__field" ? "__Field" : str;
-
-	return str;
-}*/
-
 struct StringTypeStrip {
 	string input;
 	string str;
+	bool outerNotNull;
 	bool outerNull;
 	bool arr;
+	bool innerNotNull;
 	bool innerNull;
 
 	string toString() const {
@@ -563,6 +505,10 @@ StringTypeStrip stringTypeStrip(string str) {
 		str = str[ns.length .. $];
 	}
 
+	if(str.endsWith("!")) {
+		str = str[0 .. $ - 1];
+	}
+
 	// xxxxxxx[]
 	if(str.endsWith("[]")) {
 		ret.arr = true;
@@ -573,6 +519,10 @@ StringTypeStrip stringTypeStrip(string str) {
 	if(str.startsWith(nll1) && str.endsWith(")")) {
 		ret.innerNull = true;
 		str = str[nll1.length .. $ - 1];
+	}
+
+	if(str.endsWith("!")) {
+		str = str[0 .. $ - 1];
 	}
 
 	// Nullable! ....

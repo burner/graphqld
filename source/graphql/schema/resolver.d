@@ -176,6 +176,10 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				old = typeName;
 			}
 			stripType = typeCap.stringTypeStrip();
+			writeln("args ", args.toPrettyString());
+			writeln("pare ", parent.toPrettyString());
+			writeln(stripType);
+			//writeln("ST ", stripType);
 			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
@@ -312,14 +316,14 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__InputValue", "type",
 			delegate(string name, Json parent, Json args, ref Con context) @safe
 			{
-				writeln(parent.toPrettyString());
+				writeln("\n\nPar ", parent.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
 				Json d = tr["data"];
-				writeln("InputValue ", tr.toPrettyString());
-				writeln("ret ", ret["data"].type == Json.Type.object);
-				writeln("d ", d["ofType"].type == Json.Type.object);
+				//writeln("InputValue ", tr.toPrettyString());
+				//writeln("ret ", ret["data"].type == Json.Type.object);
+				//writeln("d ", d["ofType"].type == Json.Type.object);
 				ret["data"] = d["ofType"];
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString()

@@ -199,6 +199,22 @@ Json typeFields(T)() {
 							// needed for interfacesForType
 							iv[Constants.__typename] = Constants.__InputValue;
 							iv[Constants.description] = Json(null);
+							static if(__traits(compiles, __traits(getAttributes,
+									Parameters!(__traits(getMember, Type,
+										mem))[idx ..  idx + 1])))
+							{
+								iv[Constants.description] = Json(null);
+								alias udad = __traits(getAttributes,
+										Parameters!(__traits(getMember, Type,
+											mem))[idx ..  idx + 1]);
+								static if(udad.length == 1) {
+									enum F = udad[0];
+									static if(is(typeof(F) == GQLDUdaData)) {
+										iv[Constants.description] =
+											F.description.text;
+									}
+								}
+							}
 							iv[Constants.typenameOrig] =
 								typeToParameterTypeName!(paraTypes[idx]);
 							static if(!is(paraDefs[idx] == void)) {

@@ -474,62 +474,64 @@ Json query(string s, Json args) {
 		`);
 
 	string s = ` {
-		"__schema": {
-			"queryType": {
-				"fields": [
-					{
-						"name": "hero",
-						"args": [
-							{
-								"defaultValue": null,
-								"description":
-									"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
-								"name": "episode",
-								"type": {
-									"kind": "ENUM",
-									"name": "Episode",
-									"ofType": null
+		"data" : {
+			"__schema": {
+				"queryType": {
+					"fields": [
+						{
+							"name": "hero",
+							"args": [
+								{
+									"defaultValue": null,
+									"description":
+										"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
+									"name": "episode",
+									"type": {
+										"kind": "ENUM",
+										"name": "Episode",
+										"ofType": null
+									}
 								}
-							}
-						]
-					},
-					{
-						"name": "human",
-						"args": [
-							{
-								"name": "id",
-								"description": "id of the human",
-								"type": {
-									"kind": "NON_NULL",
-									"name": null,
-									"ofType": {
-										"kind": "SCALAR",
-										"name": "String"
-									}
-								},
-								"defaultValue": null
-							}
-						]
-					},
-					{
-						"name": "droid",
-						"args": [
-							{
-								"name": "id",
-								"description": "id of the droid",
-								"type": {
-									"kind": "NON_NULL",
-									"name": null,
-									"ofType": {
-										"kind": "SCALAR",
-										"name": "String"
-									}
-								},
-								"defaultValue": null
-							}
-						]
-					}
-				]
+							]
+						},
+						{
+							"name": "human",
+							"args": [
+								{
+									"name": "id",
+									"description": "id of the human",
+									"type": {
+										"kind": "NON_NULL",
+										"name": null,
+										"ofType": {
+											"kind": "SCALAR",
+											"name": "String"
+										}
+									},
+									"defaultValue": null
+								}
+							]
+						},
+						{
+							"name": "droid",
+							"args": [
+								{
+									"name": "id",
+									"description": "id of the droid",
+									"type": {
+										"kind": "NON_NULL",
+										"name": null,
+										"ofType": {
+											"kind": "SCALAR",
+											"name": "String"
+										}
+									},
+									"defaultValue": null
+								}
+							]
+						}
+					]
+				}
 			}
 		}
 	}`;

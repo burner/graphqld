@@ -10,10 +10,21 @@ import graphql.uda;
 
 @GQLDUda(TypeKind.OBJECT)
 struct StarWarsQuery {
-	Nullable!Character hero(Nullable!Episode episode);
-	Nullable!Human human(string id);
-	Nullable!Droid droid(string id);
+	Nullable!Character hero(
+			@GQLDUda(GQLDDescription("If omitted, returns the hero of the "
+					~ " whole saga. If provided, returns the hero of that "
+					~ " particular episode."))
+			Nullable!Episode episode
+		);
+	Nullable!Human human(
+			@GQLDUda(GQLDDescription("id of the human")) string id
+		);
+	Nullable!Droid droid(
+			@GQLDUda(GQLDDescription("id of the droid")) string id
+		);
 }
+
+pragma(msg, __traits(getAttributes, StarWarsQuery.hero));
 
 class StarWarsSchema {
 	StarWarsQuery queryType;
