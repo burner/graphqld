@@ -1,5 +1,6 @@
 module graphql.uda;
 
+import std.array : empty;
 import std.traits : isBuiltinType;
 
 @safe:
@@ -104,6 +105,9 @@ struct GQLDDeprecatedData {
 
 struct GQLDDescription {
 	string text;
+	string getText() const {
+		return text !is null && text.empty ? this.text : "";
+	}
 }
 
 GQLDDeprecatedData GQLDDeprecated(IsDeprecated isDeprecated) {

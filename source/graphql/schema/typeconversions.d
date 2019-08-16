@@ -163,9 +163,10 @@ Json typeFields(T)() {
 					tmp[Constants.name] = mem;
 					// needed for interfacesForType
 					tmp[Constants.__typename] = "__Field";
-					tmp[Constants.description] = udaData.description.text.empty
+					tmp[Constants.description] = udaData.description.getText()
+						.empty
 							? Json(null)
-							: Json(udaData.description.text);
+							: Json(udaData.description.getText());
 
 					tmp[Constants.isDeprecated] =
 						udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
@@ -248,9 +249,9 @@ Json inputFields(Type)() {
 		enum GQLDUdaData udaData = getUdaData!(types[idx]);
 		Json tmp = Json.emptyObject();
 		tmp[Constants.name] = names[idx];
-		tmp[Constants.description] = udaData.description.text.empty
+		tmp[Constants.description] = udaData.description.getText().empty
 				? Json(null)
-				: Json(udaData.description.text);
+				: Json(udaData.description.getText());
 
 		// needed for interfacesForType
 		tmp[Constants.__typename] = Constants.__InputValue;
@@ -336,9 +337,9 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	ret[Constants.name] = typeToTypeName!Type;
 
 	enum GQLDUdaData udaData = getUdaData!(Orig);
-	ret[Constants.description] = udaData.description.text.empty
+	ret[Constants.description] = udaData.description.getText().empty
 			? Json(null)
-			: Json(udaData.description.text);
+			: Json(udaData.description.getText());
 
 	ret[Constants.isDeprecated] =
 		udaData.deprecationInfo.isDeprecated == IsDeprecated.yes
