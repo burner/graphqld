@@ -178,41 +178,33 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			stripType = typeCap.stringTypeStrip();
 			writeln("args ", args.toPrettyString());
 			writeln("pare ", parent.toPrettyString());
-			writeln(stripType);
+			writeln(__LINE__, " ", stripType);
 			//writeln("ST ", stripType);
 			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
-					if(stripType.innerNull && stripType.arr
-							&& stripType.outerNull)
-					{
-						alias PassType = Nullable!(Nullable!(type)[]);
-						ret["data"] = typeToJson!(PassType,T)();
-					} else if(!stripType.innerNull && stripType.arr
-							&& stripType.outerNull)
-					{
-						alias PassType = Nullable!(type)[];
-						ret["data"] = typeToJson!(PassType,T)();
-					} else if(stripType.innerNull && stripType.arr
-							&& !stripType.outerNull)
-					{
-						alias PassType = Nullable!(type[]);
-						ret["data"] = typeToJson!(PassType,T)();
-					} else if(!stripType.innerNull && stripType.arr
-							&& !stripType.outerNull)
-					{
+					const bool inner = stripType.getInnerNotNull();
+					const bool outer = stripType.getOuterNotNull();
+					const bool arr = stripType.getArray();
+
+					if(inner && outer && arr) {
 						alias PassType = type[];
 						ret["data"] = typeToJson!(PassType,T)();
-					} else if(!stripType.innerNull && !stripType.arr
-							&& !stripType.outerNull)
-					{
-						alias PassType = type;
+					} else if(!inner && outer && arr) {
+						alias PassType = Nullable!(type)[];
 						ret["data"] = typeToJson!(PassType,T)();
-					} else if(stripType.innerNull && !stripType.arr
-							&& !stripType.outerNull)
-					{
-						alias PassType = Nullable!type;
+					} else if(inner && !outer && arr) {
+						alias PassType = Nullable!(type[]);
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(!inner && !outer && arr) {
+						alias PassType = Nullable!(Nullable!(type)[]);
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(!inner && !arr) {
+						alias PassType = Nullable!(type);
+						ret["data"] = typeToJson!(PassType,T)();
+					} else if(inner && !arr) {
+						alias PassType = type;
 						ret["data"] = typeToJson!(PassType,T)();
 					} else {
 						assert(false, format("%s", stripType));

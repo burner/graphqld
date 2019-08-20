@@ -1,13 +1,15 @@
 module graphql.helper;
 
-import std.algorithm.searching : canFind;
 import std.algorithm.iteration : splitter;
+import std.algorithm.searching : startsWith, endsWith, canFind;
 import std.conv : to;
-import std.format : format;
+import std.datetime : DateTime;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
+import std.format : format;
 import std.stdio;
-import std.datetime : DateTime;
+import std.string : capitalize, indexOf, strip;
+import std.typecons : nullable, Nullable;
 
 import vibe.data.json;
 
@@ -452,18 +454,107 @@ struct StringTypeStrip {
 	bool innerNotNull;
 	bool innerNull;
 
+	bool getArray() const {
+		return this.arr;
+	}
+
+	bool getOuterNotNull() const {
+		if(this.outerNotNull) {
+			assert(!this.outerNull, format("%s", this));
+		}
+		return this.outerNotNull ? true : !this.outerNull;
+	}
+
+	bool getInnerNotNull() const {
+		if(this.innerNotNull) {
+			assert(!this.innerNull, format("%s", this));
+		}
+		return this.innerNotNull ? true : !this.innerNull;
+	}
+
 	string toString() const {
 		import std.format : format;
 		return format("StringTypeStrip(input:'%s', str:'%s', outerNull:'%s', "
-			   ~ "arr:'%s', innerNull:'%s')", this.input, this.str,
-			   this.outerNull, this.arr, this.innerNull);
+			   ~ "arr:'%s', innerNull:'%s', outerNotNull:'%s', "
+			   ~ "innerNotNull:'%s')", this.input, this.str,
+			   this.outerNull, this.arr, this.innerNull, this.outerNotNull,
+			   this.innerNotNull);
 	}
 }
 
 StringTypeStrip stringTypeStrip(string str) {
-	import std.algorithm.searching : startsWith, endsWith, canFind;
-	import std.string : capitalize, indexOf, strip;
+	Nullable!StringTypeStrip gqld = gqldStringTypeStrip(str);
+	return gqld.isNull()
+		? dlangStringTypeStrip(str)
+		: gqld.get();
+}
 
+private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
+	StringTypeStrip ret;
+	ret.input = str;
+	string old = str;
+	bool firstBang;
+	if(str.endsWith('!')) {
+		firstBang = true;
+		str = str[0 .. $ - 1];
+	}
+
+	bool arr;
+	if(str.startsWith('[') && str.endsWith(']')) {
+		arr = true;
+		str = str[1 .. $ - 1];
+	}
+
+	bool secondBang;
+	if(str.endsWith('!')) {
+		secondBang = true;
+		str = str[0 .. $ - 1];
+	}
+
+	if(arr) {
+		ret.innerNotNull = secondBang;
+		ret.outerNotNull = firstBang;
+	} else {
+		ret.innerNotNull = firstBang;
+	}
+	ret.arr = arr;
+
+	ret.str = str;
+
+	return old == str ? Nullable!(StringTypeStrip).init : nullable(ret);
+}
+
+unittest {
+	auto a = gqldStringTypeStrip("String");
+	assert(a.isNull());
+
+	a = gqldStringTypeStrip("String!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().innerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String!]");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(a.get().innerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String]!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(!a.get().innerNotNull, format("%s", a.get()));
+	assert(a.get().outerNotNull, format("%s", a.get()));
+
+	a = gqldStringTypeStrip("[String!]!");
+	assert(!a.isNull());
+	assert(a.get().str == "String");
+	assert(a.get().arr, format("%s", a.get()));
+	assert(a.get().innerNotNull, format("%s", a.get()));
+	assert(a.get().outerNotNull, format("%s", a.get()));
+}
+
+private StringTypeStrip dlangStringTypeStrip(string str) {
 	StringTypeStrip ret;
 	ret.input = str;
 
