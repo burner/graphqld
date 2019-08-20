@@ -449,35 +449,14 @@ struct StringTypeStrip {
 	string input;
 	string str;
 	bool outerNotNull;
-	bool outerNull;
 	bool arr;
 	bool innerNotNull;
-	bool innerNull;
-
-	bool getArray() const {
-		return this.arr;
-	}
-
-	bool getOuterNotNull() const {
-		if(this.outerNotNull) {
-			assert(!this.outerNull, format("%s", this));
-		}
-		return this.outerNotNull ? true : !this.outerNull;
-	}
-
-	bool getInnerNotNull() const {
-		if(this.innerNotNull) {
-			assert(!this.innerNull, format("%s", this));
-		}
-		return this.innerNotNull ? true : !this.innerNull;
-	}
 
 	string toString() const {
 		import std.format : format;
-		return format("StringTypeStrip(input:'%s', str:'%s', outerNull:'%s', "
-			   ~ "arr:'%s', innerNull:'%s', outerNotNull:'%s', "
-			   ~ "innerNotNull:'%s')", this.input, this.str,
-			   this.outerNull, this.arr, this.innerNull, this.outerNotNull,
+		return format("StringTypeStrip(input:'%s', str:'%s', "
+			   ~ "arr:'%s', outerNotNull:'%s', innerNotNull:'%s')",
+			   this.input, this.str, this.arr, this.outerNotNull,
 			   this.innerNotNull);
 	}
 }
@@ -517,6 +496,7 @@ private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
 	} else {
 		ret.innerNotNull = firstBang;
 	}
+
 	ret.arr = arr;
 
 	ret.str = str;
@@ -556,6 +536,8 @@ unittest {
 
 private StringTypeStrip dlangStringTypeStrip(string str) {
 	StringTypeStrip ret;
+	ret.outerNotNull = true;
+	ret.innerNotNull = true;
 	ret.input = str;
 
 	immutable ns = "NullableStore!";
@@ -580,9 +562,11 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 		str = str[leaf1.length .. $ - 1];
 	}
 
+	bool firstNull;
+
 	// Nullable!( .... )
 	if(str.startsWith(nll1) && str.endsWith(")")) {
-		ret.outerNull = true;
+		firstNull = true;
 		str = str[nll1.length .. $ - 1];
 	}
 
@@ -606,9 +590,11 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 		str = str[0 .. $ - 2];
 	}
 
+	bool secondNull;
+
 	// Nullable!( .... )
 	if(str.startsWith(nll1) && str.endsWith(")")) {
-		ret.innerNull = true;
+		secondNull = true;
 		str = str[nll1.length .. $ - 1];
 	}
 
@@ -618,7 +604,7 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 
 	// Nullable! ....
 	if(str.startsWith(nll)) {
-		ret.innerNull = true;
+		secondNull = true;
 		str = str[nll.length .. $];
 	}
 
@@ -646,6 +632,16 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 	str = str == "__directive" ? "__Directive" : str;
 	str = str == "__field" ? "__Field" : str;
 
+	writefln("firstNull %s, secondNull %s, arr %s", firstNull, secondNull,
+			ret.arr);
+
+	if(ret.arr) {
+		ret.innerNotNull = !secondNull;
+		ret.outerNotNull = !firstNull;
+	} else {
+		ret.innerNotNull = !secondNull;
+	}
+
 	ret.str = str;
 	return ret;
 }
@@ -657,25 +653,32 @@ unittest {
 	string t = "Nullable!string";
 	StringTypeStrip r = t.stringTypeStrip();
 	assert(r.str == "String", to!string(r));
-	assert(r.innerNull, to!string(r));
+	assert(!r.arr, to!string(r));
+	assert(!r.innerNotNull, to!string(r));
+	assert(r.outerNotNull, to!string(r));
 
 	t = "Nullable!(string[])";
 	r = t.stringTypeStrip();
 	assert(r.str == "String", to!string(r));
-	assert(r.outerNull, to!string(r));
 	assert(r.arr, to!string(r));
+	assert(r.innerNotNull, to!string(r));
+	assert(!r.outerNotNull, to!string(r));
 }
 
 unittest {
 	string t = "Nullable!__type";
 	StringTypeStrip r = t.stringTypeStrip();
 	assert(r.str == "__Type", to!string(r));
+	assert(!r.innerNotNull, to!string(r));
+	assert(r.outerNotNull, to!string(r));
+	assert(!r.arr, to!string(r));
 
 	t = "Nullable!(__type[])";
 	r = t.stringTypeStrip();
 	assert(r.str == "__Type", to!string(r));
-	assert(r.outerNull);
-	assert(r.arr);
+	assert(r.innerNotNull, to!string(r));
+	assert(!r.outerNotNull, to!string(r));
+	assert(r.arr, to!string(r));
 }
 
 template isClass(T) {

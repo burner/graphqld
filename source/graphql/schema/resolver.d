@@ -176,39 +176,48 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				old = typeName;
 			}
 			stripType = typeCap.stringTypeStrip();
-			writeln("args ", args.toPrettyString());
-			writeln("pare ", parent.toPrettyString());
-			writeln(__LINE__, " ", stripType);
+			//writeln("args ", args.toPrettyString());
+			//writeln("pare ", parent.toPrettyString());
+			//writeln(__LINE__, " ", stripType);
 			//writeln("ST ", stripType);
 			//pragma(msg, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
-					const bool inner = stripType.getInnerNotNull();
-					const bool outer = stripType.getOuterNotNull();
-					const bool arr = stripType.getArray();
+					const bool inner = stripType.innerNotNull;
+					const bool outer = stripType.outerNotNull;
+					const bool arr = stripType.arr;
+
+					writefln("inner %s, outer %s, arr %s", inner, outer, arr);
 
 					if(inner && outer && arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = type[];
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && outer && arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(type)[];
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(inner && !outer && arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(type[]);
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && !outer && arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(Nullable!(type)[]);
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && !arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(type);
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(inner && !arr) {
+						writeln(__LINE__, " ", stripType);
 						alias PassType = type;
 						ret["data"] = typeToJson!(PassType,T)();
 					} else {
 						assert(false, format("%s", stripType));
 					}
+					writeln(ret["data"].toPrettyString());
 					graphql.defaultResolverLog.logf("%s %s %s", stripType.str,
 							typeConst, ret["data"]
 						);
