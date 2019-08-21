@@ -261,7 +261,7 @@ void main() {
 	listenHTTP(settings, &hello);
 
 	bool onlyRunTests = false;
-	bool doNotRunTests = false;
+	bool doNotRunTests = true;
 	string[] args = new string[0];
 	finalizeCommandLineOptions(&args);
 	getopt(args,
