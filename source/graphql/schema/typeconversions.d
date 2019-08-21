@@ -124,6 +124,19 @@ unittest {
 	static assert(typeToParameterTypeName!(GQLDCustomLeaf!Date) == "Date!");
 }
 
+unittest {
+	enum AEnum {
+		one,
+		two,
+		three
+	}
+	static assert(typeToParameterTypeName!(AEnum) == "AEnum!");
+	static assert(typeToParameterTypeName!(Nullable!AEnum) == "AEnum");
+	static assert(typeToParameterTypeName!(Nullable!(AEnum)[]) == "[AEnum]!");
+	static assert(typeToParameterTypeName!(Nullable!(Nullable!(AEnum)[])) ==
+			"[AEnum]");
+}
+
 template isScalarType(Type) {
 	static if(is(Type == bool)) {
 		enum isScalarType = true;
@@ -251,6 +264,7 @@ Json typeFields(T)() {
 			}
 		}}
 	}}
+	//writefln("%s %s", __LINE__, ret.toPrettyString());
 	return ret;
 }
 
@@ -492,6 +506,29 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 				r.toPrettyString()));
 }
 
+@safe unittest {
+	import std.format : format;
+	Json r = typeToJson!(Nullable!string,void)();
+	Json e = parseJsonString(`
+		{
+			"__typename": "__Type",
+			"possibleTypesNames": null,
+			"enumValues": null,
+			"interfacesNames": null,
+			"kind": "SCALAR",
+			"isDeprecated": false,
+			"deprecationReason": null,
+			"name": "String",
+			"description": null,
+			"inputFields": null,
+			"ofTypeName": "immutable(char)",
+			"fields": null
+		}
+		`);
+	assert(r == e, format("exp:\n%s\ngot:\n%s", e.toPrettyString(),
+				r.toPrettyString()));
+}
+
 Json directivesToJson(Directives)() {
 	import std.string : stripLeft;
 	Json ret = Json.emptyArray();
@@ -543,8 +580,8 @@ Json directivesToJson(Directives)() {
 						iv[Constants.description] = Json(null);
 						// needed for interfacesForType
 						iv[Constants.__typename] = Constants.__InputValue;
-						//iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
-						iv[Constants.typenameOrig] = typeToParameterTypeName!(paraTypes[idx]);
+						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
+						//iv[Constants.typenameOrig] = typeToParameterTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();

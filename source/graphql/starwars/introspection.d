@@ -31,6 +31,7 @@ Json query(string s, Json args) {
 	//auto lo = new std.experimental.logger.FileLogger("query.log");
 	//graphqld.defaultResolverLog = lo;
 	//graphqld.executationTraceLog = lo;
+	//graphqld.resolverLog = lo;
 
 	graphqld.setResolver("queryType", "human",
 			delegate(string name, Json parent, Json args,
@@ -536,6 +537,7 @@ Json query(string s, Json args) {
 		}
 	}`;
 	Json exp = parseJson(s);
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
-			rslt.toPrettyString()));
+	string extS = exp.toPrettyString();
+	string rsltS = rslt.toPrettyString();
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rslt));
 }

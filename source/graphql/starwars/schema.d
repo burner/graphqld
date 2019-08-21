@@ -12,8 +12,8 @@ import graphql.uda;
 struct StarWarsQuery {
 	Nullable!Character hero(
 			@GQLDUda(GQLDDescription("If omitted, returns the hero of the "
-					~ " whole saga. If provided, returns the hero of that "
-					~ " particular episode."))
+					~ "whole saga. If provided, returns the hero of that "
+					~ "particular episode."))
 			Nullable!Episode episode
 		);
 	Nullable!Human human(

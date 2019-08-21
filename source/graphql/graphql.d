@@ -50,6 +50,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 	alias Schema = GQLDSchema!(T);
 	immutable GQLDOptions options;
 
+	// path information
+	PathElement[] path;
+
 	Schema schema;
 
 	// the logger to use
@@ -85,7 +88,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 							"no field name '%s' found on type '%s'",
 									name,
 									parent.getWithDefault!string("__typename")
-							)
+							), this.path
 						);
 				}
 				this.defaultResolverLog.logf("default ret %s", ret);
@@ -109,8 +112,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson!(JoinJsonPrecedence.a)(args, defaultArgs);
-		this.resolverLog.logf("%s %s %s %s %s %s", type, field,
-				defaultArgs, parent, args, joinedArgs
+		//this.resolverLog.logf(
+		//writefln("%s %s", type, field);
+		assert(type != "__type" && field != "__ofType",
+				parent.toPrettyString());
+		this.resolverLog.logf(
+				"type: %s field: %s defArgs: %s par: %s args: %s %s", type,
+				field, defaultArgs, parent, args, joinedArgs
 			);
 		if(type !in this.resolver) {
 			return defaultResolver(field, parent, joinedArgs, context);
@@ -238,6 +246,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeOperation(OperationDefinition op, Json variables,
 			Document doc, ref Con context)
 	{
+		this.path ~= PathElement(op.name.value);
+		scope(exit) {
+			this.path = this.path[0 .. $ - 1];
+		}
 		bool dirSaysToContinue = continueAfterDirectives(op.d, variables);
 		if(!dirSaysToContinue) {
 			return returnTemplate();
@@ -316,6 +328,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json executeFieldSelection(FieldRangeItem field, GQLDType objectType,
 			Json objectValue, Json variables, Document doc, ref Con context)
 	{
+		this.path ~= PathElement(field.name);
+		scope(exit) {
+			this.path = this.path[0 .. $ - 1];
+		}
 		this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
 				field.name, objectType.name, objectValue, variables
 			);
@@ -459,12 +475,18 @@ class GraphQLD(T, QContext = DefaultContext) {
 				task.join();
 			}
 		} else {
+			size_t idx;
 			foreach(Json item;
 					objectValue["data"].type == Json.Type.array
 						? objectValue["data"]
 						: Json.emptyArray()
 				)
 			{
+				this.path ~= PathElement(idx);
+				++idx;
+				scope(exit) {
+					this.path = this.path[0 .. $ - 1];
+				}
 				this.toRun(ss, elemType, item, variables, ret, doc, context);
 			}
 		}

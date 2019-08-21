@@ -347,7 +347,7 @@ class GQLDSchema(Type) : GQLDMap {
 		auto b = new GQLDBool();
 		auto nnB = new GQLDNonNull(b);
 		this.__schema = new GQLDObject(Constants.__schema);
-		this.__type = new GQLDObject(Constants.__type);
+		this.__type = new GQLDObject(Constants.__Type);
 		this.__nullableType = new GQLDNullable(this.__type);
 		this.__schema.member["mutationType"] = this.__nullableType;
 		this.__schema.member["subscriptionType"] = this.__nullableType;

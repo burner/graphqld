@@ -1,6 +1,7 @@
 module graphql.helper;
 
-import std.algorithm.iteration : splitter;
+import std.array : empty;
+import std.algorithm.iteration : each, splitter;
 import std.algorithm.searching : startsWith, endsWith, canFind;
 import std.conv : to;
 import std.datetime : DateTime;
@@ -43,8 +44,16 @@ Json returnTemplate() {
 }
 
 void insertError(T)(ref Json result, T t) {
+	insertError(result, t, []);
+}
+
+void insertError(T)(ref Json result, T t, PathElement[] path) {
 	Json tmp = Json.emptyObject();
 	tmp["message"] = serializeToJson(t);
+	if(!path.empty) {
+		tmp["path"] = Json.emptyArray();
+		path.each!(it => tmp["path"] ~= it.toJson());
+	}
 	if(e !in result) {
 		result[e] = Json.emptyArray();
 	}
@@ -506,11 +515,11 @@ private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
 		? capitalize(str)
 		: str;
 
-	//str = str == "__type" ? "__Type" : str;
-	//str = str == "__schema" ? "__Schema" : str;
-	//str = str == "__inputvalue" ? "__InputValue" : str;
-	//str = str == "__directive" ? "__Directive" : str;
-	//str = str == "__field" ? "__Field" : str;
+	str = str == "__type" ? "__Type" : str;
+	str = str == "__schema" ? "__Schema" : str;
+	str = str == "__inputvalue" ? "__InputValue" : str;
+	str = str == "__directive" ? "__Directive" : str;
+	str = str == "__field" ? "__Field" : str;
 
 	ret.arr = arr;
 
@@ -830,3 +839,25 @@ unittest {
 	string exp2 = j["dt2"].to!string();
 	assert(exp2 == "2337-07-01T01:01:03", exp2);
 }
+
+struct PathElement {
+	string str;
+	size_t idx;
+
+	static PathElement opCall(string s) {
+		PathElement ret;
+		ret.str = s;
+		return ret;
+	}
+
+	static PathElement opCall(size_t s) {
+		PathElement ret;
+		ret.idx = s;
+		return ret;
+	}
+
+	Json toJson() {
+		return this.str.empty ? Json(this.idx) : Json(this.str);
+	}
+}
+
