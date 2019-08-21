@@ -543,7 +543,7 @@ Json directivesToJson(Directives)() {
 				tmp[Constants.name] = mem;
 				// needed for interfacesForType
 				tmp[Constants.__typename] = Constants.__Directive;
-				tmp[Constants.description] = udaData.description.text.empty
+				tmp[Constants.description] = udaData.description.getText().empty
 						? Json(null)
 						: Json(udaData.description.text);
 

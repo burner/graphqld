@@ -197,20 +197,38 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && outer && arr) {
 						//writeln(__LINE__, " ", stripType);
-						alias PassType = Nullable!(type)[];
-						ret["data"] = typeToJson!(PassType,T)();
+						static if(!is(type == void)) {
+							alias PassType = Nullable!(type)[];
+							ret["data"] = typeToJson!(PassType,T)();
+						} else {
+							ret.insertError(format("invalid type %s in %s",
+										type.stringof,
+										parent.toPrettyString()));
+						}
 					} else if(inner && !outer && arr) {
 						//writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(type[]);
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && !outer && arr) {
 						//writeln(__LINE__, " ", stripType);
-						alias PassType = Nullable!(Nullable!(type)[]);
-						ret["data"] = typeToJson!(PassType,T)();
+						static if(!is(type == void)) {
+							alias PassType = Nullable!(Nullable!(type)[]);
+							ret["data"] = typeToJson!(PassType,T)();
+						} else {
+							ret.insertError(format("invalid type %s in %s",
+										type.stringof,
+										parent.toPrettyString()));
+						}
 					} else if(!inner && !arr) {
 						//writeln(__LINE__, " ", stripType);
-						alias PassType = Nullable!(type);
-						ret["data"] = typeToJson!(PassType,T)();
+						static if(!is(type == void)) {
+							alias PassType = Nullable!(type);
+							ret["data"] = typeToJson!(PassType,T)();
+						} else {
+							ret.insertError(format("invalid type %s in %s",
+										type.stringof,
+										parent.toPrettyString()));
+						}
 					} else if(inner && !arr) {
 						//writeln(__LINE__, " ", stripType);
 						alias PassType = type;
