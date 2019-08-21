@@ -539,7 +539,7 @@ Json query(string s, Json args) {
 	Json exp = parseJson(s);
 	string extS = exp.toPrettyString();
 	string rsltS = rslt.toPrettyString();
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rslt));
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
 }
 
 @safe unittest {
@@ -562,5 +562,5 @@ Json query(string s, Json args) {
 	Json exp = parseJson(s);
 	string extS = exp.toPrettyString();
 	string rsltS = rslt.toPrettyString();
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rslt));
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
 }

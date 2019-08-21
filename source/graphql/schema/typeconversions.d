@@ -362,13 +362,13 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	enum string kind = typeToTypeEnum!(stripArrayAndNullable!Type);
 	ret["kind"] = kind;
 	ret[Constants.__typename] = "__Type";
-	//ret[Constants.name] = typeToTypeName!Type;
 	ret[Constants.name] = typeToTypeName!Type;
 
-	enum GQLDUdaData udaData = getUdaData!(Orig);
-	ret[Constants.description] = udaData.description.getText().empty
+	enum GQLDUdaData udaData = getUdaData!(Type);
+	enum des = udaData.description.text;
+	ret[Constants.description] = des.empty
 			? Json(null)
-			: Json(udaData.description.getText());
+			: Json(des);
 
 	ret[Constants.isDeprecated] =
 		udaData.deprecationInfo.isDeprecated == IsDeprecated.yes

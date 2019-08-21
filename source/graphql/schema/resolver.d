@@ -78,6 +78,7 @@ GQLDSchema!(Type) toSchema(Type)() {
 private immutable typeStr = `
 {
 	"kind" : "OBJECT",
+	"__typename" : "__Type",
 	"name" : "__Type",
 	"interfaces" : null,
 	"fields" : ["kind", "name", "description", "fields", "interfaces",
@@ -88,6 +89,7 @@ private immutable typeStr = `
 private immutable typeKindStr = `
 {
 	"kind": "ENUM",
+	"__typename" : "__Type",
 	"name": "__TypeKind",
 	"enumValues" : [ "SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM",
 		"INPUT_OBJECT", "LIST", "NON_NULL" ],
@@ -98,6 +100,7 @@ private immutable typeKindStr = `
 private immutable fieldStr = `
 {
 	"kind": "OBJECT",
+	"__typename" : "__Type",
 	"name": "__Field",
 	"interfaces" : null,
 	"fields" : ["name", "description", "args", "type", "isDeprecated",
@@ -108,6 +111,7 @@ private immutable fieldStr = `
 private immutable inputValueStr = `
 {
 	"kind": "OBJECT",
+	"__typename" : "__Type",
 	"name": "__InputValue",
 	"interfaces" : null,
 	"fields" : ["name", "description", "type", "defaultValue"]
@@ -117,6 +121,7 @@ private immutable inputValueStr = `
 private immutable enumValueStr = `
 {
 	"kind": "OBJECT",
+	"__typename" : "__Type",
 	"name": "__EnumValue",
 	"interfaces" : null,
 	"fields" : ["name", "description", "isDeprecated", "deprecationReason"]
@@ -126,6 +131,7 @@ private immutable enumValueStr = `
 private immutable directiveStr = `
 {
 	"kind": "OBJECT",
+	"__typename" : "__Type",
 	"name": "__Directive",
 	"interfaces" : null,
 	"fields" : ["name", "description", "locations", "args"]
@@ -135,6 +141,7 @@ private immutable directiveStr = `
 private immutable directiveLocationStr = `
 {
 	"kind": "ENUM",
+	"__typename" : "__Type",
 	"name": "__DirectiveLocation",
 	"interfaces" : null,
 	"fields" : null
@@ -150,12 +157,26 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	auto directiveJS = parseJsonString(directiveStr);
 	auto directiveLocationJS = parseJsonString(directiveLocationStr);
 
+	struct IntroTypeResolverResult {
+		immutable string name;
+		Json ret;
+	}
+
+	immutable introTypeResolverResults = [
+		IntroTypeResolverResult("__Field", fieldJS),
+		IntroTypeResolverResult("__Type", typeJS),
+		IntroTypeResolverResult("__TypeKind", typeKindJS),
+		IntroTypeResolverResult("__EnumValue", enumValueJS),
+		IntroTypeResolverResult("__InputValue", inputValueJS),
+		IntroTypeResolverResult("__Directive", directiveJS),
+		IntroTypeResolverResult("__DirectiveLocation", directiveLocationJS)
+	];
+
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
 			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
-			Json ret = //returnTemplate();
-				Json.emptyObject();
+			Json ret = Json.emptyObject();
 			string typeName;
 			if(Constants.name in args) {
 				typeName = args[Constants.name].get!string();
@@ -176,11 +197,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				old = typeName;
 			}
 			stripType = typeCap.stringTypeStrip();
-			//writeln("args ", args.toPrettyString());
-			//writeln("pare ", parent.toPrettyString());
-			//writeln(__LINE__, " ", stripType);
-			//writeln("ST ", stripType);
-			pragma(msg, staticMap!typeToTypeName, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
@@ -188,15 +204,10 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 					const bool outer = stripType.outerNotNull;
 					const bool arr = stripType.arr;
 
-					//writefln("inner %s, outer %s, arr %s, old %s, new %s",
-					//		inner, outer, arr, stripType.input, stripType.str);
-
 					if(inner && outer && arr) {
-						//writeln(__LINE__, " ", stripType);
 						alias PassType = type[];
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && outer && arr) {
-						//writeln(__LINE__, " ", stripType);
 						static if(!is(type == void)) {
 							alias PassType = Nullable!(type)[];
 							ret["data"] = typeToJson!(PassType,T)();
@@ -206,11 +217,9 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 										parent.toPrettyString()));
 						}
 					} else if(inner && !outer && arr) {
-						//writeln(__LINE__, " ", stripType);
 						alias PassType = Nullable!(type[]);
 						ret["data"] = typeToJson!(PassType,T)();
 					} else if(!inner && !outer && arr) {
-						//writeln(__LINE__, " ", stripType);
 						static if(!is(type == void)) {
 							alias PassType = Nullable!(Nullable!(type)[]);
 							ret["data"] = typeToJson!(PassType,T)();
@@ -220,7 +229,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 										parent.toPrettyString()));
 						}
 					} else if(!inner && !arr) {
-						//writeln(__LINE__, " ", stripType);
 						static if(!is(type == void)) {
 							alias PassType = Nullable!(type);
 							ret["data"] = typeToJson!(PassType,T)();
@@ -230,13 +238,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 										parent.toPrettyString()));
 						}
 					} else if(inner && !arr) {
-						//writeln(__LINE__, " ", stripType);
 						alias PassType = type;
 						ret["data"] = typeToJson!(PassType,T)();
 					} else {
 						assert(false, format("%s", stripType));
 					}
-					//writeln(ret["data"].toPrettyString());
 					graphql.defaultResolverLog.logf("%s %s %s", stripType.str,
 							typeConst, ret["data"]
 						);
@@ -247,6 +253,13 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						);
 				}
 			}}
+			writefln("%s %s", __LINE__, stripType.str);
+			foreach(it; introTypeResolverResults) {
+				if(stripType.str == it.name) {
+					ret["data"] = it.ret;
+					goto retLabel;
+				}
+			}
 			retLabel:
 			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
 			return ret;
@@ -309,9 +322,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
-				//ret["data"] = tr["data"]["ofType"];
 				ret["data"] = tr["data"];
-				writefln("%s %s", __LINE__, tr.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString());
 				return ret;
@@ -323,17 +334,13 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__Field", "type",
 			delegate(string name, Json parent, Json args, ref Con context) @safe
 			{
-				writefln("__Field type %s", parent.toPrettyString());
 				graphql.defaultResolverLog.logf("name %s, parent %s, args %s",
 						name, parent, args
 					);
-				import std.string : capitalize;
 				Json ret = typeResolver(name, parent, args, context);
 				graphql.defaultResolverLog.logf("FIELDDDDD TYPPPPPE %s",
 						ret.toPrettyString()
 					);
-				writefln("%s %s\n%s", __LINE__, parent.toPrettyString(),
-						ret.toPrettyString());
 				return ret;
 			}
 		);
@@ -341,17 +348,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__InputValue", "type",
 			delegate(string name, Json parent, Json args, ref Con context) @safe
 			{
-				writeln("\n\nPar ", parent.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
 				Json d = tr["data"];
-				//writeln("InputValue ", tr.toPrettyString());
-				//writeln("ret ", ret["data"].type == Json.Type.object);
-				//writeln("d ", d["ofType"].type == Json.Type.object);
-				//ret["data"] = d["ofType"];
 				ret["data"] = d;
-				writefln("d %s", d.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString()
 					);
@@ -406,7 +407,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 							l: switch(typeCap) {
 								static foreach(type; collectTypes!(T)) {{
 									case typeToTypeName!(type): {
-									//if(typeCap == typeToTypeName!(type)) {
 										alias striped =
 											stripArrayAndNullable!type;
 										graphql.defaultResolverLog.logf("%s %s",
@@ -449,7 +449,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						string typeCap = capitalize(typeName);
 						l: switch(typeCap) {
 							static foreach(type; collectTypes!(T)) {
-								//if(typeCap == typeToTypeName!(type)) {
 								case typeToTypeName!(type): {
 									alias striped = stripArrayAndNullable!type;
 									graphql.defaultResolverLog.logf("%s %s",

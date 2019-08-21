@@ -336,7 +336,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				field.name, objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
-		//writefln("var %s\narg %s", variables, arguments);
+		writefln("obj %s\nvar %s\narg %s", objectValue, variables, arguments);
 		Json de;
 		try {
 			de = this.resolve(objectType.name,

@@ -487,15 +487,11 @@ class GQLDSchema(Type) : GQLDMap {
 						return deriv.member[field];
 					}
 				}
-				import std.stdio;
-				writefln("%s %s %s", __LINE__, field, map.toString());
 				return null;
 			}
 		} else {
 			ret = t;
 		}
-		import std.stdio;
-		writefln("%s %s %s", __LINE__, field, t.toString());
 		retLabel:
 		return ret;
 	}

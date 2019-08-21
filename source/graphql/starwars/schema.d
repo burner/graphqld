@@ -24,8 +24,6 @@ struct StarWarsQuery {
 		);
 }
 
-pragma(msg, __traits(getAttributes, StarWarsQuery.hero));
-
 class StarWarsSchema {
 	StarWarsQuery queryType;
 }
