@@ -326,6 +326,7 @@ TestQuery(`
 		{ "message": "you can not pass" }
 	],
 	"data" : {
+		"resolverWillThrow": null
 	}
 }`
 )
