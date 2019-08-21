@@ -463,9 +463,10 @@ struct StringTypeStrip {
 
 StringTypeStrip stringTypeStrip(string str) {
 	Nullable!StringTypeStrip gqld = gqldStringTypeStrip(str);
-	return gqld.isNull()
-		? dlangStringTypeStrip(str)
-		: gqld.get();
+	return gqld.get();
+	//return gqld.isNull()
+	//	? dlangStringTypeStrip(str)
+	//	: gqld.get();
 }
 
 private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
@@ -497,16 +498,32 @@ private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
 		ret.innerNotNull = firstBang;
 	}
 
+	str = canFind(["ubyte", "byte", "ushort", "short", "long", "ulong"], str)
+		? "Int"
+		: str;
+
+	str = canFind(["string", "int", "float", "bool"], str)
+		? capitalize(str)
+		: str;
+
+	//str = str == "__type" ? "__Type" : str;
+	//str = str == "__schema" ? "__Schema" : str;
+	//str = str == "__inputvalue" ? "__InputValue" : str;
+	//str = str == "__directive" ? "__Directive" : str;
+	//str = str == "__field" ? "__Field" : str;
+
 	ret.arr = arr;
 
 	ret.str = str;
+	//writefln("%s %s", __LINE__, ret);
 
-	return old == str ? Nullable!(StringTypeStrip).init : nullable(ret);
+	//return old == str ? Nullable!(StringTypeStrip).init : nullable(ret);
+	return nullable(ret);
 }
 
 unittest {
 	auto a = gqldStringTypeStrip("String");
-	assert(a.isNull());
+	assert(!a.isNull());
 
 	a = gqldStringTypeStrip("String!");
 	assert(!a.isNull());
@@ -632,8 +649,8 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 	str = str == "__directive" ? "__Directive" : str;
 	str = str == "__field" ? "__Field" : str;
 
-	writefln("firstNull %s, secondNull %s, arr %s", firstNull, secondNull,
-			ret.arr);
+	//writefln("firstNull %s, secondNull %s, arr %s", firstNull, secondNull,
+	//		ret.arr);
 
 	if(ret.arr) {
 		ret.innerNotNull = !secondNull;
@@ -651,14 +668,14 @@ unittest {
 	bool arr;
 	bool iNN;
 	string t = "Nullable!string";
-	StringTypeStrip r = t.stringTypeStrip();
+	StringTypeStrip r = t.dlangStringTypeStrip();
 	assert(r.str == "String", to!string(r));
 	assert(!r.arr, to!string(r));
 	assert(!r.innerNotNull, to!string(r));
 	assert(r.outerNotNull, to!string(r));
 
 	t = "Nullable!(string[])";
-	r = t.stringTypeStrip();
+	r = t.dlangStringTypeStrip();
 	assert(r.str == "String", to!string(r));
 	assert(r.arr, to!string(r));
 	assert(r.innerNotNull, to!string(r));
@@ -667,14 +684,14 @@ unittest {
 
 unittest {
 	string t = "Nullable!__type";
-	StringTypeStrip r = t.stringTypeStrip();
+	StringTypeStrip r = t.dlangStringTypeStrip();
 	assert(r.str == "__Type", to!string(r));
 	assert(!r.innerNotNull, to!string(r));
 	assert(r.outerNotNull, to!string(r));
 	assert(!r.arr, to!string(r));
 
 	t = "Nullable!(__type[])";
-	r = t.stringTypeStrip();
+	r = t.dlangStringTypeStrip();
 	assert(r.str == "__Type", to!string(r));
 	assert(r.innerNotNull, to!string(r));
 	assert(!r.outerNotNull, to!string(r));

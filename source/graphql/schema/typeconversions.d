@@ -100,10 +100,19 @@ template typeToParameterTypeName(Type) {
 		}
 	}
 
-	enum typeToParameterTypeName = level0!Type;
+	template levelM1(Type) {
+		static if(is(Type : NullableStore!F, F)) {
+			enum levelM1 = level0!F;
+		} else {
+			enum levelM1 = level0!Type;
+		}
+	}
+
+	enum typeToParameterTypeName = levelM1!Type;
 }
 
 unittest {
+	import std.datetime : Date;
 	static assert(typeToParameterTypeName!(int) == "Int!");
 	static assert(typeToParameterTypeName!(Nullable!int) == "Int");
 	static assert(typeToParameterTypeName!(double) == "Float!");
@@ -112,6 +121,7 @@ unittest {
 	static assert(typeToParameterTypeName!(Nullable!(double)[]) == "[Float]!");
 	static assert(typeToParameterTypeName!(Nullable!(Nullable!(double)[])) ==
 			"[Float]");
+	static assert(typeToParameterTypeName!(GQLDCustomLeaf!Date) == "Date!");
 }
 
 template isScalarType(Type) {
@@ -182,7 +192,8 @@ Json typeFields(T)() {
 					static if(isCallable!(__traits(getMember, Type, mem))) {
 						alias RT = ReturnType!(__traits(getMember, Type, mem));
 						alias RTS = stripArrayAndNullable!RT;
-						tmp[Constants.typenameOrig] = typeToTypeName!(RT);
+						//tmp[Constants.typenameOrig] = typeToTypeName!(RT);
+						tmp[Constants.typenameOrig] = typeToParameterTypeName!(RT);
 
 						// InputValue
 						alias paraNames = ParameterIdentifierTuple!(
@@ -229,7 +240,9 @@ Json typeFields(T)() {
 							tmp[Constants.args] ~= iv;
 						}}
 					} else {
-						tmp[Constants.typenameOrig] = typeToTypeName!(
+						tmp[Constants.typenameOrig] =
+							typeToParameterTypeName!(
+							//typeToTypeName!(
 								typeof(__traits(getMember, Type, mem))
 							);
 					}
@@ -256,7 +269,8 @@ Json inputFields(Type)() {
 		// needed for interfacesForType
 		tmp[Constants.__typename] = Constants.__InputValue;
 
-		tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
+		//tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
+		tmp[Constants.typenameOrig] = typeToParameterTypeName!(types[idx]);
 		tmp[Constants.defaultValue] = serializeToJson(
 				__traits(getMember, Type.init, names[idx])
 			);
@@ -334,6 +348,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	enum string kind = typeToTypeEnum!(stripArrayAndNullable!Type);
 	ret["kind"] = kind;
 	ret[Constants.__typename] = "__Type";
+	//ret[Constants.name] = typeToTypeName!Type;
 	ret[Constants.name] = typeToTypeName!Type;
 
 	enum GQLDUdaData udaData = getUdaData!(Orig);
@@ -528,7 +543,8 @@ Json directivesToJson(Directives)() {
 						iv[Constants.description] = Json(null);
 						// needed for interfacesForType
 						iv[Constants.__typename] = Constants.__InputValue;
-						iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
+						//iv[Constants.typenameOrig] = typeToTypeName!(paraTypes[idx]);
+						iv[Constants.typenameOrig] = typeToParameterTypeName!(paraTypes[idx]);
 						static if(!is(paraDefs[idx] == void)) {
 							iv[Constants.defaultValue] = serializeToJson(paraDefs[idx])
 								.toString();

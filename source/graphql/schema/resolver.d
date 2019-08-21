@@ -180,15 +180,17 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			//writeln("pare ", parent.toPrettyString());
 			//writeln(__LINE__, " ", stripType);
 			//writeln("ST ", stripType);
-			//pragma(msg, collectTypes!(T));
+			pragma(msg, staticMap!typeToTypeName, collectTypes!(T));
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
+				writefln("%s %s == %s", __LINE__, stripType.str, typeConst);
 				if(stripType.str == typeConst) {
 					const bool inner = stripType.innerNotNull;
 					const bool outer = stripType.outerNotNull;
 					const bool arr = stripType.arr;
 
-					writefln("inner %s, outer %s, arr %s", inner, outer, arr);
+					writefln("inner %s, outer %s, arr %s, old %s, new %s",
+							inner, outer, arr, stripType.input, stripType.str);
 
 					if(inner && outer && arr) {
 						writeln(__LINE__, " ", stripType);
@@ -290,7 +292,9 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("%s %s %s", name, parent, args);
 				Json tr = typeResolver(name, parent, args, context);
 				Json ret = Json.emptyObject();
-				ret["data"] = tr["data"]["ofType"];
+				//ret["data"] = tr["data"]["ofType"];
+				ret["data"] = tr["data"];
+				writefln("%s %s", __LINE__, tr.toPrettyString());
 				graphql.defaultResolverLog.logf("%s %s", tr.toPrettyString(),
 						ret.toPrettyString());
 				return ret;
@@ -310,6 +314,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				graphql.defaultResolverLog.logf("FIELDDDDD TYPPPPPE %s",
 						ret.toPrettyString()
 					);
+				writefln("%s %s\n%s", __LINE__, parent.toPrettyString(),
+						ret.toPrettyString());
 				return ret;
 			}
 		);

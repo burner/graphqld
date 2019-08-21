@@ -25,7 +25,6 @@ enum Constants {
 	__EnumValue = "__EnumValue",
 	__Field = "__Field",
 	__InputValue = "__InputValue",
-	__Schema = "__Schema",
 	__Type = "__Type",
 	__TypeKind = "__TypeKind",
 	__listType = "__listType",

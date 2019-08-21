@@ -346,8 +346,8 @@ class GQLDSchema(Type) : GQLDMap {
 
 		auto b = new GQLDBool();
 		auto nnB = new GQLDNonNull(b);
-		this.__schema = new GQLDObject("__schema");
-		this.__type = new GQLDObject("__Type");
+		this.__schema = new GQLDObject(Constants.__schema);
+		this.__type = new GQLDObject(Constants.__type);
 		this.__nullableType = new GQLDNullable(this.__type);
 		this.__schema.member["mutationType"] = this.__nullableType;
 		this.__schema.member["subscriptionType"] = this.__nullableType;
@@ -453,8 +453,10 @@ class GQLDSchema(Type) : GQLDMap {
 		GQLDObject ob = t.toObject();
 		if(auto s = t.toScalar()) {
 			ret = s;
+			goto retLabel;
 		} else if(auto op = t.toOperation()) {
 			ret = op.returnType;
+			goto retLabel;
 		} else if(auto map = t.toMap()) {
 			if((map.name == "queryType" || map.name == "mutationType"
 						|| map.name == "subscriptionType")
@@ -463,16 +465,20 @@ class GQLDSchema(Type) : GQLDMap {
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
 					ret = op.returnType;
+					goto retLabel;
 				} else {
 					ret = tmp;
+					goto retLabel;
 				}
 			} else if(field in map.member) {
 				ret = map.member[field];
+				goto retLabel;
 			} else if(ob && ob.base && field in ob.base.member) {
 				return ob.base.member[field];
 			} else if(field == "__typename") {
 				// the type of the field __typename is always a string
 				ret = this.types["string"];
+				goto retLabel;
 			} else {
 				// if we couldn't find it in the passed map, maybe it is in some
 				// of its derivatives
@@ -481,11 +487,16 @@ class GQLDSchema(Type) : GQLDMap {
 						return deriv.member[field];
 					}
 				}
+				import std.stdio;
+				writefln("%s %s %s", __LINE__, field, map.toString());
 				return null;
 			}
 		} else {
 			ret = t;
 		}
+		import std.stdio;
+		writefln("%s %s %s", __LINE__, field, t.toString());
+		retLabel:
 		return ret;
 	}
 }

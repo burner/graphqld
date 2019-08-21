@@ -103,6 +103,7 @@ class SchemaValidator(Schema) : Visitor {
 			);
 
 
+		//writefln("%s %s %s", __LINE__, name, field.toString());
 		string followType = field[Constants.typenameOrig].get!string();
 		string old = followType;
 		StringTypeStrip stripped = followType.stringTypeStrip();
@@ -114,12 +115,14 @@ class SchemaValidator(Schema) : Visitor {
 			alias AllTypes = collectTypesPlusIntrospection!(Schema);
 			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
 			alias NoDups = NoDuplicates!(Stripped);
+			//pragma(msg, staticMap!(typeToTypeName, NoDups));
 			static foreach(type; NoDups) {{
 				case typeToTypeName!(type): {
-					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Schema)()),
-							name
-						);
+					Json tmp = typeToJson!(type,Schema);
+					Json stripped = removeNonNullAndList(tmp);
+					//writefln("%s %s", __LINE__, tmp.toString());
+					//writefln("%s %s", __LINE__, stripped.toString());
+					this.schemaStack ~= TypePlusName(stripped, name);
 					//writeln(this.schemaStack.back.type.toPrettyString());
 					break l;
 				}
