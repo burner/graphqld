@@ -347,8 +347,6 @@ struct Lexer {
 					++this.column;
 					++e;
 					if(this.testStrAndInc!".."(e)) {
-						//if(this.stringPos < this.input.length
-						//	&& isAlphaNum(this.input[this.stringPos]))
 						if(this.isTokenStop()
 								|| (this.stringPos < this.input.length
 									&& isAlphaNum(this.input[this.stringPos])
@@ -432,14 +430,6 @@ struct Lexer {
 						++this.column;
 						++e;
 					}
-					//writefln("%s %s %s '%s'", b, e, this.stringPos, this.input[b .. e]);
-					//do {
-					//	writefln("'%s'", this.input[this.stringPos]);
-					//	++this.stringPos;
-					//	++this.column;
-					//	++e;
-					//} while(!this.isTokenStop());
-					//writefln("%s %s", TokenType.name, this.input[b .. e]);
 					this.cur = Token(TokenType.name, this.input[b .. e],
 							this.line, this.column
 						);
