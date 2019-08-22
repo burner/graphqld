@@ -158,35 +158,57 @@ class __Schema {
 }
 
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
-	//auto typeJS = parseJsonString(typeStr);
-	auto typeJS = typeToJson!(Nullable!__Type, __Schema);
-	//auto typeKindJS = parseJsonString(typeKindStr);
-	auto typeKindJS = typeToJson!(Nullable!__TypeKind, __Schema);
-	//auto fieldJS = parseJsonString(fieldStr);
-	auto fieldJS = typeToJson!(Nullable!__Field, __Schema);
-	//auto enumValueJS = parseJsonString(enumValueStr);
-	auto enumValueJS = typeToJson!(Nullable!__EnumValue, __Schema);
-	//auto inputValueJS = parseJsonString(inputValueStr);
-	auto inputValueJS = typeToJson!(Nullable!__InputValue, __Schema);
-	//auto directiveJS = parseJsonString(directiveStr);
-	auto directiveJS = typeToJson!(Nullable!__Directive, __Schema);
-	//auto directiveLocationJS = parseJsonString(directiveLocationStr);
-	auto directiveLocationJS = typeToJson!(Nullable!__DirectiveLocation, __Schema);
 
-	struct IntroTypeResolverResult {
-		immutable string name;
-		Json ret;
+	Json typeResolverImpl(Type)(ref const(StringTypeStrip) stripType,
+			Json parent)
+	{
+		Json ret = Json.emptyObject();
+		const bool inner = stripType.innerNotNull;
+		const bool outer = stripType.outerNotNull;
+		const bool arr = stripType.arr;
+
+		if(inner && outer && arr) {
+			alias PassType = Type[];
+			ret["data"] = typeToJson!(PassType,T)();
+		} else if(!inner && outer && arr) {
+			static if(!is(Type == void)) {
+				alias PassType = Nullable!(Type)[];
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(inner && !outer && arr) {
+			alias PassType = Nullable!(Type[]);
+			ret["data"] = typeToJson!(PassType,T)();
+		} else if(!inner && !outer && arr) {
+			static if(!is(type == void)) {
+				alias PassType = Nullable!(Nullable!(Type)[]);
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(!inner && !arr) {
+			static if(!is(Type == void)) {
+				alias PassType = Nullable!(Type);
+				ret["data"] = typeToJson!(PassType,T)();
+			} else {
+				ret.insertError(format("invalid type %s in %s",
+							Type.stringof,
+							parent.toPrettyString()));
+			}
+		} else if(inner && !arr) {
+			alias PassType = Type;
+			ret["data"] = typeToJson!(PassType,T)();
+		} else {
+			assert(false, format("%s", stripType));
+		}
+		graphql.defaultResolverLog.logf("%s %s", stripType.str, ret["data"]);
+		return ret;
 	}
-
-	immutable introTypeResolverResults = [
-		IntroTypeResolverResult("__Field", fieldJS),
-		IntroTypeResolverResult("__Type", typeJS),
-		IntroTypeResolverResult("__TypeKind", typeKindJS),
-		IntroTypeResolverResult("__EnumValue", enumValueJS),
-		IntroTypeResolverResult("__InputValue", inputValueJS),
-		IntroTypeResolverResult("__Directive", directiveJS),
-		IntroTypeResolverResult("__DirectiveLocation", directiveLocationJS)
-	];
 
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
@@ -222,64 +244,30 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
-					const bool inner = stripType.innerNotNull;
-					const bool outer = stripType.outerNotNull;
-					const bool arr = stripType.arr;
-
-					if(inner && outer && arr) {
-						alias PassType = type[];
-						ret["data"] = typeToJson!(PassType,T)();
-					} else if(!inner && outer && arr) {
-						static if(!is(type == void)) {
-							alias PassType = Nullable!(type)[];
-							ret["data"] = typeToJson!(PassType,T)();
-						} else {
-							ret.insertError(format("invalid type %s in %s",
-										type.stringof,
-										parent.toPrettyString()));
-						}
-					} else if(inner && !outer && arr) {
-						alias PassType = Nullable!(type[]);
-						ret["data"] = typeToJson!(PassType,T)();
-					} else if(!inner && !outer && arr) {
-						static if(!is(type == void)) {
-							alias PassType = Nullable!(Nullable!(type)[]);
-							ret["data"] = typeToJson!(PassType,T)();
-						} else {
-							ret.insertError(format("invalid type %s in %s",
-										type.stringof,
-										parent.toPrettyString()));
-						}
-					} else if(!inner && !arr) {
-						static if(!is(type == void)) {
-							alias PassType = Nullable!(type);
-							ret["data"] = typeToJson!(PassType,T)();
-						} else {
-							ret.insertError(format("invalid type %s in %s",
-										type.stringof,
-										parent.toPrettyString()));
-						}
-					} else if(inner && !arr) {
-						alias PassType = type;
-						ret["data"] = typeToJson!(PassType,T)();
-					} else {
-						assert(false, format("%s", stripType));
+					static if(!is(type == void)) {
+						ret = typeResolverImpl!(type)(stripType, parent);
+						goto retLabel;
 					}
-					graphql.defaultResolverLog.logf("%s %s %s", stripType.str,
-							typeConst, ret["data"]
-						);
-					goto retLabel;
 				} else {
 					graphql.defaultResolverLog.logf("||||||||||| %s %s",
 							stripType.str, typeConst
 						);
 				}
 			}}
-			foreach(it; introTypeResolverResults) {
-				if(stripType.str == it.name) {
-					ret["data"] = it.ret;
-					break;
-				}
+			if(stripType.str == "__Type") {
+				ret = typeResolverImpl!(__Type)(stripType, parent);
+			} else if(stripType.str == "__Field") {
+				ret = typeResolverImpl!(__Field)(stripType, parent);
+			} else if(stripType.str == "__InputValue") {
+				ret = typeResolverImpl!(__InputValue)(stripType, parent);
+			} else if(stripType.str == "__EnumValue") {
+				ret = typeResolverImpl!(__EnumValue)(stripType, parent);
+			} else if(stripType.str == "__TypeKind") {
+				ret = typeResolverImpl!(__TypeKind)(stripType, parent);
+			} else if(stripType.str == "__Directive") {
+				ret = typeResolverImpl!(__Directive)(stripType, parent);
+			} else if(stripType.str == "__DirectiveLocation") {
+				ret = typeResolverImpl!(__DirectiveLocation)(stripType, parent);
 			}
 			retLabel:
 			//graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
@@ -291,16 +279,25 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			Json args, ref Con context) @safe
 		{
 			//logf("%s %s %s", name, args, parent);
+			StringTypeStrip stripType;
 			Json ret = Json.emptyObject();
 			ret["data"] = Json.emptyObject();
 			ret["data"]["types"] = Json.emptyArray();
-			ret["data"]["types"] ~= typeJS;
-			ret["data"]["types"] ~= typeKindJS;
-			ret["data"]["types"] ~= fieldJS;
-			ret["data"]["types"] ~= inputValueJS;
-			ret["data"]["types"] ~= enumValueJS;
-			ret["data"]["types"] ~= directiveJS;
-			ret["data"]["types"] ~= directiveLocationJS;
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Type)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Field)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__InputValue)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__EnumValue)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__TypeKind)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__Directive)(stripType, parent)["data"];
+			ret["data"]["types"] ~=
+				typeResolverImpl!(__DirectiveLocation)(stripType, parent)
+					["data"];
 
 			alias AllTypes = collectTypes!(T);
 			alias NoListOrArray = staticMap!(stripArrayAndNullable, AllTypes);

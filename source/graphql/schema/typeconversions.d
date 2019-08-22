@@ -484,6 +484,57 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 }
 
 @safe unittest {
+	enum FooBar {
+		foo,
+		bar
+	}
+
+	import std.format : format;
+	Json r = typeToJson!(FooBar,void)();
+	Json e = parseJsonString(`
+{
+	"__typename": "__Type",
+	"possibleTypesNames": null,
+	"enumValues": null,
+	"interfacesNames": null,
+	"kind": "NON_NULL",
+	"name": null,
+	"ofType": {
+		"__typename": "__Type",
+		"possibleTypesNames": null,
+		"enumValues": [
+			{
+				"description": "ENUM_DESCRIPTION_TODO",
+				"deprecationReason": "ENUM_DEPRECATIONREASON_TODO",
+				"__TypeKind": "__EnumValue",
+				"isDeprecated": false,
+				"name": "foo"
+			},
+			{
+				"description": "ENUM_DESCRIPTION_TODO",
+				"deprecationReason": "ENUM_DEPRECATIONREASON_TODO",
+				"__TypeKind": "__EnumValue",
+				"isDeprecated": false,
+				"name": "bar"
+			}
+		],
+		"interfacesNames": null,
+		"kind": "ENUM",
+		"isDeprecated": false,
+		"deprecationReason": null,
+		"name": "FooBar",
+		"description": null,
+		"inputFields": null,
+		"fields": null
+	},
+	"description": null,
+	"fields": null
+}
+		`);
+	assert(r == e, format("exp:\n%s\ngot:\n%s", e.toPrettyString(),
+				r.toPrettyString()));
+}
+@safe unittest {
 	import std.format : format;
 	Json r = typeToJson!(Nullable!string,void)();
 	Json e = parseJsonString(`
