@@ -416,7 +416,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				rslt.insertError("NonNull was null", ec.path);
 			}
 		} else if(GQLDNullable nullType = objectType.toNullable()) {
-			this.executationTraceLog.logf("NNNNULLABLE %s %s", nullType.name, objectValue);
+			this.executationTraceLog.logf("NNNNULLABLE %s %s", nullType.name,
+					objectValue);
 			this.executationTraceLog.logf("IIIIIS EMPTY %s objectValue %s",
 					objectValue.dataIsEmpty(), objectValue
 				);

@@ -419,7 +419,7 @@ Json query(string s, Json args) {
 		}`);
 
 	string s = `{"data" : { "hero" : { "name": "R2-D2",
-            "secretBackstory": null, } }, "errors" : [ {
+				"secretBackstory": null, } }, "errors" : [ {
 				"path": [ "HeroNameQuery", "hero", "secretBackstory"],
 				"message": "secretBackstory is secret" } ]}`;
 	Json exp = parseJson(s);
