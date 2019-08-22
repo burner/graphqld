@@ -5,6 +5,7 @@ import std.stdio;
 import std.experimental.logger;
 import std.traits;
 import std.meta : AliasSeq;
+import std.range.primitives : popBack;
 import std.format : format;
 import std.exception : enforce;
 
@@ -42,16 +43,28 @@ class GQLDExecutionException : Exception {
 	}
 }
 
+private struct ExecutionContext {
+	// path information
+	PathElement[] path;
+
+	@property ExecutionContext dup() const {
+		import std.algorithm.mutation : copy;
+		ExecutionContext ret;
+		ret.path = new PathElement[](this.path.length);
+		this.path.copy(ret.path);
+		return ret;
+	}
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
+	alias DefaultQueryResolver = Json delegate(string name, Json parent,
+			Json args, ref Con context, ref ExecutionContext ec) @safe;
 
 	alias Schema = GQLDSchema!(T);
 	immutable GQLDOptions options;
-
-	// path information
-	PathElement[] path;
 
 	Schema schema;
 
@@ -62,7 +75,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	// [Type][field]
 	QueryResolver[string][string] resolver;
-	QueryResolver defaultResolver;
+	DefaultQueryResolver defaultResolver;
 
 	this(GQLDOptions options = GQLDOptions.init) {
 		this.options = options;
@@ -72,7 +85,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.resolverLog = new MultiLogger(LogLevel.off);
 
 		this.defaultResolver = delegate(string name, Json parent, Json args,
-									ref Con context)
+									ref Con context, ref ExecutionContext ec)
 			{
 				import std.format;
 				this.defaultResolverLog.logf("name: %s, parent: %s, args: %s",
@@ -88,7 +101,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 							"no field name '%s' found on type '%s'",
 									name,
 									parent.getWithDefault!string("__typename")
-							), this.path
+							), ec.path
 						);
 				}
 				this.defaultResolverLog.logf("default ret %s", ret);
@@ -108,7 +121,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json resolve(string type, string field, Json parent, Json args,
-			ref Con context)
+			ref Con context, ref ExecutionContext ec)
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson!(JoinJsonPrecedence.a)(args, defaultArgs);
@@ -120,9 +133,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 				field, defaultArgs, parent, args, joinedArgs
 			);
 		if(type !in this.resolver) {
-			return defaultResolver(field, parent, joinedArgs, context);
+			return defaultResolver(field, parent, joinedArgs, context, ec);
 		} else if(field !in this.resolver[type]) {
-			return defaultResolver(field, parent, joinedArgs, context);
+			return defaultResolver(field, parent, joinedArgs, context, ec);
 		} else {
 			return this.resolver[type][field](field, parent, joinedArgs,
 					context
@@ -207,11 +220,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	Json execute(Document doc, Json variables, ref Con context) @trusted {
 		import std.algorithm.searching : canFind, find;
 		OperationDefinition[] ops = this.getOperations(doc);
+		ExecutionContext ec;
 
 		Json ret = Json.emptyObject();
 		ret[Constants.data] = Json.emptyObject();
 		foreach(op; ops) {
-			Json tmp = this.executeOperation(op, variables, doc, context);
+			Json tmp = this.executeOperation(op, variables, doc, context, ec);
 			this.executationTraceLog.logf("%s\n%s\n%s", op.ruleSelection, ret,
 					tmp);
 			if(tmp.type == Json.Type.object && Constants.data in tmp) {
@@ -243,11 +257,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json executeOperation(OperationDefinition op, Json variables,
-			Document doc, ref Con context)
+			Document doc, ref Con context, ref ExecutionContext ec)
 	{
-		this.path ~= PathElement(op.name.value);
+		ec.path ~= PathElement(
+				op.name.value.empty ? "SelectionSet" : op.name.value);
 		scope(exit) {
-			this.path = this.path[0 .. $ - 1];
+			ec.path.popBack();
 		}
 		bool dirSaysToContinue = continueAfterDirectives(op.d, variables);
 		if(!dirSaysToContinue) {
@@ -256,9 +271,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 		if(op.ruleSelection == OperationDefinitionEnum.SelSet
 				|| op.ot.tok.type == TokenType.query)
 		{
-			return this.executeQuery(op, variables, doc, context);
+			return this.executeQuery(op, variables, doc, context, ec);
 		} else if(op.ot.tok.type == TokenType.mutation) {
-			return this.executeMutation(op, variables, doc, context);
+			return this.executeMutation(op, variables, doc, context, ec);
 		} else if(op.ot.tok.type == TokenType.subscription) {
 			assert(false, "Subscription not supported yet");
 		}
@@ -266,29 +281,30 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json executeMutation(OperationDefinition op, Json variables,
-			Document doc, ref Con context)
+			Document doc, ref Con context, ref ExecutionContext ec)
 	{
 		this.executationTraceLog.log("mutation");
 		Json tmp = this.executeSelections(op.ss.sel,
 				this.schema.member["mutationType"], Json.emptyObject(),
-				variables, doc, context
+				variables, doc, context, ec
 			);
 		return tmp;
 	}
 
 	Json executeQuery(OperationDefinition op, Json variables, Document doc,
-			ref Con context)
+			ref Con context, ref ExecutionContext ec)
 	{
 		this.executationTraceLog.log("query");
 		Json tmp = this.executeSelections(op.ss.sel,
 				this.schema.member["queryType"],
-				Json.emptyObject(), variables, doc, context
+				Json.emptyObject(), variables, doc, context, ec
 			);
 		return tmp;
 	}
 
 	Json executeSelections(Selections sel, GQLDType objectType,
-			Json objectValue, Json variables, Document doc, ref Con context)
+			Json objectValue, Json variables, Document doc, ref Con context,
+			ref ExecutionContext ec)
 	{
 		import graphql.traits : interfacesForType;
 		Json ret = returnTemplate();
@@ -314,7 +330,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 			Json rslt = dirSaysToContinue
 				? this.executeFieldSelection(field, objectType,
-						objectValue, variables, doc, context
+						objectValue, variables, doc, context, ec
 					)
 				: Json.emptyObject();
 
@@ -325,11 +341,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json executeFieldSelection(FieldRangeItem field, GQLDType objectType,
-			Json objectValue, Json variables, Document doc, ref Con context)
+			Json objectValue, Json variables, Document doc, ref Con context,
+			ref ExecutionContext ec)
 	{
-		this.path ~= PathElement(field.name);
+		ec.path ~= PathElement(field.f.name.name.value);
 		scope(exit) {
-			this.path = this.path[0 .. $ - 1];
+			ec.path.popBack();
 		}
 		this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
 		//this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
@@ -343,19 +360,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 			de = this.resolve(objectType.name,
 					field.aka.empty ? field.name : field.aka,
 				"data" in objectValue ? objectValue["data"] : objectValue,
-				arguments, context
+				arguments, context, ec
 			);
 		} catch(GQLDExecutionException e) {
 			auto ret = Json.emptyObject();
 			ret[Constants.data] = Json(null);
 			ret[Constants.errors] = Json.emptyArray();
-			ret.insertError(e.msg, this.path);
+			ret.insertError(e.msg, ec.path);
 			return ret;
 		}
-		//if(de.dataIsEmpty()) {
-		//	writefln("de.dataIsEmpty %s", de);
-		//	return de;
-		//}
 
 		auto retType = this.schema.getReturnType(objectType,
 				field.aka.empty ? field.name : field.aka
@@ -374,12 +387,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 		this.executationTraceLog.logf("retType %s, de: %s", retType.name, de);
 		return this.executeSelectionSet(field.f.ss, retType, de, variables,
-				doc, context
+				doc, context, ec
 			);
 	}
 
 	Json executeSelectionSet(SelectionSet ss, GQLDType objectType,
-			Json objectValue, Json variables, Document doc, ref Con context)
+			Json objectValue, Json variables, Document doc, ref Con context,
+			ref ExecutionContext ec)
 	{
 		Json rslt;
 		if(GQLDMap map = objectType.toMap()) {
@@ -388,19 +402,18 @@ class GraphQLD(T, QContext = DefaultContext) {
 					"ss null %s, ss.sel null %s", ss is null,
 					(ss is null) ? true : ss.sel is null));
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables,
-					doc, context
+					doc, context, ec
 				);
 		} else if(GQLDNonNull nonNullType = objectType.toNonNull()) {
 			this.executationTraceLog.logf("NonNull %s objectValue %s",
-					nonNullType.elementType.name,
-					objectValue
+					nonNullType.elementType.name, objectValue
 				);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
-					objectValue, variables, doc, context
+					objectValue, variables, doc, context, ec
 				);
 			if(rslt.dataIsNull()) {
 				this.executationTraceLog.logf("%s", rslt);
-				rslt.insertError("NonNull was null", this.path);
+				rslt.insertError("NonNull was null", ec.path);
 			}
 		} else if(GQLDNullable nullType = objectType.toNullable()) {
 			this.executationTraceLog.logf("NNNNULLABLE %s %s", nullType.name, objectValue);
@@ -416,14 +429,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 				rslt = objectValue;
 			} else {
 				rslt = this.executeSelectionSet(ss, nullType.elementType,
-						objectValue, variables, doc, context
+						objectValue, variables, doc, context, ec
 					);
 			}
 		} else if(GQLDList list = objectType.toList()) {
 			this.executationTraceLog.logf("LLLLLIST %s objectValue %s",
 					list.name, objectValue);
 			rslt = this.executeList(ss, list, objectValue, variables, doc,
-					context
+					context, ec
 				);
 		} else if(GQLDScalar scalar = objectType.toScalar()) {
 			rslt = objectValue;
@@ -433,14 +446,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	private void toRun(SelectionSet ss, GQLDType elemType, Json item,
-			Json variables, ref Json ret, Document doc, ref Con context)
+			Json variables, ref Json ret, Document doc, ref Con context,
+			ref ExecutionContext ec)
 		@trusted
 	{
 		this.executationTraceLog.logf("ET: %s, item %s", elemType.name,
 				item
 			);
 		Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
-				doc, context
+				doc, context, ec
 			);
 		if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
@@ -455,7 +469,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 	}
 
 	Json executeList(SelectionSet ss, GQLDList objectType,
-			Json objectValue, Json variables, Document doc, ref Con context)
+			Json objectValue, Json variables, Document doc, ref Con context,
+			ref ExecutionContext ec)
 			@trusted
 	{
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
@@ -475,8 +490,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 				)
 			{
 				tasks ~= runTask({
+					auto newEC = ec.dup;
 					this.toRun(ss, elemType, item, variables, ret, doc,
-							context
+							context, newEC
 						);
 				});
 			}
@@ -491,12 +507,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 						: Json.emptyArray()
 				)
 			{
-				this.path ~= PathElement(idx);
+				ec.path ~= PathElement(idx);
 				++idx;
 				scope(exit) {
-					this.path = this.path[0 .. $ - 1];
+					ec.path.popBack();
 				}
-				this.toRun(ss, elemType, item, variables, ret, doc, context);
+				this.toRun(ss, elemType, item, variables, ret, doc, context, ec);
 			}
 		}
 		return ret;

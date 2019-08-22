@@ -309,9 +309,12 @@ TestQuery(`
 }`, ShouldThrow.yes,
 `{
 	"errors" : [
-		{ "message" : "That ship does not exists" }
+		{ "message" : "That ship does not exists"
+		, "path" : ["SelectionSet", "starshipDoesNotExist"]
+		}
 	],
 	"data" : {
+		"starshipDoesNotExist" : null
 	}
 }`
 ),
@@ -323,7 +326,9 @@ TestQuery(`
 }`, ShouldThrow.yes,
 `{
 	"errors" : [
-		{ "message": "you can not pass" }
+		{ "message": "you can not pass"
+		, "path" : ["SelectionSet", "resolverWillThrow"]
+		}
 	],
 	"data" : {
 		"resolverWillThrow": null

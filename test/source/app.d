@@ -86,7 +86,10 @@ void main() {
 					ref CustomContext con) @safe
 			{
 				Json ret = Json.emptyObject();
-				ret.insertError("That ship does not exists");
+				if(name == "starshipDoesNotExist") {
+					throw new GQLDExecutionException(
+							"That ship does not exists");
+				}
 				return ret;
 			}
 		);

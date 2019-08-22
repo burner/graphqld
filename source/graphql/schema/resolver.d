@@ -213,20 +213,17 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
-			writefln("TTTTTTRRRRRRR name %s args %s parent %s", name, args,
+			graphql.defaultResolverLog.logf(
+					"TTTTTTRRRRRRR name %s args %s parent %s", name, args,
 					parent);
-			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
 			Json ret = Json.emptyObject();
 			string typeName;
 			if(Constants.name in args) {
-				writeln(__LINE__);
 				typeName = args[Constants.name].get!string();
 			}
 			if(Constants.typenameOrig in parent) {
-				writeln(__LINE__);
 				typeName = parent[Constants.typenameOrig].get!string();
 			} else if(Constants.name in parent) {
-				writeln(__LINE__);
 				typeName = parent[Constants.name].get!string();
 			}
 			string typeCap;
@@ -240,7 +237,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				old = typeName;
 			}
 			stripType = typeCap.stringTypeStrip();
-			writefln("%s %s", __LINE__, stripType);
+			graphql.defaultResolverLog.logf("%s %s", __LINE__, stripType);
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
@@ -271,7 +268,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			}
 			retLabel:
 			//graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
-			writefln("TTTTT____RRRR %s", ret.toPrettyString());
+			graphql.defaultResolverLog.logf("TTTTT____RRRR %s",
+					ret.toPrettyString());
 			return ret;
 		};
 
