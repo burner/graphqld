@@ -309,6 +309,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					variables)
 			)
 		{
+			writeln("\n\n");
 			//Json args = getArguments(field, variables);
 			bool dirSaysToContinue = continueAfterDirectives(
 					field.f.dirs, variables);
@@ -332,11 +333,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 		scope(exit) {
 			this.path = this.path[0 .. $ - 1];
 		}
-		this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
+		writefln("FRI: %s, OT: %s, OV: %s, VAR: %s",
+		//this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
 				field.name, objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
-		writefln("obj %s\nvar %s\narg %s", objectValue, variables, arguments);
+		//writefln("field %s\nobj %s\nvar %s\narg %s", field.name, objectValue,
+		//		variables, arguments);
 		Json de;
 		try {
 			de = this.resolve(objectType.name,
@@ -348,12 +351,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 			auto ret = Json.emptyObject();
 			ret[Constants.data] = Json(null);
 			ret[Constants.errors] = Json.emptyArray();
-			ret.insertError(e.msg);
+			ret.insertError(e.msg, this.path);
 			return ret;
 		}
-		if(de.dataIsEmpty()) {
-			return de;
-		}
+		//if(de.dataIsEmpty()) {
+		//	writefln("de.dataIsEmpty %s", de);
+		//	return de;
+		//}
 
 		auto retType = this.schema.getReturnType(objectType,
 				field.aka.empty ? field.name : field.aka
@@ -381,7 +385,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json rslt;
 		if(GQLDMap map = objectType.toMap()) {
-			this.executationTraceLog.logf("map %s %s", map.name, ss !is null);
+			//this.executationTraceLog.logf("map %s %s", map.name, ss !is null);
+			writefln("MMMMMAP %s %s", map.name, ss !is null);
 			enforce(ss !is null && ss.sel !is null, format(
 					"ss null %s, ss.sel null %s", ss is null,
 					(ss is null) ? true : ss.sel is null));
@@ -389,30 +394,40 @@ class GraphQLD(T, QContext = DefaultContext) {
 					doc, context
 				);
 		} else if(GQLDNonNull nonNullType = objectType.toNonNull()) {
-			this.executationTraceLog.logf("NonNull %s",
-					nonNullType.elementType.name
+			writefln("NonNull %s objectValue %s",
+			//this.executationTraceLog.logf("NonNull %s",
+					nonNullType.elementType.name,
+					objectValue
 				);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
 					objectValue, variables, doc, context
 				);
 			if(rslt.dataIsNull()) {
 				this.executationTraceLog.logf("%s", rslt);
-				rslt.insertError("NonNull was null");
+				rslt.insertError("NonNull was null", this.path);
 			}
 		} else if(GQLDNullable nullType = objectType.toNullable()) {
-			this.executationTraceLog.logf("nullable %s", nullType.name);
-			rslt = this.executeSelectionSet(ss, nullType.elementType,
-					objectValue, variables, doc, context
+			//this.executationTraceLog.logf("nullable %s", nullType.name);
+			writefln("NNNNULLABLE %s %s", nullType.name, objectValue);
+			writefln("IIIIIS EMPTY %s objectValue %s",
+			//this.executationTraceLog.logf("IIIIIS EMPTY %s rslt %s",
+					objectValue.dataIsEmpty(), objectValue
 				);
-			this.executationTraceLog.logf("IIIIIS EMPTY %s rslt %s",
-					rslt.dataIsEmpty(), rslt
-				);
-			if(rslt.dataIsEmpty()) {
-				rslt["data"] = null;
-				rslt.remove(Constants.errors);
+			if(objectValue.dataIsEmpty()) {
+				if(objectValue.type != Json.Type.object) {
+					objectValue = Json.emptyObject();
+				}
+				objectValue["data"] = null;
+				objectValue.remove(Constants.errors);
+				rslt = objectValue;
+			} else {
+				rslt = this.executeSelectionSet(ss, nullType.elementType,
+						objectValue, variables, doc, context
+					);
 			}
 		} else if(GQLDList list = objectType.toList()) {
-			this.executationTraceLog.logf("list %s", list.name);
+			//this.executationTraceLog.logf("list %s", list.name);
+			writefln("LLLLLIST %s objectValue %s", list.name, objectValue);
 			rslt = this.executeList(ss, list, objectValue, variables, doc,
 					context
 				);

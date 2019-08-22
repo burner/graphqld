@@ -73,10 +73,10 @@ Json query(string s, Json args) {
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @safe
 			{
-				Json ret = Json.emptyObject();
-				ret[Constants.data] = Json(null);
-				ret[Constants.errors] = Json.emptyArray();
-				ret.insertError("secretBackstory is secret");
+				Json ret;
+				if(name == "secretBackstory") {
+					throw new GQLDExecutionException("secretBackstory is secret");
+				}
 				return ret;
 			}
 		);
@@ -420,6 +420,7 @@ Json query(string s, Json args) {
 
 	string s = `{"data" : { "hero" : { "name": "R2-D2",
             "secretBackstory": null, } }, "errors" : [ {
+				"path": [ "HeroNameQuery", "hero", "secretBackstory"],
 				"message": "secretBackstory is secret" } ]}`;
 	Json exp = parseJson(s);
 	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
@@ -440,9 +441,12 @@ Json query(string s, Json args) {
 
 	string s = `{
 		"errors" : [
-			{ "message": "secretBackstory is secret" },
-			{ "message": "secretBackstory is secret" },
-			{ "message": "secretBackstory is secret" }
+			{ "message": "secretBackstory is secret"
+			, "path": [ "HeroNameQuery", "hero", "friends", 0, "secretBackstory"] },
+			{ "message": "secretBackstory is secret"
+			, "path": [ "HeroNameQuery", "hero", "friends", 1, "secretBackstory"] },
+			{ "message": "secretBackstory is secret"
+			, "path": [ "HeroNameQuery", "hero", "friends", 2, "secretBackstory"] }
 		],
 		"data": { "hero": { "name": "R2-D2",
 				"friends": [
@@ -475,7 +479,8 @@ Json query(string s, Json args) {
 			},
 		},
 		"errors" : [
-			{ "message": "secretBackstory is secret" },
+			{ "message": "secretBackstory is secret"
+			, "path": [ "HeroNameQuery", "mainHero", "story"] }
 		]
 	}`;
 	Json exp = parseJson(s);

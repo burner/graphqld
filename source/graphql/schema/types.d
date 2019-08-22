@@ -412,7 +412,11 @@ class GQLDSchema(Type) : GQLDMap {
 				this.__enumValue
 			));
 
-		this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
+		auto nnListOfNonNullEnumValue = new
+			GQLDNullable(this.__listOfNonNullEnumValue);
+
+		//this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
+		this.__type.member[Constants.enumValues] = nnListOfNonNullEnumValue;
 
 		this.__directives = new GQLDObject(Constants.__Directive);
 		this.__directives.member[Constants.name] = nnStr;

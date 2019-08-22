@@ -81,8 +81,27 @@ private immutable typeStr = `
 	"__typename" : "__Type",
 	"name" : "__Type",
 	"interfaces" : null,
-	"fields" : ["kind", "name", "description", "fields", "interfaces",
-		"possibleTypes", "enumValues", "inputFields", "ofType"]
+	"description" : null,
+	"fields" : [
+		{ "name": "name", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "kind", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "description", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "fields", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "interfaces", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "possibleTypes", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "enumValues", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "inputFields", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] },
+		{ "name": "ofType", "__typename": "__Field", "description": null
+		, "isDeprecated": false, "deprecationReason": null, "args": [] }
+	]
 }
 `;
 
@@ -91,9 +110,16 @@ private immutable typeKindStr = `
 	"kind": "ENUM",
 	"__typename" : "__Type",
 	"name": "__TypeKind",
-	"enumValues" : [ "SCALAR", "OBJECT", "INTERFACE", "UNION", "ENUM",
-		"INPUT_OBJECT", "LIST", "NON_NULL" ],
-	"fields" : null
+	"enumValues" : [
+		{ "name": "SCALAR", "isDeprecated": false },
+		{ "name": "OBJECT", "isDeprecated": false },
+		{ "name": "INTERFACE", "isDeprecated": false },
+		{ "name": "UNION", "isDeprecated": false },
+		{ "name": "ENUM", "isDeprecated": false },
+		{ "name": "INPUT_OBJECT", "isDeprecated": false },
+		{ "name": "LIST", "isDeprecated": false },
+		{ "name": "NON_NULL", "isDeprecated": false }
+	]
 }
 `;
 
