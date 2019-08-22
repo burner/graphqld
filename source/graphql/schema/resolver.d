@@ -75,113 +75,103 @@ GQLDSchema!(Type) toSchema(Type)() {
 	return ret;
 }
 
-private immutable typeStr = `
-{
-	"kind" : "OBJECT",
-	"__typename" : "__Type",
-	"name" : "__Type",
-	"interfaces" : null,
-	"description" : null,
-	"fields" : [
-		{ "name": "name", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "kind", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "description", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "fields", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "interfaces", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "possibleTypes", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "enumValues", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "inputFields", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] },
-		{ "name": "ofType", "__typename": "__Field", "description": null
-		, "isDeprecated": false, "deprecationReason": null, "args": [] }
-	]
+enum __DirectiveLocation {
+	QUERY
+	, MUTATION
+	, SUBSCRIPTION
+	, FIELD
+	, FRAGMENT_DEFINITION
+	, FRAGMENT_SPREAD
+	, INLINE_FRAGMENT
+	, SCHEMA
+	, SCALAR
+	, OBJECT
+	, FIELD_DEFINITION
+	, ARGUMENT_DEFINITION
+	, INTERFACE
+	, UNION
+	, ENUM
+	, ENUM_VALUE
+	, INPUT_OBJECT
+	, INPUT_FIELD_DEFINITION
 }
-`;
 
-private immutable typeKindStr = `
-{
-	"kind": "ENUM",
-	"__typename" : "__Type",
-	"name": "__TypeKind",
-	"enumValues" : [
-		{ "name": "SCALAR", "isDeprecated": false },
-		{ "name": "OBJECT", "isDeprecated": false },
-		{ "name": "INTERFACE", "isDeprecated": false },
-		{ "name": "UNION", "isDeprecated": false },
-		{ "name": "ENUM", "isDeprecated": false },
-		{ "name": "INPUT_OBJECT", "isDeprecated": false },
-		{ "name": "LIST", "isDeprecated": false },
-		{ "name": "NON_NULL", "isDeprecated": false }
-	]
+class __Directive {
+	string name;
+	Nullable!string description;
+	__DirectiveLocation[] locations;
+	__InputValue[] args;
 }
-`;
 
-private immutable fieldStr = `
-{
-	"kind": "OBJECT",
-	"__typename" : "__Type",
-	"name": "__Field",
-	"interfaces" : null,
-	"fields" : ["name", "description", "args", "type", "isDeprecated",
-		"deprecationReason"]
+enum __TypeKind {
+	SCALAR
+	, OBJECT
+	, INTERFACE
+	, UNION
+	, ENUM
+	, INPUT_OBJECT
+	, LIST
+	, NON_NULL
 }
-`;
 
-private immutable inputValueStr = `
-{
-	"kind": "OBJECT",
-	"__typename" : "__Type",
-	"name": "__InputValue",
-	"interfaces" : null,
-	"fields" : ["name", "description", "type", "defaultValue"]
+class __EnumValue {
+	string name;
+	Nullable!string description;
+	bool isDeprecated;
+	Nullable!string deprecationReason;
 }
-`;
 
-private immutable enumValueStr = `
-{
-	"kind": "OBJECT",
-	"__typename" : "__Type",
-	"name": "__EnumValue",
-	"interfaces" : null,
-	"fields" : ["name", "description", "isDeprecated", "deprecationReason"]
+class __InputValue {
+	string name;
+	Nullable!string description;
+	__Type type;
+	Nullable!string defaultValue;
 }
-`;
 
-private immutable directiveStr = `
-{
-	"kind": "OBJECT",
-	"__typename" : "__Type",
-	"name": "__Directive",
-	"interfaces" : null,
-	"fields" : ["name", "description", "locations", "args"]
+class __Field {
+	string name;
+	Nullable!string description;
+	__InputValue[] args;
+	__Type type;
+	bool isDeprecated;
+	Nullable!string deprecationReason;
 }
-`;
 
-private immutable directiveLocationStr = `
-{
-	"kind": "ENUM",
-	"__typename" : "__Type",
-	"name": "__DirectiveLocation",
-	"interfaces" : null,
-	"fields" : null
+class __Type {
+	__TypeKind kind;
+	string name;
+	Nullable!string description;
+	__Field[] fields(bool includeDeprecated = false) { assert(false);
+	}
+	Nullable!(__Type[]) interfaces;
+	Nullable!(__Type[]) possibleTypes;
+	Nullable!(__Field[]) enumValues(bool includeDeprecated = false) {
+		assert(false);
+	}
+	Nullable!(__InputValue[]) inputFields;
+	Nullable!(__Type) ofType;
 }
-`;
+
+class __Schema {
+	__Type types;
+	__Directive directives;
+}
 
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
-	auto typeJS = parseJsonString(typeStr);
-	auto typeKindJS = parseJsonString(typeKindStr);
-	auto fieldJS = parseJsonString(fieldStr);
-	auto enumValueJS = parseJsonString(enumValueStr);
-	auto inputValueJS = parseJsonString(inputValueStr);
-	auto directiveJS = parseJsonString(directiveStr);
-	auto directiveLocationJS = parseJsonString(directiveLocationStr);
+	//auto typeJS = parseJsonString(typeStr);
+	auto typeJS = typeToJson!(Nullable!__Type, __Schema);
+	//auto typeKindJS = parseJsonString(typeKindStr);
+	auto typeKindJS = typeToJson!(Nullable!__TypeKind, __Schema);
+	//auto fieldJS = parseJsonString(fieldStr);
+	auto fieldJS = typeToJson!(Nullable!__Field, __Schema);
+	//auto enumValueJS = parseJsonString(enumValueStr);
+	auto enumValueJS = typeToJson!(Nullable!__EnumValue, __Schema);
+	//auto inputValueJS = parseJsonString(inputValueStr);
+	auto inputValueJS = typeToJson!(Nullable!__InputValue, __Schema);
+	//auto directiveJS = parseJsonString(directiveStr);
+	auto directiveJS = typeToJson!(Nullable!__Directive, __Schema);
+	//auto directiveLocationJS = parseJsonString(directiveLocationStr);
+	auto directiveLocationJS = typeToJson!(Nullable!__DirectiveLocation, __Schema);
 
 	struct IntroTypeResolverResult {
 		immutable string name;
@@ -201,15 +191,20 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	auto typeResolver = delegate(string name, Json parent,
 			Json args, ref Con context) @safe
 		{
+			writefln("TTTTTTRRRRRRR name %s args %s parent %s", name, args,
+					parent);
 			graphql.defaultResolverLog.logf("%s %s %s", name, args, parent);
 			Json ret = Json.emptyObject();
 			string typeName;
 			if(Constants.name in args) {
+				writeln(__LINE__);
 				typeName = args[Constants.name].get!string();
 			}
 			if(Constants.typenameOrig in parent) {
+				writeln(__LINE__);
 				typeName = parent[Constants.typenameOrig].get!string();
 			} else if(Constants.name in parent) {
+				writeln(__LINE__);
 				typeName = parent[Constants.name].get!string();
 			}
 			string typeCap;
@@ -223,6 +218,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				old = typeName;
 			}
 			stripType = typeCap.stringTypeStrip();
+			writefln("%s %s", __LINE__, stripType);
 			static foreach(type; collectTypes!(T)) {{
 				enum typeConst = typeToTypeName!(type);
 				if(stripType.str == typeConst) {
@@ -279,15 +275,15 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 						);
 				}
 			}}
-			writefln("%s %s", __LINE__, stripType.str);
 			foreach(it; introTypeResolverResults) {
 				if(stripType.str == it.name) {
 					ret["data"] = it.ret;
-					goto retLabel;
+					break;
 				}
 			}
 			retLabel:
-			graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			//graphql.defaultResolverLog.logf("%s", ret.toPrettyString());
+			writefln("TTTTT____RRRR %s", ret.toPrettyString());
 			return ret;
 		};
 
