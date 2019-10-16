@@ -3,17 +3,18 @@
 		"burner"
 	],
 	"copyright": "Copyright © 2019, burner",
-	"dflags" : ["-deps=deps.txt"],
 	"dependencies": {
-		"vibe-d": "~>0.8.5",
-		"vibe-d:tls": "~>0.8.5",
-		"nullablestore": ">=1.0.0",
-		"graphqld" : { "path": "../"}
+		"graphqld": "~>1.0.1",
+		"nullablestore": "~>2.1.0",
+		"vibe-d": "~>0.8.6"
 	},
-    "subConfigurations": {
-        "vibe-d:tls": "notls"
-    },
 	"description": "A simple vibe.d server application.",
+	"dflags": [
+		"-deps=deps.txt"
+	],
 	"license": "GPL3",
-	"name": "test"
+	"name": "test",
+	"subConfigurations": {
+		"vibe-d:tls": "notls"
+	}
 }

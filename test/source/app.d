@@ -277,6 +277,7 @@ void main() {
 	lowerPrivileges();
 
 	logInfo("Please open http://127.0.0.1:8080/ in your browser.");
+
 	Task t;
 	if(!doNotRunTests) {
 	t = runTask({
