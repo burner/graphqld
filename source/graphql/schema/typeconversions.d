@@ -285,9 +285,8 @@ Json inputFields(Type)() {
 
 		//tmp[Constants.typenameOrig] = typeToTypeName!(types[idx]);
 		tmp[Constants.typenameOrig] = typeToParameterTypeName!(types[idx]);
-		tmp[Constants.defaultValue] = serializeToJson(
-				__traits(getMember, Type.init, names[idx])
-			);
+		auto t = __traits(getMember, Type.init, names[idx]);
+		tmp[Constants.defaultValue] = serializeToJson(t);
 		ret ~= tmp;
 	}}
 	return ret;
