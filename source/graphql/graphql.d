@@ -143,77 +143,64 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 	}
 
-	Json getDefaultArgumentImpl(string typename, Type)(string type,
-			string field)
+	static Json getDefaultArgumentImpl(Type)(string field)
 	{
 		static if(isAggregateType!Type) {
-			if(typename == type) {
-				switch(field) {
-					static foreach(mem; __traits(allMembers, Type)) {
-						static if(isCallable!(
-								__traits(getMember, Type, mem))
-							)
-						{
-							case mem: {
-								alias parNames = ParameterIdentifierTuple!(
-										__traits(getMember, Type, mem)
-									);
-								alias parDef = ParameterDefaultValueTuple!(
-										__traits(getMember, Type, mem)
-									);
+			switch(field) {
+				static foreach(mem; __traits(allMembers, Type)) {
+					static if(isCallable!(
+							__traits(getMember, Type, mem))
+						)
+					{
+						case mem: {
+							alias parNames = ParameterIdentifierTuple!(
+									__traits(getMember, Type, mem)
+								);
+							alias parDef = ParameterDefaultValueTuple!(
+									__traits(getMember, Type, mem)
+								);
 
-								Json ret = Json.emptyObject();
-								static foreach(i; 0 .. parNames.length) {
-									static if(!is(parDef[i] == void)) {
-										ret[parNames[i]] =
-											serializeToJson(parDef[i]);
-									}
+							Json ret = Json.emptyObject();
+							static foreach(i; 0 .. parNames.length) {
+								static if(!is(parDef[i] == void)) {
+									ret[parNames[i]] =
+										serializeToJson(parDef[i]);
 								}
-								return ret;
 							}
+							return ret;
 						}
 					}
-					default: break;
 				}
+				default: break;
 			}
 		}
 		return Json.init;
 	}
 
 	Json getDefaultArguments(string type, string field) {
-		import graphql.traits : collectTypes;
-		switch(type) {
-			static foreach(Type; collectTypes!(T)) {{
-				case Type.stringof: {
-					Json tmp = getDefaultArgumentImpl!(Type.stringof, Type)(
-							type, field
-						);
-					if(tmp.type != Json.Type.undefined
-							&& tmp.type != Json.Type.null_)
-					{
-						return tmp;
-					}
-				}
-			}}
-			default: {}
+		import graphql.traits : execForAllTypes;
+		alias defaultArgFn = Json function(string) @safe;
+		static defaultArgFn[string] items;
+		if(items is null)
+		{
+			static void setupItems(T)(ref defaultArgFn[string] items)
+			{
+				items[T.stringof] = &getDefaultArgumentImpl!T;
+			}
+			execForAllTypes!(T, setupItems)(items);
+			// add entry points
+			static foreach(entryPoint; FieldNameTuple!T) {
+				items[entryPoint] =
+					&getDefaultArgumentImpl!(typeof(__traits(getMember, T,
+															 entryPoint)));
+			}
 		}
-		// entryPoint == ["query", "mutation", "subscription"];
-		switch(type) {
-			static foreach(entryPoint; FieldNameTuple!T) {{
-				case entryPoint: {
-					Json tmp = getDefaultArgumentImpl!(entryPoint,
-							typeof(__traits(getMember, T, entryPoint)))
-						(type, field);
-					if(tmp.type != Json.Type.undefined
-							&& tmp.type != Json.Type.null_)
-					{
-						return tmp;
-					}
-				}
-			}}
-			default: break;
+		if(auto f = type in items)
+		{
+			auto tmp = (*f)(field);
+			if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_)
+				return tmp;
 		}
-		defaultRet:
 		return Json.init;
 	}
 
@@ -538,9 +525,9 @@ unittest {
 	import graphql.traits;
 	import std.datetime : DateTime;
 
-	alias a = collectTypes!(Schema);
+	/*alias a = collectTypes!(Schema);
 	alias exp = AliasSeq!(Schema, Query, string, long, bool,
-					GQLDCustomLeaf!(DateTime, toStringImpl));
+					GQLDCustomLeaf!(DateTime, toStringImpl));*/
 	//static assert(is(a == exp), format("\n%s\n%s", a.stringof, exp.stringof));
 
 	//pragma(msg, InheritedClasses!Schema);

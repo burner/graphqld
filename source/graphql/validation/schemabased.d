@@ -65,6 +65,8 @@ class SchemaValidator(Schema) : Visitor {
 	const(Document) doc;
 	GQLDSchema!(Schema) schema;
 
+	private Json[string] typeMap;
+
 	// Single root field
 	IsSubscription isSubscription;
 	int ssCnt;
@@ -111,32 +113,33 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	void addTypeToStackImpl(string name, string followType, string old) {
-		l: switch(followType) {
-			alias AllTypes = collectTypesPlusIntrospection!(Schema);
-			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
-			alias NoDups = NoDuplicates!(Stripped);
-			//pragma(msg, staticMap!(typeToTypeName, NoDups));
-			static foreach(type; NoDups) {{
-				case typeToTypeName!(type): {
-					Json tmp = typeToJson!(type,Schema);
-					Json stripped = removeNonNullAndList(tmp);
-					//writefln("%s %s", __LINE__, tmp.toString());
-					//writefln("%s %s", __LINE__, stripped.toString());
-					this.schemaStack ~= TypePlusName(stripped, name);
-					//writeln(this.schemaStack.back.type.toPrettyString());
-					break l;
-				}
-			}}
-			default:
-				throw new UnknownTypeName(
-						format("No type with name '%s' '%s' is known",
-							followType, old), __FILE__, __LINE__);
+		if(auto tp = followType in typeMap)
+		{
+			this.schemaStack ~= TypePlusName(tp.clone, name);
+		}
+		else
+		{
+			throw new UnknownTypeName(
+					  format("No type with name '%s' '%s' is known",
+							 followType, old), __FILE__, __LINE__);
 		}
 	}
 
 	this(const(Document) doc, GQLDSchema!(Schema) schema) {
+		import graphql.schema.introspectiontypes : IntrospectionTypes;
 		this.doc = doc;
 		this.schema = schema;
+		static void buildTypeMap(T)(ref Json[string] map)
+		{
+			if(is(T == stripArrayAndNullable!T))
+			{
+				map[typeToTypeName!T] =
+				   	removeNonNullAndList(typeToJson!(T, Schema)());
+			}
+		}
+		execForAllTypes!(Schema, buildTypeMap)(typeMap);
+		static foreach(T; IntrospectionTypes)
+			buildTypeMap!T(typeMap);
 		this.schemaStack ~= TypePlusName(
 				removeNonNullAndList(typeToJson!(Schema,Schema)()),
 				Schema.stringof
@@ -169,24 +172,15 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(FragmentDefinition) fragDef) {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
-		l: switch(typeName) {
-			alias AllTypes = collectTypesPlusIntrospection!(Schema);
-			alias Stripped = staticMap!(stripArrayAndNullable, AllTypes);
-			alias NoDups = NoDuplicates!(Stripped);
-			static foreach(type; NoDups) {{
-				case typeToTypeName!(type): {
-					this.schemaStack ~= TypePlusName(
-							removeNonNullAndList(typeToJson!(type,Schema)()),
-							typeName
-						);
-					//writeln(this.schemaStack.back.type.toPrettyString());
-					break l;
-				}
-			}}
-			default:
-				throw new UnknownTypeName(
-						format("No type with name '%s' is known",
-							typeName), __FILE__, __LINE__);
+		if(auto tp = typeName in typeMap)
+		{
+			this.schemaStack ~= TypePlusName(tp.clone, typeName);
+		}
+		else
+		{
+			throw new UnknownTypeName(
+					  format("No type with name '%s' is known", typeName),
+					  __FILE__, __LINE__);
 		}
 	}
 

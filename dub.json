@@ -11,5 +11,6 @@
 	},
 	"description": "A library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2019, Robert burner Schadek",
-	"license": "LGPL3"
+	"license": "LGPL3",
+	"dflags": ["--DRT-gcopt=profile:1", "-lowmem"]
 }

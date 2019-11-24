@@ -410,10 +410,31 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	static if(is(Type == class) || is(Type == union)
 			|| is(Type == interface))
 	{
-		ret[Constants.possibleTypesNames] = Json.emptyArray();
-		alias PT = PossibleTypes!(Type, Schema);
-		static foreach(pt; PT) {
-			ret[Constants.possibleTypesNames] ~= pt.stringof;
+		static if(is(Type == union))
+		{
+			//import std.meta: Filter;
+			ret[Constants.possibleTypesNames] = Json.emptyArray();
+			static foreach(pt; Filter!(isAggregateType, FieldTypeTuple!Type))
+			{
+				ret[Constants.possibleTypesNames] ~= pt.stringof;
+			}
+		}
+		else
+		{
+			// need to search for all types that we support that are derived
+			// from this type
+			static Json derivedTypes;
+			if(derivedTypes.type == Json.Type.undefined)
+			{
+				derivedTypes = Json.emptyArray();
+				static void checkType(U)(ref Json dt)
+				{
+					static if(is(U : Type))
+						dt ~= U.stringof;
+				}
+				execForAllTypes!(Schema, checkType)(derivedTypes);
+			}
+			ret[Constants.possibleTypesNames] = derivedTypes.clone;
 		}
 	} else {
 		ret[Constants.possibleTypesNames] = Json(null);
