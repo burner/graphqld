@@ -304,9 +304,7 @@ unittest {
 	static assert(!noArrayOrNullable!(NullableStore!int));
 }
 
-template collectTypesX(T...) {
-	static if(T.length == 1)
-		pragma(msg, "collect all types! " ~ T.stringof);
+template collectTypes(T...) {
 	import graphql.schema.introspectiontypes;
 	alias oneLevelDown = NoDuplicates!(staticMap!(collectTypesImpl, T));
 	alias basicT = staticMap!(fixupBasicTypes, oneLevelDown);
@@ -316,10 +314,10 @@ template collectTypesX(T...) {
 			EraseAll!(Object, noVoid)
 		);
 	static if(rslt.length == T.length) {
-		alias collectTypesX = rslt;
+		alias collectTypes = rslt;
 	} else {
-		alias tmp = .collectTypesX!(rslt);
-		alias collectTypesX = tmp;
+		alias tmp = .collectTypes!(rslt);
+		alias collectTypes = tmp;
 	}
 }
 
@@ -371,12 +369,12 @@ package {
 }
 
 unittest {
-	alias a = collectTypesX!(Enum);
+	alias a = collectTypes!(Enum);
 	static assert(is(a == AliasSeq!(Enum)));
 }
 
-/+unittest {
-	alias ts = collectTypesX!(Foo);
+unittest {
+	alias ts = collectTypes!(Foo);
 	alias expectedTypes = AliasSeq!(Foo, Baz, Args, float, Z[], Z, string,
 			long, Y, bool, Nullable!W, W, Nullable!(Nullable!(U)[]), U, Enum);
 
@@ -385,9 +383,9 @@ unittest {
 		enum canBeFound = tmp;
 	}
 	static assert(allSatisfy!(canBeFound, ts));
-}+/
+}
 
-/+unittest {
+unittest {
 	import nullablestore;
 	struct Foo {
 		int a;
@@ -397,10 +395,10 @@ unittest {
 		NullableStore!Foo foo;
 	}
 
-	static assert(is(collectTypesX!Bar : AliasSeq!(Bar, NullableStore!Foo, Foo,
+	static assert(is(collectTypes!Bar : AliasSeq!(Bar, NullableStore!Foo, Foo,
 			long))
 		);
-}+/
+}
 
 template stripArrayAndNullable(T) {
 	static if(is(T : Nullable!F, F)) {
@@ -421,34 +419,8 @@ template stringofType(T) {
 
 string[] interfacesForType(Schema)(string typename) {
 	import std.algorithm.searching : canFind;
-	// this is awful, but I'm not sure yet whether non-classes can return
-	// anything but themselves.
-	static string[][string] typeMap;
-	if(typeMap is null)
-	{
-		// build the type map. This involves comparing every type to every other
-		// type.
-		static void checkForDerived(T)(ref string[][string] typeMap)
-		{
-			static if(is(stripArrayAndNullable!T == T))
-			{
-				static void checkType(U)(ref string[] incarnations)
-				{
-					static if(is(stripArrayAndNullable!U == U))
-					{
-						static if(is(T : U))
-							incarnations ~= U.stringof;
-					}
-				}
-				string[] incarnations;
-				execForAllTypes!(Schema, checkType)(incarnations);
-				typeMap[T.stringof] = incarnations;
-			}
-		}
-
-		execForAllTypes!(Schema, checkForDerived)(typeMap);
-	}
-	if(auto result = typename in typeMap)
+	import graphql.reflection : SchemaReflection;
+	if(auto result = typename in SchemaReflection!Schema.instance.bases)
 	{
 		return *result;
 	}
@@ -459,28 +431,6 @@ string[] interfacesForType(Schema)(string typename) {
 		return [typename];
 	}
 	return string[].init;
-	/+alias filtered = staticMap!(stripArrayAndNullable, collectTypes!Schema);
-	alias Types = NoDuplicates!(filtered);
-	switch(typename) {
-		static foreach(T; Types) {
-			case T.stringof: {
-				static enum ret = [NoDuplicates!(staticMap!(stringofType,
-						EraseAll!(Object, AllIncarnations!(T, Types))))
-					];
-				logf("%s %s %s", typename, ret);
-				return ret;
-			}
-		}
-		default:
-			//logf("DEFAULT: '%s'", typename);
-			if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
-						"__EnumValue", "__TypeKind", "__Directive",
-						"__DirectiveLocation"], typename))
-			{
-				return [typename];
-			}
-			return string[].init;
-	}+/
 }
 
 template PossibleTypes(Type, Schema) {
@@ -512,27 +462,25 @@ template PossibleTypesImpl(Type, AllTypes...) {
 @safe
 void execForAllTypes(T, alias fn, Context...)(auto ref Context context)
 {
-	//alias allTypes = collectTypesX!T;
 	// establish a seen array to ensure no infinite recursion.
-	static keyFor(T)() @trusted { return cast(void*)typeid(T); }
-	static bool fn2(T)(auto ref Context context)
-	{
-		fn!T(context);
-		return true;
-	}
-	execForAllTypesImpl!(T, fn2, keyFor)((bool[void*]).init, context);
+	execForAllTypesImpl!(T, fn)((bool[void*]).init, context);
+}
+
+@trusted private void *keyFor(TypeInfo ti)
+{
+	return cast(void*)ti;
 }
 
 @safe
-void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
-									 V[K] seen, auto ref Context context)
+void execForAllTypesImpl(Type, alias fn, Context...)(
+									 bool[void *] seen, auto ref Context context)
 {
 	alias FixedType = fixupBasicTypes!Type;
 	static if(!is(FixedType == Type))
 	{
-		return .execForAllTypesImpl!(FixedType, fn, keyFor)(seen, context);
+		return .execForAllTypesImpl!(FixedType, fn)(seen, context);
 	} else static if(isArray!Type && !is(Type == string)) {
-		return .execForAllTypesImpl!(typeof(Type.init[0]), fn, keyFor)(seen, context);
+		return .execForAllTypesImpl!(typeof(Type.init[0]), fn)(seen, context);
 	} else static if( // only process types we are interested in
 		  isAggregateType!Type ||
 		  is(Type == bool) ||
@@ -541,14 +489,15 @@ void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
 		  is(Type == float) ||
 		  is(Type == string))
    	{
-		auto tid = keyFor!Type();
+		auto tid = keyFor(typeid(Type));
 		if(auto v = tid in seen)
 		{
 			// already in there
 			return;
 		}
 		// store the result
-		seen[tid] = fn!Type(context);
+		seen[tid] = true;
+		fn!Type(context);
 
 		// now, handle the types we can get to from this type.
 		static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
@@ -556,9 +505,9 @@ void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
 		} else static if(is(Type : WrapperStore!F, F)) {
 			// ignores subtypes
 		} else static if(is(Type : Nullable!F, F)) {
-			.execForAllTypesImpl!(F, fn, keyFor)(seen, context);
+			.execForAllTypesImpl!(F, fn)(seen, context);
 		} else static if(is(Type : NullableStore!F, F)) {
-			.execForAllTypesImpl!(Type.TypeValue, fn, keyFor)(seen, context);
+			.execForAllTypesImpl!(Type.TypeValue, fn)(seen, context);
 		} else static if(isAggregateType!Type) { // class, struct, interface, union
 			// do callables first. Then do fields separately
 			static foreach(mem; __traits(allMembers, Type))
@@ -568,12 +517,12 @@ void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
 						   && isCallable!(__traits(getMember, Type, mem)))
 				 {
 					 // return type
-					 .execForAllTypesImpl!(ReturnType!(__traits(getMember, Type, mem)), fn, keyFor)(seen, context);
+					 .execForAllTypesImpl!(ReturnType!(__traits(getMember, Type, mem)), fn)(seen, context);
 					 // parameters
 					 static foreach(T; ParameterTypeTuple!(__traits(getMember,
 																	Type, mem)))
 					 {
-						 .execForAllTypesImpl!(T, fn, keyFor)(seen, context);
+						 .execForAllTypesImpl!(T, fn)(seen, context);
 					 }
 				 }
 			}}
@@ -581,7 +530,7 @@ void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
 			// now do all fields
 			static foreach(T; Fields!Type)
 			{
-				.execForAllTypesImpl!(T, fn, keyFor)(seen, context);
+				.execForAllTypesImpl!(T, fn)(seen, context);
 			}
 
 			// do any base types (stolen from BaseTypeTuple, which annoyingly
@@ -590,7 +539,7 @@ void execForAllTypesImpl(Type, alias fn, alias keyFor, V, K, Context...)(
 			{
 				static foreach(T; S)
 				{
-					.execForAllTypesImpl!(T, fn, keyFor)(seen, context);
+					.execForAllTypesImpl!(T, fn)(seen, context);
 				}
 			}
 		}

@@ -727,34 +727,20 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 	static if(!isClass!(T)) {
 		return T.stringof;
 	} else {
-		import graphql.traits : execForAllTypes;
-		alias checker = string function(T);
-		static checker [] lookups;
-		if(lookups is null)
+		// fetch the typeinfo of the item, and compare it down until we get to a
+		// class we have. If none found, return the name of the type itself.
+		import graphql.reflection;
+		auto tinfo = typeid(input);
+		auto reflect = SchemaReflection!Schema.instance;
+		while(tinfo !is null)
 		{
-			static string isRealType(U)(T item)
+			if(auto cname = tinfo in reflect.classes)
 			{
-				if(cast(U)item !is null)
-					return U.stringof;
-				return null;
+				return *cname;
 			}
-
-			static void addLookup(U)(ref checker[] lookups)
-			{
-				static if(is(U == class) && !is(U == T) && is(U : T))
-					lookups ~= &isRealType!U;
-			}
-
-			execForAllTypes!(Schema, addLookup)(lookups);
-			lookups ~= &isRealType!T;
+			tinfo = tinfo.base;
 		}
-
-		foreach(f; lookups)
-		{
-			if(auto result = f(input))
-				return result;
-		}
-		assert(0); // should not get here.
+		return T.stringof;
 	}
 }
 

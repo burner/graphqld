@@ -421,20 +421,16 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 		}
 		else
 		{
+			import graphql.reflection;
 			// need to search for all types that we support that are derived
 			// from this type
-			static Json derivedTypes;
-			if(derivedTypes.type == Json.Type.undefined)
+			ret[Constants.possibleTypesNames] = Json.emptyArray();
+			foreach(tname;
+					SchemaReflection!Schema.instance.derivatives.get(typeid(Type),
+																	 null))
 			{
-				derivedTypes = Json.emptyArray();
-				static void checkType(U)(ref Json dt)
-				{
-					static if(is(U : Type))
-						dt ~= U.stringof;
-				}
-				execForAllTypes!(Schema, checkType)(derivedTypes);
+				ret[Constants.possibleTypesNames] ~= tname;
 			}
-			ret[Constants.possibleTypesNames] = derivedTypes.clone;
 		}
 	} else {
 		ret[Constants.possibleTypesNames] = Json(null);
