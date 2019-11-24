@@ -722,33 +722,39 @@ template isNotInTypeSet(T, R...) {
 }
 
 string getTypename(Schema,T)(auto ref T input) @trusted {
-	import std.meta : Filter, Erase, EraseAll;
-	import std.traits : BaseTypeTuple, BaseClassesTuple;
-	import std.stdio : writefln;
-	import graphql.traits : collectTypes;
 	//pragma(msg, T);
 	//writefln("To %s", T.stringof);
 	static if(!isClass!(T)) {
 		return T.stringof;
 	} else {
-		alias BTT = BaseClassesTuple!T;
-		alias All = collectTypes!(Schema);
-		alias AllCls = Filter!(isClass, All);
-		alias NoT = EraseAll!(T, AllCls);
-		alias NoT2 = EraseAll!(Object, NoT);
+		import graphql.traits : execForAllTypes;
+		alias checker = string function(T);
+		static checker [] lookups;
+		if(lookups is null)
+		{
+			static string isRealType(U)(T item)
+			{
+				if(cast(U)item !is null)
+					return U.stringof;
+				return null;
+			}
 
-		//pragma(msg, "\n" ~ T.stringof);
-		//pragma(msg, NoT2);
-		static foreach(Cls; NoT2) {
-			static if(isNotInTypeSet!(Cls, BTT)) {{
-				Cls t = cast(Cls)input;
-				//writefln("Chk %s %s", Cls.stringof, t !is null);
-				if(t !is null) {
-					return Cls.stringof;
-				}
-			}}
+			static void addLookup(U)(ref checker[] lookups)
+			{
+				static if(is(U == class) && !is(U == T) && is(U : T))
+					lookups ~= &isRealType!U;
+			}
+
+			execForAllTypes!(Schema, addLookup)(lookups);
+			lookups ~= &isRealType!T;
 		}
-		return T.stringof;
+
+		foreach(f; lookups)
+		{
+			if(auto result = f(input))
+				return result;
+		}
+		assert(0); // should not get here.
 	}
 }
 
