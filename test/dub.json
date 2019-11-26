@@ -4,14 +4,11 @@
 	],
 	"copyright": "Copyright © 2019, burner",
 	"dependencies": {
-		"graphqld": "~>1.0.1",
+		"graphqld": { "path" : "../" },
 		"nullablestore": "~>2.1.0",
 		"vibe-d": "~>0.8.6"
 	},
 	"description": "A simple vibe.d server application.",
-	"dflags": [
-		"-deps=deps.txt"
-	],
 	"license": "GPL3",
 	"name": "test",
 	"subConfigurations": {
