@@ -109,6 +109,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			};
 
 		setDefaultSchemaResolver(this);
+		initializeDefaultArgFunctions();
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {
@@ -143,8 +144,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 	}
 
-	static Json getDefaultArgumentImpl(Type)(string field)
-	{
+	static Json getDefaultArgumentImpl(Type)(string field) {
 		static if(isAggregateType!Type) {
 			switch(field) {
 				static foreach(mem; __traits(allMembers, Type)) {
@@ -177,29 +177,32 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return Json.init;
 	}
 
-	Json getDefaultArguments(string type, string field) {
-		import graphql.traits : execForAllTypes;
-		alias defaultArgFn = Json function(string) @safe;
-		static defaultArgFn[string] items;
-		if(items is null)
+	private {
+		alias _defaultArgFn = Json function(string) @safe;
+		_defaultArgFn[string] _defaultArgFunctions;
+
+		void initializeDefaultArgFunctions()
 		{
-			static void setupItems(T)(ref defaultArgFn[string] items)
-			{
+			import graphql.traits : execForAllTypes;
+			static void setupItems(T)(ref _defaultArgFn[string] items) {
 				items[T.stringof] = &getDefaultArgumentImpl!T;
 			}
-			execForAllTypes!(T, setupItems)(items);
+			execForAllTypes!(T, setupItems)(_defaultArgFunctions);
 			// add entry points
-			static foreach(entryPoint; FieldNameTuple!T) {
-				items[entryPoint] =
+			foreach(entryPoint; FieldNameTuple!T) {
+				_defaultArgFunctions[entryPoint] =
 					&getDefaultArgumentImpl!(typeof(__traits(getMember, T,
 															 entryPoint)));
 			}
 		}
-		if(auto f = type in items)
-		{
+	}
+
+	Json getDefaultArguments(string type, string field) {
+		if(auto f = type in _defaultArgFunctions) {
 			auto tmp = (*f)(field);
-			if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_)
+			if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_) {
 				return tmp;
+			}
 		}
 		return Json.init;
 	}
@@ -525,9 +528,9 @@ unittest {
 	import graphql.traits;
 	import std.datetime : DateTime;
 
-	/*alias a = collectTypes!(Schema);
+	alias a = collectTypes!(Schema);
 	alias exp = AliasSeq!(Schema, Query, string, long, bool,
-					GQLDCustomLeaf!(DateTime, toStringImpl));*/
+					GQLDCustomLeaf!(DateTime, toStringImpl));
 	//static assert(is(a == exp), format("\n%s\n%s", a.stringof, exp.stringof));
 
 	//pragma(msg, InheritedClasses!Schema);

@@ -213,11 +213,9 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 	alias resolverFunction = Json function(ref const(StringTypeStrip), Json, GraphQLD!(T,Con)) @safe;
 	static resolverFunction[string] handlers;
-	if(handlers is null)
-	{
+	if(handlers is null) {
 		static void processType(type)(ref resolverFunction[string] handlers) {
-			static if(!is(type == void))
-			{
+			static if(!is(type == void)) {
 				enum typeConst = typeToTypeName!(type);
 				handlers[typeConst] = &typeResolverImpl!(type);
 			}
@@ -261,8 +259,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			stripType = typeCap.stringTypeStrip();
 			graphql.defaultResolverLog.logf("%s %s", __LINE__, stripType);
 
-			if(auto h = stripType.str in handlers)
-			{
+			if(auto h = stripType.str in handlers) {
 				ret = (*h)(stripType, parent, graphql);
 			}
 			retLabel:
@@ -294,24 +291,19 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				typeResolverImpl!(__Directive)(stripType, parent, graphql)["data"];
 			ret["data"]["types"] ~=
 				typeResolverImpl!(__DirectiveLocation)(stripType, parent,
-													   graphql)
-					["data"];
+														graphql)["data"];
 
 			Json jsonTypes;
 			jsonTypes = Json.emptyArray;
-			static if(hasMember!(T, Constants.directives))
-			{
+			static if(hasMember!(T, Constants.directives)) {
 				import graphql.schema.typeconversions : typeToTypeName;
 				string directiveTypeName =
 			   	   typeToTypeName!(typeof(__traits(getMember, T,
 												   Constants.directives)));
-			}
-			else
-			{
+			} else {
 				string directiveTypeName = "";
 			}
-			foreach(n, ref tsn; SchemaReflection!T.instance.jsonTypes)
-			{
+			foreach(n, ref tsn; SchemaReflection!T.instance.jsonTypes) {
 				if(n != directiveTypeName && tsn.canonical)
 					jsonTypes ~= tsn.typeJson.clone;
 			}

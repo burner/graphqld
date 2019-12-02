@@ -420,8 +420,7 @@ template stringofType(T) {
 string[] interfacesForType(Schema)(string typename) {
 	import std.algorithm.searching : canFind;
 	import graphql.reflection : SchemaReflection;
-	if(auto result = typename in SchemaReflection!Schema.instance.bases)
-	{
+	if(auto result = typename in SchemaReflection!Schema.instance.bases) {
 		return *result;
 	}
 	if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
@@ -459,25 +458,20 @@ template PossibleTypesImpl(Type, AllTypes...) {
 }
 
 // compiler has a hard time inferring safe. So we have to tag it.
-@safe
-void execForAllTypes(T, alias fn, Context...)(auto ref Context context)
-{
+void execForAllTypes(T, alias fn, Context...)(auto ref Context context) @safe {
 	// establish a seen array to ensure no infinite recursion.
 	execForAllTypesImpl!(T, fn)((bool[void*]).init, context);
 }
 
-@trusted private void *keyFor(TypeInfo ti)
-{
+@trusted private void* keyFor(TypeInfo ti) {
 	return cast(void*)ti;
 }
 
-@safe
 void execForAllTypesImpl(Type, alias fn, Context...)(
-									 bool[void *] seen, auto ref Context context)
+							bool[void*] seen, auto ref Context context) @safe
 {
 	alias FixedType = fixupBasicTypes!Type;
-	static if(!is(FixedType == Type))
-	{
+	static if(!is(FixedType == Type)) {
 		return .execForAllTypesImpl!(FixedType, fn)(seen, context);
 	} else static if(isArray!Type && !is(Type == string)) {
 		return .execForAllTypesImpl!(typeof(Type.init[0]), fn)(seen, context);
@@ -490,8 +484,7 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 		  is(Type == string))
    	{
 		auto tid = keyFor(typeid(Type));
-		if(auto v = tid in seen)
-		{
+		if(auto v = tid in seen) {
 			// already in there
 			return;
 		}
@@ -510,16 +503,17 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 			.execForAllTypesImpl!(Type.TypeValue, fn)(seen, context);
 		} else static if(isAggregateType!Type) { // class, struct, interface, union
 			// do callables first. Then do fields separately
-			static foreach(mem; __traits(allMembers, Type))
-			{{
+			foreach(mem; __traits(allMembers, Type)) {{
 				 static if(__traits(getProtection, __traits(getMember, Type, mem))
 						   == "public"
 						   && isCallable!(__traits(getMember, Type, mem)))
 				 {
 					 // return type
-					 .execForAllTypesImpl!(ReturnType!(__traits(getMember, Type, mem)), fn)(seen, context);
+					 .execForAllTypesImpl!(ReturnType!(
+									   __traits(getMember, Type, mem)), fn)
+						 (seen, context);
 					 // parameters
-					 static foreach(T; ParameterTypeTuple!(__traits(getMember,
+					 foreach(T; ParameterTypeTuple!(__traits(getMember,
 																	Type, mem)))
 					 {
 						 .execForAllTypesImpl!(T, fn)(seen, context);
@@ -528,17 +522,14 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 			}}
 
 			// now do all fields
-			static foreach(T; Fields!Type)
-			{
+			foreach(T; Fields!Type) {
 				.execForAllTypesImpl!(T, fn)(seen, context);
 			}
 
 			// do any base types (stolen from BaseTypeTuple, which annoyingly
 			// doesn't work on all aggregates)
-			static if(is(Type S == super))
-			{
-				static foreach(T; S)
-				{
+			static if(is(Type S == super)) {
+				static foreach(T; S) {
 					.execForAllTypesImpl!(T, fn)(seen, context);
 				}
 			}
