@@ -113,12 +113,9 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	void addTypeToStackImpl(string name, string followType, string old) {
-		if(auto tp = followType in typeMap)
-		{
+		if(auto tp = followType in typeMap) {
 			this.schemaStack ~= TypePlusName(tp.clone, name);
-		}
-		else
-		{
+		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' '%s' is known",
 							 followType, old), __FILE__, __LINE__);
@@ -129,17 +126,16 @@ class SchemaValidator(Schema) : Visitor {
 		import graphql.schema.introspectiontypes : IntrospectionTypes;
 		this.doc = doc;
 		this.schema = schema;
-		static void buildTypeMap(T)(ref Json[string] map)
-		{
-			if(is(T == stripArrayAndNullable!T))
-			{
+		static void buildTypeMap(T)(ref Json[string] map) {
+			static if(is(T == stripArrayAndNullable!T)) {
 				map[typeToTypeName!T] =
 				   	removeNonNullAndList(typeToJson!(T, Schema)());
 			}
 		}
 		execForAllTypes!(Schema, buildTypeMap)(typeMap);
-		static foreach(T; IntrospectionTypes)
+		foreach(T; IntrospectionTypes) {
 			buildTypeMap!T(typeMap);
+		}
 		this.schemaStack ~= TypePlusName(
 				removeNonNullAndList(typeToJson!(Schema,Schema)()),
 				Schema.stringof
@@ -172,12 +168,9 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(FragmentDefinition) fragDef) {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
-		if(auto tp = typeName in typeMap)
-		{
+		if(auto tp = typeName in typeMap) {
 			this.schemaStack ~= TypePlusName(tp.clone, typeName);
-		}
-		else
-		{
+		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' is known", typeName),
 					  __FILE__, __LINE__);

@@ -732,10 +732,8 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 		import graphql.reflection;
 		auto tinfo = typeid(input);
 		auto reflect = SchemaReflection!Schema.instance;
-		while(tinfo !is null)
-		{
-			if(auto cname = tinfo in reflect.classes)
-			{
+		while(tinfo !is null) {
+			if(auto cname = tinfo in reflect.classes) {
 				return *cname;
 			}
 			tinfo = tinfo.base;
