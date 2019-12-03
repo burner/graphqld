@@ -409,7 +409,6 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	// needed to resolve possibleTypes
 	static if(is(Type == class) || is(Type == union) || is(Type == interface)) {
 		static if(is(Type == union)) {
-			//import std.meta: Filter;
 			ret[Constants.possibleTypesNames] = Json.emptyArray();
 			static foreach(pt; Filter!(isAggregateType, FieldTypeTuple!Type)) {
 				ret[Constants.possibleTypesNames] ~= pt.stringof;

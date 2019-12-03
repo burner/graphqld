@@ -211,20 +211,23 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		return ret;
 	}
 
-	alias resolverFunction = Json function(ref const(StringTypeStrip), Json, GraphQLD!(T,Con)) @safe;
-	static resolverFunction[string] handlers;
+	alias ResolverFunction =
+		Json function(ref const(StringTypeStrip), Json, GraphQLD!(T,Con)) @safe;
+
+	static ResolverFunction[string] handlers;
+
 	if(handlers is null) {
-		static void processType(type)(ref resolverFunction[string] handlers) {
+		static void processType(type)(ref ResolverFunction[string] handlers) {
 			static if(!is(type == void)) {
 				enum typeConst = typeToTypeName!(type);
 				handlers[typeConst] = &typeResolverImpl!(type);
 			}
 		}
+
 		execForAllTypes!(T, processType)(handlers);
-		static foreach(t; AliasSeq!(__Type, __Field, __InputValue,
-									__EnumValue, __TypeKind,
-									__Directive,
-									__DirectiveLocation))
+
+		foreach(t; AliasSeq!(__Type, __Field, __InputValue,
+				__EnumValue, __TypeKind, __Directive, __DirectiveLocation))
 		{
 			 handlers[t.stringof] = &typeResolverImpl!t;
 		}

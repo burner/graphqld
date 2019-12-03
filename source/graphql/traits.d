@@ -482,7 +482,7 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 		  is(Type == long) ||
 		  is(Type == float) ||
 		  is(Type == string))
-   	{
+	{
 		auto tid = keyFor(typeid(Type));
 		if(auto v = tid in seen) {
 			// already in there
