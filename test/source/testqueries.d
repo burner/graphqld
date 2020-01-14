@@ -334,5 +334,21 @@ TestQuery(`
 		"resolverWillThrow": null
 	}
 }`
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+    designation
+    size
+  }
+}
+}`, ShouldThrow.no,
+`{
+	"search": {
+		"size": 685.7,
+		"designation": "NCC-1701E"
+	}
+}`
 )
 ];

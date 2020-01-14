@@ -50,6 +50,33 @@ void main() {
 
 	writeln(graphqld.schema);
 
+	graphqld.setResolver("queryType", "search",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				import std.datetime;
+				Json* data = "name" in args;
+				const string argsName = data !is null ? data.get!string() : "";
+
+				foreach(c; database.chars) {
+					if(c.name == argsName) {
+						Json ret = characterToJson(c);
+						return ret;
+					}
+				}
+
+				foreach(s; database.ships) {
+					if(s.name == argsName) {
+						Json ret = starshipToJson(s);
+						return ret;
+					}
+				}
+
+				throw new GQLDExecutionException(format(
+					"No data with name '%s' found in database", argsName));
+			}
+		);
+
 	graphqld.setResolver("queryType", "currentTime",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
