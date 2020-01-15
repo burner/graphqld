@@ -72,7 +72,7 @@ template typeToTypeName(Type) {
 
 unittest {
 	import std.datetime : Date;
-	//static assert(typeToTypeName!(GQLDCustomLeaf!Date) == "Date");
+	static assert(typeToTypeName!(GQLDCustomLeaf!Date) == "Date");
 }
 
 template typeToParameterTypeName(Type) {
@@ -121,7 +121,7 @@ unittest {
 	static assert(typeToParameterTypeName!(Nullable!(double)[]) == "[Float]!");
 	static assert(typeToParameterTypeName!(Nullable!(Nullable!(double)[])) ==
 			"[Float]");
-	//static assert(typeToParameterTypeName!(GQLDCustomLeaf!Date) == "Date!");
+	static assert(typeToParameterTypeName!(GQLDCustomLeaf!Date) == "Date!");
 }
 
 unittest {
