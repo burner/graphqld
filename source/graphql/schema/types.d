@@ -462,10 +462,7 @@ class GQLDSchema(Type) : GQLDMap {
 			ret = op.returnType;
 			goto retLabel;
 		} else if(auto map = t.toMap()) {
-			if((map.name == "queryType" || map.name == "mutationType"
-						|| map.name == "subscriptionType")
-					&& field in map.member)
-			{
+			if(field in map.member) {
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
 					ret = op.returnType;
@@ -474,9 +471,6 @@ class GQLDSchema(Type) : GQLDMap {
 					ret = tmp;
 					goto retLabel;
 				}
-			} else if(field in map.member) {
-				ret = map.member[field];
-				goto retLabel;
 			} else if(ob && ob.base && field in ob.base.member) {
 				return ob.base.member[field];
 			} else if(field == "__typename") {
@@ -624,6 +618,29 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 
 				}
 				assert(bct.length > 1 ? r.base !is null : true);
+			}
+
+			static foreach(mem; __traits(allMembers, Type)) {
+				static if(!is(__traits(getMember, Type, mem))) {{ // not a type
+					alias MemType = typeof(__traits(getMember, Type, mem));
+					static if(isCallable!MemType) {{
+						GQLDOperation op = new GQLDQuery();
+						r.member[mem] = op;
+						op.returnType =
+							typeToGQLDType!(ReturnType!(MemType))(ret);
+
+						alias paraNames = ParameterIdentifierTuple!(
+								__traits(getMember, Type, mem)
+						   );
+						alias paraTypes = Parameters!(
+							    __traits(getMember, Type, mem)
+						   );
+						static foreach(idx; 0 .. paraNames.length) {
+							op.parameters[paraNames[idx]] =
+								typeToGQLDType!(paraTypes[idx])(ret);
+						}
+					}}
+				}}
 			}
 		}
 		return r;
