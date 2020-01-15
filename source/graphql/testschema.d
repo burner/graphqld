@@ -111,12 +111,12 @@ abstract class Character {
 	//NullableStore!AddCrewmanData data;
 }
 
-abstract class Humanoid : Character {
+class Humanoid : Character {
 	string species;
-	GQLDCustomLeaf!Date dateOfBirth;
+	GQLDCustomLeaf!(Date, dToString) dateOfBirth;
 }
 
-abstract class Android : Character {
+class Android : Character {
 	string primaryFunction;
 }
 

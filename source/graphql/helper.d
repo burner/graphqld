@@ -4,7 +4,7 @@ import std.array : empty;
 import std.algorithm.iteration : each, splitter;
 import std.algorithm.searching : startsWith, endsWith, canFind;
 import std.conv : to;
-import std.datetime : DateTime;
+import std.datetime : DateTime, Date;
 import std.exception : enforce, assertThrown;
 import std.experimental.logger;
 import std.format : format;
@@ -795,6 +795,10 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 }
 
 string dtToString(DateTime dt) {
+	return dt.toISOExtString();
+}
+
+string dToString(Date dt) {
 	return dt.toISOExtString();
 }
 

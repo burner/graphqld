@@ -3,6 +3,7 @@ sudo: false
 
 d:
   - dmd
+  - ldc
 
 script:
   - make style_lint
