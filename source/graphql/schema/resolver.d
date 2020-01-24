@@ -33,6 +33,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 }
 
 GQLDSchema!(Type) toSchema(Type)() {
+	import graphql.uda : getUdaData, Ignore;
 	typeof(return) ret = new GQLDSchema!Type();
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
@@ -46,30 +47,33 @@ GQLDSchema!(Type) toSchema(Type)() {
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
 			static foreach(mem; __traits(allMembers, QMSType)) {{
-				alias MemType = typeof(__traits(getMember, QMSType, mem));
-				static if(isCallable!(MemType)) {{
-					GQLDOperation op = qms == "queryType"
-						? new GQLDQuery()
-						: qms == "mutationType" ? new GQLDMutation()
-						: qms == "subscriptionType" ? new GQLDSubscription()
-						: null;
-					cur.member[mem] = op;
-					assert(op !is null);
-					op.returnType = typeToGQLDType!(ReturnType!(MemType))(
-							ret
-						);
+				enum uda = getUdaData!(QMSType, mem);
+				static if(uda.ignore != Ignore.yes) {
+					alias MemType = typeof(__traits(getMember, QMSType, mem));
+					static if(isCallable!(MemType)) {{
+						GQLDOperation op = qms == "queryType"
+							? new GQLDQuery()
+							: qms == "mutationType" ? new GQLDMutation()
+							: qms == "subscriptionType" ? new GQLDSubscription()
+							: null;
+						cur.member[mem] = op;
+						assert(op !is null);
+						op.returnType = typeToGQLDType!(ReturnType!(MemType))(
+								ret
+							);
 
-					alias paraNames = ParameterIdentifierTuple!(
-							__traits(getMember, QMSType, mem)
-						);
-					alias paraTypes = Parameters!(
-							__traits(getMember, QMSType, mem)
-						);
-					static foreach(idx; 0 .. paraNames.length) {
-						op.parameters[paraNames[idx]] =
-							typeToGQLDType!(paraTypes[idx])(ret);
-					}
-				}}
+						alias paraNames = ParameterIdentifierTuple!(
+								__traits(getMember, QMSType, mem)
+							);
+						alias paraTypes = Parameters!(
+								__traits(getMember, QMSType, mem)
+							);
+						static foreach(idx; 0 .. paraNames.length) {
+							op.parameters[paraNames[idx]] =
+								typeToGQLDType!(paraTypes[idx])(ret);
+						}
+					}}
+				}
 			}}
 		}
 	}}

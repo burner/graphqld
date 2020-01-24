@@ -601,10 +601,13 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
 			static foreach(idx; 0 .. fieldNames.length) {{
-				static if(fieldNames[idx] != Constants.directives) {{
-					r.member[fieldNames[idx]] =
-						typeToGQLDType!(fieldTypes[idx])(ret);
-				}}
+				enum uda = getUdaData!(Type, fieldNames[idx]);
+				static if(uda.ignore != Ignore.yes) {
+					static if(fieldNames[idx] != Constants.directives) {{
+						r.member[fieldNames[idx]] =
+							typeToGQLDType!(fieldTypes[idx])(ret);
+					}}
+				}
 			}}
 
 			static if(is(Type == class)) {
@@ -622,24 +625,27 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 
 			static foreach(mem; __traits(allMembers, Type)) {
 				static if(!is(__traits(getMember, Type, mem))) {{ // not a type
+					enum uda = getUdaData!(Type, mem);
 					alias MemType = typeof(__traits(getMember, Type, mem));
-					static if(isCallable!MemType) {{
-						GQLDOperation op = new GQLDQuery();
-						r.member[mem] = op;
-						op.returnType =
-							typeToGQLDType!(ReturnType!(MemType))(ret);
+					static if(uda.ignore != Ignore.yes) {
+						static if(isCallable!MemType) {{
+							GQLDOperation op = new GQLDQuery();
+							r.member[mem] = op;
+							op.returnType =
+								typeToGQLDType!(ReturnType!(MemType))(ret);
 
-						alias paraNames = ParameterIdentifierTuple!(
-								__traits(getMember, Type, mem)
-						   );
-						alias paraTypes = Parameters!(
-							    __traits(getMember, Type, mem)
-						   );
-						static foreach(idx; 0 .. paraNames.length) {
-							op.parameters[paraNames[idx]] =
-								typeToGQLDType!(paraTypes[idx])(ret);
-						}
-					}}
+							alias paraNames = ParameterIdentifierTuple!(
+									__traits(getMember, Type, mem)
+							   );
+							alias paraTypes = Parameters!(
+								    __traits(getMember, Type, mem)
+							   );
+							static foreach(idx; 0 .. paraNames.length) {
+								op.parameters[paraNames[idx]] =
+									typeToGQLDType!(paraTypes[idx])(ret);
+							}
+						}}
+					}
 				}}
 			}
 		}

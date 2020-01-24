@@ -52,6 +52,10 @@ struct Query {
 	Android[] resolverWillThrow();
 	GQLDCustomLeaf!(DateTime, dtToString) currentTime();
 	int currentTime();
+
+	@GQLDUda(Ignore.yes)
+	void ignoreMe() {
+	}
 }
 
 unittest {
@@ -118,6 +122,10 @@ class Humanoid : Character {
 
 class Android : Character {
 	string primaryFunction;
+
+	@GQLDUda(Ignore.yes)
+	void ignoreMeToo() {
+	}
 }
 
 @GQLDUda(
