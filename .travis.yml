@@ -8,7 +8,9 @@ d:
 script:
   - make style_lint
   - dub test --compiler=${DC}
-  - cd test && dub --compiler=${DC} -- --onlyRunTest
+  - cd test
+  - dub build --compiler=${DC}
+  - ./test --onlyRunTests
 
 notifications:
   email: false
