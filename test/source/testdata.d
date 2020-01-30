@@ -89,7 +89,8 @@ class HumanoidImpl : Humanoid {
 					~ " commanders[%(%s,%)]")
 			(
 				id, name, species, series, commands.map!(a => a.name),
-				ship ? ship.designation : "", commanders.map!(a => a.name)
+				!ship.isNull() ? ship.get().designation : ""
+				, commanders.map!(a => a.name)
 			);
 	}
 }
@@ -106,7 +107,8 @@ class AndroidImpl : Android {
 					~ " commands[%(%s,%)], ship(%s)), commanders[%(%s,%)]")
 			(
 				id, name, primaryFunction, series, commands.map!(a => a.name),
-				ship ? ship.designation : "", commanders.map!(a => a.name)
+				!ship.isNull() ? ship.get().designation : "",
+				commanders.map!(a => a.name)
 			);
 	}
 }
