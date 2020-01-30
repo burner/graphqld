@@ -457,6 +457,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			app.put(e.toString());
 			e = cast(Exception)e.next;
 		}
+		//writefln("\n\n\n\n#####\n%s\n#####\n\n\n\n", app.data);
 		Json ret = Json.emptyObject;
 		ret.insertError(app.data);
 		res.writeJsonBody(ret);

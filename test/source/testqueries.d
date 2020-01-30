@@ -350,5 +350,29 @@ search(name: "Enterprise") {
 		"designation": "NCC-1701E"
 	}
 }`
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+	name
+  }
+  ... on Character {
+	name
+  }
+}
+}`, ShouldThrow.no
+),
+TestQuery(`
+{
+search(name: "Enterprise") {
+  ... on Starship {
+	name
+  }
+  ... on Character {
+	doesNotExist_FooBar
+  }
+}
+}`, ShouldThrow.yes
 )
 ];

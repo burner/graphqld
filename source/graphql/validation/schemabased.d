@@ -222,11 +222,7 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(InlineFragment) inF) {
-		this.addTypeToStackImpl("InlineFragment", inF.tc.value, "");
-	}
-
-	override void exit(const(InlineFragment) inF) {
-		this.schemaStack.popBack();
+		this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
 	}
 
 	override void exit(const(Selection) op) {
