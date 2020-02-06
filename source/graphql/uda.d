@@ -106,7 +106,7 @@ struct GQLDDeprecatedData {
 struct GQLDDescription {
 	string text;
 	string getText() const {
-		return text !is null && text.empty ? this.text : "";
+		return text !is null && !text.empty ? this.text : "";
 	}
 }
 

@@ -134,12 +134,16 @@ class Android : Character {
 class Starship {
 	long id;
 	string name;
+
 	@GQLDUda(
 		GQLDDescription("The name used when speaking about the ship")
 	)
 	string designation;
 	double size;
 
+	@GQLDUda(
+		GQLDDescription("The person in charge")
+	)
 	Character commander;
 	Nullable!(Series)[] series;
 	Character[] crew;
