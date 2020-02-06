@@ -448,6 +448,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		CustomContext con;
 		Json gqld = graphqld.execute(d, vars, con);
 
+		writeln(gqld.toPrettyString());
 		res.writeJsonBody(gqld);
 		return;
 	} catch(Throwable e) {

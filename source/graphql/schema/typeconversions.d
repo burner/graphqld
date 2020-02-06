@@ -186,8 +186,8 @@ Json typeFields(T)() {
 					tmp[Constants.name] = mem;
 					// needed for interfacesForType
 					tmp[Constants.__typename] = "__Field";
-					tmp[Constants.description] = udaData.description.getText()
-						.empty
+					tmp[Constants.description] =
+						udaData.description.getText().empty
 							? Json(null)
 							: Json(udaData.description.getText());
 
@@ -363,7 +363,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	ret[Constants.__typename] = "__Type";
 	ret[Constants.name] = typeToTypeName!Type;
 
-	enum GQLDUdaData udaData = getUdaData!(Type);
+	enum GQLDUdaData udaData = getUdaData!(Orig);
 	enum des = udaData.description.text;
 	ret[Constants.description] = des.empty
 			? Json(null)
