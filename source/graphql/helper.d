@@ -433,13 +433,33 @@ T extract(T)(Json data, string name) {
 			)(T.stringof, name, data)
 		);
 
-	return (*item).to!T();
+	static if(is(T == enum)) {
+		static import std.conv;
+		string s = (*item).to!string();
+		return std.conv.to!T(s);
+	} else {
+		return (*item).to!T();
+	}
 }
 
 unittest {
 	import std.exception : assertThrown;
 	Json j = parseJsonString(`{ "foo": 1337 }`);
 	auto foo = j.extract!int("foo");
+
+	assertThrown(Json.emptyObject().extract!float("Hello"));
+	assertThrown(j.extract!string("Hello"));
+}
+
+unittest {
+	import std.exception : assertThrown;
+	enum FooEn {
+		a,
+		b
+	}
+	Json j = parseJsonString(`{ "foo": "a" }`);
+	auto foo = j.extract!FooEn("foo");
+	assert(foo == FooEn.a);
 
 	assertThrown(Json.emptyObject().extract!float("Hello"));
 	assertThrown(j.extract!string("Hello"));

@@ -356,6 +356,16 @@ Json typeToJson2(Type,Schema,Orig)() {
 	}
 }
 
+template notNullOrArray(T,S) {
+	static if(is(Nullable!F : T, F)) {
+		alias notNullOrArray = S;
+	} else static if(isArray!T) {
+		alias notNullOrArray = S;
+	} else {
+		alias notNullOrArray = T;
+	}
+}
+
 Json typeToJsonImpl(Type,Schema,Orig)() {
 	Json ret = Json.emptyObject();
 	enum string kind = typeToTypeEnum!(stripArrayAndNullable!Type);
@@ -363,7 +373,8 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	ret[Constants.__typename] = "__Type";
 	ret[Constants.name] = typeToTypeName!Type;
 
-	enum GQLDUdaData udaData = getUdaData!(Orig);
+	alias TypeOrig = notNullOrArray!(Type,Orig);
+	enum GQLDUdaData udaData = getUdaData!(TypeOrig);
 	enum des = udaData.description.text;
 	ret[Constants.description] = des.empty
 			? Json(null)

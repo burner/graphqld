@@ -564,3 +564,48 @@ Json query(string s, Json args) {
 	string rsltS = rslt.toPrettyString();
 	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
 }
+
+@safe unittest {
+	Json rslt = query(`
+		{
+			__type(name: "Character") {
+				fields {
+					name
+					description
+				}
+			}
+		}`);
+
+	string s = `{
+	"data": {
+		"__type": {
+			"fields": [
+				{
+					"description": "The id of the character",
+					"name": "id"
+				},
+				{
+					"description": "The name of the character",
+					"name": "name"
+				},
+				{
+					"description": "The friends of the character, or an empty list if they have none.",
+					"name": "friends"
+				},
+				{
+					"description": "Which movies they appear in.",
+					"name": "appearsIn"
+				},
+				{
+					"description": "Where are they from and how they came to be who they  are.",
+					"name": "secretBackstory"
+				}
+			]
+		}
+	}
+	}`;
+	Json exp = parseJson(s);
+	string extS = exp.toPrettyString();
+	string rsltS = rslt.toPrettyString();
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
+}
