@@ -21,6 +21,7 @@ import graphql.helper;
 import graphql.schema.resolver;
 import graphql.schema.types;
 import graphql.tokenmodule;
+import graphql.exception;
 
 @safe:
 
@@ -34,13 +35,6 @@ struct GQLDOptions {
 }
 
 struct DefaultContext {
-}
-
-class GQLDExecutionException : Exception {
-	this(string msg, string f = __FILE__, size_t l = __LINE__) {
-		super(msg, f, l);
-		this.line = l;
-	}
 }
 
 private struct ExecutionContext {

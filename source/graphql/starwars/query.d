@@ -13,6 +13,7 @@ import graphql.builder;
 import graphql.lexer;
 import graphql.ast;
 import graphql.graphql;
+import graphql.exception;
 import graphql.helper;
 import graphql.starwars.data;
 import graphql.starwars.schema;

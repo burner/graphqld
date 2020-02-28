@@ -26,6 +26,7 @@ import graphql.traits;
 import graphql.argumentextractor;
 import graphql.graphql;
 import graphql.testschema;
+import graphql.exception;
 
 import testdata;
 import testdata2;

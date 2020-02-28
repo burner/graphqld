@@ -16,6 +16,7 @@ import vibe.data.json;
 
 import graphql.ast;
 import graphql.constants;
+import graphql.exception;
 
 @safe:
 
@@ -420,14 +421,14 @@ unittest {
 }
 
 T extract(T)(Json data, string name) {
-	enforce(data.type == Json.Type.object, format!
+	enforce!GQLDExecutionException(data.type == Json.Type.object, format!
 			"Trying to get a '%s' by name '%s' but passed Json is not an object"
 			(T.stringof, name)
 		);
 
 	Json* item = name in data;
 
-	enforce(item !is null, format!(
+	enforce!GQLDExecutionException(item !is null, format!(
 			"Trying to get a '%s' by name '%s' which is not present in passed "
 			~ "object '%s'"
 			)(T.stringof, name, data)
@@ -435,11 +436,46 @@ T extract(T)(Json data, string name) {
 
 	static if(is(T == enum)) {
 		static import std.conv;
+		enforce!GQLDExecutionException((*item).type == Json.Type.string,
+			format!("Enum '%s' must be passed as string not '%s'")(
+				T.stringof, (*item).type));
+
 		string s = (*item).to!string();
-		return std.conv.to!T(s);
+		try {
+			return std.conv.to!T(s);
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
 	} else {
-		return (*item).to!T();
+		try {
+			return (*item).to!T();
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
 	}
+}
+
+unittest {
+	import std.exception : assertThrown;
+	Json j = parseJsonString(`null`);
+	assertThrown(j.extract!string("Hello"));
+}
+
+unittest {
+	enum E {
+		no,
+		yes
+	}
+	import std.exception : assertThrown;
+	Json j = parseJsonString(`{ "foo": 1337 }`);
+
+	assertThrown(j.extract!E("foo"));
+
+	j = parseJsonString(`{ "foo": "str" }`);
+	assertThrown(j.extract!E("foo"));
+
+	j = parseJsonString(`{ "foo": "yes" }`);
+	assert(j.extract!E("foo") == E.yes);
 }
 
 unittest {
