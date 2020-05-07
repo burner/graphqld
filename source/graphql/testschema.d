@@ -31,6 +31,10 @@ string dtToString(DateTime dt) {
 	return dt.toISOExtString();
 }
 
+DateTime stringToDT(string s) {
+	return DateTime.fromISOExtString(s);
+}
+
 @GQLDUda(TypeKind.OBJECT)
 struct Query {
 	@GQLDUda(
@@ -50,7 +54,7 @@ struct Query {
 	Humanoid[] humanoids();
 	Android[] androids();
 	Android[] resolverWillThrow();
-	GQLDCustomLeaf!(DateTime, dtToString) currentTime();
+	GQLDCustomLeaf!(DateTime, dtToString, stringToDT) currentTime();
 	int currentTime();
 
 	@GQLDUda(Ignore.yes)
@@ -117,7 +121,7 @@ abstract class Character {
 
 class Humanoid : Character {
 	string species;
-	GQLDCustomLeaf!(Date, dToString) dateOfBirth;
+	GQLDCustomLeaf!(Date, dToString, stringToDT) dateOfBirth;
 }
 
 class Android : Character {

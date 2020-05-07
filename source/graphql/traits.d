@@ -122,7 +122,13 @@ template isNotCustomLeaf(Type) {
 }
 
 unittest {
-	alias t = AliasSeq!(int, GQLDCustomLeaf!int);
+	string toS(int i) {
+		return "";
+	}
+	int fromS(string s) {
+		return 0;
+	}
+	alias t = AliasSeq!(int, GQLDCustomLeaf!(int, toS, fromS));
 	alias f = Filter!(isNotCustomLeaf, t);
 	static assert(is(f == AliasSeq!(int)));
 }

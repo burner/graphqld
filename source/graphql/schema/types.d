@@ -583,8 +583,8 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		return r;
 	} else static if(is(Type : Nullable!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
-	} else static if(is(Type : GQLDCustomLeaf!F, F)) {
-		return new GQLDLeaf(F.stringof);
+	} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
+		return new GQLDLeaf(Fs[0].stringof);
 	} else static if(is(Type : NullableStore!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {

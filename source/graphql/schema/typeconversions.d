@@ -32,7 +32,7 @@ template typeToTypeEnum(Type) {
 		enum typeToTypeEnum = "ENUM";
 	} else static if(is(Type == bool)) {
 		enum typeToTypeEnum = "SCALAR";
-	} else static if(is(Type : GQLDCustomLeaf!F, F)) {
+	} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
 		enum typeToTypeEnum = "SCALAR";
 	} else static if(isFloatingPoint!(Type)) {
 		enum typeToTypeEnum = "SCALAR";
@@ -72,7 +72,14 @@ template typeToTypeName(Type) {
 
 unittest {
 	import std.datetime : Date;
-	static assert(typeToTypeName!(GQLDCustomLeaf!Date) == "Date");
+
+	string tS(Date d) {
+		return "";
+	}
+	Date fromS(string s) {
+		return Date.init;
+	}
+	static assert(typeToTypeName!(GQLDCustomLeaf!(Date, tS, fromS)) == "Date");
 }
 
 template typeToParameterTypeName(Type) {
@@ -113,6 +120,12 @@ template typeToParameterTypeName(Type) {
 
 unittest {
 	import std.datetime : Date;
+	string tS(Date d) {
+		return "";
+	}
+	Date fS(string s) {
+		return Date.init;
+	}
 	static assert(typeToParameterTypeName!(int) == "Int!");
 	static assert(typeToParameterTypeName!(Nullable!int) == "Int");
 	static assert(typeToParameterTypeName!(double) == "Float!");
@@ -121,7 +134,8 @@ unittest {
 	static assert(typeToParameterTypeName!(Nullable!(double)[]) == "[Float]!");
 	static assert(typeToParameterTypeName!(Nullable!(Nullable!(double)[])) ==
 			"[Float]");
-	static assert(typeToParameterTypeName!(GQLDCustomLeaf!Date) == "Date!");
+	static assert(typeToParameterTypeName!(GQLDCustomLeaf!(Date,tS,fS))
+			== "Date!");
 }
 
 unittest {

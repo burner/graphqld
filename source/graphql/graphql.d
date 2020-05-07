@@ -505,12 +505,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 }
 
 import graphql.uda;
+import std.datetime : DateTime;
+
+private DateTime fromStringImpl(string s) {
+	return DateTime.fromISOExtString(s);
+}
 
 @GQLDUda(TypeKind.OBJECT)
 private struct Query {
-	import std.datetime : DateTime;
 
-	GQLDCustomLeaf!DateTime current();
+	GQLDCustomLeaf!(DateTime, toStringImpl, fromStringImpl)  current();
 }
 
 private class Schema {
@@ -524,7 +528,7 @@ unittest {
 
 	alias a = collectTypes!(Schema);
 	alias exp = AliasSeq!(Schema, Query, string, long, bool,
-					GQLDCustomLeaf!(DateTime, toStringImpl));
+					GQLDCustomLeaf!(DateTime, toStringImpl, fromStringImpl));
 	//static assert(is(a == exp), format("\n%s\n%s", a.stringof, exp.stringof));
 
 	//pragma(msg, InheritedClasses!Schema);

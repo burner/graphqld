@@ -1,6 +1,7 @@
 module graphql.uda;
 
 import std.array : empty;
+import std.datetime : DateTime;
 import std.traits : isBuiltinType;
 
 @safe:
@@ -63,12 +64,13 @@ string toStringImpl(T)(T t) {
 	T = the wrapped type
 	SerializationFun = the function to use to serialize T
 */
-struct GQLDCustomLeaf(T, alias SerializationFun = toStringImpl!T) {
+struct GQLDCustomLeaf(T, alias SerializationFun, alias DeserializationFun) {
 	alias Type = T;
 	Type value;
 	alias value this;
 
 	alias Fun = SerializationFun;
+	alias DeFun = SerializationFun;
 
 	this(Type value) {
 		this.value = value;
@@ -79,23 +81,30 @@ struct GQLDCustomLeaf(T, alias SerializationFun = toStringImpl!T) {
 	}
 }
 
+private string tS(DateTime dt) {
+	return dt.toISOExtString();
+}
+
+private DateTime fS(string s) {
+	return DateTime.fromISOExtString(s);
+}
+
 unittest {
-	import std.datetime : DateTime;
 	import vibe.data.json;
 
 	Json fun(DateTime dt) {
 		return Json(dt.toISOExtString());
 	}
 
-	auto f = GQLDCustomLeaf!DateTime();
+	auto f = GQLDCustomLeaf!(DateTime, tS, fS)();
 
-	GQLDCustomLeaf!DateTime dt = DateTime(1337, 1, 1);
+	GQLDCustomLeaf!(DateTime, tS, fS) dt = DateTime(1337, 1, 1);
 }
 
 unittest {
 	import std.typecons : Nullable, nullable;
 	import std.datetime : DateTime;
-	Nullable!(GQLDCustomLeaf!DateTime) dt;
+	Nullable!(GQLDCustomLeaf!(DateTime, tS, fS)) dt;
 }
 
 struct GQLDDeprecatedData {

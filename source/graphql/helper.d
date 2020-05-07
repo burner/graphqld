@@ -15,6 +15,7 @@ import std.typecons : nullable, Nullable;
 import vibe.data.json;
 
 import graphql.ast;
+import graphql.uda;
 import graphql.constants;
 import graphql.exception;
 
@@ -420,6 +421,39 @@ unittest {
 	assert(c1.accessNN!(["b", "a"]) !is null);
 }
 
+T jsonTo(T)(Json item) {
+	static import std.conv;
+	static if(is(T == enum)) {
+		enforce!GQLDExecutionException(item.type == Json.Type.string,
+			format!("Enum '%s' must be passed as string not '%s'")(
+				T.stringof, item.type));
+
+		string s = item.to!string();
+		try {
+			return std.conv.to!T(s);
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	} else static if(is(T == GQLDCustomLeaf!Fs, Fs...)) {
+		enforce!GQLDExecutionException(item.type == Json.Type.string,
+			format!("%1$s '%1$s' must be passed as string not '%2$s'")(
+				T.stringof, item.type));
+
+		string s = item.to!string();
+		try {
+			return T(Fs[2](s));
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	} else {
+		try {
+			return item.to!T();
+		} catch(Exception c) {
+			throw new GQLDExecutionException(c.msg);
+		}
+	}
+}
+
 T extract(T)(Json data, string name) {
 	enforce!GQLDExecutionException(data.type == Json.Type.object, format!
 			"Trying to get a '%s' by name '%s' but passed Json is not an object"
@@ -434,25 +468,7 @@ T extract(T)(Json data, string name) {
 			)(T.stringof, name, data)
 		);
 
-	static if(is(T == enum)) {
-		static import std.conv;
-		enforce!GQLDExecutionException((*item).type == Json.Type.string,
-			format!("Enum '%s' must be passed as string not '%s'")(
-				T.stringof, (*item).type));
-
-		string s = (*item).to!string();
-		try {
-			return std.conv.to!T(s);
-		} catch(Exception c) {
-			throw new GQLDExecutionException(c.msg);
-		}
-	} else {
-		try {
-			return (*item).to!T();
-		} catch(Exception c) {
-			throw new GQLDExecutionException(c.msg);
-		}
-	}
+	return jsonTo!(T)(*item);
 }
 
 unittest {
@@ -499,6 +515,10 @@ unittest {
 
 	assertThrown(Json.emptyObject().extract!float("Hello"));
 	assertThrown(j.extract!string("Hello"));
+	assert(j["foo"].jsonTo!FooEn() == FooEn.a);
+
+	Json k = parseJsonString(`{ "foo": "b" }`);
+	assert(k["foo"].jsonTo!FooEn() == FooEn.b);
 }
 
 const(Document) lexAndParse(string s) {
@@ -807,7 +827,6 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 
 	import nullablestore;
 
-	import graphql.uda : GQLDCustomLeaf;
 	static if(isArray!T && !isSomeString!T) {
 		Json ret = Json.emptyArray();
 		foreach(ref it; input) {
@@ -854,29 +873,34 @@ string dtToString(DateTime dt) {
 	return dt.toISOExtString();
 }
 
+DateTime stringToDT(string s) {
+	return DateTime.fromISOExtString(s);
+}
+
 string dToString(Date dt) {
 	return dt.toISOExtString();
 }
 
 unittest {
 	import std.typecons : nullable, Nullable;
-	import graphql.uda;
 	import nullablestore;
 
 	struct Foo {
 		int a;
 		Nullable!int b;
 		NullableStore!float c;
-		GQLDCustomLeaf!(DateTime, dtToString) dt2;
-		Nullable!(GQLDCustomLeaf!(DateTime, dtToString)) dt;
+		GQLDCustomLeaf!(DateTime, dtToString, stringToDT) dt2;
+		Nullable!(GQLDCustomLeaf!(DateTime, dtToString, stringToDT)) dt;
 	}
 
 	DateTime dt = DateTime(1337, 7, 1, 1, 1, 1);
 	DateTime dt2 = DateTime(2337, 7, 1, 1, 1, 3);
 
+	alias DT = GQLDCustomLeaf!(DateTime, dtToString, stringToDT);
+
 	Foo foo;
-	foo.dt2 = GQLDCustomLeaf!(DateTime, dtToString)(dt2);
-	foo.dt = nullable(GQLDCustomLeaf!(DateTime, dtToString)(dt));
+	foo.dt2 = DT(dt2);
+	foo.dt = nullable(DT(dt));
 	Json j = toGraphqlJson!int(foo);
 	assert(j["a"].to!int() == 0);
 	assert(j["b"].type == Json.Type.null_);
@@ -888,6 +912,12 @@ unittest {
 	assert(exp == "1337-07-01T01:01:01", exp);
 	string exp2 = j["dt2"].to!string();
 	assert(exp2 == "2337-07-01T01:01:03", exp2);
+
+	DT back = extract!DT(j, "dt");
+	assert(back.value == dt);
+
+	DT back2 = extract!DT(j, "dt2");
+	assert(back2.value == dt2);
 }
 
 struct PathElement {

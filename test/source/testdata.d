@@ -16,6 +16,7 @@ import nullablestore;
 
 import graphql.testschema;
 import graphql.helper : returnTemplate;
+import graphql.uda;
 
 @safe:
 
@@ -69,6 +70,7 @@ Json characterToJson(Character c) {
 
 
 class CharacterImpl : Character {
+	@GQLDUda(Ignore.yes)
 	this(long id, string name) {
 		this.id = id;
 		this.name = name;
@@ -76,6 +78,7 @@ class CharacterImpl : Character {
 }
 
 class HumanoidImpl : Humanoid {
+	@GQLDUda(Ignore.yes)
 	this(long id, string name, string species, Date dob) {
 		this.id = id;
 		this.name = name;
@@ -83,6 +86,7 @@ class HumanoidImpl : Humanoid {
 		this.dateOfBirth = dob;
 	}
 
+	@GQLDUda(Ignore.yes)
 	override string toString() const @safe {
 		return format!("Humanoid(id(%d), name(%s), species(%s), "
 					~ " series[%(%s,%)], commands[%(%s,%)], ship(%s)),"
@@ -102,6 +106,7 @@ class AndroidImpl : Android {
 		this.primaryFunction = pfunc;
 	}
 
+	@GQLDUda(Ignore.yes)
 	override string toString() const @safe {
 		return format!("Android(id(%d), name(%s), function(%s), series[%(%s,%)], "
 					~ " commands[%(%s,%)], ship(%s)), commanders[%(%s,%)]")
@@ -145,6 +150,7 @@ class Data {
 	Starship[] ships;
 	long i;
 
+	@GQLDUda(Ignore.yes)
 	this() @trusted {
 		auto picard = new HumanoidImpl(i++, "Jean-Luc Picard", "Human",
 				Date(2305, 7, 13));
