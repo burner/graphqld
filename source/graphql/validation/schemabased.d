@@ -52,6 +52,10 @@ struct TypePlusName {
 	}
 }
 
+struct DirectiveEntry {
+	string name;
+}
+
 class SchemaValidator(Schema) : Visitor {
 	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
@@ -77,6 +81,8 @@ class SchemaValidator(Schema) : Visitor {
 
 	// Variables of operation
 	Type[string] variables;
+
+	DirectiveEntry[] directiveStack;
 
 	void addToTypeStack(string name) {
 		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
@@ -140,6 +146,14 @@ class SchemaValidator(Schema) : Visitor {
 				removeNonNullAndList(typeToJson!(Schema,Schema)()),
 				Schema.stringof
 			);
+	}
+
+	override void enter(const(Directive) dir) {
+		this.directiveStack ~= DirectiveEntry(dir.name.value);
+	}
+
+	override void exit(const(Directive) dir) {
+		this.directiveStack.popBack();
 	}
 
 	override void enter(const(OperationType) ot) {
@@ -243,37 +257,55 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(Argument) arg) {
 		import std.algorithm.searching : find;
 		const argName = arg.name.value;
-		const parent = this.schemaStack[$ - 2];
-		const curName = this.schemaStack.back.name;
-		auto fields = parent.type[Constants.fields];
-		if(fields.type != Json.Type.Array) {
-			return;
-		}
-		auto curNameFieldRange = fields.byValue
-			.find!(f => f[Constants.name].to!string() == curName);
-		if(curNameFieldRange.empty) {
-			return;
-		}
+		if(this.directiveStack.empty) {
+			const parent = this.schemaStack[$ - 2];
+			const curName = this.schemaStack.back.name;
+			auto fields = parent.type[Constants.fields];
+			if(fields.type != Json.Type.Array) {
+				return;
+			}
+			auto curNameFieldRange = fields.byValue
+				.find!(f => f[Constants.name].to!string() == curName);
+			if(curNameFieldRange.empty) {
+				return;
+			}
 
-		auto curNameField = curNameFieldRange.front;
+			auto curNameField = curNameFieldRange.front;
 
-		Json curArgs = curNameField[Constants.args];
-		auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
+			Json curArgs = curNameField[Constants.args];
+			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
 
-		enforce!ArgumentDoesNotExist(!argElem.empty, format!(
-				"Argument with name '%s' does not exist for field '%s' of type "
-				~ " '%s'")(argName, curName, parent.type[Constants.name]));
+			enforce!ArgumentDoesNotExist(!argElem.empty, format!(
+					"Argument with name '%s' does not exist for field '%s' of type "
+					~ " '%s'")(argName, curName, parent.type[Constants.name]));
 
-		if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
-			const varName = arg.vv.var.name.value;
-			auto varType = varName in this.variables;
-			enforce(varName !is null);
+			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+				const varName = arg.vv.var.name.value;
+				auto varType = varName in this.variables;
+				enforce(varName !is null);
 
-			string typeStr = astTypeToString(*varType);
-			enforce!VariableInputTypeMismatch(
-					argElem.front[Constants.typenameOrig] == typeStr,
-					format!"Variable type '%s' does not match argument type '%s'"
-					(argElem.front[Constants.typenameOrig], typeStr));
+				string typeStr = astTypeToString(*varType);
+				enforce!VariableInputTypeMismatch(
+						argElem.front[Constants.typenameOrig] == typeStr,
+						format!"Variable type '%s' does not match argument type '%s'"
+						(argElem.front[Constants.typenameOrig], typeStr));
+			}
+		} else {
+			enforce!ArgumentDoesNotExist(argName == "if", format(
+					"Argument of Directive '%s' is 'if' not '%s'",
+					this.directiveStack.back.name, argName));
+
+			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+				const varName = arg.vv.var.name.value;
+				auto varType = varName in this.variables;
+				enforce(varName !is null);
+
+				string typeStr = astTypeToString(*varType);
+				enforce!VariableInputTypeMismatch(
+						typeStr == "Boolean!",
+						format!"Variable type '%s' does not match argument type 'Boolean!'"
+						(typeStr));
+			}
 		}
 	}
 }
@@ -750,4 +782,49 @@ unittest {
 }`;
 
 	test!FieldDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Boolean!) {
+	starships {
+		crew @include(if: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Int!) {
+	starships {
+		crew @include(if: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!VariableInputTypeMismatch(str);
+}
+
+unittest {
+	string str = `
+query q($cw: Int!) {
+	starships {
+		crew @include(notIf: $cw) {
+			... on Humanoid {
+				dateOfBirth
+			}
+		}
+	}
+}`;
+
+	test!ArgumentDoesNotExist(str);
 }

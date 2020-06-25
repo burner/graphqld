@@ -249,6 +249,36 @@ Json query(string s, Json args) {
 }
 
 @safe unittest {
+	string args = `{"a": false}`;
+	Json rslt = query(`
+		query FetchLukeQuery($a: Boolean!) {
+			human(id: "1000") @include(if: $a) {
+				name
+			}
+		}`, parseJson(args));
+
+	string s = `{ "data" : { } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
+	string args = `{"a": true}`;
+	Json rslt = query(`
+		query FetchLukeQuery($a: Boolean!) {
+			human(id: "1000") @include(if: $a) {
+				name
+			}
+		}`, parseJson(args));
+
+	string s = `{ "data" : { "human" : { "name" : "Luke Skywalker" } } }`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("\nexp:\n%s\ngot:\n%s",
+			exp.toPrettyString(), rslt.toPrettyString()));
+}
+
+@safe unittest {
 	auto args = `{"someId": "1000"}`;
 	Json rslt = query(`
 		query FetchSomeIDQuery($someId: String!) {
