@@ -127,7 +127,7 @@ class QueryValidator : ConstVisitor {
 
 	override void enter(const(Directive) dir) {
 		enforce!DirectiveNotUnique(dir.name.value !in this.directiveNames.back,
-			format!"Directive '%s' must be unique at %s:%s"(dir.name.value,
+			format("Directive '%s' must be unique at %s:%s", dir.name.value,
 				dir.name.line, dir.name.column));
 
 		this.directiveNames.back[dir.name.value] = true;

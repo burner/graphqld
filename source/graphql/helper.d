@@ -385,9 +385,9 @@ auto accessNN(string[] tokens,T)(T tmp0) {
 	import std.format : format;
 	if(tmp0 !is null) {
 		static foreach(idx, token; tokens) {
-			mixin(format!
+			mixin(format(
 				`if(tmp%d is null) return null;
-				auto tmp%d = tmp%d.%s;`(idx, idx+1, idx, token)
+				auto tmp%d = tmp%d.%s;`, idx, idx+1, idx, token)
 			);
 		}
 		return mixin(format("tmp%d", tokens.length));
@@ -425,7 +425,7 @@ T jsonTo(T)(Json item) {
 	static import std.conv;
 	static if(is(T == enum)) {
 		enforce!GQLDExecutionException(item.type == Json.Type.string,
-			format!("Enum '%s' must be passed as string not '%s'")(
+			format("Enum '%s' must be passed as string not '%s'",
 				T.stringof, item.type));
 
 		string s = item.to!string();
@@ -436,7 +436,7 @@ T jsonTo(T)(Json item) {
 		}
 	} else static if(is(T == GQLDCustomLeaf!Fs, Fs...)) {
 		enforce!GQLDExecutionException(item.type == Json.Type.string,
-			format!("%1$s '%1$s' must be passed as string not '%2$s'")(
+			format("%1$s '%1$s' must be passed as string not '%2$s'",
 				T.stringof, item.type));
 
 		string s = item.to!string();
@@ -455,17 +455,17 @@ T jsonTo(T)(Json item) {
 }
 
 T extract(T)(Json data, string name) {
-	enforce!GQLDExecutionException(data.type == Json.Type.object, format!
+	enforce!GQLDExecutionException(data.type == Json.Type.object, format(
 			"Trying to get a '%s' by name '%s' but passed Json is not an object"
-			(T.stringof, name)
+			, T.stringof, name)
 		);
 
 	Json* item = name in data;
 
-	enforce!GQLDExecutionException(item !is null, format!(
+	enforce!GQLDExecutionException(item !is null, format(
 			"Trying to get a '%s' by name '%s' which is not present in passed "
 			~ "object '%s'"
-			)(T.stringof, name, data)
+			, T.stringof, name, data)
 		);
 
 	return jsonTo!(T)(*item);

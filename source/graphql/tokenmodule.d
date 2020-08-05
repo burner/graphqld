@@ -90,7 +90,7 @@ struct Token {
 
 	string toString() const {
 		import std.format : format;
-		return format!"Token(%s,%s,%s,%s)"(this.line, this.column, this.type,
+		return format("Token(%s,%s,%s,%s)", this.line, this.column, this.type,
 				this.value);
 	}
 }

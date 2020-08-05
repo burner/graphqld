@@ -28,13 +28,13 @@ import graphql.helper : lexAndParse;
 string astTypeToString(const(Type) input) pure {
 	final switch(input.ruleSelection) {
 		case TypeEnum.TN:
-			return format!"%s!"(input.tname.value);
+			return format("%s!", input.tname.value);
 		case TypeEnum.LN:
-			return format!"[%s]!"(astTypeToString(input.list.type));
+			return format("[%s]!", astTypeToString(input.list.type));
 		case TypeEnum.T:
-			return format!"%s"(input.tname.value);
+			return format("%s", input.tname.value);
 		case TypeEnum.L:
-			return format!"[%s]"(astTypeToString(input.list.type));
+			return format("[%s]", astTypeToString(input.list.type));
 	}
 }
 
@@ -275,9 +275,9 @@ class SchemaValidator(Schema) : Visitor {
 			Json curArgs = curNameField[Constants.args];
 			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
 
-			enforce!ArgumentDoesNotExist(!argElem.empty, format!(
+			enforce!ArgumentDoesNotExist(!argElem.empty, format(
 					"Argument with name '%s' does not exist for field '%s' of type "
-					~ " '%s'")(argName, curName, parent.type[Constants.name]));
+					~ " '%s'", argName, curName, parent.type[Constants.name]));
 
 			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
 				const varName = arg.vv.var.name.value;
@@ -287,8 +287,8 @@ class SchemaValidator(Schema) : Visitor {
 				string typeStr = astTypeToString(*varType);
 				enforce!VariableInputTypeMismatch(
 						argElem.front[Constants.typenameOrig] == typeStr,
-						format!"Variable type '%s' does not match argument type '%s'"
-						(argElem.front[Constants.typenameOrig], typeStr));
+						format("Variable type '%s' does not match argument type '%s'"
+						, argElem.front[Constants.typenameOrig], typeStr));
 			}
 		} else {
 			enforce!ArgumentDoesNotExist(argName == "if", format(
@@ -303,8 +303,8 @@ class SchemaValidator(Schema) : Visitor {
 				string typeStr = astTypeToString(*varType);
 				enforce!VariableInputTypeMismatch(
 						typeStr == "Boolean!",
-						format!"Variable type '%s' does not match argument type 'Boolean!'"
-						(typeStr));
+						format("Variable type '%s' does not match argument type 'Boolean!'"
+						, typeStr));
 			}
 		}
 	}

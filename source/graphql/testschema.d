@@ -160,9 +160,8 @@ class Starship {
 	}
 
 	override string toString() const @safe {
-		return format!("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
-					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])")
-			(
+		return format("Ship(id(%d), designation(%s), size(%.2f), name(%s)"
+					~ "commander(%s), series[%(%s,%)], crew[%(%s,%)])",
 				 id, designation, size, name, commander.name, series,
 				 crew.map!(a => a.name)
 			);
