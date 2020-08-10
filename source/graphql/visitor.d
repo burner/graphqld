@@ -529,6 +529,9 @@ class Visitor : ConstVisitor {
 			case ValueEnum.E:
 				obj.tok.visit(this);
 				break;
+			case ValueEnum.N:
+				obj.tok.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -1656,6 +1659,9 @@ class ConstVisitor {
 				obj.obj.visit(this);
 				break;
 			case ValueEnum.E:
+				obj.tok.visit(this);
+				break;
+			case ValueEnum.N:
 				obj.tok.visit(this);
 				break;
 		}

@@ -31,6 +31,8 @@ gen:
 	-u "graphql" -s "graphql" \
 	--safe
 
+	cat exeexcp >> source/graphql/exception.d
+
 style_lint:
 	#@echo "Enforce braces on the same line"
 	#grep -nrE '^[\t ]*{' $$(find source -name '*.d'); test $$? -eq 1

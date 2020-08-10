@@ -1154,7 +1154,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -1726,7 +1726,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+				["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_"]
 			);
 
 		}
@@ -1783,7 +1783,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_","dollar"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_","dollar"]
 		);
 
 	}
@@ -1796,7 +1796,8 @@ struct Parser {
 			 || this.lex.front.type == TokenType.false_
 			 || this.firstArray()
 			 || this.firstObjectType()
-			 || this.lex.front.type == TokenType.name;
+			 || this.lex.front.type == TokenType.name
+			 || this.lex.front.type == TokenType.null_;
 	}
 
 	Value parseValue() {
@@ -1867,6 +1868,13 @@ struct Parser {
 			return new Value(ValueEnum.E
 				, tok
 			);
+		} else if(this.lex.front.type == TokenType.null_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Value(ValueEnum.N
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1876,7 +1884,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly","name"]
+			["stringValue","intValue","floatValue","true_","false_","lbrack","lcurly","name","null_"]
 		);
 
 	}
@@ -2049,7 +2057,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}
@@ -2065,7 +2073,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_"]
 		);
 
 	}
@@ -2126,7 +2134,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","stringValue -> Value","true_ -> Value"]
+				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 			);
 
 		}
@@ -2168,8 +2176,8 @@ struct Parser {
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
 				subRules = ["V", "Vs", "Vsc"];
-				if(this.firstValue()) {
-					Value val = this.parseValue();
+				if(this.firstValueOrVariable()) {
+					ValueOrVariable val = this.parseValueOrVariable();
 					subRules = ["Vsc"];
 					if(this.lex.front.type == TokenType.comma) {
 						this.lex.popFront();
@@ -2216,7 +2224,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","stringValue","true_"]
+					["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
 			}

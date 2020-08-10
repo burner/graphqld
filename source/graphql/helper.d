@@ -21,6 +21,17 @@ import graphql.exception;
 
 @safe:
 
+/** dmd and ldc have problems with generation all functions
+This functions call functions that were undefined.
+*/
+private void undefinedFunctions() {
+	static import core.internal.hash;
+
+	const(graphql.schema.introspectiontypes.__Type)[] tmp;
+	core.internal.hash.hashOf!(const(graphql.schema.introspectiontypes.__Type)[])
+		(tmp, 0);
+}
+
 enum d = "data";
 enum e = Constants.errors;
 

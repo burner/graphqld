@@ -35,6 +35,12 @@ DateTime stringToDT(string s) {
 	return DateTime.fromISOExtString(s);
 }
 
+struct Input {
+	size_t first;
+	@optional
+	Nullable!string after;
+}
+
 @GQLDUda(TypeKind.OBJECT)
 struct Query {
 	@GQLDUda(
@@ -56,6 +62,7 @@ struct Query {
 	Android[] resolverWillThrow();
 	GQLDCustomLeaf!(DateTime, dtToString, stringToDT) currentTime();
 	int currentTime();
+	Starship numberBetween(Input searchInput);
 
 	@GQLDUda(Ignore.yes)
 	void ignoreMe() {

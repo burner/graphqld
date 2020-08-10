@@ -87,28 +87,28 @@ void test(string s) {
 
 @safe unittest {
 	assertNotThrown(test(`
-				query DroidFieldInFragment {
-					hero {
-						name
-						...DroidFields
-					}
-				}
+		query DroidFieldInFragment {
+			hero {
+				name
+				...DroidFields
+			}
+		}
 
-				fragment DroidFields on Droid {
-					primaryFunction
-				}
+		fragment DroidFields on Droid {
+			primaryFunction
+		}
 		`));
 }
 
 @safe unittest {
 	assertNotThrown(test(`
-				query DroidFieldInFragment {
-					hero {
-						name
-						... on Droid {
-							primaryFunction
-						}
-					}
+		query DroidFieldInFragment {
+			hero {
+				name
+				... on Droid {
+					primaryFunction
 				}
+			}
+		}
 		`));
 }

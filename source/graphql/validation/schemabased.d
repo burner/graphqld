@@ -828,3 +828,33 @@ query q($cw: Int!) {
 
 	test!ArgumentDoesNotExist(str);
 }
+
+unittest {
+	string str = `
+query {
+	numberBetween(searchInput:
+		{ first: 10
+		, after: null
+		}
+	) {
+		id
+	}
+}
+`;
+	test!void(str);
+}
+
+unittest {
+	string str = `
+query foo($after: String) {
+    numberBetween(searchInput:
+		{ first: 10
+		, after: $after
+		}
+	) {
+		id
+	}
+}
+`;
+	test!void(str);
+}

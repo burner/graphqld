@@ -6,7 +6,7 @@
 	"dependencies": {
 		"graphqld": { "path" : "../" },
 		"nullablestore": "~>2.1.0",
-		"vibe-d": "~>0.8.6"
+		"vibe-d": ">=0.8.6"
 	},
 	"versions" : ["VibeNoSSL"],
 	"description": "A simple vibe.d server application.",

@@ -13,7 +13,7 @@ import graphql.graphql;
 
 unittest {
 	string q = `
-query a($s: boolean) {
+query a($s: boolean, $after: String) {
 	starships(overSize: 10) {
 		name
 		crew @skip(if: $s) {
@@ -21,6 +21,13 @@ query a($s: boolean) {
 			...robot
 			...charac
 		}
+	}
+    numberBetween(searchInput:
+		{ first: 10
+		, after: $after
+		}
+	) {
+		id
 	}
 }
 
@@ -41,7 +48,7 @@ fragment charac on Character {
 	series
 }`;
 
-	Json vars = parseJsonString(`{ "s": false }`);
+	Json vars = parseJsonString(`{ "s": false, "after": "Hello World" }`);
 
 	Document doc = cast()lexAndParse(q);
 	assert(doc !is null);
@@ -70,5 +77,15 @@ fragment charac on Character {
 
 		Json args = getArguments(cast()name, vars);
 		assert(args == parseJsonString(`{"get" : false}`), format("%s", args));
+	}
+
+	{
+		auto searchInput = astSelect!Field(doc, "a.numberBetween");
+		assert(searchInput !is null);
+
+		Json args = getArguments(cast()searchInput, vars);
+		assert(args == parseJsonString(
+			`{ "searchInput": {"first" : 10, "after": "Hello World"}}`),
+				format("%s", args));
 	}
 }

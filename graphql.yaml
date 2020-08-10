@@ -125,6 +125,7 @@ Value:
     ARR: [Array#arr]
     O: [ObjectType#obj]
     E: [name#tok]
+    N: [null_#tok]
 
 Type:
     TN: [name#tname, exclamation]
@@ -144,9 +145,9 @@ Array:
     Value: [lbrack, Values#vals, rbrack]
 
 ObjectValues:
-    V: [name#name, colon, Value#val]
-    Vsc: [name#name, colon, Value#val, comma, ObjectValues#follow]
-    Vs: [name#name, colon, Value#val, ObjectValues#follow]
+    V: [name#name, colon, ValueOrVariable#val]
+    Vsc: [name#name, colon, ValueOrVariable#val, comma, ObjectValues#follow]
+    Vs: [name#name, colon, ValueOrVariable#val, ObjectValues#follow]
 
 ObjectType:
     Var: [lcurly, ObjectValues#vals, rcurly]

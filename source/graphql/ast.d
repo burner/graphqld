@@ -1031,6 +1031,7 @@ enum ValueEnum {
 	ARR,
 	O,
 	E,
+	N,
 }
 
 class Value : Node {
@@ -1221,17 +1222,17 @@ enum ObjectValuesEnum {
 
 class ObjectValues : Node {
 	ObjectValuesEnum ruleSelection;
-	Value val;
+	ValueOrVariable val;
 	ObjectValues follow;
 	Token name;
 
-	this(ObjectValuesEnum ruleSelection, Token name, Value val) {
+	this(ObjectValuesEnum ruleSelection, Token name, ValueOrVariable val) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.val = val;
 	}
 
-	this(ObjectValuesEnum ruleSelection, Token name, Value val, ObjectValues follow) {
+	this(ObjectValuesEnum ruleSelection, Token name, ValueOrVariable val, ObjectValues follow) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.val = val;

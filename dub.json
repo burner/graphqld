@@ -5,7 +5,7 @@
 	],
 	"dependencies" : {
 		"fixedsizearray": ">=1.2.0",
-		"vibe-d": "~>0.8.6",
+		"vibe-d": ">=0.8.6",
 		"darser": ">=0.3.0",
 		"nullablestore": ">=2.1.0"
 	},
