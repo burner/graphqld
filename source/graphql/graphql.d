@@ -111,7 +111,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 		if(first !in this.resolver) {
 			this.resolver[first] = QueryResolver[string].init;
 		}
-		enforce(second !in this.resolver[first]);
+		enforce(second !in this.resolver[first], format(
+				"'%s'.'%s' is already registered", first, second));
 		this.resolver[first][second] = resolver;
 	}
 
