@@ -255,7 +255,7 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(Argument) arg) {
-		import std.algorithm.searching : find;
+		import std.algorithm.searching : find, endsWith;
 		const argName = arg.name.value;
 		if(this.directiveStack.empty) {
 			const parent = this.schemaStack[$ - 2];
@@ -286,7 +286,10 @@ class SchemaValidator(Schema) : Visitor {
 
 				string typeStr = astTypeToString(*varType);
 				enforce!VariableInputTypeMismatch(
-						argElem.front[Constants.typenameOrig] == typeStr,
+						argElem.front[Constants.typenameOrig] == typeStr
+						|| (typeStr.endsWith("!")
+							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig])
+						,
 						format("Variable type '%s' does not match argument type '%s'"
 						, argElem.front[Constants.typenameOrig], typeStr));
 			}
