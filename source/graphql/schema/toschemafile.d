@@ -20,13 +20,14 @@ string schemaToString(T)() {
 	import graphql.schema.resolver;
 	auto app = appender!string();
 
+	bool[string] alreadyHandled;
 	auto sch = toSchema!T();
-	schemaImpl(app, sch);
+	schemaImpl(app, sch, alreadyHandled);
 
 	return app.data;
 }
 
-private void schemaImpl(Out, T)(ref Out o, T t) {
+private void schemaImpl(Out, T)(ref Out o, T t, ref bool[string] ah) {
 	auto qms =
 			[ [ "mutationType", "mutation"]
 			, [ "queryType", "query"]
@@ -42,7 +43,7 @@ private void schemaImpl(Out, T)(ref Out o, T t) {
 	formIndent(o, 0, "}\n\n");
 
 	foreach(it; qms) {
-		typeImpl(o, t.member[it[0]]);
+		typeImpl(o, t.member[it[0]], ah);
 	}
 }
 
@@ -76,8 +77,12 @@ private string typeKindToString(TypeKind tk) {
 	}
 }
 
-private void typeImpl(Out)(ref Out o, GQLDType type) {
+private void typeImpl(Out)(ref Out o, const(GQLDType) type, ref bool[string] ah) {
 	//formIndent(o, 0, "%s\n\n", type.name);
+	if(type.name in ah) {
+		return;
+	}
+	ah[type.name] = true;
 
 	if(auto unio = cast(const(GQLDUnion))type) {
 		formIndent(o, 0, "union %s {\n", type.name);
@@ -104,6 +109,18 @@ private void typeImpl(Out)(ref Out o, GQLDType type) {
 						gqldTypeToString(op.returnType));
 			} else {
 				formIndent(o, 1, "%s: %s;\n", mem, gqldTypeToString(value));
+			}
+		}
+		foreach(mem, value; map.member) {
+			if(auto op = cast(const(GQLDOperation))value) {
+				typeImpl(o, op.returnType, ah);
+				foreach(key, val; op.parameters) {
+					typeImpl(o, val, ah);
+				}
+			} else if(auto l = cast(const(GQLDList))value) {
+				typeImpl(o, l.elementType, ah);
+			} else if(auto nn = cast(const(GQLDNonNull))value) {
+				typeImpl(o, nn.elementType, ah);
 			}
 		}
 	}
