@@ -33,11 +33,11 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 }
 
 GQLDSchema!(Type) toSchema(Type)() {
-	import graphql.uda : getUdaData, Ignore;
+	import graphql.uda : getUdaData, Ignore, TypeKind;
 	typeof(return) ret = new GQLDSchema!Type();
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
-		GQLDMap cur = new GQLDMap();
+		GQLDMap cur = new GQLDObject(qms, TypeKind.OBJECT);
 		cur.name = qms;
 		ret.member[qms] = cur;
 		if(qms == "queryType") {

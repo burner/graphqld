@@ -11,6 +11,7 @@ import std.range : ElementEncodingType;
 import std.format;
 import std.string : strip;
 import std.experimental.logger;
+import std.stdio;
 
 import vibe.data.json;
 
@@ -157,10 +158,16 @@ class GQLDMap : GQLDType {
 
 class GQLDObject : GQLDMap {
 	GQLDObject base;
+	TypeKind typeKind;
 
 	this(string name) {
 		super(GQLDKind.Object_);
 		super.name = name;
+	}
+
+	this(string name, TypeKind tk) {
+		this(name);
+		this.typeKind = tk;
 	}
 
 	override string toString() const {
@@ -590,12 +597,17 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 	} else static if(isArray!Type) {
 		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret)
 			);
-	} else static if(isAggregateType!Type) {
+	} else static if(isAggregateType!Type) {{
+		import graphql.uda;
+		enum tuda = getUdaData!Type;
+
 		GQLDObject r;
 		if(Type.stringof in ret.types) {
 			r = cast(GQLDObject)ret.types[Type.stringof];
 		} else {
-			r = new GQLDObject(Type.stringof);
+			r = tuda.typeKind != TypeKind.UNDEFINED
+				? new GQLDObject(Type.stringof, tuda.typeKind)
+				: new GQLDObject(Type.stringof);
 			ret.types[Type.stringof] = r;
 
 			alias fieldNames = FieldNameTuple!(Type);
@@ -650,7 +662,7 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 			}
 		}
 		return r;
-	} else {
+	}} else {
 		static assert(false, Type.stringof);
 	}
 }
