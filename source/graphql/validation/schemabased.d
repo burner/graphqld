@@ -850,7 +850,7 @@ query {
 unittest {
 	string str = `
 query foo($after: String) {
-    numberBetween(searchInput:
+	numberBetween(searchInput:
 		{ first: 10
 		, after: $after
 		}

@@ -22,7 +22,7 @@ query a($s: boolean, $after: String) {
 			...charac
 		}
 	}
-    numberBetween(searchInput:
+	numberBetween(searchInput:
 		{ first: 10
 		, after: $after
 		}
