@@ -346,6 +346,9 @@ unittest {
 	Json d = parseJsonString(`{ "foo" : { "path" : "foo" } }`);
 	Json ret;
 	assert(hasPathTo!Json(d, "foo", ret));
+	assert("path" in ret);
+	assert(ret["path"].type == Json.Type.string);
+	assert(ret["path"].get!string() == "foo");
 }
 
 /**
