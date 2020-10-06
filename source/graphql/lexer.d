@@ -407,21 +407,39 @@ struct Lexer {
 					++this.stringPos;
 					++this.column;
 					++e;
-					while(this.stringPos < this.input.length
-							&& (this.input[this.stringPos] != '"'
-								|| (this.input[this.stringPos] == '"'
-									&& this.input[this.stringPos - 1U] == '\\')
-						 		)
-						)
+					if(this.qp == QueryParser.no
+							&& this.testStrAndInc!("\"\"")(e))
 					{
+						while(!this.testStrAndInc!("\"\"\"")(e)) {
+							if(this.input[this.stringPos] == '\n') {
+								this.column = 1;
+								++this.line;
+
+							} else {
+								++this.column;
+							}
+							++this.stringPos;
+							++e;
+						}
+						this.cur = Token(TokenType.stringValue, this.input[b + 3
+								.. e - 3], this.line, this.column);
+					} else {
+						while(this.stringPos < this.input.length
+								&& (this.input[this.stringPos] != '"'
+									|| (this.input[this.stringPos] == '"'
+										&& this.input[this.stringPos - 1U] == '\\')
+							 		)
+							)
+						{
+							++this.stringPos;
+							++this.column;
+							++e;
+						}
 						++this.stringPos;
 						++this.column;
-						++e;
+						this.cur = Token(TokenType.stringValue, this.input[b + 1
+								.. e], this.line, this.column);
 					}
-					++this.stringPos;
-					++this.column;
-					this.cur = Token(TokenType.stringValue, this.input[b + 1
-							.. e], this.line, this.column);
 					break;
 				default:
 					while(!this.isTokenStop()) {
@@ -463,6 +481,7 @@ struct Lexer {
 				return false;
 			}
 		}
+
 		return true;
 	}
 
@@ -723,6 +742,37 @@ unittest {
 	l.popFront();
 	assert(!l.empty);
 	assert(l.front.type == TokenType.rcurly, l.front.toString());
+	l.popFront();
+	assert(l.empty);
+}
+
+unittest {
+	string f = `""" a long comment """ `;
+
+	auto l = Lexer(f, QueryParser.no);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	assert(l.front.value == " a long comment ", l.front.value);
+	l.popFront();
+	assert(l.empty);
+}
+
+unittest {
+	import std.string : indexOf;
+
+	string f = `""" a
+
+		long
+
+		comment """ `;
+
+	auto l = Lexer(f, QueryParser.no);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	assert(l.front.value.indexOf("a") != -1);
+	assert(l.front.value.indexOf("long") != -1);
+	assert(l.front.value.indexOf("comment") != -1);
+	assert(l.front.value.indexOf("\n") != -1);
 	l.popFront();
 	assert(l.empty);
 }

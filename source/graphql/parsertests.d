@@ -467,3 +467,12 @@ user(id: 1) {
 		assert(p.lex.empty, format("%d %s", test.id, p.lex.getRestOfInput()));
 	}
 }
+
+/*
+unittest {
+	import std.file : readText;
+	auto l = Lexer(readText("starwarsschemaparsetest.graphql"), QueryParser.no);
+	auto p = Parser(l);
+	auto a = p.parseDocument();
+}
+*/

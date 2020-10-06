@@ -5,9 +5,9 @@ import graphql.ast;
 import graphql.visitor;
 import graphql.tokenmodule;
 
-@safe:
-
 class TreeVisitor : ConstVisitor {
+@safe :
+
 	import std.stdio : write, writeln;
 
 	alias accept = ConstVisitor.accept;
@@ -465,6 +465,14 @@ class TreeVisitor : ConstVisitor {
 	}
 
 	override void accept(const(InputObjectTypeDefinition) obj) {
+		this.genIndent();
+		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
+		++this.depth;
+		super.accept(obj);
+		--this.depth;
+	}
+
+	override void accept(const(Description) obj) {
 		this.genIndent();
 		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
 		++this.depth;

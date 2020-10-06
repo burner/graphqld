@@ -3,9 +3,9 @@ module graphql.visitor;
 import graphql.ast;
 import graphql.tokenmodule;
 
-@safe:
-
 class Visitor : ConstVisitor {
+@safe :
+
 	alias accept = ConstVisitor.accept;
 
 	alias enter = ConstVisitor.enter;
@@ -1141,9 +1141,24 @@ class Visitor : ConstVisitor {
 		}
 		exit(obj);
 	}
+
+	void enter(Description obj) {}
+	void exit(Description obj) {}
+
+	void accept(Description obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case DescriptionEnum.S:
+				obj.tok.visit(this);
+				break;
+		}
+		exit(obj);
+	}
 }
 
 class ConstVisitor {
+@safe :
+
 
 	void enter(const(Document) obj) {}
 	void exit(const(Document) obj) {}
@@ -2269,6 +2284,19 @@ class ConstVisitor {
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
+	void enter(const(Description) obj) {}
+	void exit(const(Description) obj) {}
+
+	void accept(const(Description) obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case DescriptionEnum.S:
+				obj.tok.visit(this);
 				break;
 		}
 		exit(obj);
