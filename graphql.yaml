@@ -157,10 +157,10 @@ TypeSystemDefinition:
     T: [TypeDefinition#td]
     TE: [TypeExtensionDefinition#ted]
     D: [DirectiveDefinition#dd]
-    #DS: [Description#des, SchemaDefinition#sch]
-    #DT: [Description#des, TypeDefinition#td]
-    #DTE: [Description#des, TypeExtensionDefinition#ted]
-    #DD: [Description#des, DirectiveDefinition#dd]
+    DS: [Description#des, SchemaDefinition#sch]
+    DT: [Description#des, TypeDefinition#td]
+    DTE: [Description#des, TypeExtensionDefinition#ted]
+    DD: [Description#des, DirectiveDefinition#dd]
 
 TypeDefinition:
     S: [ScalarTypeDefinition#std]
@@ -208,11 +208,11 @@ FieldDefinition:
     A: [name#name, ArgumentsDefinition#arg, colon, Type#typ]
     D: [name#name, colon, Type#typ, Directives#dir]
     T: [name#name, colon, Type#typ]
-    #DAD: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ,
-    #    Directives#dir]
-    #DA: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ]
-    #DD: [Description#des, name#name, colon, Type#typ, Directives#dir]
-    #DT: [Description#des, name#name, colon, Type#typ]
+    DAD: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ,
+        Directives#dir]
+    DA: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ]
+    DD: [Description#des, name#name, colon, Type#typ, Directives#dir]
+    DT: [Description#des, name#name, colon, Type#typ]
 
 ImplementsInterfaces:
     N: [implements, NamedTypes#nts]
@@ -224,6 +224,7 @@ NamedTypes:
 
 ArgumentsDefinition:
     A: [lparen, InputValueDefinitions, rparen]
+    DA: [lparen, Description#des, InputValueDefinitions, rparen]
 
 InputValueDefinitions:
     I: [InputValueDefinition#iv]

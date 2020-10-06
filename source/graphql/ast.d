@@ -1353,12 +1353,17 @@ enum TypeSystemDefinitionEnum {
 	T,
 	TE,
 	D,
+	DS,
+	DT,
+	DTE,
+	DD,
 }
 
 class TypeSystemDefinition : Node {
 @safe :
 
 	TypeSystemDefinitionEnum ruleSelection;
+	Description des;
 	DirectiveDefinition dd;
 	TypeExtensionDefinition ted;
 	SchemaDefinition sch;
@@ -1381,6 +1386,30 @@ class TypeSystemDefinition : Node {
 
 	this(TypeSystemDefinitionEnum ruleSelection, DirectiveDefinition dd) {
 		this.ruleSelection = ruleSelection;
+		this.dd = dd;
+	}
+
+	this(TypeSystemDefinitionEnum ruleSelection, Description des, SchemaDefinition sch) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.sch = sch;
+	}
+
+	this(TypeSystemDefinitionEnum ruleSelection, Description des, TypeDefinition td) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.td = td;
+	}
+
+	this(TypeSystemDefinitionEnum ruleSelection, Description des, TypeExtensionDefinition ted) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.ted = ted;
+	}
+
+	this(TypeSystemDefinitionEnum ruleSelection, Description des, DirectiveDefinition dd) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
 		this.dd = dd;
 	}
 
@@ -1730,12 +1759,17 @@ enum FieldDefinitionEnum {
 	A,
 	D,
 	T,
+	DAD,
+	DA,
+	DD,
+	DT,
 }
 
 class FieldDefinition : Node {
 @safe :
 
 	FieldDefinitionEnum ruleSelection;
+	Description des;
 	ArgumentsDefinition arg;
 	Type typ;
 	Directives dir;
@@ -1765,6 +1799,38 @@ class FieldDefinition : Node {
 
 	this(FieldDefinitionEnum ruleSelection, Token name, Type typ) {
 		this.ruleSelection = ruleSelection;
+		this.name = name;
+		this.typ = typ;
+	}
+
+	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.name = name;
+		this.arg = arg;
+		this.typ = typ;
+		this.dir = dir;
+	}
+
+	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.name = name;
+		this.arg = arg;
+		this.typ = typ;
+	}
+
+	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ, Directives dir) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.name = name;
+		this.typ = typ;
+		this.dir = dir;
+	}
+
+	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
 		this.name = name;
 		this.typ = typ;
 	}
@@ -1861,15 +1927,22 @@ class NamedTypes : Node {
 
 enum ArgumentsDefinitionEnum {
 	A,
+	DA,
 }
 
 class ArgumentsDefinition : Node {
 @safe :
 
 	ArgumentsDefinitionEnum ruleSelection;
+	Description des;
 
 	this(ArgumentsDefinitionEnum ruleSelection) {
 		this.ruleSelection = ruleSelection;
+	}
+
+	this(ArgumentsDefinitionEnum ruleSelection, Description des) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
 	}
 
 	void visit(Visitor vis) {

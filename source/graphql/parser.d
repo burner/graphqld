@@ -55,7 +55,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["directive -> Definition","enum_ -> Definition","extend -> Definition","fragment -> Definition","input -> Definition","interface_ -> Definition","lcurly -> Definition","mutation -> Definition","query -> Definition","scalar -> Definition","schema -> Definition","subscription -> Definition","type -> Definition","union_ -> Definition"]
+			["directive -> Definition","enum_ -> Definition","extend -> Definition","fragment -> Definition","input -> Definition","interface_ -> Definition","lcurly -> Definition","mutation -> Definition","query -> Definition","scalar -> Definition","schema -> Definition","stringValue -> Definition","subscription -> Definition","type -> Definition","union_ -> Definition"]
 		);
 
 	}
@@ -101,7 +101,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["directive -> TypeSystemDefinition","enum_ -> TypeSystemDefinition","extend -> TypeSystemDefinition","fragment -> FragmentDefinition","input -> TypeSystemDefinition","interface_ -> TypeSystemDefinition","lcurly -> OperationDefinition","mutation -> OperationDefinition","query -> OperationDefinition","scalar -> TypeSystemDefinition","schema -> TypeSystemDefinition","subscription -> OperationDefinition","type -> TypeSystemDefinition","union_ -> TypeSystemDefinition"]
+			["directive -> TypeSystemDefinition","enum_ -> TypeSystemDefinition","extend -> TypeSystemDefinition","fragment -> FragmentDefinition","input -> TypeSystemDefinition","interface_ -> TypeSystemDefinition","lcurly -> OperationDefinition","mutation -> OperationDefinition","query -> OperationDefinition","scalar -> TypeSystemDefinition","schema -> TypeSystemDefinition","stringValue -> TypeSystemDefinition","subscription -> OperationDefinition","type -> TypeSystemDefinition","union_ -> TypeSystemDefinition"]
 		);
 
 	}
@@ -153,7 +153,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["lcurly -> SelectionSet","mutation -> OperationType","query -> OperationType","subscription -> OperationType","fragment","directive -> DirectiveDefinition","enum_ -> TypeDefinition","extend -> TypeExtensionDefinition","input -> TypeDefinition","interface_ -> TypeDefinition","scalar -> TypeDefinition","schema -> SchemaDefinition","type -> TypeDefinition","union_ -> TypeDefinition"]
+			["lcurly -> SelectionSet","mutation -> OperationType","query -> OperationType","subscription -> OperationType","fragment","directive -> DirectiveDefinition","enum_ -> TypeDefinition","extend -> TypeExtensionDefinition","input -> TypeDefinition","interface_ -> TypeDefinition","scalar -> TypeDefinition","schema -> SchemaDefinition","stringValue -> Description","type -> TypeDefinition","union_ -> TypeDefinition"]
 		);
 
 	}
@@ -2325,7 +2325,8 @@ struct Parser {
 		return this.firstSchemaDefinition()
 			 || this.firstTypeDefinition()
 			 || this.firstTypeExtensionDefinition()
-			 || this.firstDirectiveDefinition();
+			 || this.firstDirectiveDefinition()
+			 || this.firstDescription();
 	}
 
 	TypeSystemDefinition parseTypeSystemDefinition() {
@@ -2366,6 +2367,49 @@ struct Parser {
 			return new TypeSystemDefinition(TypeSystemDefinitionEnum.D
 				, dd
 			);
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DS"];
+			if(this.firstSchemaDefinition()) {
+				SchemaDefinition sch = this.parseSchemaDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DS
+					, des
+					, sch
+				);
+			} else if(this.firstTypeDefinition()) {
+				TypeDefinition td = this.parseTypeDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DT
+					, des
+					, td
+				);
+			} else if(this.firstTypeExtensionDefinition()) {
+				TypeExtensionDefinition ted = this.parseTypeExtensionDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DTE
+					, des
+					, ted
+				);
+			} else if(this.firstDirectiveDefinition()) {
+				DirectiveDefinition dd = this.parseDirectiveDefinition();
+
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DD
+					, des
+					, dd
+				);
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'TypeSystemDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -2375,7 +2419,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive"]
+			["schema","enum_ -> EnumTypeDefinition","input -> InputObjectTypeDefinition","interface_ -> InterfaceTypeDefinition","scalar -> ScalarTypeDefinition","type -> ObjectTypeDefinition","union_ -> UnionTypeDefinition","extend","directive","stringValue"]
 		);
 
 	}
@@ -2855,7 +2899,7 @@ struct Parser {
 							throw new ParseException(app.data,
 								__FILE__, __LINE__,
 								subRules,
-								["name -> FieldDefinition"]
+								["name -> FieldDefinition","stringValue -> FieldDefinition"]
 							);
 
 						}
@@ -2905,7 +2949,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
@@ -2958,7 +3002,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
@@ -3007,7 +3051,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition"]
+						["name -> FieldDefinition","stringValue -> FieldDefinition"]
 					);
 
 				}
@@ -3088,7 +3132,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> FieldDefinition"]
+					["name -> FieldDefinition","stringValue -> FieldDefinition"]
 				);
 
 			} else if(this.firstFieldDefinitions()) {
@@ -3111,13 +3155,14 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstFieldDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	FieldDefinition parseFieldDefinition() {
@@ -3229,6 +3274,120 @@ struct Parser {
 				["lparen","colon"]
 			);
 
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DA", "DAD", "DD", "DT"];
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				subRules = ["DA", "DAD"];
+				if(this.firstArgumentsDefinition()) {
+					ArgumentsDefinition arg = this.parseArgumentsDefinition();
+					subRules = ["DA", "DAD"];
+					if(this.lex.front.type == TokenType.colon) {
+						this.lex.popFront();
+						subRules = ["DA", "DAD"];
+						if(this.firstType()) {
+							Type typ = this.parseType();
+							subRules = ["DAD"];
+							if(this.firstDirectives()) {
+								Directives dir = this.parseDirectives();
+
+								return new FieldDefinition(FieldDefinitionEnum.DAD
+									, des
+									, name
+									, arg
+									, typ
+									, dir
+								);
+							}
+							return new FieldDefinition(FieldDefinitionEnum.DA
+								, des
+								, name
+								, arg
+								, typ
+							);
+						}
+						auto app = appender!string();
+						formattedWrite(app, 
+							"In 'FieldDefinition' found a '%s' while looking for", 
+							this.lex.front
+						);
+						throw new ParseException(app.data,
+							__FILE__, __LINE__,
+							subRules,
+							["lbrack -> ListType","name"]
+						);
+
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'FieldDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["colon"]
+					);
+
+				} else if(this.lex.front.type == TokenType.colon) {
+					this.lex.popFront();
+					subRules = ["DD", "DT"];
+					if(this.firstType()) {
+						Type typ = this.parseType();
+						subRules = ["DD"];
+						if(this.firstDirectives()) {
+							Directives dir = this.parseDirectives();
+
+							return new FieldDefinition(FieldDefinitionEnum.DD
+								, des
+								, name
+								, typ
+								, dir
+							);
+						}
+						return new FieldDefinition(FieldDefinitionEnum.DT
+							, des
+							, name
+							, typ
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'FieldDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["lbrack -> ListType","name"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'FieldDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["lparen","colon"]
+				);
+
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'FieldDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3238,7 +3397,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -3382,7 +3541,7 @@ struct Parser {
 
 	ArgumentsDefinition parseArgumentsDefinitionImpl() {
 		string[] subRules;
-		subRules = ["A"];
+		subRules = ["A", "DA"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
 			subRules = ["A"];
@@ -3406,6 +3565,42 @@ struct Parser {
 					["rparen"]
 				);
 
+			} else if(this.firstDescription()) {
+				Description des = this.parseDescription();
+				subRules = ["DA"];
+				if(this.firstInputValueDefinitions()) {
+					this.parseInputValueDefinitions();
+					subRules = ["DA"];
+					if(this.lex.front.type == TokenType.rparen) {
+						this.lex.popFront();
+
+						return new ArgumentsDefinition(ArgumentsDefinitionEnum.DA
+							, des
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'ArgumentsDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["rparen"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'ArgumentsDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["name -> InputValueDefinition"]
+				);
+
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -3415,7 +3610,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition"]
+				["name -> InputValueDefinition","stringValue"]
 			);
 
 		}
@@ -3660,7 +3855,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition"]
+							["name -> FieldDefinition","stringValue -> FieldDefinition"]
 						);
 
 					}
@@ -3709,7 +3904,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition"]
+						["name -> FieldDefinition","stringValue -> FieldDefinition"]
 					);
 
 				}

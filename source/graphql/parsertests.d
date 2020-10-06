@@ -468,11 +468,9 @@ user(id: 1) {
 	}
 }
 
-/*
 unittest {
 	import std.file : readText;
 	auto l = Lexer(readText("starwarsschemaparsetest.graphql"), QueryParser.no);
 	auto p = Parser(l);
 	auto a = p.parseDocument();
 }
-*/
