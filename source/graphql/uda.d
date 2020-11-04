@@ -79,6 +79,15 @@ struct GQLDCustomLeaf(T, alias SerializationFun, alias DeserializationFun) {
 	void opAssign(Type value) {
 		this.value = value;
 	}
+
+	static GQLDCustomLeaf!(T, SerializationFun, DeserializationFun) fromRepresentation(T input) @safe {
+		return GQLDCustomLeaf!(T, SerializationFun, DeserializationFun)(input);
+	}
+
+	T toRepresentation() @safe {
+		return this.value;
+	}
+
 }
 
 private string tS(DateTime dt) {
