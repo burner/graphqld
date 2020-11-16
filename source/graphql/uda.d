@@ -80,8 +80,13 @@ struct GQLDCustomLeaf(T, alias SerializationFun, alias DeserializationFun) {
 		this.value = value;
 	}
 
-	static GQLDCustomLeaf!(T, SerializationFun, DeserializationFun) fromRepresentation(T input) @safe {
+	GQLDCustomLeaf!(T, SerializationFun, DeserializationFun) _from(T input) @safe {
 		return GQLDCustomLeaf!(T, SerializationFun, DeserializationFun)(input);
+	}
+
+	static auto fromRepresentation(T input) @safe {
+		auto myself = typeof(this).init;
+		return myself._from(input);
 	}
 
 	T toRepresentation() @safe {
