@@ -92,10 +92,10 @@ private void enumImpl(Out)(ref Out o, const(GQLDEnum) enu) {
 
 private void typeImpl(Out)(ref Out o, const(GQLDType) type, ref bool[string] ah) {
 	//formIndent(o, 0, "%s", type.name);
-	if(type.name in ah) {
+	if(type.toString in ah) {
 		return;
 	}
-	ah[type.name] = true;
+	ah[type.toString] = true;
 
 	if(auto map = cast(const(GQLDMap))type) {
 		foreach(mem, value; map.member) {
@@ -108,9 +108,14 @@ private void typeImpl(Out)(ref Out o, const(GQLDType) type, ref bool[string] ah)
 				typeImpl(o, l.elementType, ah);
 			} else if(auto nn = cast(const(GQLDNonNull))value) {
 				typeImpl(o, nn.elementType, ah);
+			} else {
+				typeImpl(o, value, ah);
 			}
 		}
-	}
+	} else if(auto nul = cast(const(GQLDNullable))type) {
+		typeImpl(o, nul.elementType, ah);
+		return;
+	}//else if(type.kind == GQLDKind.CustomLeaf)
 
 	if(auto unio = cast(const(GQLDUnion))type) {
 		formIndent(o, 0, "union %s {", type.name);
@@ -133,7 +138,7 @@ private void typeImpl(Out)(ref Out o, const(GQLDType) type, ref bool[string] ah)
         enumImpl(o, enu);
         return;
 	} else {
-		//formIndent(o, 0, "stuff %s %s '''%s```", type.kind, type.name, type.toString());
+		formIndent(o, 0, "stuff %s %s '''%s```", type.kind, type.name, type.toString());
         return;
 	}
 	if(auto map = cast(const(GQLDMap))type) {

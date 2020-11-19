@@ -71,6 +71,10 @@ class GQLDLeaf : GQLDScalar {
 		super(GQLDKind.CustomLeaf);
 		super.name = name;
 	}
+
+    override string toString() const {
+        return format("GQLDCustomLeaf(%s)", this.name);
+    }
 }
 
 class GQLDString : GQLDScalar {
