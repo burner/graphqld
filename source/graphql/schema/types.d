@@ -108,9 +108,13 @@ class GQLDInt : GQLDScalar {
 
 class GQLDEnum : GQLDScalar {
 	string enumName;
-	this(string enumName) {
+    string[] memberNames;
+    // should this also grab the values, for integration with something like
+    // https://www.apollographql.com/docs/apollo-server/schema/scalars-enums/#internal-values ?
+	this(string enumName, string[] memberNames = []) {
 		super(GQLDKind.Enum);
 		this.enumName = enumName;
+        this.memberNames = memberNames;
 		super.name = enumName;
 	}
 
@@ -554,7 +558,7 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 		if(Type.stringof in ret.types) {
 			r = cast(GQLDEnum)ret.types[Type.stringof];
 		} else {
-			r = new GQLDEnum(Type.stringof);
+			r = new GQLDEnum(Type.stringof, [__traits(allMembers, Type)]);
 			ret.types[Type.stringof] = r;
 		}
 		return r;
