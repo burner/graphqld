@@ -91,79 +91,113 @@ private void enumImpl(Out)(ref Out o, const(GQLDEnum) enu) {
 }
 
 private void typeImpl(Out)(ref Out o, const(GQLDType) type, ref bool[string] ah) {
-	//formIndent(o, 0, "%s", type.name);
-	if(type.toString in ah) {
+    import std.algorithm.iteration : filter;
+    import std.range.primitives : empty;
+
+    bool isNameSpecial(string s) {
+        import std.algorithm.searching: startsWith;
+        // takes care of gql buildins (__Type, __TypeKind, etc.), as well as
+        // some unuseful pieces from the d side (__ctor, opCmp, etc.)
+        return s.startsWith("__") || s.startsWith("op");
+    }
+    bool isPrimitiveType(const(GQLDType) type) {
+        return type.kind == GQLDKind.String
+            || type.kind == GQLDKind.Float
+            || type.kind == GQLDKind.Int
+            || type.kind == GQLDKind.Bool;
+    }
+
+    // Need to use toString instead of name because in the case of (e.g.)
+    // Nullable(T), name will just be Nullable, so we won't generate any
+    // code for Nullable(U).
+    // An alternative would be to put this check after the member type
+    // generation, but that causes problems with recursive types.
+    if (isPrimitiveType(type) || isNameSpecial(type.name) || type.toString in ah) {
 		return;
 	}
 	ah[type.toString] = true;
 
-	if(auto map = cast(const(GQLDMap))type) {
-		foreach(mem, value; map.member) {
-			if(auto op = cast(const(GQLDOperation))value) {
-				typeImpl(o, op.returnType, ah);
-				foreach(key, val; op.parameters) {
-					typeImpl(o, val, ah);
-				}
-			} else if(auto l = cast(const(GQLDList))value) {
-				typeImpl(o, l.elementType, ah);
-			} else if(auto nn = cast(const(GQLDNonNull))value) {
-				typeImpl(o, nn.elementType, ah);
-			} else {
-				typeImpl(o, value, ah);
-			}
-		}
+    // handle typeImpl for types of members
+    if(auto map = cast(const(GQLDMap))type) {
+        foreach (val; map.member.byValue) {
+            typeImpl(o, val, ah);
+        }
 	} else if(auto nul = cast(const(GQLDNullable))type) {
 		typeImpl(o, nul.elementType, ah);
-		return;
-	}//else if(type.kind == GQLDKind.CustomLeaf)
+        return;
+    } else if(auto op = cast(const(GQLDOperation))type) {
+        typeImpl(o, op.returnType, ah);
+        foreach(val; op.parameters.byValue) {
+            typeImpl(o, val, ah);
+        }
+    } else if(auto l = cast(const(GQLDList))type) {
+        typeImpl(o, l.elementType, ah);
+        return;
+    } else if(auto nn = cast(const(GQLDNonNull))type) {
+        typeImpl(o, nn.elementType, ah);
+        return;
+    } else if(auto nul = cast(const(GQLDNullable))type) {
+        typeImpl(o, nul.elementType, ah);
+        return;
+	}
 
-	if(auto unio = cast(const(GQLDUnion))type) {
-		formIndent(o, 0, "union %s {", type.name);
-	} else if(auto obj = cast(const(GQLDObject))type) {
-		// if it has no members, print it out as a scalar and bail here
-		import std.algorithm.iteration : filter;
-		import std.range.primitives : empty;
-		if (obj.member.keys
-		       .filter!(m => m != "__type" && m != "__schema" && m != "__ctor")
-		       .empty) {
-			formIndent(o, 0, "scalar %s", type.name);
-			return;
-		}
-		formIndent(o, 0, "%s %s {", typeKindToString(obj.typeKind), type.name);
-	} else if(cast(const(GQLDQuery))type
-	          || cast(const(GQLDMutation))type
-	          || cast(const(GQLDSubscription))type) {
-		formIndent(o, 0, "%s %s {", "type", type.name);
-    } else if(auto enu = cast(const(GQLDEnum))type) {
+    // if the type is an object or union with no members (or an actual scalar),
+    // export it as a scalar and bail here
+    if((cast(const(GQLDObject))type && (cast(const(GQLDObject))type)
+                                        .member
+                                        .byKey
+                                        .filter!(m => !isNameSpecial(m))
+                                        .empty)
+        || (cast(const(GQLDUnion))type && (cast(const(GQLDUnion))type).member.empty)
+        || cast(const(GQLDScalar))type) {
+
+        formIndent(o, 0, "scalar %s", type.name);
+        return;
+    }
+
+    if(auto enu = cast(const(GQLDEnum))type) {
         enumImpl(o, enu);
         return;
-	} else {
-		formIndent(o, 0, "stuff %s %s '''%s```", type.kind, type.name, type.toString());
-        return;
-	}
-	if(auto map = cast(const(GQLDMap))type) {
-		foreach(mem, value; map.member) {
-			if(mem == "__type" || mem == "__schema" || mem == "__ctor") {
-				continue;
-			}
-			if(auto op = cast(const(GQLDOperation))value) {
-                if (op.parameters.keys().length) {
-					formIndent(o, 1, "%s(%s): %s", mem,
-							operationParmsToString(op),
-							gqldTypeToString(op.returnType));
-                } else {
-					// apparently graphql doesn't allow foo(): bar
-					// so we have to special-case that and turn it into foo: bar
-					formIndent(o, 1, "%s: %s", mem,
-							gqldTypeToString(op.returnType));
-				}
-			} else {
-				formIndent(o, 1, "%s: %s", mem, gqldTypeToString(value));
-			}
-		}
-	}
-	formIndent(o, 0, "}");
+    }
 
+    const map = cast(const(GQLDMap))type;
+    if(!map) {
+        formIndent(o, 0, "# graphqld couldn't format type '%s' / '%s' / '%s'", type.kind, type.name, type);
+        return;
+    }
+    
+    {
+        string typestr = "type";
+        if(auto unio = cast(const(GQLDUnion))type) {
+            typestr = "union";
+        } else if(auto obj = cast(const(GQLDObject))type) {
+            typestr = typeKindToString(obj.typeKind);
+        }
+		formIndent(o, 0, "%s %s {", typestr, type.name);
+	}
+
+    foreach(mem, value; map.member) {
+        if(isNameSpecial(mem)) {
+            continue;
+        }
+        if(auto op = cast(const(GQLDOperation))value) {
+            if (op.parameters.keys().length) {
+                // below causes problems for mutations, so disable temporarily
+                formIndent(o, 1, "# %s(%s): %s", mem,
+                        operationParmsToString(op),
+                        gqldTypeToString(op.returnType));
+            } else {
+                // apparently graphql doesn't allow foo(): bar
+                // so special-case that and turn it into foo: bar
+                formIndent(o, 1, "%s: %s", mem,
+                        gqldTypeToString(op.returnType));
+            }
+        } else {
+            formIndent(o, 1, "%s: %s", mem, gqldTypeToString(value));
+        }
+    }
+
+	formIndent(o, 0, "}");
 }
 
 unittest {
