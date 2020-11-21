@@ -7,6 +7,7 @@ import std.traits;
 import std.typecons;
 import std.algorithm.iteration : map, joiner;
 import std.algorithm.searching : canFind;
+import std.container : RedBlackTree;
 import std.range : ElementEncodingType;
 import std.format;
 import std.string : strip;
@@ -140,13 +141,15 @@ class GQLDBool : GQLDScalar {
 
 class GQLDMap : GQLDType {
 	GQLDType[string] member;
+    RedBlackTree!string outputOnlyMembers;
 	GQLDMap[] derivatives;
 
 	this() {
-		super(GQLDKind.Map);
+		this(GQLDKind.Map);
 	}
 	this(GQLDKind kind) {
 		super(kind);
+        this.outputOnlyMembers = new RedBlackTree!string();
 	}
 
 	void addDerivative(GQLDMap d) {
@@ -603,74 +606,79 @@ GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
 	} else static if(is(Type : NullableStore!F, F)) {
 		return new GQLDNullable(typeToGQLDType!(F)(ret));
 	} else static if(isArray!Type) {
-		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret)
-			);
-	} else static if(isAggregateType!Type) {{
+		return new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret));
+	} else static if(isAggregateType!Type) {
 		import graphql.uda;
+
+		if(Type.stringof in ret.types) {
+			return cast(GQLDObject)ret.types[Type.stringof];
+        }
+
 		enum tuda = getUdaData!Type;
 
 		GQLDObject r;
-		if(Type.stringof in ret.types) {
-			r = cast(GQLDObject)ret.types[Type.stringof];
-		} else {
-			r = tuda.typeKind != TypeKind.UNDEFINED
-				? new GQLDObject(Type.stringof, tuda.typeKind)
-				: new GQLDObject(Type.stringof);
-			ret.types[Type.stringof] = r;
+        r = tuda.typeKind != TypeKind.UNDEFINED
+            ? new GQLDObject(Type.stringof, tuda.typeKind)
+            : new GQLDObject(Type.stringof);
+        ret.types[Type.stringof] = r;
 
-			alias fieldNames = FieldNameTuple!(Type);
-			alias fieldTypes = Fields!(Type);
-			static foreach(idx; 0 .. fieldNames.length) {{
-				enum uda = getUdaData!(Type, fieldNames[idx]);
-				static if(uda.ignore != Ignore.yes) {
-					static if(fieldNames[idx] != Constants.directives) {{
-						r.member[fieldNames[idx]] =
-							typeToGQLDType!(fieldTypes[idx])(ret);
-					}}
-				}
-			}}
+        alias fieldNames = FieldNameTuple!(Type);
+        alias fieldTypes = Fields!(Type);
+        static foreach(idx; 0 .. fieldNames.length) {{
+            enum uda = getUdaData!(Type, fieldNames[idx]);
+            static if(uda.ignore != Ignore.yes) {
+                static if (fieldNames[idx] != Constants.directives) {
+                    r.member[fieldNames[idx]] =
+                        typeToGQLDType!(fieldTypes[idx])(ret);
+                    static if(uda.ignoreForInput == IgnoreForInput.yes) {
+                        r.outputOnlyMembers.insert(fieldNames[idx]);
+                    }
+                }
+            }
+        }}
 
-			static if(is(Type == class)) {
-				alias bct = BaseClassesTuple!(Type);
-				static if(bct.length > 1) {
-					auto d = cast(GQLDObject)typeToGQLDType!(bct[0])(
-							ret
-						);
-					r.base = d;
-					d.addDerivative(r);
+        static if(is(Type == class)) {
+            alias bct = BaseClassesTuple!(Type);
+            static if(bct.length > 1) {
+                auto d = cast(GQLDObject)typeToGQLDType!(bct[0])(
+                        ret
+                    );
+                r.base = d;
+                d.addDerivative(r);
 
-				}
-				assert(bct.length > 1 ? r.base !is null : true);
-			}
+            }
+            assert(bct.length > 1 ? r.base !is null : true);
+        }
 
-			static foreach(mem; __traits(allMembers, Type)) {
-				static if(!is(__traits(getMember, Type, mem))) {{ // not a type
-					enum uda = getUdaData!(Type, mem);
-					alias MemType = typeof(__traits(getMember, Type, mem));
-					static if(uda.ignore != Ignore.yes) {
-						static if(isCallable!MemType) {{
-							GQLDOperation op = new GQLDQuery();
-							r.member[mem] = op;
-							op.returnType =
-								typeToGQLDType!(ReturnType!(MemType))(ret);
+        static foreach(mem; __traits(allMembers, Type)) {{
+            // not a type
+            static if(!is(__traits(getMember, Type, mem))) {
+                enum uda = getUdaData!(Type, mem);
+                alias MemType = typeof(__traits(getMember, Type, mem));
+                static if(uda.ignore != Ignore.yes && isCallable!MemType) {
+                    GQLDOperation op = new GQLDQuery();
+                    r.member[mem] = op;
+                    op.returnType =
+                        typeToGQLDType!(ReturnType!(MemType))(ret);
 
-							alias paraNames = ParameterIdentifierTuple!(
-									__traits(getMember, Type, mem)
-							   );
-							alias paraTypes = Parameters!(
-								    __traits(getMember, Type, mem)
-							   );
-							static foreach(idx; 0 .. paraNames.length) {
-								op.parameters[paraNames[idx]] =
-									typeToGQLDType!(paraTypes[idx])(ret);
-							}
-						}}
-					}
-				}}
-			}
-		}
+                    alias paraNames = ParameterIdentifierTuple!(
+                            __traits(getMember, Type, mem)
+                       );
+                    alias paraTypes = Parameters!(
+                            __traits(getMember, Type, mem)
+                       );
+                    static foreach(idx; 0 .. paraNames.length) {
+                        op.parameters[paraNames[idx]] =
+                            typeToGQLDType!(paraTypes[idx])(ret);
+                    }
+                    static if(uda.ignoreForInput == IgnoreForInput.yes) {
+                        r.outputOnlyMembers.insert(mem);
+                    }
+                }
+            }
+        }}
 		return r;
-	}} else {
+	} else {
 		static assert(false, Type.stringof);
 	}
 }
