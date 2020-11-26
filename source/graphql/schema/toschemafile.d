@@ -9,12 +9,62 @@ import std.format;
 import graphql.schema.types;
 import graphql.uda;
 
-private enum Visibility {
-    inputOutput,
-    outputOnly,
+string schemaToString(T)() {
+	import graphql.schema.resolver;
+	auto app = appender!string();
+
+	TraceableType[string] symTab;
+	auto sch = toSchema!T();
+
+	formIndent(app, 0, "schema {");
+	foreach(it; gqlSpecialOps.byKeyValue) {
+		if(auto mem = it.key in sch.member) {
+			formIndent(app, 1, "%s: %s", it.value, mem.name);
+			traceType(*mem, symTab);
+		}
+	}
+	formIndent(app, 0, "}");
+
+	foreach(type; symTab.byValue) {
+		typeImpl(app, type, symTab);
+	}
+
+	return app.data;
 }
 
-private void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args args) {
+private:
+
+static immutable string[string] gqlSpecialOps;
+shared static this() {
+	gqlSpecialOps = [ "mutationType":     "mutation",
+	                  "queryType":        "query",
+	                  "subscriptionType": "subscription"];
+}
+
+// for tracing; taken from gc algorithms
+enum Colour {
+	grey,  // currently being traced (need this to deal with recursive types)
+	black, // done
+	// there's also white, for as-yet untouched objects.  But we don't need
+	// this because we cheat by putting all types into a flat table
+}
+
+// indeterminate is a good .init value
+// but we want the ordering inputOutput < indeterminate < hasOutputOnly
+// so that if we want the intersection of two visibilities, we just take the maximum
+enum Visibility {
+	indeterminate,
+	inputOutput = indeterminate - 1,
+	hasOutputOnly = indeterminate + 1,
+}
+
+struct TraceableType {
+	GQLDType type;
+	Colour colour;
+	Visibility vis; // only valid for black types
+}
+
+void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args args) {
 	foreach(it; 0 .. indent) {
 		formattedWrite(o, "\t");
 	}
@@ -22,56 +72,107 @@ private void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args a
 	formattedWrite(o, "\n");
 }
 
-string schemaToString(T)() {
-	import graphql.schema.resolver;
-	auto app = appender!string();
-
-	Visibility[string] alreadyHandled;
-	auto sch = toSchema!T();
-	schemaImpl(app, sch, alreadyHandled);
-
-	return app.data;
+bool isNameSpecial(string s) {
+	import std.algorithm.searching: startsWith;
+	// takes care of gql buildins (__Type, __TypeKind, etc.), as well as
+	// some unuseful pieces from the d side (__ctor, opCmp, etc.)
+	return s.startsWith("__") || s.startsWith("op");
 }
 
-private void schemaImpl(Out, T)(ref Out o, T t, ref Visibility[string] ah) {
-	auto qms =
-			[ [ "mutationType", "mutation"]
-			, [ "queryType", "query"]
-			, [ "subscriptionType", "subscription"]
-			];
-	formIndent(o, 0, "schema {");
-	foreach(it; qms) {
-		auto mem = it[0] in t.member;
-		if(mem) {
-			formIndent(o, 1, "%s: %s", it[1], mem.name);
+bool isPrimitiveType(GQLDType type) {
+	return type.kind == GQLDKind.String
+		|| type.kind == GQLDKind.Float
+		|| type.kind == GQLDKind.Int
+		|| type.kind == GQLDKind.Bool;
+}
+
+Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
+	import std.algorithm.comparison : max;
+	import std.algorithm.iteration : filter;
+	import std.range.primitives : empty;
+
+	if(isPrimitiveType(t) || isNameSpecial(t.name)) {
+		return Visibility.inputOutput;
+	}
+
+	if(t.baseTypeName in tab) {
+		return tab[t.baseTypeName].colour == Colour.black
+		 ? tab[t.baseTypeName].vis
+		 : max(tab[t.baseTypeName].vis, Visibility.indeterminate);
+	}
+
+	// identifies itself as an object, but we really want to dump it as a scalar
+	if((cast(GQLDObject)t && (cast(GQLDObject)t)
+	                                 .member.byKey
+	                                 .filter!(m => !isNameSpecial(m))
+	                                 .empty)
+	    || cast(GQLDUnion)t) {
+		auto n = new GQLDScalar(GQLDKind.SimpleScalar);
+		n.name = t.name;
+		tab[n.name] = TraceableType(n, Colour.black, Visibility.inputOutput);
+		return tab[n.name].vis;
+	}
+	if(cast(GQLDScalar)t) {
+		tab[t.name] = TraceableType(t, Colour.black, Visibility.inputOutput);
+		return tab[t.name].vis;
+	}
+
+	if(auto op = cast(GQLDOperation)t) {
+		traceType(op.returnType, tab);
+		foreach(val; op.parameters.byValue) {
+			traceType(val, tab);
 		}
+		return Visibility.hasOutputOnly;
+	} else if(auto l = cast(GQLDList)t) {
+		return traceType(l.elementType, tab);
+	} else if(auto nn = cast(GQLDNonNull)t) {
+		return traceType(nn.elementType, tab);
+	} else if(auto nul = cast(GQLDNullable)t) {
+		return traceType(nul.elementType, tab);
 	}
-	formIndent(o, 0, "}");
 
-	foreach(it; qms) {
-		typeImpl(o, t.member[it[0]], ah);
+	auto map = cast(GQLDMap)t;
+	if(!map) {
+		return Visibility.inputOutput; // won't be dumped anyway, so doesn't matter
 	}
+
+	tab[map.name] = TraceableType(map, Colour.grey, map.outputOnlyMembers.length ? Visibility.hasOutputOnly : Visibility.inputOutput);
+	scope(exit) tab[map.name].colour = Colour.black;
+
+	foreach(mem, val; map.member) {
+		if(isNameSpecial(mem) || isPrimitiveType(val)) {
+			continue;
+		}
+
+		tab[map.name].vis = max(traceType(val, tab), tab[map.name].vis);
+	}
+
+	return tab[map.name].vis;
 }
 
-private string operationParmsToString(const(GQLDOperation) o) {
-	return o.parameters.keys().map!(k => format("%s: %s", k,
-				o.parameters[k].gqldTypeToString()))
-		.joiner(", ")
-		.to!string();
-}
-
-private string gqldTypeToString(const(GQLDType) t) {
+string gqldTypeToString(const(GQLDType) t, string nameSuffix = "") {
 	if(auto base = cast(const(GQLDNullable))t) {
-		return gqldTypeToString(base.elementType);
+		return gqldTypeToString(base.elementType, nameSuffix);
 	} else if(auto list = cast(const(GQLDList))t) {
-		return '[' ~ gqldTypeToString(list.elementType) ~ ']';
+		return '[' ~ gqldTypeToString(list.elementType, nameSuffix) ~ ']';
 	} else if(auto nn = cast(const(GQLDNonNull))t) {
-		return gqldTypeToString(nn.elementType) ~ "!";
+		return gqldTypeToString(nn.elementType, nameSuffix) ~ "!";
+	}
+	return t.name ~ nameSuffix;
+}
+
+string baseTypeName(const(GQLDType) t) {
+	if(auto base = cast(const(GQLDNullable))t) {
+		return baseTypeName(base.elementType);
+	} else if(auto list = cast(const(GQLDList))t) {
+		return baseTypeName(list.elementType);
+	} else if(auto nn = cast(const(GQLDNonNull))t) {
+		return baseTypeName(nn.elementType);
 	}
 	return t.name;
 }
 
-private string typeKindToString(TypeKind tk) {
+string typeKindToString(TypeKind tk) {
 	final switch(tk) {
 		case TypeKind.UNDEFINED: return "type";
 		case TypeKind.SCALAR: return "SCALAR";
@@ -85,157 +186,88 @@ private string typeKindToString(TypeKind tk) {
 	}
 }
 
-private void enumImpl(Out)(ref Out o, const(GQLDEnum) enu) {
-	formIndent(o, 0, "enum %s {", enu.name);
+void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) {
+	assert(!isPrimitiveType(type.type) && !isNameSpecial(type.type.baseTypeName));
 
-	foreach (m; enu.memberNames) {
-		formIndent(o, 1, "%s,", m);
+	if(cast(GQLDScalar)type.type) {
+		// it's not allowed to have, for instance, 'scalar subscriptionType'
+		// so special-case the top-level operations to have a dummy member
+		if(type.type.name in gqlSpecialOps) {
+			formIndent(o, 0, "type %s { _: Boolean }", type.type.name);
+		} else {
+			formIndent(o, 0, "scalar %s", type.type.name);
+		}
+		return;
 	}
 
-	formIndent(o, 0, "}");
-}
+	if(auto enu = cast(GQLDEnum)type.type) {
+		formIndent(o, 0, "enum %s {", enu.name);
 
-private Visibility typeImpl(Out)(ref Out o, const(GQLDType) type, ref Visibility[string] ah) {
-    import std.algorithm.iteration : filter;
-    import std.range.primitives : empty;
+		foreach (m; enu.memberNames) {
+			formIndent(o, 1, "%s,", m);
+		}
 
-    bool isNameSpecial(string s) {
-        import std.algorithm.searching: startsWith;
-        // takes care of gql buildins (__Type, __TypeKind, etc.), as well as
-        // some unuseful pieces from the d side (__ctor, opCmp, etc.)
-        return s.startsWith("__") || s.startsWith("op");
-    }
-    bool isPrimitiveType(const(GQLDType) type) {
-        return type.kind == GQLDKind.String
-            || type.kind == GQLDKind.Float
-            || type.kind == GQLDKind.Int
-            || type.kind == GQLDKind.Bool;
-    }
-
-    // Need to use toString instead of name because in the case of (e.g.)
-    // Nullable(T), name will just be Nullable, so we won't generate any
-    // code for Nullable(U).
-    // An alternative would be to put this check after the member type
-    // generation, but that causes problems with recursive types.
-    if (isPrimitiveType(type) || isNameSpecial(type.name)) {
-       return Visibility.inputOutput;
-    }
-
-    if (auto vis = type.toString in ah) {
-		return *vis;
+		formIndent(o, 0, "}");
+		return;
 	}
 
-    Visibility ret = Visibility.inputOutput;
-
-    ah[type.toString] = ret;
-	scope(exit) {
-        ah[type.toString] = ret;
-    }
-
-    // if the type is an object or union with no members (or an actual scalar),
-    // export it as a scalar and bail here
-    if((cast(const(GQLDObject))type && (cast(const(GQLDObject))type)
-                                        .member
-                                        .byKey
-                                        .filter!(m => !isNameSpecial(m))
-                                        .empty)
-        || (cast(const(GQLDUnion))type && (cast(const(GQLDUnion))type).member.empty)
-        || cast(const(GQLDScalar))type) {
-
-        formIndent(o, 0, "scalar %s", type.name);
-        return ret;
-    }
-
-    if(auto enu = cast(const(GQLDEnum))type) {
-        enumImpl(o, enu);
-        return ret;
-    }
-
-    // handle typeImpl for types of members
-    // need to assign to ret so the exit guard updates ah properly
-	if(auto nul = cast(const(GQLDNullable))type) {
-		typeImpl(o, nul.elementType, ah);
-        return ret;
-    } else if(auto op = cast(const(GQLDOperation))type) {
-        typeImpl(o, op.returnType, ah);
-        foreach(val; op.parameters.byValue) {
-            typeImpl(o, val, ah);
-        }
-        return ret = Visibility.outputOnly;
-    } else if(auto l = cast(const(GQLDList))type) {
-        return ret = typeImpl(o, l.elementType, ah);
-    } else if(auto nn = cast(const(GQLDNonNull))type) {
-        return ret = typeImpl(o, nn.elementType, ah);
-    } else if(auto nul = cast(const(GQLDNullable))type) {
-        return ret = typeImpl(o, nul.elementType, ah);
+	const map = cast(GQLDMap)type.type;
+	if(!map) {
+		formIndent(o, 0, "# graphqld couldn't format type '%s' / '%s' / '%s'", type.type.kind, type.type.name, type.type);
+		return;
 	}
 
-    const map = cast(const(GQLDMap))type;
-    if(!map) {
-        formIndent(o, 0, "# graphqld couldn't format type '%s' / '%s' / '%s'", type.kind, type.name, type);
-        return ret;
-    }
-    
-    Visibility[] memberVis;
-    memberVis.reserve(map.member.values.length);
-    foreach(_, val; map.member) {
-        memberVis ~= typeImpl(o, val, ah);
-        if(memberVis[$-1] == Visibility.outputOnly) {
-            ret = Visibility.outputOnly;
-        }
-    }
+	void dumpMem(bool inputType) {
+		string typeToStringMaybeIn(const(GQLDType) t) {
+			return gqldTypeToString(t, inputType && t.baseTypeName in tab && tab[t.baseTypeName].vis != Visibility.inputOutput ? "In" : "");
+		}
 
-    void dumpMem(bool inputType) {
-        size_t memi = 0;
-        foreach(mem, value; map.member) {
-            scope (exit) {
-                memi++;
-            }
-            if(isNameSpecial(mem)) {
-                continue;
-            }
+		foreach(mem, value; map.member) {
+			if(isNameSpecial(mem) || (inputType && (mem in map.outputOnlyMembers || (cast(GQLDOperation)value && map.name != "mutationType")))) {
+				continue;
+			}
 
-            if(inputType && memberVis[memi] == Visibility.outputOnly) {
-                mem ~= "In";
-            }
+			if(auto op = cast(GQLDOperation)value) {
+				if (op.parameters.keys().length) {
+					formIndent(o, 1, "%s(%s): %s", mem,
+					        op.parameters.byKeyValue().map!(kv => format("%s: %s", kv.key,
+					                                        typeToStringMaybeIn(kv.value)))
+					                .joiner(", ")
+					                .to!string,
+					        map.name == "mutationType" ? gqldTypeToString(op.returnType)
+					                                   : typeToStringMaybeIn(op.returnType));
+				} else {
+					// apparently graphql doesn't allow foo(): bar
+					// so special-case that and turn it into foo: bar
+					formIndent(o, 1, "%s: %s", mem,
+					        typeToStringMaybeIn(op.returnType));
+				}
+			} else {
+				formIndent(o, 1, "%s: %s", mem, typeToStringMaybeIn(value));
+			}
+		}
+	}
 
-            if(auto op = cast(const(GQLDOperation))value) {
-                if (op.parameters.keys().length) {
-                    if(!inputType) {
-                        formIndent(o, 1, "%s(%s): %s", mem,
-                                operationParmsToString(op),
-                                gqldTypeToString(op.returnType));
-                    }
-                } else {
-                    // apparently graphql doesn't allow foo(): bar
-                    // so special-case that and turn it into foo: bar
-                    formIndent(o, 1, "%s: %s", mem,
-                            gqldTypeToString(op.returnType));
-                }
-            } else {
-                formIndent(o, 1, "%s: %s", mem, gqldTypeToString(value));
-            }
-        }
-    }
+	string typestr = "type";
+	if(auto unio = cast(GQLDUnion)map) {
+		typestr = "union";
+	} else if(auto obj = cast(GQLDObject)map) {
+		typestr = typeKindToString(obj.typeKind);
+	}
 
-    string typestr = "type";
-    if(auto unio = cast(const(GQLDUnion))type) {
-        typestr = "union";
-    } else if(auto obj = cast(const(GQLDObject))type) {
-        typestr = typeKindToString(obj.typeKind);
-    }
-
-    formIndent(o, 0, "%s %s {", typestr, type.name);
-    dumpMem(false);
+	formIndent(o, 0, "%s %s {", typestr, map.name);
+	dumpMem(map.name == "mutationType");
 	formIndent(o, 0, "}");
 
-    if (ret == Visibility.outputOnly) {
-        formIndent(o, 0, "%s %sIn {", typestr, type.name);
-        dumpMem(true);
-        formIndent(o, 0, "}");
-    }
+	if (type.vis == Visibility.indeterminate) {
+		formIndent(o, 0, "# note: nestedness of type '%s' not determined; output may be suboptimal", map.name);
+	}
 
-    return ret;
+	if(type.vis != Visibility.inputOutput && map.name !in gqlSpecialOps) {
+		formIndent(o, 0, "input %sIn {", map.name);
+		dumpMem(true);
+		formIndent(o, 0, "}");
+	}
 }
 
 unittest {
