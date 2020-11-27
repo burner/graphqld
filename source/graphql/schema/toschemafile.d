@@ -73,10 +73,10 @@ void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args args) {
 }
 
 bool isNameSpecial(string s) {
-	import std.algorithm.searching: startsWith;
+	import std.algorithm.searching: startsWith, canFind;
 	// takes care of gql buildins (__Type, __TypeKind, etc.), as well as
 	// some unuseful pieces from the d side (__ctor, opCmp, etc.)
-	return s.startsWith("__") || s.startsWith("op");
+	return s.startsWith("__") || s.startsWith("op") || ["factory", "toHash", "toString"].canFind(s);
 }
 
 bool isPrimitiveType(GQLDType type) {
