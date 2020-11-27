@@ -277,9 +277,3 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		formIndent(o, 0, "}");
 	}
 }
-
-unittest {
-	import graphql.testschema;
-
-	writeln(schemaToString!(Schema)());
-}
