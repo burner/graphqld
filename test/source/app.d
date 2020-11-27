@@ -24,9 +24,10 @@ import graphql.helper;
 import graphql.schema;
 import graphql.traits;
 import graphql.argumentextractor;
+import graphql.schema.toschemafile;
+import graphql.exception;
 import graphql.graphql;
 import graphql.testschema;
-import graphql.exception;
 
 import testdata;
 import testdata2;
@@ -37,6 +38,20 @@ GraphQLD!(Schema,CustomContext) graphqld;
 
 struct CustomContext {
 	int userId;
+}
+
+void testSchemaDump(string fname, string newSchemaText) {
+	import std.file : writeFile = write, readText, FileException;
+	string oldSchemaText;
+	try {
+		oldSchemaText = readText(fname);
+	} catch (FileException) {
+		oldSchemaText = newSchemaText;
+	}
+	// note: if this assertion fails because you deliberately changed the
+	// output format of schemaToString, simply remove the old schema[2].gql
+	assert(oldSchemaText == newSchemaText);
+	writeFile(fname, newSchemaText);
 }
 
 void main() {
@@ -50,6 +65,9 @@ void main() {
 	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
+
+	testSchemaDump("schema.gql", schemaToString(graphqld));
+	testSchemaDump("schema2.gql", schemaToString!Schema2());
 
 	graphqld.setResolver("queryType", "search",
 			delegate(string name, Json parent, Json args,
