@@ -31,6 +31,28 @@ TestQuery(`
 	]
 }
 `),
+// identical to the previous query, but contains a carriage return to ensure
+// that they're parsed correctly
+TestQuery("
+{
+	starships(overSize: 600) {\r
+		commander {
+			allwaysNull {
+				id
+			}
+		}
+	}
+}", ShouldThrow.no,
+`{
+	"starships" : [
+		{
+			"commander" : {
+				"allwaysNull": null
+			}
+		}
+	]
+}
+`),
 TestQuery(`
 {
 	starships(overSize: 600) {
