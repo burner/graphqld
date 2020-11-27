@@ -299,7 +299,7 @@ struct RandomPaths {
 		RandomPaths ret;
 
 		ret.elems = elems.splitter!isWhite()
-			.map!(e => e.strip(" \t\n"))
+			.map!(e => e.strip)
 			.array
 			.sort
 			.uniq

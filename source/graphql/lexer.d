@@ -38,11 +38,9 @@ struct Lexer {
 	}
 
 	private bool isTokenStop(const(char) c) const @safe {
-		return
-			c == ' ' || c == '\t' || c == '\n' || c == '(' || c == ')'
-			|| c == '{' || c == '}' || c == '!' || c == '=' || c == '|'
-			|| c == '[' || c == ':' || c == ']' || c == ',' || c == '@'
-			|| c == '$';
+		import std.ascii : isWhite;
+		import std.algorithm.searching : canFind;
+		return isWhite(c) || "(){}!=|[:],@$".canFind(c);
 	}
 
 	private bool eatComment() @safe {
@@ -69,13 +67,11 @@ struct Lexer {
 		while(this.stringPos < this.input.length) {
 			if(this.eatComment()) {
 				continue;
-			} else if(this.input[this.stringPos] == ' ') {
-				++this.column;
-			} else if(this.input[this.stringPos] == '\t') {
-				++this.column;
 			} else if(this.input[this.stringPos] == '\n') {
 				this.column = 1;
 				++this.line;
+			} else if(this.input[this.stringPos].isWhite) {
+				++this.column;
 			} else {
 				break;
 			}
