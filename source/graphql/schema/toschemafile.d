@@ -6,15 +6,14 @@ import std.conv : to;
 import std.stdio;
 import std.format;
 
+import graphql.graphql;
 import graphql.schema.types;
 import graphql.uda;
 
-string schemaToString(T)() {
-	import graphql.schema.resolver;
+string schemaToString(T)(GQLDSchema!T sch) {
 	auto app = appender!string();
 
 	TraceableType[string] symTab;
-	auto sch = toSchema!T();
 
 	formIndent(app, 0, "schema {");
 	foreach(it; gqlSpecialOps.byKeyValue) {
@@ -30,6 +29,15 @@ string schemaToString(T)() {
 	}
 
 	return app.data;
+}
+
+string schemaToString(T)() {
+	import graphql.schema.resolver;
+	return schemaToString(toSchema!T());
+}
+
+string schemaToString(T, Q)(GraphQLD!(T, Q) gqld) {
+	return schemaToString(gqld.schema);
 }
 
 private:
