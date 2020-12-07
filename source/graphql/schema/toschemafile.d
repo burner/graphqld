@@ -197,17 +197,6 @@ string typeKindToString(TypeKind tk) {
 void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) {
 	assert(!isPrimitiveType(type.type) && !isNameSpecial(type.type.baseTypeName));
 
-	if(cast(GQLDScalar)type.type) {
-		// it's not allowed to have, for instance, 'scalar subscriptionType'
-		// so special-case the top-level operations to have a dummy member
-		if(type.type.name in gqlSpecialOps) {
-			formIndent(o, 0, "type %s { _: Boolean }", type.type.name);
-		} else {
-			formIndent(o, 0, "scalar %s", type.type.name);
-		}
-		return;
-	}
-
 	if(auto enu = cast(GQLDEnum)type.type) {
 		formIndent(o, 0, "enum %s {", enu.name);
 
@@ -216,6 +205,17 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		}
 
 		formIndent(o, 0, "}");
+		return;
+	}
+
+	if(cast(GQLDScalar)type.type) {
+		// it's not allowed to have, for instance, 'scalar subscriptionType'
+		// so special-case the top-level operations to have a dummy member
+		if(type.type.name in gqlSpecialOps) {
+			formIndent(o, 0, "type %s { _: Boolean }", type.type.name);
+		} else {
+			formIndent(o, 0, "scalar %s", type.type.name);
+		}
 		return;
 	}
 

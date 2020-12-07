@@ -10,7 +10,14 @@ type Android {
 type subscriptionType {
 	starships: [Starship]
 }
-scalar Series
+enum Series {
+	TheOriginalSeries,
+	TheNextGeneration,
+	DeepSpaceNine,
+	Voyager,
+	Enterprise,
+	Discovery,
+}
 type Input {
 	first: Int
 	after: String
