@@ -285,17 +285,20 @@ class SchemaValidator(Schema) : Visitor {
 				enforce(varName !is null);
 
 				string typeStr = astTypeToString(*varType);
-				enforce!VariableInputTypeMismatch(
-						argElem.front[Constants.typenameOrig] == typeStr
-						|| (typeStr.endsWith("!")
-							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig])
-						|| (typeStr.endsWith("In")
-							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig])
-						|| (typeStr.endsWith("In!")
-							&& typeStr[0 .. $ - 3] == argElem.front[Constants.typenameOrig])
-						,
-						format("Variable type '%s' does not match argument type '%s'"
-						, argElem.front[Constants.typenameOrig], typeStr));
+				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
+				const c2 = (typeStr.endsWith("!")
+							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig]);
+				const c3 = (typeStr.endsWith("In")
+							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig]);
+				const c4 = (typeStr.endsWith("In!")
+							&& (typeStr[0 .. $ - 3] ~ "!") == argElem.front[Constants.typenameOrig]);
+				enforce!VariableInputTypeMismatch(c1 || c2 || c3 || c4
+						, format("Variable type '%s' does not match argument type '%s'"
+							~ " ! %s In %s In! %s c1 %s c2 %s c3 %s c4 %s"
+						, argElem.front[Constants.typenameOrig], typeStr
+						, typeStr.endsWith("!"), typeStr.endsWith("In")
+						, typeStr.endsWith("In!") , c1, c2, c3, c4
+						));
 			}
 		} else {
 			enforce!ArgumentDoesNotExist(argName == "if", format(
