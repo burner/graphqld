@@ -289,6 +289,10 @@ class SchemaValidator(Schema) : Visitor {
 						argElem.front[Constants.typenameOrig] == typeStr
 						|| (typeStr.endsWith("!")
 							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig])
+						|| (typeStr.endsWith("In")
+							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig])
+						|| (typeStr.endsWith("In!")
+							&& typeStr[0 .. $ - 3] == argElem.front[Constants.typenameOrig])
 						,
 						format("Variable type '%s' does not match argument type '%s'"
 						, argElem.front[Constants.typenameOrig], typeStr));
