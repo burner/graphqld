@@ -426,6 +426,16 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		);
 	res.headers.addField("Access-Control-Allow-Headers",
                 "Origin, X-Requested-With, Content-Type, Accept, " ~ "X-CSRF-TOKEN");
+
+	// DOCUMENTATION
+	//
+	// graphql requests can be passed differently depending if it is a GET
+	// or POST request
+	// The variable `toParse` will contain the graphql query/mutation after
+	// the next few lines
+	//
+	//
+
 	Json j = req.json;
 	//writefln("input %s req %s headers %s", j, req.toString(), req.headers);
 	string toParse;
@@ -442,11 +452,31 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		}
 		//writeln(toParse);
 	}
+
+	// DOCUMENTATION
+	//
+	// graphql requests can be depended on variables passed in form of json.
+	// The next few lines will extract available variables and store them
+	// in the variable named `vars`
+	//
+	//
+
 	Json vars = Json.emptyObject();
 	if(j.type == Json.Type.object && "variables" in j) {
 		vars = j["variables"];
 	}
 	//writeln(j.toPrettyString());
+
+	// DOCUMENTATION
+	//
+	// graphql is a programming language/query language.
+	// It is common to split the recognition of such a language into two steps.
+	// The lexing, and the parsing.
+	// The lexer results is passed into the parser.
+	// This is done on the next to lines.
+	// The string in `toParse` we extracted earlier is passed into the lexer.
+	//
+	//
 
 	auto l = Lexer(toParse);
 	auto p = Parser(l);
@@ -454,8 +484,27 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	try {
 		import graphql.validation.querybased;
 		import graphql.validation.schemabased;
+
+		// DOCUMENTATION
+		//
+		// `parseDocument()` actually parses the graphql string.
+		// If this throws, in case of a invalid graphql program we need to
+		// report this in a way that graphql clients expect.
+		// This is done in the catch block.
+		//
+		//
 		Document d = p.parseDocument();
+
+
 		const(Document) cd = d;
+
+		// DOCUMENTATION
+		//
+		// As with most programming language the graphql program has to be
+		// checked for semantic correctness.
+		// This is done in the next few lines
+		//
+		//
 		QueryValidator fv = new QueryValidator(d);
 	    fv.accept(cd);
 	    noCylces(fv.fragmentChildren);
@@ -464,10 +513,25 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 				graphqld.schema
 			);
 		sv.accept(cd);
+
+
+		// DOCUMENTATION
+		//
+		// The next few lines actually execute the graphql program.
+		// The result will be the json that can be returned to the graphql
+		// client.
+		//
+		//
 		CustomContext con;
 		Json gqld = graphqld.execute(d, vars, con);
 
 		writeln(gqld.toPrettyString());
+
+		// DOCUMENTATION
+		//
+		// Write the resulting json to the vibe.d server response.
+		// This is the end of the graphqld execution cycle
+		//
 		res.writeJsonBody(gqld);
 		return;
 	} catch(Throwable e) {
@@ -478,6 +542,14 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 			e = cast(Exception)e.next;
 		}
 		//writefln("\n\n\n\n#####\n%s\n#####\n\n\n\n", app.data);
+		// DOCUMENTATION
+		//
+		// If the lexing/parsing or validating failed we need to let the graphql
+		// client know.
+		// The Exception text is inserted into the json by the helper function
+		// `insertError`.
+		// The json is then returned
+		//
 		Json ret = Json.emptyObject;
 		ret.insertError(app.data);
 		res.writeJsonBody(ret);
