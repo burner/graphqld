@@ -69,7 +69,7 @@ This graphql implementation is based on June 2018 spec.
 - [ ] Default values of correct type
 - [x] Fields on correct type
 - [x] Fragments on composite types
-- [ ] Known argument names
+- [X] Known argument names
 - [x] Executable Definition
 - [ ] Known directives
 - [x] Known fragment names
@@ -80,16 +80,16 @@ This graphql implementation is based on June 2018 spec.
 - [x] No unused fragments
 - [x] No unused variables
 - [x] Overlapping fields can be merged (this is done during execution)
-- [ ] Possible fragment spreads
+- [x] Possible fragment spreads
 - [ ] Provide non-null arguments
 - [x] Scalar leafs
 - [x] Unique argument names
 - [x] Unique directives per location
 - [x] Unique fragment names
-- [ ] Unique input field names
+- [x] Unique input field names
 - [x] Unique operation names
 - [x] Unique variable names
-- [ ] Variables are input types
+- [ ] Variables are input types (this is actually a strange requirement)
 - [x] Variables in allowed position
 - [x] Single root field
 
@@ -124,9 +124,11 @@ for the excelent list of features
 ## Documentation
 The Documentation is still WIP, please have a look at the vibe.d project in the
 test folder.
+This [file](test/source/app.d:430) gives a good overview on how to use graphqld
+with vibe.d.
 
 ## Contributing
-PRs are welcome!
+PRs are always welcome!
 
 # About Kaleidic Associates
 We are a boutique consultancy that advises a small number of hedge fund clients.  We are
