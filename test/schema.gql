@@ -5,10 +5,10 @@ schema {
 }
 scalar Date
 type Android {
-	primaryFunction: String
+	primaryFunction: String!
 }
 type subscriptionType {
-	starships: [Starship]
+	starships: [Starship!]!
 }
 enum Series {
 	TheOriginalSeries,
@@ -19,76 +19,76 @@ enum Series {
 	Discovery,
 }
 type Input {
-	first: Int
+	first: Int!
 	after: String
 }
 type Starship {
-	series: [Series]
-	id: Int
-	commander: Character
-	name: String
-	size: Float
-	crew: [Character]
-	designation: String
+	series: [Series]!
+	id: Int!
+	commander: Character!
+	name: String!
+	size: Float!
+	crew: [Character!]!
+	designation: String!
 }
 # note: nestedness of type 'Starship' not determined; output may be suboptimal
 input StarshipIn {
-	series: [Series]
-	id: Int
-	commander: CharacterIn
-	name: String
-	size: Float
-	crew: [CharacterIn]
-	designation: String
+	series: [Series]!
+	id: Int!
+	commander: CharacterIn!
+	name: String!
+	size: Float!
+	crew: [CharacterIn!]!
+	designation: String!
 }
 input AddCrewmanData {
-	shipId: Int
-	series: [Series]
-	name: String
+	shipId: Int!
+	series: [Series!]!
+	name: String!
 }
 interface Character {
 	ships: Starship
-	series: [Series]
-	id: Int
+	series: [Series!]!
+	id: Int!
 	ship: Starship
-	name: String
+	name: String!
 	allwaysNull: Starship
-	commands: [Character]
+	commands: [Character!]!
 	alsoAllwaysNull: Int
-	commanders: [Character]
+	commanders: [Character!]!
 }
 # note: nestedness of type 'Character' not determined; output may be suboptimal
 input CharacterIn {
 	ships: StarshipIn
-	series: [Series]
-	id: Int
+	series: [Series!]!
+	id: Int!
 	ship: StarshipIn
-	name: String
+	name: String!
 	allwaysNull: StarshipIn
-	commands: [CharacterIn]
+	commands: [CharacterIn!]!
 	alsoAllwaysNull: Int
-	commanders: [CharacterIn]
+	commanders: [CharacterIn!]!
 }
 type mutationType {
-	addCrewman(input: AddCrewmanData): Character
+	addCrewman(input: AddCrewmanData!): Character!
 }
 type queryType {
-	shipsselection(ids: [Int]): [Starship]
-	currentTime: DateTime
-	starships(overSize: Float): [Starship]
-	captain(series: Series): Character
-	humanoids: [Humanoid]
-	starship(id: Int): Starship
-	androids: [Android]
-	resolverWillThrow: [Android]
-	numberBetween(searchInput: Input): Starship
-	search(name: String): SearchResult
-	starshipDoesNotExist: Starship
-	character(id: Int): Character
+	shipsselection(ids: [Int!]!): [Starship!]!
+	currentTime: DateTime!
+	starships(overSize: Float!): [Starship!]!
+	captain(series: Series!): Character!
+	humanoids: [Humanoid!]!
+	starship(id: Int!): Starship
+	androids: [Android!]!
+	resolverWillThrow: [Android!]!
+	numberBetween(searchInput: Input!): Starship!
+	search(name: String!): SearchResult!
+	starshipDoesNotExist: Starship!
+	character(id: Int!): Character
 }
 type Humanoid {
-	dateOfBirth: Date
-	species: String
+	dateOfBirth: Date!
+	species: String!
 }
 scalar SearchResult
 scalar DateTime
