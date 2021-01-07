@@ -158,15 +158,15 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	return tab[map.name].vis;
 }
 
-string gqldTypeToString(const(GQLDType) t, string nameSuffix = "") {
+string gqldTypeToString(const(GQLDType) t, string nameSuffix = "", bool nonNullable = true) {
 	if(auto base = cast(const(GQLDNullable))t) {
-		return gqldTypeToString(base.elementType, nameSuffix);
+		return gqldTypeToString(base.elementType, nameSuffix, false);
 	} else if(auto list = cast(const(GQLDList))t) {
-		return '[' ~ gqldTypeToString(list.elementType, nameSuffix) ~ ']';
+		return '[' ~ gqldTypeToString(list.elementType, nameSuffix, true) ~ ']' ~ (nonNullable ? "!" : "");
 	} else if(auto nn = cast(const(GQLDNonNull))t) {
-		return gqldTypeToString(nn.elementType, nameSuffix) ~ "!";
+		return gqldTypeToString(nn.elementType, nameSuffix, true);
 	}
-	return t.name ~ nameSuffix;
+	return t.name ~ nameSuffix ~ (nonNullable ? "!" : "");
 }
 
 string baseTypeName(const(GQLDType) t) {
