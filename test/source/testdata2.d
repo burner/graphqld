@@ -22,6 +22,9 @@ interface Query2 {
 	long bar();
 	Nullable!Small small();
 	Small[] manysmall();
+
+	Nullable!long maybeNull();
+	long neverNull();
 }
 
 interface Mutation2 {

@@ -5,6 +5,7 @@ import std.algorithm.iteration : map, joiner;
 import std.conv : to;
 import std.stdio;
 import std.format;
+import std.typecons;
 
 import graphql.graphql;
 import graphql.schema.types;
@@ -158,13 +159,13 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	return tab[map.name].vis;
 }
 
-string gqldTypeToString(const(GQLDType) t, string nameSuffix = "", bool nonNullable = true) {
+string gqldTypeToString(const(GQLDType) t, string nameSuffix = "", Flag!"nonNullable" nonNullable = Yes.nonNullable) {
 	if(auto base = cast(const(GQLDNullable))t) {
-		return gqldTypeToString(base.elementType, nameSuffix, false);
+		return gqldTypeToString(base.elementType, nameSuffix, No.nonNullable);
 	} else if(auto list = cast(const(GQLDList))t) {
-		return '[' ~ gqldTypeToString(list.elementType, nameSuffix, true) ~ ']' ~ (nonNullable ? "!" : "");
+		return '[' ~ gqldTypeToString(list.elementType, nameSuffix, Yes.nonNullable) ~ ']' ~ (nonNullable ? "!" : "");
 	} else if(auto nn = cast(const(GQLDNonNull))t) {
-		return gqldTypeToString(nn.elementType, nameSuffix, true);
+		return gqldTypeToString(nn.elementType, nameSuffix, Yes.nonNullable);
 	}
 	return t.name ~ nameSuffix ~ (nonNullable ? "!" : "");
 }

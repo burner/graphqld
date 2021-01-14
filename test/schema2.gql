@@ -5,10 +5,12 @@ schema {
 }
 type mutationType { _: Boolean }
 type queryType {
-	foo: Int!
-	manysmall: [Small!]!
-	bar: Int!
+	maybeNull: Int
 	small: Small
+	manysmall: [Small!]!
+	neverNull: Int!
+	foo: Int!
+	bar: Int!
 }
 type subscriptionType { _: Boolean }
 type Small {
