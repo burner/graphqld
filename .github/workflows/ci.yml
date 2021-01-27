@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  Test:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macOS-latest
+        compiler:
+          - 'dmd-latest'
+          - 'ldc-latest'
+          - 'dmd-beta'
+          - 'ldc-beta'
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install compiler
+      uses: dlang-community/setup-dlang@v1
+      with:
+        compiler: ${{ matrix.compiler }}
+
+    - name: Style Lint
+      continue-on-error: true # The make file fails
+      run: |
+        make style_lint
+
+    - name: Test
+      run: |
+        dub test
+
+    - name: Test
+      working-directory: ./test
+      run: |
+        dub build
+        ./test --onlyRunTests
+
+  Skip:
+    if: "contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip CI 🚫
+        run: echo skip CI
