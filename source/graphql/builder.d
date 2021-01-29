@@ -610,7 +610,7 @@ fragment baz on User {
 	auto p = Parser(l);
 	auto d = p.parseDocument();
 
-	auto nn = ["hello", "name", "zzzz", "age", "args"];
+	immutable auto nn = ["hello", "name", "zzzz", "age", "args"];
 	size_t cnt = 0;
 	foreach(it; opDefRange(d)) {
 		++cnt;

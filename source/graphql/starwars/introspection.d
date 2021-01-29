@@ -118,7 +118,7 @@ Json query(string s, Json args) {
 }
 
 @safe unittest {
-	Json rslt = query(`
+	const Json rslt = query(`
 		query IntrospectionTypeQuery {
 			__schema {
 				types {
@@ -181,7 +181,7 @@ Json query(string s, Json args) {
 			}
 		}
 	}`;
-	Json exp = parseJson(s);
+	immutable Json exp = parseJson(s);
 	// TODO write a json array compare that does not depend on the order
 	//assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
 	//		rslt.toPrettyString()));

@@ -23,8 +23,8 @@ private enum Skip {
 }
 
 T add(T)(T a, T b) {
-	int ai = a;
-	int bi = b;
+	immutable int ai = a;
+	immutable int bi = b;
 	int r = ai + bi;
 	if(r == 0) {
 		return cast(T)r;
@@ -80,7 +80,7 @@ SkipInclude extractSkipInclude(const(Directives) dirs, Json vars) {
 		return ret;
 	}
 	Json args = getArguments(dirs.dir, vars);
-	bool if_ = args.extract!bool("if");
+	immutable bool if_ = args.extract!bool("if");
 	ret.include = dirs.dir.name.value == "include"
 		? if_
 			? Include.yes
@@ -123,7 +123,7 @@ query a($s: boolean) {
 		auto crew = astSelect!Field(doc, "a.starships.crew");
 		assert(crew !is null);
 
-		SkipInclude si = extractSkipInclude(crew.dirs, vars);
+		immutable SkipInclude si = extractSkipInclude(crew.dirs, vars);
 		assert(si.include == Include.undefined);
 		assert(si.skip == Skip.no);
 		assert(continueAfterDirectives(crew.dirs, vars));

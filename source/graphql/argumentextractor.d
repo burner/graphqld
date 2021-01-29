@@ -212,5 +212,5 @@ unittest {
 }
 `;
 
-	auto d = lexAndParse(s);
+	const auto d = lexAndParse(s);
 }

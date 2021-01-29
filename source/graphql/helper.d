@@ -269,7 +269,7 @@ unittest {
 
 	b = parseJsonString(`{"underSize":-100}`);
 	const d = joinJson(b, a);
-	Json r = parseJsonString(`{"overSize":200, "underSize":-100}`);
+	immutable Json r = parseJsonString(`{"overSize":200, "underSize":-100}`);
 	assert(d == r);
 }
 
@@ -511,7 +511,7 @@ unittest {
 unittest {
 	import std.exception : assertThrown;
 	Json j = parseJsonString(`{ "foo": 1337 }`);
-	auto foo = j.extract!int("foo");
+	immutable auto foo = j.extract!int("foo");
 
 	assertThrown(Json.emptyObject().extract!float("Hello"));
 	assertThrown(j.extract!string("Hello"));
@@ -524,7 +524,7 @@ unittest {
 		b
 	}
 	Json j = parseJsonString(`{ "foo": "a" }`);
-	auto foo = j.extract!FooEn("foo");
+	immutable auto foo = j.extract!FooEn("foo");
 	assert(foo == FooEn.a);
 
 	assertThrown(Json.emptyObject().extract!float("Hello"));
@@ -571,7 +571,7 @@ StringTypeStrip stringTypeStrip(string str) {
 private Nullable!StringTypeStrip gqldStringTypeStrip(string str) {
 	StringTypeStrip ret;
 	ret.input = str;
-	string old = str;
+	immutable string old = str;
 	bool firstBang;
 	if(str.endsWith('!')) {
 		firstBang = true;
@@ -821,7 +821,7 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 		// class we have. If none found, return the name of the type itself.
 		import graphql.reflection;
 		auto tinfo = typeid(input);
-		auto reflect = SchemaReflection!Schema.instance;
+		const auto reflect = SchemaReflection!Schema.instance;
 		while(tinfo !is null) {
 			if(auto cname = tinfo in reflect.classes) {
 				return *cname;
@@ -922,15 +922,15 @@ unittest {
 				j.toPrettyString()
 			)
 		);
-	string exp = j["dt"].to!string();
+	immutable string exp = j["dt"].to!string();
 	assert(exp == "1337-07-01T01:01:01", exp);
-	string exp2 = j["dt2"].to!string();
+	immutable string exp2 = j["dt2"].to!string();
 	assert(exp2 == "2337-07-01T01:01:03", exp2);
 
-	DT back = extract!DT(j, "dt");
+	immutable DT back = extract!DT(j, "dt");
 	assert(back.value == dt);
 
-	DT back2 = extract!DT(j, "dt2");
+	immutable DT back2 = extract!DT(j, "dt2");
 	assert(back2.value == dt2);
 }
 
@@ -954,4 +954,3 @@ struct PathElement {
 		return this.str.empty ? Json(this.idx) : Json(this.str);
 	}
 }
-
