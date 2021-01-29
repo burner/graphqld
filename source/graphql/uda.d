@@ -89,7 +89,7 @@ struct GQLDCustomLeaf(T, alias SerializationFun, alias DeserializationFun) {
 		return myself._from(input);
 	}
 
-	T toRepresentation() @safe {
+	T toRepresentation() @safe const {
 		return this.value;
 	}
 
