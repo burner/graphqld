@@ -7,6 +7,7 @@ import std.typecons;
 import std.typecons;
 import std.algorithm;
 import std.getopt;
+import std.regex;
 
 import std.experimental.logger;
 import std.experimental.logger.filelogger;
@@ -44,7 +45,7 @@ void testSchemaDump(string fname, string newSchemaText) {
 	import std.file : writeFile = write, readText, FileException;
 	string oldSchemaText;
 	try {
-		oldSchemaText = readText(fname);
+		oldSchemaText = replaceAll(readText(fname), regex(r"\r"), "");
 	} catch (FileException) {
 		oldSchemaText = newSchemaText;
 	}
