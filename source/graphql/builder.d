@@ -614,7 +614,6 @@ fragment baz on User {
 	size_t cnt = 0;
 	foreach(it; opDefRange(d)) {
 		++cnt;
-		long idx;
 		foreach(jt; it.fieldRange(["User"])) {
 		}
 	}
