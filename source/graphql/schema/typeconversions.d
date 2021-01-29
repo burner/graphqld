@@ -319,7 +319,7 @@ Json emptyType() {
 }
 
 Json removeNonNullAndList(Json j) {
-	string t = j["kind"].get!string();
+	immutable string t = j["kind"].get!string();
 	if(t == "NON_NULL" || t == "LIST") {
 		return removeNonNullAndList(j["ofType"]);
 	} else {
@@ -693,7 +693,7 @@ Json getField(Json j, string name) {
 	}
 
 	foreach(it; j[Constants.fields].byValue) {
-		string itName = it[Constants.name].get!string();
+		immutable string itName = it[Constants.name].get!string();
 		if(itName == name) {
 			return it;
 		}

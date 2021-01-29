@@ -248,7 +248,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		scope(exit) {
 			ec.path.popBack();
 		}
-		bool dirSaysToContinue = continueAfterDirectives(op.d, variables);
+		immutable bool dirSaysToContinue = continueAfterDirectives(op.d, variables);
 		if(!dirSaysToContinue) {
 			return returnTemplate();
 		}
@@ -309,7 +309,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			)
 		{
 			//Json args = getArguments(field, variables);
-			bool dirSaysToContinue = continueAfterDirectives(
+			immutable bool dirSaysToContinue = continueAfterDirectives(
 					field.f.dirs, variables);
 
 			Json rslt = dirSaysToContinue

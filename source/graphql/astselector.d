@@ -86,7 +86,7 @@ class AstSelector : ConstVisitor {
 
 	override void accept(const(OperationDefinition) obj) {
 		if(obj.name.type != TokenType.undefined) {
-			bool shouldPop = this.takeName(obj.name.value, obj);
+			immutable bool shouldPop = this.takeName(obj.name.value, obj);
 			if(shouldPop) {
 				if(obj.vd !is null) {
 					obj.vd.visit(this);
@@ -126,7 +126,7 @@ class AstSelector : ConstVisitor {
 
 	override void accept(const(InlineFragment) obj) {
 		if(obj.tc.type != TokenType.undefined) {
-			bool shouldPop = this.takeName(obj.tc.value, obj);
+			immutable bool shouldPop = this.takeName(obj.tc.value, obj);
 			if(shouldPop) {
 				if(obj.dirs !is null) {
 					obj.dirs.visit(this);
@@ -144,7 +144,7 @@ class AstSelector : ConstVisitor {
 		const(FragmentDefinition) frag = findFragment(this.document.get(),
 				fragSpread.name.value
 			);
-		bool shouldPop = this.takeName(fragSpread.name.value, frag);
+		immutable bool shouldPop = this.takeName(fragSpread.name.value, frag);
 		frag.visit(this);
 		this.popStack(shouldPop);
 	}

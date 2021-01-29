@@ -304,11 +304,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			jsonTypes = Json.emptyArray;
 			static if(hasMember!(T, Constants.directives)) {
 				import graphql.schema.typeconversions : typeToTypeName;
-				string directiveTypeName =
+				immutable string directiveTypeName =
 			   	   typeToTypeName!(typeof(__traits(getMember, T,
 												   Constants.directives)));
 			} else {
-				string directiveTypeName = "";
+				immutable string directiveTypeName = "";
 			}
 			foreach(n, ref tsn; SchemaReflection!T.instance.jsonTypes) {
 				if(n != directiveTypeName && tsn.canonical)

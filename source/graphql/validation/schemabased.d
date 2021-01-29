@@ -272,7 +272,7 @@ class SchemaValidator(Schema) : Visitor {
 
 			auto curNameField = curNameFieldRange.front;
 
-			Json curArgs = curNameField[Constants.args];
+			const Json curArgs = curNameField[Constants.args];
 			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
 
 			enforce!ArgumentDoesNotExist(!argElem.empty, format(

@@ -40,7 +40,7 @@ void test(string s) {
 		);
 	sv.accept(cd);
 	DefaultContext con;
-	Json gqld = graphqld.execute(d, Json.emptyObject(), con);
+	immutable Json gqld = graphqld.execute(d, Json.emptyObject(), con);
 }
 
 @safe unittest {
