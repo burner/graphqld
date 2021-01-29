@@ -763,9 +763,6 @@ private StringTypeStrip dlangStringTypeStrip(string str) {
 }
 
 unittest {
-	bool oNN;
-	bool arr;
-	bool iNN;
 	string t = "Nullable!string";
 	StringTypeStrip r = t.dlangStringTypeStrip();
 	assert(r.str == "String", to!string(r));
