@@ -24,8 +24,9 @@ import graphql.exception;
 /** dmd and ldc have problems with generation all functions
 This functions call functions that were undefined.
 */
-private void undefinedFunctions() {
+private void undefinedFunctions() @trusted {
 	static import core.internal.hash;
+	static import graphql.schema.introspectiontypes;
 
 	const(graphql.schema.introspectiontypes.__Type)[] tmp;
 	core.internal.hash.hashOf!(const(graphql.schema.introspectiontypes.__Type)[])
