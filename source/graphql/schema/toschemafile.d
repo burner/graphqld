@@ -249,7 +249,8 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 					// apparently graphql doesn't allow foo(): bar
 					// so special-case that and turn it into foo: bar
 					formIndent(o, 1, "%s: %s", mem,
-					        typeToStringMaybeIn(op.returnType));
+					        map.name == "mutationType" ? gqldTypeToString(op.returnType)
+					                                   : typeToStringMaybeIn(op.returnType));
 				}
 			} else {
 				formIndent(o, 1, "%s: %s", mem, typeToStringMaybeIn(value));
