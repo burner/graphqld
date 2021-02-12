@@ -88,6 +88,7 @@ struct AddCrewmanComplexInput {
 
 interface Mutation {
 	Character addCrewman(AddCrewmanData input);
+	Character getStupidestCrewman();
 	//Starship addCrewmanCompley(AddCrewmanComplexInput input);
 }
 

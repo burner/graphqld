@@ -70,6 +70,7 @@ input CharacterIn {
 	commanders: [CharacterIn!]!
 }
 type mutationType {
+	getStupidestCrewman: Character!
 	addCrewman(input: AddCrewmanData!): Character!
 }
 type queryType {
