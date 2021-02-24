@@ -125,7 +125,7 @@ struct FieldRangeItem {
 }
 
 struct FieldRange {
-	FixedSizeArray!(Selections,32) cur;
+	FixedSizeArray!(Selections,64) cur;
 	Document doc;
 	string[] typenames;
 	Json vars;

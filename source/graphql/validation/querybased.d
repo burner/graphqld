@@ -53,7 +53,7 @@ class QueryValidator : ConstVisitor {
 	}
 
 	string[][string] fragmentChildren;
-	FixedSizeArray!string curFragment;
+	FixedSizeArray!(string,64) curFragment;
 	string[] allFrags;
 	bool[string] reachedFragments;
 
