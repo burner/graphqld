@@ -254,7 +254,7 @@ class Data {
 		this.ships.back.commander = picard;
 		this.ships.back.crew = tng;
 		this.ships.back.crew ~= picard;
-		tng.map!(a => a.ship = nullable(this.ships.back)).each;
+		tng.each!(a => a.ship = nullable(this.ships.back));
 
 		this.ships ~= new Starship(i++, "NX-74205", 130.0, "Defiant");
 		this.ships.back.series ~= nullable(Series.DeepSpaceNine);
@@ -262,7 +262,7 @@ class Data {
 		this.ships.back.commander = sisko;
 		this.ships.back.crew = cast(Character[])ds9;
 		this.ships.back.crew ~= sisko;
-		ds9.map!(a => a.ship = nullable(this.ships.back)).each;
+		ds9.each!(a => a.ship = nullable(this.ships.back));
 
 		this.ships ~= new Starship(i++, "NCC-74656", 343.0, "Voyager");
 		this.ships.back.series ~= nullable(Series.Voyager);
@@ -270,14 +270,14 @@ class Data {
 		this.ships.back.commander = janeway;
 		this.ships.back.crew = cast(Character[])voyager;
 		this.ships.back.crew ~= janeway;
-		voyager.map!(a => a.ship = nullable(this.ships.back)).each;
+		voyager.each!(a => a.ship = nullable(this.ships.back));
 
 		this.ships ~= new Starship(i++, "NX-01", 225.0, "Enterprise");
 		this.ships.back.series ~= nullable(Series.Enterprise);
 		this.ships.back.commander = archer;
 		this.ships.back.crew = cast(Character[])enterprise;
 		this.ships.back.crew ~= archer;
-		enterprise.map!(a => a.ship = nullable(this.ships.back)).each;
+		enterprise.each!(a => a.ship = nullable(this.ships.back));
 
 		this.ships ~= new Starship(i++, "NCC-1701", 288.64, "Enterprise");
 		this.ships.back.series ~= nullable(Series.TheOriginalSeries);
@@ -285,14 +285,14 @@ class Data {
 		this.ships.back.commander = kirk;
 		this.ships.back.crew = cast(Character[])tos;
 		this.ships.back.crew ~= kirk;
-		tos.map!(a => a.ship = nullable(this.ships.back)).each;
+		tos.each!(a => a.ship = nullable(this.ships.back));
 
 		this.ships ~= new Starship(i++, "NCC-1031", 244.00, "Discovery");
 		this.ships.back.series ~= nullable(Series.Discovery);
 		this.ships.back.commander = georgiou;
 		this.ships.back.crew = cast(Character[])discovery;
 		this.ships.back.crew ~= georgiou;
-		discovery.map!(a => a.ship = nullable(this.ships.back)).each;
+		discovery.each!(a => a.ship = nullable(this.ships.back));
 
 		this.chars =
 			joiner([
