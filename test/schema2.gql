@@ -15,14 +15,14 @@ type queryType {
 type subscriptionType { _: Boolean }
 type Small {
 	id: Int!
-	foobar: [SmallChild!]!
 	name: String!
+	foobar: [SmallChild!]!
 	arg(a: Int!): [SmallChild!]!
 }
 input SmallIn {
 	id: Int!
-	foobar: [SmallChildIn!]!
 	name: String!
+	foobar: [SmallChildIn!]!
 }
 type SmallChild {
 	id: Int!

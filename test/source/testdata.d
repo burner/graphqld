@@ -168,8 +168,8 @@ class Data {
 		];
 		picard.commands = tng;
 		picard.series ~= Series.DeepSpaceNine;
-		tng.map!(a => a.series ~= Series.TheNextGeneration).each;
-		tng.map!(a => a.commanders ~= picard).each;
+		tng.each!(a => a.series ~= Series.TheNextGeneration);
+		tng.each!(a => a.commanders ~= picard);
 		tng[0].series ~= Series.Enterprise;
 		tng[1].series ~= Series.Voyager;
 		tng[1].series ~= Series.Enterprise;
@@ -188,8 +188,8 @@ class Data {
 			new HumanoidImpl(i++, "Elim Garak", "Cardassian", Date(2320, 1, 1))
 		];
 		sisko.commands = cast(Character[])ds9;
-		ds9.map!(a => a.series ~= Series.DeepSpaceNine).each;
-		ds9.map!(a => a.commanders ~= sisko).each;
+		ds9.each!(a => a.series ~= Series.DeepSpaceNine);
+		ds9.each!(a => a.commanders ~= sisko);
 
 		tng[6].commanders ~= sisko;
 
@@ -205,8 +205,8 @@ class Data {
 			new HumanoidImpl(i++, "Harry Kim", "Human", Date(2349, 2, 1)),
 		];
 		janeway.commands = cast(Character[])voyager;
-		voyager.map!(a => a.series ~= Series.Voyager).each;
-		voyager.map!(a => a.commanders ~= janeway).each;
+		voyager.each!(a => a.series ~= Series.Voyager);
+		voyager.each!(a => a.commanders ~= janeway);
 
 		auto archer = new HumanoidImpl(i++, "Jonathan Archer", "Human",
 				Date(2112, 10, 9));
@@ -220,7 +220,7 @@ class Data {
 			new HumanoidImpl(i++, "T'Pol", "Vulcan", Date(2088, 2, 1))
 		];
 		archer.commands = cast(Character[])enterprise;
-		enterprise.map!(a => a.series ~= Series.Enterprise).each;
+		enterprise.each!(a => a.series ~= Series.Enterprise);
 
 		auto kirk = new HumanoidImpl(i++, "James T. Kirk", "Human",
 				Date(2202, 2, 1));
@@ -232,8 +232,8 @@ class Data {
 			new HumanoidImpl(i++, "Spock", "Vulcan", Date(2230, 2, 1)),
 		];
 		kirk.commands = cast(Character[])tos;
-		tos.map!(a => a.series ~= Series.TheOriginalSeries).each;
-		tos.map!(a => a.commanders ~= kirk).each;
+		tos.each!(a => a.series ~= Series.TheOriginalSeries);
+		tos.each!(a => a.commanders ~= kirk);
 
 		auto georgiou = new HumanoidImpl(i++, "Philippa Georgiou", "Human",
 				Date(2202, 2, 1));
@@ -246,8 +246,8 @@ class Data {
 			new HumanoidImpl(i++, "Hugh Culber", "Human", Date(2227, 2, 1)),
 		];
 		georgiou.commands = cast(Character[])discovery;
-		discovery.map!(a => a.series ~= Series.Discovery).each;
-		discovery.map!(a => a.commanders ~= georgiou).each;
+		discovery.each!(a => a.series ~= Series.Discovery);
+		discovery.each!(a => a.commanders ~= georgiou);
 
 		this.ships ~= new Starship(i++, "NCC-1701E", 685.7, "Enterprise");
 		this.ships.back.series ~= nullable(Series.TheNextGeneration);

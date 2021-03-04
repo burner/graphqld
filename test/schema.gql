@@ -5,7 +5,29 @@ schema {
 }
 scalar Date
 type Android {
+	ships: Starship
+	series: [Series!]!
+	id: Int!
+	ship: Starship
 	primaryFunction: String!
+	name: String!
+	allwaysNull: Starship
+	commands: [Character!]!
+	alsoAllwaysNull: Int
+	commanders: [Character!]!
+}
+# note: nestedness of type 'Android' not determined; output may be suboptimal
+input AndroidIn {
+	ships: StarshipIn
+	series: [Series!]!
+	id: Int!
+	ship: StarshipIn
+	primaryFunction: String!
+	name: String!
+	allwaysNull: StarshipIn
+	commands: [CharacterIn!]!
+	alsoAllwaysNull: Int
+	commanders: [CharacterIn!]!
 }
 type subscriptionType {
 	starships: [Starship!]!
@@ -88,8 +110,31 @@ type queryType {
 	character(id: Int!): Character
 }
 type Humanoid {
+	ships: Starship
+	series: [Series!]!
+	id: Int!
+	ship: Starship
 	dateOfBirth: Date!
+	name: String!
 	species: String!
+	allwaysNull: Starship
+	commands: [Character!]!
+	alsoAllwaysNull: Int
+	commanders: [Character!]!
+}
+# note: nestedness of type 'Humanoid' not determined; output may be suboptimal
+input HumanoidIn {
+	ships: StarshipIn
+	series: [Series!]!
+	id: Int!
+	ship: StarshipIn
+	dateOfBirth: Date!
+	name: String!
+	species: String!
+	allwaysNull: StarshipIn
+	commands: [CharacterIn!]!
+	alsoAllwaysNull: Int
+	commanders: [CharacterIn!]!
 }
 scalar SearchResult
 scalar DateTime
