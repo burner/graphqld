@@ -88,11 +88,31 @@ bool isNameSpecial(string s) {
 	return s.startsWith("__") || s.startsWith("op") || ["factory", "toHash", "toString"].canFind(s);
 }
 
-bool isPrimitiveType(GQLDType type) {
+bool isPrimitiveType(const(GQLDType) type) {
 	return type.kind == GQLDKind.String
 		|| type.kind == GQLDKind.Float
 		|| type.kind == GQLDKind.Int
 		|| type.kind == GQLDKind.Bool;
+}
+
+// all members of o, including derived ones
+inout(GQLDType)[string] allMember(inout(GQLDMap) m) {
+	import std.algorithm;
+	GQLDType[string] ret;
+
+	void process(GQLDMap m) {
+		m.member.byPair.each!((k,v) => ret.require(k,v));
+
+		if(auto o = cast(GQLDObject)m) {
+			if(o.base) {
+				process(o.base);
+			}
+		}
+	}
+
+	// inout(V)[K].require is broken
+	process(cast()m);
+	return cast(inout(GQLDType)[string])ret;
 }
 
 Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
@@ -112,7 +132,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 
 	// identifies itself as an object, but we really want to dump it as a scalar
 	if((cast(GQLDObject)t && (cast(GQLDObject)t)
-	                                 .member.byKey
+	                                 .allMember.byKey
 	                                 .filter!(m => !isNameSpecial(m))
 	                                 .empty)
 	    || cast(GQLDUnion)t) {
@@ -148,7 +168,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	tab[map.name] = TraceableType(map, Colour.grey, map.outputOnlyMembers.length ? Visibility.hasOutputOnly : Visibility.inputOutput);
 	scope(exit) tab[map.name].colour = Colour.black;
 
-	foreach(mem, val; map.member) {
+	foreach(mem, val; map.allMember) {
 		if(isNameSpecial(mem) || isPrimitiveType(val)) {
 			continue;
 		}
@@ -231,7 +251,7 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 			return gqldTypeToString(t, inputType && t.baseTypeName in tab && tab[t.baseTypeName].vis != Visibility.inputOutput ? "In" : "");
 		}
 
-		foreach(mem, value; map.member) {
+		foreach(mem, value; map.allMember) {
 			if(isNameSpecial(mem) || (inputType && (mem in map.outputOnlyMembers || (cast(GQLDOperation)value && map.name != "mutationType")))) {
 				continue;
 			}
