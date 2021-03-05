@@ -868,3 +868,15 @@ query foo($after: String) {
 `;
 	test!void(str);
 }
+
+unittest {
+	string str = `
+query q {
+	androids {
+		primaryFunction #inherited
+		name #not inherited
+	}
+}
+`;
+	test!void(str);
+}
