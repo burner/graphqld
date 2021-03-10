@@ -86,7 +86,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 						name, parent, args
 					);
 				Json ret = Json.emptyObject();
-				if(parent.type != Json.Type.null_ && name in parent) {
+				if(parent.type == Json.Type.object && name in parent) {
 					ret["data"] = Json.emptyObject();
 					ret["data"] = parent[name];
 				} else {
