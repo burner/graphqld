@@ -18,6 +18,8 @@ import graphql.traits;
 import graphql.uda;
 import graphql.constants;
 
+private enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
+                             "opEquals", "Monitor", "factory", "opAssign"];
 @safe:
 
 template typeToTypeEnum(Type) {
@@ -183,8 +185,6 @@ template typeToFieldType(Type) {
 
 Json typeFields(T)() {
 	import graphql.uda;
-	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
-			"opEquals", "Monitor", "factory"];
 	Json ret = Json.emptyArray();
 	bool[string] fieldsAlreadyIn;
 	alias TplusParents = AliasSeq!(T, InheritedClasses!T);
@@ -617,8 +617,6 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 Json directivesToJson(Directives)() {
 	import std.string : stripLeft;
 	Json ret = Json.emptyArray();
-	static enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
-			"opEquals", "Monitor", "factory"];
 	alias TplusParents = AliasSeq!(Directives, InheritedClasses!Directives);
 	static foreach(Type; TplusParents) {{
 		static foreach(mem; __traits(allMembers, Type)) {{
