@@ -278,14 +278,18 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		}
 	}
 
+	string implementsStr = "";
 	string typestr = "type";
 	if(auto unio = cast(GQLDUnion)map) {
 		typestr = "union";
 	} else if(auto obj = cast(GQLDObject)map) {
 		typestr = typeKindToString(obj.typeKind);
+		if(obj.base && obj.base.typeKind == TypeKind.INTERFACE) {
+			implementsStr = " implements " ~ obj.base.name;
+		}
 	}
 
-	formIndent(o, 0, "%s %s {", typestr, map.name);
+	formIndent(o, 0, "%s %s%s {", typestr, map.name, implementsStr);
 	dumpMem(map.name == "mutationType");
 	formIndent(o, 0, "}");
 

@@ -4,7 +4,7 @@ schema {
 	subscription: subscriptionType
 }
 scalar Date
-type Android {
+type Android implements Character {
 	ships: Starship
 	series: [Series!]!
 	id: Int!
@@ -109,7 +109,7 @@ type queryType {
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
 }
-type Humanoid {
+type Humanoid implements Character {
 	ships: Starship
 	series: [Series!]!
 	id: Int!
