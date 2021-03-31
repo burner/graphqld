@@ -12,6 +12,31 @@ package struct TypeWithStrippedName {
 	bool canonical;
 }
 
+package struct TypeDerivatives {
+	TypeInfo tInfo;
+	string[] derivatives;
+}
+
+ref TypeDerivatives requireArr(ref TypeDerivatives[] arr, TypeInfo info) @trusted {
+	import std.array : back;
+	foreach(ref it; arr) {
+		if(it.tInfo == info) {
+			return it;
+		}
+	}
+	arr ~= TypeDerivatives(info, []);
+	return arr.back;
+}
+
+string[] getArr(ref TypeDerivatives[] arr, TypeInfo info) @trusted {
+	foreach(ref it; arr) {
+		if(it.tInfo == info) {
+			return it.derivatives;
+		}
+	}
+	return [];
+}
+
 package struct SchemaReflection(Schema) {
 	private {
 		static SchemaReflection _instance;
@@ -24,7 +49,8 @@ package struct SchemaReflection(Schema) {
 	}
 
 	string[TypeInfo] classes;
-	string[][TypeInfo] derivatives;
+	//string[][TypeInfo] derivatives;
+	TypeDerivatives[] derivatives;
 	string[][string] bases;
 
 	TypeWithStrippedName[string] jsonTypes;
@@ -47,19 +73,19 @@ private void builder(T,Schema)(ref SchemaReflection!Schema ths) {
 		ths.classes[typeid(T)] = T.stringof;
 		foreach(B; AliasSeq!(T, TransitiveBaseTypeTuple!T)) {
 			static if(!is(B == Object)) {
-				ths.derivatives.require(typeid(B), null) ~= T.stringof;
+				ths.derivatives.requireArr(typeid(B)).derivatives ~= T.stringof;
 				ths.bases.require(T.stringof, null) ~= B.stringof;
 			}
 		}
 	} else static if(is(T == interface)) {
 		// go through all base types, and set up the derivation lines
 		foreach(B; AliasSeq!(T, InterfacesTuple!T)) {
-			ths.derivatives.require(typeid(B), null) ~= T.stringof;
+			ths.derivatives.requireArr(typeid(B)).derivatives ~= T.stringof;
 			ths.bases.require(T.stringof, null) ~= B.stringof;
 		}
 	} else {
 		// all other types have derivatives and bases of themselves
-		ths.derivatives.require(typeid(T), null) ~= T.stringof;
+		ths.derivatives.requireArr(typeid(T)).derivatives ~= T.stringof;
 		ths.bases.require(T.stringof, null) ~= T.stringof;
 	}
 }

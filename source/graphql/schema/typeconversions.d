@@ -444,8 +444,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 			// from this type
 			ret[Constants.possibleTypesNames] = Json.emptyArray();
 			foreach(tname;
-					SchemaReflection!Schema.instance.derivatives.get(typeid(Type),
-																	 null))
+					SchemaReflection!Schema.instance.derivatives.getArr(typeid(Type)))
 			{
 				ret[Constants.possibleTypesNames] ~= tname;
 			}
