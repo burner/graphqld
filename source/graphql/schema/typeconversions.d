@@ -458,12 +458,15 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	static if(is(Type == enum)) {
 		ret[Constants.enumValues] = Json.emptyArray();
 		static foreach(mem; EnumMembers!Type) {{
+			enum memUdaData = getUdaData!(Type, to!string(mem));
 			Json tmp = Json.emptyObject();
 			tmp[Constants.__TypeKind] = Constants.__EnumValue;
 			tmp[Constants.name] = Json(to!string(mem));
-			tmp[Constants.description] = "ENUM_DESCRIPTION_TODO";
-			tmp[Constants.isDeprecated] = false;
-			tmp[Constants.deprecationReason] = "ENUM_DEPRECATIONREASON_TODO";
+			tmp[Constants.description] = memUdaData.description.text;
+			tmp[Constants.isDeprecated] = (memUdaData.deprecationInfo.isDeprecated == IsDeprecated.yes);
+			tmp[Constants.deprecationReason] = (memUdaData.deprecationInfo.isDeprecated == IsDeprecated.yes)
+							? Json(memUdaData.deprecationInfo.deprecationReason)
+							: Json(null);
 			ret[Constants.enumValues] ~= tmp;
 		}}
 	} else {
@@ -519,7 +522,12 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 @safe unittest {
 	enum FooBar {
+		@GQLDUda(GQLDDescription("important"))
 		foo,
+		@GQLDUda(
+			GQLDDeprecated(IsDeprecated.yes, "not foo enough"),
+			GQLDDescription("unimportant")
+		)
 		bar
 	}
 
@@ -538,17 +546,17 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 		"possibleTypesNames": null,
 		"enumValues": [
 			{
-				"description": "ENUM_DESCRIPTION_TODO",
-				"deprecationReason": "ENUM_DEPRECATIONREASON_TODO",
+				"description": "important",
+				"deprecationReason": null,
 				"__TypeKind": "__EnumValue",
 				"isDeprecated": false,
 				"name": "foo"
 			},
 			{
-				"description": "ENUM_DESCRIPTION_TODO",
-				"deprecationReason": "ENUM_DEPRECATIONREASON_TODO",
+				"description": "unimportant",
+				"deprecationReason": "not foo enough",
 				"__TypeKind": "__EnumValue",
-				"isDeprecated": false,
+				"isDeprecated": true,
 				"name": "bar"
 			}
 		],
