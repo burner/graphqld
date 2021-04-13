@@ -66,7 +66,9 @@ void insertError(T)(ref Json result, T t, PathElement[] path) {
 	tmp["message"] = serializeToJson(t);
 	if(!path.empty) {
 		tmp["path"] = Json.emptyArray();
-		path.each!(it => tmp["path"] ~= it.toJson());
+		foreach(it; path) {
+			tmp["path"] ~= it.toJson();
+		}
 	}
 	if(e !in result) {
 		result[e] = Json.emptyArray();
