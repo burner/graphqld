@@ -101,7 +101,9 @@ inout(GQLDType)[string] allMember(inout(GQLDMap) m) {
 	GQLDType[string] ret;
 
 	void process(GQLDMap m) {
-		m.member.byPair.each!((k,v) => ret.require(k,v));
+		foreach(k,v; m.member.byPair) {
+			ret.require(k,v);
+		}
 
 		if(auto o = cast(GQLDObject)m) {
 			if(o.base) {
