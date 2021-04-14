@@ -268,14 +268,16 @@ bool[string] computeVariablesUsedByFragments(bool[string] fragmentsUsed,
 		string[string] variablesUsed)
 {
 	bool[string] ret;
-	fragmentsUsed
+	foreach(a; fragmentsUsed
 		.byKey()
 		.filter!(a => a in variablesUsed)
 		.map!(a => variablesUsed[a])
 		.array
 		.sort
-		.uniq
-		.each!(a => ret[a] = true);
+		.uniq)
+	{
+		ret[a] = true;
+	}
 	return ret;
 }
 
