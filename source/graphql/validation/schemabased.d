@@ -292,12 +292,20 @@ class SchemaValidator(Schema) : Visitor {
 							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig]);
 				const c4 = (typeStr.endsWith("In!")
 							&& (typeStr[0 .. $ - 3] ~ "!") == argElem.front[Constants.typenameOrig]);
-				enforce!VariableInputTypeMismatch(c1 || c2 || c3 || c4
+				const c5 = (typeStr.endsWith("In]!")
+							&& (typeStr[0 .. $ - 4] ~ "]!") == argElem.front[Constants.typenameOrig]);
+				const c6 = (typeStr.endsWith("In!]!")
+							&& (typeStr[0 .. $ - 5] ~ "!]!") == argElem.front[Constants.typenameOrig]);
+				const c7 = (typeStr.endsWith("In!]")
+							&& (typeStr[0 .. $ - 4] ~ "!]") == argElem.front[Constants.typenameOrig]);
+				enforce!VariableInputTypeMismatch(c1 || c2 || c3 || c4 || c5
+					|| c6 || c7
 						, format("Variable type '%s' does not match argument type '%s'"
-							~ " ! %s In %s In! %s c1 %s c2 %s c3 %s c4 %s"
+							~ " ! %s In %s In! %s c1 %s c2 %s c3 %s c4 %s c5 %s"
+							~ " c6 %s c7 %s"
 						, argElem.front[Constants.typenameOrig], typeStr
 						, typeStr.endsWith("!"), typeStr.endsWith("In")
-						, typeStr.endsWith("In!") , c1, c2, c3, c4
+						, typeStr.endsWith("In!") , c1, c2, c3, c4, c5, c6, c7
 						));
 			}
 		} else {
