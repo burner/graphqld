@@ -143,7 +143,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		static if(isAggregateType!Type) {
 			switch(field) {
 				static foreach(mem; __traits(allMembers, Type)) {
-					static if(isCallable!(__traits(getMember, Type, mem))
+					static if(std.traits.isCallable!(__traits(getMember, Type, mem))
 							&& !__traits(isTemplate, __traits(getMember, Type, mem)))
 					{
 						case mem: {
