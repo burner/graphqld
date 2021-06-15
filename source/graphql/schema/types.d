@@ -561,7 +561,8 @@ string toShortString(const(GQLDType) e) {
 }
 
 GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
-	alias Type = Unqual!TypeQ;
+	alias TypeUQ = Unqual!TypeQ;
+	alias Type = TypeQ;
 	static if(is(Type == enum)) {
 		GQLDEnum r;
 		if(Type.stringof in ret.types) {
@@ -571,11 +572,11 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 			ret.types[Type.stringof] = r;
 		}
 		return r;
-	} else static if(is(Type == bool)) {
+	} else static if(is(Type == bool) || is(TypeUQ == bool)) {
 		return new GQLDBool();
-	} else static if(isFloatingPoint!(Type)) {
+	} else static if(isFloatingPoint!(Type) || isFloatingPoint!(TypeUQ)) {
 		return new GQLDFloat();
-	} else static if(isIntegral!(Type)) {
+	} else static if(isIntegral!(Type) || isIntegral!(TypeUQ)) {
 		return new GQLDInt();
 	} else static if(isSomeString!Type) {
 		return new GQLDString();
