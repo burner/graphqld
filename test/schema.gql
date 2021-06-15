@@ -5,6 +5,7 @@ schema {
 }
 scalar Date
 type Android implements Character {
+	isDead: Boolean!
 	ships: Starship
 	series: [Series!]!
 	id: Int!
@@ -18,6 +19,7 @@ type Android implements Character {
 }
 # note: nestedness of type 'Android' not determined; output may be suboptimal
 input AndroidIn {
+	isDead: Boolean!
 	ships: StarshipIn
 	series: [Series!]!
 	id: Int!
@@ -69,6 +71,7 @@ input AddCrewmanData {
 	name: String!
 }
 interface Character {
+	isDead: Boolean!
 	ships: Starship
 	series: [Series!]!
 	id: Int!
@@ -81,6 +84,7 @@ interface Character {
 }
 # note: nestedness of type 'Character' not determined; output may be suboptimal
 input CharacterIn {
+	isDead: Boolean!
 	ships: StarshipIn
 	series: [Series!]!
 	id: Int!
@@ -110,6 +114,7 @@ type queryType {
 	character(id: Int!): Character
 }
 type Humanoid implements Character {
+	isDead: Boolean!
 	ships: Starship
 	series: [Series!]!
 	id: Int!
@@ -124,6 +129,7 @@ type Humanoid implements Character {
 }
 # note: nestedness of type 'Humanoid' not determined; output may be suboptimal
 input HumanoidIn {
+	isDead: Boolean!
 	ships: StarshipIn
 	series: [Series!]!
 	id: Int!

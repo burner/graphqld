@@ -560,7 +560,8 @@ string toShortString(const(GQLDType) e) {
 	}
 }
 
-GQLDType typeToGQLDType(Type, SCH)(ref SCH ret) {
+GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
+	alias Type = Unqual!TypeQ;
 	static if(is(Type == enum)) {
 		GQLDEnum r;
 		if(Type.stringof in ret.types) {

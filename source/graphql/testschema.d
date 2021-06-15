@@ -123,6 +123,7 @@ abstract class Character {
 	Character[] commanders;
 	Nullable!Starship allwaysNull;
 	Nullable!int alsoAllwaysNull;
+	const bool isDead;
 
 	//NullableStore!AddCrewmanData data;
 }
