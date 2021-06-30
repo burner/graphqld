@@ -59,12 +59,13 @@ enum Colour {
 }
 
 // indeterminate is a good .init value
-// but we want the ordering inputOutput < indeterminate < hasOutputOnly
+// but we want the ordering inputOrOutput < indeterminate < inputAndOutput, indeterminate < inputOnly
 // so that if we want the intersection of two visibilities, we just take the maximum
 enum Visibility {
 	indeterminate,
-	inputOutput = indeterminate - 1,
-	hasOutputOnly = indeterminate + 1,
+	inputOrOutput = indeterminate - 1, // e.g. 'enum'
+	inputAndOutput = indeterminate + 1, // e.g. struct ('type' / 'input')
+	inputOnly, // e.g. @GQLDUda(TypeKind.INPUT_OBJECT) struct ('input')
 }
 
 struct TraceableType {
@@ -123,7 +124,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	import std.range.primitives : empty;
 
 	if(isPrimitiveType(t) || isNameSpecial(t.name)) {
-		return Visibility.inputOutput;
+		return Visibility.inputOrOutput;
 	}
 
 	if(t.baseTypeName in tab) {
@@ -140,11 +141,11 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	    || cast(GQLDUnion)t) {
 		auto n = new GQLDScalar(GQLDKind.SimpleScalar);
 		n.name = t.name;
-		tab[n.name] = TraceableType(n, Colour.black, Visibility.inputOutput);
+		tab[n.name] = TraceableType(n, Colour.black, Visibility.inputOrOutput);
 		return tab[n.name].vis;
 	}
 	if(cast(GQLDScalar)t) {
-		tab[t.name] = TraceableType(t, Colour.black, Visibility.inputOutput);
+		tab[t.name] = TraceableType(t, Colour.black, Visibility.inputOrOutput);
 		return tab[t.name].vis;
 	}
 
@@ -153,7 +154,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 		foreach(val; op.parameters.byValue) {
 			traceType(val, tab);
 		}
-		return Visibility.hasOutputOnly;
+		return Visibility.inputAndOutput;
 	} else if(auto l = cast(GQLDList)t) {
 		return traceType(l.elementType, tab);
 	} else if(auto nn = cast(GQLDNonNull)t) {
@@ -164,18 +165,26 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 
 	auto map = cast(GQLDMap)t;
 	if(!map) {
-		return Visibility.inputOutput; // won't be dumped anyway, so doesn't matter
+		return Visibility.inputOrOutput; // won't be dumped anyway, so doesn't matter
 	}
 
-	tab[map.name] = TraceableType(map, Colour.grey, map.outputOnlyMembers.length ? Visibility.hasOutputOnly : Visibility.inputOutput);
+	tab[map.name] = TraceableType(map, Colour.grey, Visibility.inputAndOutput);
 	scope(exit) tab[map.name].colour = Colour.black;
+	if(cast(GQLDObject)map && (cast(GQLDObject)map).typeKind == TypeKind.INPUT_OBJECT) {
+		tab[map.name].vis = Visibility.inputOnly;
+	}
 
 	foreach(mem, val; map.allMember) {
 		if(isNameSpecial(mem) || isPrimitiveType(val)) {
 			continue;
 		}
-
-		tab[map.name].vis = max(traceType(val, tab), tab[map.name].vis);
+		Visibility oldVis = tab[map.name].vis;
+		Visibility newVis = traceType(val, tab);
+		if((newVis == Visibility.inputOnly && oldVis == Visibility.inputAndOutput) ||
+		   (oldVis == Visibility.inputOnly && newVis == Visibility.inputAndOutput)) {
+			assert(0, map.name ~ " cannot be both an input type and have output-only members");
+		}
+		tab[map.name].vis = max(newVis, oldVis);
 	}
 
 	return tab[map.name].vis;
@@ -250,7 +259,9 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 
 	void dumpMem(bool inputType) {
 		string typeToStringMaybeIn(const(GQLDType) t) {
-			return gqldTypeToString(t, inputType && t.baseTypeName in tab && tab[t.baseTypeName].vis != Visibility.inputOutput ? "In" : "");
+			return gqldTypeToString(t, inputType && t.baseTypeName in tab
+						&& tab[t.baseTypeName].vis != Visibility.inputOnly
+						&& tab[t.baseTypeName].vis != Visibility.inputOrOutput ? "In" : "");
 		}
 
 		foreach(mem, value; map.allMember) {
@@ -292,14 +303,14 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 	}
 
 	formIndent(o, 0, "%s %s%s {", typestr, map.name, implementsStr);
-	dumpMem(map.name == "mutationType");
+	dumpMem(map.name == "mutationType" || typestr == "input");
 	formIndent(o, 0, "}");
 
 	if (type.vis == Visibility.indeterminate) {
 		formIndent(o, 0, "# note: nestedness of type '%s' not determined; output may be suboptimal", map.name);
 	}
 
-	if(type.vis != Visibility.inputOutput && map.name !in gqlSpecialOps) {
+	if(type.vis != Visibility.inputOnly && map.name !in gqlSpecialOps) {
 		formIndent(o, 0, "input %sIn {", map.name);
 		dumpMem(true);
 		formIndent(o, 0, "}");
