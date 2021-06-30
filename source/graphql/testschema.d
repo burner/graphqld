@@ -73,10 +73,12 @@ unittest {
 	Query d;
 }
 
+@GQLDUda(TypeKind.INPUT_OBJECT) struct Vector { float x, y; }
 @GQLDUda(TypeKind.INPUT_OBJECT)
 struct AddCrewmanData {
 	string name;
 	long shipId;
+	Vector location;
 	Series[] series;
 }
 

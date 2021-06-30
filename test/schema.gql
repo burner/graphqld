@@ -17,7 +17,6 @@ type Android implements Character {
 	alsoAllwaysNull: Int
 	commanders: [Character!]!
 }
-# note: nestedness of type 'Android' not determined; output may be suboptimal
 input AndroidIn {
 	isDead: Boolean!
 	ships: StarshipIn
@@ -46,6 +45,10 @@ type Input {
 	first: Int!
 	after: String
 }
+input InputIn {
+	first: Int!
+	after: String
+}
 type Starship {
 	series: [Series]!
 	id: Int!
@@ -55,7 +58,6 @@ type Starship {
 	crew: [Character!]!
 	designation: String!
 }
-# note: nestedness of type 'Starship' not determined; output may be suboptimal
 input StarshipIn {
 	series: [Series]!
 	id: Int!
@@ -65,8 +67,13 @@ input StarshipIn {
 	crew: [CharacterIn!]!
 	designation: String!
 }
+input Vector {
+	y: Float!
+	x: Float!
+}
 input AddCrewmanData {
 	shipId: Int!
+	location: Vector!
 	series: [Series!]!
 	name: String!
 }
@@ -82,7 +89,6 @@ interface Character {
 	alsoAllwaysNull: Int
 	commanders: [Character!]!
 }
-# note: nestedness of type 'Character' not determined; output may be suboptimal
 input CharacterIn {
 	isDead: Boolean!
 	ships: StarshipIn
@@ -127,7 +133,6 @@ type Humanoid implements Character {
 	alsoAllwaysNull: Int
 	commanders: [Character!]!
 }
-# note: nestedness of type 'Humanoid' not determined; output may be suboptimal
 input HumanoidIn {
 	isDead: Boolean!
 	ships: StarshipIn
