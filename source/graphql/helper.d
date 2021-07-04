@@ -438,6 +438,18 @@ unittest {
 	assert(c1.accessNN!(["b", "a"]) !is null);
 }
 
+template canBeNull(T) {
+	static if(is(T : GQLDCustomLeaf!Fs, Fs...)) {
+		enum canBeNull = canBeNull!(Fs[0]);
+	} else static if(is(T : Nullable!F, F)) {
+		enum canBeNull = true;
+	} else static if(is(T : NullableStore!F, F)) {
+		static assert(false);
+	} else {
+		enum canBeNull = false;
+	}
+}
+
 T jsonTo(T)(Json item) {
 	static import std.conv;
 	static if(is(T == enum)) {
@@ -462,6 +474,30 @@ T jsonTo(T)(Json item) {
 		} catch(Exception c) {
 			throw new GQLDExecutionException(c.msg);
 		}
+	} else static if(is(T == struct)) {
+		import std.traits : FieldNameTuple;
+		enforce!GQLDExecutionException(item.type == Json.Type.object,
+			format("'%s' was supposed to be an object", item.toPrettyString()));
+
+
+		T ret;
+		static foreach(mem; FieldNameTuple!T) {{
+			enum uda = getUdaData!(T, mem);
+			static if(uda.ignore != Ignore.yes) {{
+				Json *val = mem in item;
+				alias MemType = typeof(__traits(getMember, ret, mem));
+				static if(!canBeNull!MemType) {
+					enforce!GQLDExecutionException(val != null,
+						format("No field '%s' found in %s", mem,
+						item.toPrettyString()));
+				}
+				if (val) {
+					__traits(getMember, ret, mem) =
+						jsonTo!MemType(*val);
+				}
+			}}
+		 }}
+		return ret;
 	} else {
 		try {
 			return item.to!T();
@@ -536,6 +572,12 @@ unittest {
 
 	Json k = parseJsonString(`{ "foo": "b" }`);
 	assert(k["foo"].jsonTo!FooEn() == FooEn.b);
+
+	struct S {
+		int a;
+	}
+	Json l = parseJsonString(`{ "a": 7 }`);
+	assert(l.jsonTo!S() == S(7));
 }
 
 const(Document) lexAndParse(string s) {
