@@ -475,10 +475,20 @@ class GraphQLD(T, QContext = DefaultContext) {
 				)
 			{
 				tasks ~= runTask({
-					auto newEC = ec.dup;
-					this.toRun(ss, elemType, item, variables, ret, doc,
-							context, newEC
-						);
+					() nothrow {
+					try {
+						auto newEC = ec.dup;
+						this.toRun(ss, elemType, item, variables, ret, doc,
+								context, newEC
+							);
+					} catch(Exception e) {
+						try {
+							this.executationTraceLog.errorf("Error in task %s"
+									, e.toString());
+						} catch(Exception f) {
+						}
+					}
+					}();
 				});
 			}
 			foreach(task; tasks) {
