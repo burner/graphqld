@@ -8,6 +8,7 @@ struct TestQuery {
 	string query;
 	ShouldThrow st;
 	string expectedResult;
+	string variables;
 }
 
 TestQuery[] queries = [
@@ -310,6 +311,7 @@ TestQuery(`
 `, ShouldThrow.no),
 TestQuery(`
 mutation one {
+#addCrewman(input: {name: "Robert", shipId: 44, series: [Enterprise, DeepSpaceNice]}) {
   addCrewman(input: {name: "Robert", shipId: 44, series: [Enterprise, DeepSpaceNice]}) {
     id
     name
@@ -396,5 +398,16 @@ search(name: "Enterprise") {
   }
 }
 }`, ShouldThrow.yes
+),
+TestQuery(`
+query s($v: Boolean!) {
+	search(name: "Enterprise") @if(if: $v){
+	  ... on Starship {
+		name
+	  }
+	}
+}`, ShouldThrow.yes
+, "Variable with name 'v' required available "
+, `{"b" : false }`
 )
 ];

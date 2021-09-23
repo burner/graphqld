@@ -128,13 +128,14 @@ class ArgumentExtractor : ConstVisitor {
 	}
 
 	override void accept(const(ValueOrVariable) obj) {
+		import graphql.validation.exception : VariablesUseException;
 		final switch(obj.ruleSelection) {
 			case ValueOrVariableEnum.Val:
 				obj.val.visit(this);
 				break;
 			case ValueOrVariableEnum.Var:
 				string varName = obj.var.name.value;
-				enforce(varName in this.variables,
+				enforce!VariablesUseException(varName in this.variables,
 						format("Variable with name '%s' required available '%s'",
 							varName, this.variables)
 					);

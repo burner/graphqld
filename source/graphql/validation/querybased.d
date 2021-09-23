@@ -95,7 +95,13 @@ class QueryValidator : ConstVisitor {
 
 			enforce!VariablesUseException(equal(allVars, varUsed),
 					format("Variables available [%(%s, %)], "
-						~ "Variables used [%(%s, %)]", allVars, varUsed)
+						~ "Variables used [%(%s, %)]\n"
+						~ "Unused available [%(%s, %)]\n"
+						~ "Required unavailable [%(%s, %)]"
+						, allVars, varUsed
+						, allVars.filter!(it => !canFind(varUsed, it))
+						, varUsed.filter!(it => !canFind(allVars, it))
+						)
 				);
 		}
 	}

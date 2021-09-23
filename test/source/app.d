@@ -1,4 +1,5 @@
 import core.time : seconds;
+import std.algorithm.searching : canFind;
 import std.array;
 import std.stdio;
 import std.traits;
@@ -341,6 +342,9 @@ void main() {
 						req.method = HTTPMethod.POST;
 						Json b = Json.emptyObject();
 						b["query"] = Json(q.query);
+						if(!q.variables.empty) {
+							b["variables"] = parseJsonString(q.variables);
+						}
 						req.writeJsonBody(b);
 					},
 					(scope res) {
@@ -388,9 +392,17 @@ void main() {
 				} else {
 					if(!q.expectedResult.empty) {
 						Json c = parseJsonString(e.msg);
-						Json exp = parseJsonString(q.expectedResult);
-						assert(exp == c, format("expec: %s\nfound: %s",
-								exp.toPrettyString(), c.toPrettyString()));
+						Json exp;
+						try {
+							exp = parseJsonString(q.expectedResult);
+						} catch(Exception e) {
+						}
+						assert(exp == c || canFind(e.msg, q.expectedResult)
+								, format("expec: %s\nfound: %s",
+								exp == Json(null)
+									? q.expectedResult
+									: exp.toPrettyString()
+								, c.toPrettyString()));
 					}
 				}
 			}
@@ -466,7 +478,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 	if(j.type == Json.Type.object && "variables" in j) {
 		vars = j["variables"];
 	}
-	//writeln(j.toPrettyString());
+	writeln(vars.toPrettyString());
 
 	// DOCUMENTATION
 	//

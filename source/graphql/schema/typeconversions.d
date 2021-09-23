@@ -267,11 +267,13 @@ Json typeFields(T)() {
 							tmp[Constants.args] ~= iv;
 						}}
 					} else {
-						tmp[Constants.typenameOrig] =
-							typeToParameterTypeName!(
-							//typeToTypeName!(
-								typeof(__traits(getMember, Type, mem))
-							);
+						static if(!isType!(__traits(getMember, Type, mem))) {
+							tmp[Constants.typenameOrig] =
+								typeToParameterTypeName!(
+								//typeToTypeName!(
+									typeof(__traits(getMember, Type, mem))
+								);
+						}
 					}
 					ret ~= tmp;
 				}
