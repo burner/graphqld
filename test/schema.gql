@@ -118,6 +118,7 @@ type queryType {
 	search(name: String!): SearchResult!
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
+	alwaysEmpty: [Starship!]
 }
 type Humanoid implements Character {
 	isDead: Boolean!

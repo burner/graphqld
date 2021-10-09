@@ -142,6 +142,15 @@ void main() {
 			}
 		);
 
+	graphqld.setResolver("queryType", "alwaysEmpty",
+			delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				Json ret = Json.emptyObject();
+				ret["data"] = Json.emptyArray;
+				return ret;
+			}
+		);
 	graphqld.setResolver("queryType", "resolverWillThrow",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe

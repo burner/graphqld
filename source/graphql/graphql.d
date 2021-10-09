@@ -405,7 +405,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 			this.executationTraceLog.logf("IIIIIS EMPTY %s objectValue %s",
 					objectValue.dataIsEmpty(), objectValue
 				);
-			if(objectValue.dataIsEmpty()) {
+			if(objectValue.type == Json.Type.null_ ||
+				(objectValue.type == Json.Type.object &&
+				((nullType.elementType.toList && "data" !in objectValue)
+				 || objectValue.dataIsNull))) {
 				if(objectValue.type != Json.Type.object) {
 					objectValue = Json.emptyObject();
 				}
