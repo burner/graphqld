@@ -64,6 +64,8 @@ struct Query {
 	int currentTime();
 	Starship numberBetween(Input searchInput);
 
+	NullableStore!(Starship[]) alwaysEmpty();
+
 	@GQLDUda(Ignore.yes)
 	void ignoreMe() {
 	}

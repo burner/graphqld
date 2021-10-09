@@ -56,6 +56,15 @@ TestQuery("
 `),
 TestQuery(`
 {
+	alwaysEmpty { id }
+}
+`, ShouldThrow.no,
+`{
+	"alwaysEmpty": []
+}
+`),
+TestQuery(`
+{
 	starships(overSize: 600) {
 		commander {
 			alsoAllwaysNull
