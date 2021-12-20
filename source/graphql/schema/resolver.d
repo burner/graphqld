@@ -162,6 +162,14 @@ class __Schema {
 	__Directive directives;
 }
 
+private template RemoveInout(T) {
+	static if (is(T == inout V, V)) {
+	    alias RemoveInout = V;
+	} else {
+	    alias RemoveInout = T;
+	}
+}
+
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 	static Json typeResolverImpl(Type)(ref const(StringTypeStrip) stripType,
@@ -173,11 +181,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		const bool arr = stripType.arr;
 
 		if(inner && outer && arr) {
-			alias PassType = Type[];
+			alias PassType = RemoveInout!(Type)[];
 			ret["data"] = typeToJson!(PassType,T)();
 		} else if(!inner && outer && arr) {
 			static if(!is(Type == void)) {
-				alias PassType = Nullable!(Type)[];
+				alias PassType = Nullable!(RemoveInout!(Type))[];
 				ret["data"] = typeToJson!(PassType,T)();
 			} else {
 				ret.insertError(format("invalid type %s in %s",
@@ -185,11 +193,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 							parent.toPrettyString()));
 			}
 		} else if(inner && !outer && arr) {
-			alias PassType = Nullable!(Type[]);
+			alias PassType = Nullable!(RemoveInout!(Type)[]);
 			ret["data"] = typeToJson!(PassType,T)();
 		} else if(!inner && !outer && arr) {
 			static if(!is(type == void)) {
-				alias PassType = Nullable!(Nullable!(Type)[]);
+				alias PassType = Nullable!(Nullable!(RemoveInout!(Type))[]);
 				ret["data"] = typeToJson!(PassType,T)();
 			} else {
 				ret.insertError(format("invalid type %s in %s",
@@ -198,7 +206,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			}
 		} else if(!inner && !arr) {
 			static if(!is(Type == void)) {
-				alias PassType = Nullable!(Type);
+				alias PassType = Nullable!(RemoveInout!(Type));
 				ret["data"] = typeToJson!(PassType,T)();
 			} else {
 				ret.insertError(format("invalid type %s in %s",
@@ -206,7 +214,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 							parent.toPrettyString()));
 			}
 		} else if(inner && !arr) {
-			alias PassType = Type;
+			alias PassType = RemoveInout!(Type);
 			ret["data"] = typeToJson!(PassType,T)();
 		} else {
 			assert(false, format("%s", stripType));
