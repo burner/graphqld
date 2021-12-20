@@ -481,13 +481,12 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 		return .execForAllTypesImpl!(FixedType, fn)(seen, context);
 	} else static if(isArray!Type && !is(Type == string)) {
 		return .execForAllTypesImpl!(typeof(Type.init[0]), fn)(seen, context);
-	} else static if( // only process types we are interested in
-		  isAggregateType!Type ||
-		  is(Type == bool) ||
-		  is(Type == enum) ||
-		  is(Type == long) ||
-		  is(Type == float) ||
-		  is(Type == string))
+	} else static if(isAggregateType!Type // only process types we are interested in
+		|| is(Type == bool)
+		|| is(Type == enum)
+		|| is(Type == long)
+		|| is(Type == float)
+		|| is(Type == string))
 	{
 		auto tid = keyFor(typeid(Type));
 		if(auto v = tid in seen) {
@@ -515,13 +514,11 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 						   && isCallable!(__traits(getMember, Type, mem)))
 				 {
 					 // return type
-					 .execForAllTypesImpl!(ReturnType!(
-									   __traits(getMember, Type, mem)), fn)
-						 (seen, context);
+					 alias RT = ReturnType!(__traits(getMember, Type, mem));
+					 .execForAllTypesImpl!(RT, fn)(seen, context);
 					 // parameters
-					 foreach(T; ParameterTypeTuple!(__traits(getMember,
-																	Type, mem)))
-					 {
+					 alias PTT = ParameterTypeTuple!(__traits(getMember, Type, mem));
+					 foreach(T; PTT) {
 						 .execForAllTypesImpl!(T, fn)(seen, context);
 					 }
 				 }
