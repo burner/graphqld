@@ -15,6 +15,7 @@ type Android implements Character {
 	allwaysNull: Starship
 	commands: [Character!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
 input AndroidIn {
@@ -28,6 +29,7 @@ input AndroidIn {
 	allwaysNull: StarshipIn
 	commands: [CharacterIn!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [CharacterIn!]!
 }
 type subscriptionType {
@@ -87,6 +89,7 @@ interface Character {
 	allwaysNull: Starship
 	commands: [Character!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
 input CharacterIn {
@@ -99,6 +102,7 @@ input CharacterIn {
 	allwaysNull: StarshipIn
 	commands: [CharacterIn!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [CharacterIn!]!
 }
 type mutationType {
@@ -132,6 +136,7 @@ type Humanoid implements Character {
 	allwaysNull: Starship
 	commands: [Character!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
 input HumanoidIn {
@@ -146,6 +151,7 @@ input HumanoidIn {
 	allwaysNull: StarshipIn
 	commands: [CharacterIn!]!
 	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [CharacterIn!]!
 }
 scalar SearchResult

@@ -265,28 +265,41 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		}
 
 		foreach(mem, value; map.allMember) {
-			if(isNameSpecial(mem) || (inputType && (mem in map.outputOnlyMembers || (cast(GQLDOperation)value && map.name != "mutationType")))) {
+			if(isNameSpecial(mem)
+					|| (inputType
+						&& (mem in map.outputOnlyMembers
+							|| (cast(GQLDOperation)value && map.name != "mutationType")
+							)
+						))
+			{
 				continue;
 			}
 
 			if(auto op = cast(GQLDOperation)value) {
-				if (op.parameters.keys().length) {
-					formIndent(o, 1, "%s(%s): %s", mem,
-					        op.parameters.byKeyValue().map!(kv => format("%s: %s", kv.key,
-					                                        typeToStringMaybeIn(kv.value)))
-					                .joiner(", ")
-					                .to!string,
-					        map.name == "mutationType" ? gqldTypeToString(op.returnType)
-					                                   : typeToStringMaybeIn(op.returnType));
+				if(op.parameters.keys().length) {
+					formIndent(o, 1, "%s(%s): %s%s", mem
+					        , op.parameters.byKeyValue()
+								.map!(kv => format("%s: %s", kv.key
+										, typeToStringMaybeIn(kv.value)))
+								.joiner(", ")
+					            .to!string
+					        , map.name == "mutationType"
+								? gqldTypeToString(op.returnType)
+					            : typeToStringMaybeIn(op.returnType)
+							, typeToDeprecationMessage(op));
 				} else {
 					// apparently graphql doesn't allow foo(): bar
 					// so special-case that and turn it into foo: bar
-					formIndent(o, 1, "%s: %s", mem,
-					        map.name == "mutationType" ? gqldTypeToString(op.returnType)
-					                                   : typeToStringMaybeIn(op.returnType));
+					formIndent(o, 1, "%s: %s%s", mem
+					        , map.name == "mutationType"
+								? gqldTypeToString(op.returnType)
+					            : typeToStringMaybeIn(op.returnType)
+							, typeToDeprecationMessage(op));
 				}
 			} else {
-				formIndent(o, 1, "%s: %s", mem, typeToStringMaybeIn(value));
+				formIndent(o, 1, "%s: %s%s", mem, typeToStringMaybeIn(value)
+						, typeToDeprecationMessage(value)
+						);
 			}
 		}
 	}
@@ -315,4 +328,12 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		dumpMem(true);
 		formIndent(o, 0, "}");
 	}
+}
+
+private string typeToDeprecationMessage(const(GQLDType) t) {
+	return t.deprecatedInfo.isDeprecated == IsDeprecated.yes
+		? ` @deprecated(reason: "`
+			~ t.deprecatedInfo.deprecationReason
+			~ `")`
+		: "";
 }

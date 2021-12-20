@@ -128,6 +128,10 @@ abstract class Character {
 	Nullable!Starship allwaysNull;
 	Nullable!int alsoAllwaysNull;
 	const bool isDead;
+	@GQLDUda(
+		GQLDDeprecated(IsDeprecated.yes, "Stupid name")
+	)
+	int someOldField;
 
 	//NullableStore!AddCrewmanData data;
 }

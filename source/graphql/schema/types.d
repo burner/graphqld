@@ -47,6 +47,7 @@ enum GQLDKind {
 
 abstract class GQLDType {
 	const GQLDKind kind;
+	GQLDDeprecatedData deprecatedInfo;
 	string name;
 
 	this(GQLDKind kind) {
@@ -623,16 +624,18 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 		r = tuda.typeKind != TypeKind.UNDEFINED
 		    ? new GQLDObject(Type.stringof, tuda.typeKind)
 		    : new GQLDObject(Type.stringof);
+		r.deprecatedInfo = tuda.deprecationInfo;
 		ret.types[Type.stringof] = r;
 
 		alias fieldNames = FieldNameTuple!(Type);
 		alias fieldTypes = Fields!(Type);
 		static foreach(idx; 0 .. fieldNames.length) {{
-			enum uda = getUdaData!(Type, fieldNames[idx]);
+			enum GQLDUdaData uda = getUdaData!(Type, fieldNames[idx]);
 			static if(uda.ignore != Ignore.yes) {
 				static if (fieldNames[idx] != Constants.directives) {
-					r.member[fieldNames[idx]] =
-						typeToGQLDType!(fieldTypes[idx])(ret);
+					auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
+					tmp.deprecatedInfo = uda.deprecationInfo;
+					r.member[fieldNames[idx]] = tmp;
 					static if(uda.ignoreForInput == IgnoreForInput.yes) {
 						r.outputOnlyMembers.insert(fieldNames[idx]);
 					}
@@ -656,10 +659,12 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 		static foreach(mem; __traits(allMembers, Type)) {{
 			// not a type
 			static if(!is(__traits(getMember, Type, mem))) {
-				enum uda = getUdaData!(Type, mem);
+				enum GQLDUdaData uda = getUdaData!(Type, mem);
 				alias MemType = typeof(__traits(getMember, Type, mem));
 				static if(uda.ignore != Ignore.yes && isCallable!MemType) {
 					GQLDOperation op = new GQLDQuery();
+					op.deprecatedInfo = uda.deprecationInfo;
+
 					r.member[mem] = op;
 					op.returnType =
 						typeToGQLDType!(ReturnType!(MemType))(ret);

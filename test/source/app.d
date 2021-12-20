@@ -52,7 +52,17 @@ void testSchemaDump(string fname, string newSchemaText) {
 	}
 	// note: if this assertion fails because you deliberately changed the
 	// output format of schemaToString, simply remove the old schema[2].gql
-	assert(oldSchemaText == newSchemaText);
+	auto oSplit = oldSchemaText.split("\n");
+	auto nSplit = newSchemaText.split("\n");
+	foreach(lineIdx; 0 .. min(oSplit.length, nSplit.length)) {
+		assert(oSplit[lineIdx] == nSplit[lineIdx]
+				, format("line %s + 1 differed\ngot: %s\nexp: %s"
+					, lineIdx, nSplit[lineIdx], oSplit[lineIdx]));
+	}
+
+	assert(oSplit.length == nSplit.length,
+			format("Num lines old schema %s, num lines new schema %s"
+				, oSplit.length, nSplit.length));
 	writeFile(fname, newSchemaText);
 }
 
