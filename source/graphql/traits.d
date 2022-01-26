@@ -509,24 +509,30 @@ void execForAllTypesImpl(Type, alias fn, Context...)(
 		} else static if(isAggregateType!Type) { // class, struct, interface, union
 			// do callables first. Then do fields separately
 			foreach(mem; __traits(allMembers, Type)) {{
-				 static if(__traits(getProtection, __traits(getMember, Type, mem))
-						   == "public"
-						   && isCallable!(__traits(getMember, Type, mem)))
+				 // do not process ignored members
+				 static if(getUdaData!(Type, mem).ignore != Ignore.yes)
 				 {
-					 // return type
-					 alias RT = ReturnType!(__traits(getMember, Type, mem));
-					 .execForAllTypesImpl!(RT, fn)(seen, context);
-					 // parameters
-					 alias PTT = ParameterTypeTuple!(__traits(getMember, Type, mem));
-					 foreach(T; PTT) {
-						 .execForAllTypesImpl!(T, fn)(seen, context);
+					 static if(__traits(getProtection, __traits(getMember, Type, mem))
+							   == "public"
+							   && isCallable!(__traits(getMember, Type, mem)))
+					 {
+						 // return type
+						 alias RT = ReturnType!(__traits(getMember, Type, mem));
+						 .execForAllTypesImpl!(RT, fn)(seen, context);
+						 // parameters
+						 alias PTT = ParameterTypeTuple!(__traits(getMember, Type, mem));
+						 foreach(T; PTT) {
+							 .execForAllTypesImpl!(T, fn)(seen, context);
+						 }
 					 }
 				 }
 			}}
 
 			// now do all fields
-			foreach(T; Fields!Type) {
-				.execForAllTypesImpl!(T, fn)(seen, context);
+			foreach(mem; FieldNameTuple!Type) {
+				static if(getUdaData!(Type, mem).ignore != Ignore.yes) {
+					.execForAllTypesImpl!(typeof(__traits(getMember, Type, mem)), fn)(seen, context);
+				}
 			}
 
 			// do any base types (stolen from BaseTypeTuple, which annoyingly
