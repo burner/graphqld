@@ -865,7 +865,8 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 		alias names = FieldNameTuple!(T);
 		alias types = FieldTypeTuple!(T);
 		static foreach(idx; 0 .. names.length) {{
-			static if(!names[idx].empty) {
+			static if(!names[idx].empty && getUdaData!(T, names[idx]).ignore !=
+					  Ignore.yes) {
 				static if(is(types[idx] : NullableStore!Type, Type)) {
 				} else static if(is(types[idx] == enum)) {
 					ret[names[idx]] =
