@@ -865,9 +865,9 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 		alias names = FieldNameTuple!(T);
 		alias types = FieldTypeTuple!(T);
 		static foreach(idx; 0 .. names.length) {{
-			static if(!names[idx].empty 
+			static if(!names[idx].empty
 					&& getUdaData!(T, names[idx]).ignore != Ignore.yes
-					&& !is(types[idx] : NullableStore!Type, Type)) 
+					&& !is(types[idx] : NullableStore!Type, Type))
 			{
 				static if(is(types[idx] == enum)) {
 					ret[names[idx]] =
@@ -955,4 +955,119 @@ struct PathElement {
 	Json toJson() {
 		return this.str.empty ? Json(this.idx) : Json(this.str);
 	}
+}
+
+struct JsonCompareResult {
+	bool okay;
+	string[] path;
+	string message;
+}
+
+JsonCompareResult compareJson(Json a, Json b, string path
+		, bool allowArrayReorder)
+{
+	import std.algorithm.comparison : min;
+	import std.algorithm.setops : setDifference;
+	import std.algorithm.sorting : sort;
+	import std.math : isClose;
+
+	if(a.type != b.type) {
+		return JsonCompareResult(false, [path], format("a.type %s != b.type %s"
+					, a.type, b.type));
+	}
+
+	if(a.type == Json.Type.array) {
+		Json[] aArray = a.get!(Json[])();
+		Json[] bArray = b.get!(Json[])();
+
+		size_t minLength = min(aArray.length, bArray.length);
+		if(allowArrayReorder) {
+			outer: foreach(idx, it; aArray) {
+				foreach(jt; bArray) {
+					JsonCompareResult idxRslt = compareJson(it, jt
+							, format("[%s]", idx), allowArrayReorder);
+					if(idxRslt.okay) {
+						continue outer;
+					}
+				}
+				return JsonCompareResult(false, [ format("[%s]", idx) ]
+						, "No array element of 'b' matches");
+			}
+		} else {
+			foreach(idx; 0 .. minLength) {
+				JsonCompareResult idxRslt = compareJson(aArray[idx]
+						, bArray[idx], format("[%s]", idx), allowArrayReorder);
+				if(!idxRslt.okay) {
+					return JsonCompareResult(false, [path] ~ idxRslt.path,
+							idxRslt.message);
+				}
+			}
+		}
+
+		if(aArray.length != bArray.length) {
+			return JsonCompareResult(false, [path]
+					, format("a.length %s != b.length %s", aArray.length
+						, bArray.length));
+		}
+
+		return JsonCompareResult(true, [path], "");
+	} else if(a.type == Json.Type.object) {
+		Json[string] aObj = a.get!(Json[string])();
+		Json[string] bObj = b.get!(Json[string])();
+
+		foreach(key, value; aObj) {
+			Json* bVal = key in bObj;
+			if(bVal is null) {
+				return JsonCompareResult(false, [path]
+						, format("a[\"%s\"] not in b", key));
+			} else {
+				JsonCompareResult keyRslt = compareJson(value
+						, *bVal, format("[\"%s\"]", key), allowArrayReorder);
+				if(!keyRslt.okay) {
+					return JsonCompareResult(false, [path] ~ keyRslt.path,
+							keyRslt.message);
+				}
+			}
+		}
+		auto aKeys = aObj.keys.sort;
+		auto bKeys = bObj.keys.sort;
+
+		auto aMinusB = setDifference(aKeys, bKeys);
+		auto bMinusA = setDifference(bKeys, aKeys);
+
+		if(!aMinusB.empty && !bMinusA.empty) {
+			return JsonCompareResult(false, [path]
+					, format("keys present in 'a' but not in 'b' %s, keys "
+						~ "present in 'b' but not in 'a' %s", aMinusB
+						, bMinusA));
+		} else if(aMinusB.empty && !bMinusA.empty) {
+			return JsonCompareResult(false, [path]
+					, format("keys present in 'b' but not in 'a' %s", bMinusA));
+		} else if(!aMinusB.empty && bMinusA.empty) {
+			return JsonCompareResult(false, [path]
+					, format("keys present in 'a' but not in 'b' %s", aMinusB));
+		}
+		return JsonCompareResult(true, [path], "");
+	} else if(a.type == Json.Type.Bool) {
+		const aBool = a.get!bool();
+		const bBool = b.get!bool();
+		return JsonCompareResult(aBool == bBool, [path], format("%s != %s", aBool
+					, bBool));
+	} else if(a.type == Json.Type.Int) {
+		const aLong = a.get!long();
+		const bLong = b.get!long();
+		return JsonCompareResult(aLong == bLong, [path], format("%s != %s", aLong
+					, bLong));
+	} else if(a.type == Json.Type.string) {
+		const aStr = a.get!string();
+		const bStr = b.get!string();
+		return JsonCompareResult(aStr == bStr, [path], format("%s != %s", aStr
+					, bStr));
+	} else if(a.type == Json.Type.Float) {
+		const aFloat = a.get!double();
+		const bFloat = b.get!double();
+		return JsonCompareResult(isClose(aFloat, bFloat), [path]
+				, format("%s != %s", aFloat, bFloat));
+	}
+	return JsonCompareResult(true, [path], "");
 }

@@ -118,7 +118,7 @@ Json query(string s, Json args) {
 }
 
 @safe unittest {
-	const Json rslt = query(`
+	Json rslt = query(`
 		query IntrospectionTypeQuery {
 			__schema {
 				types {
@@ -133,7 +133,7 @@ Json query(string s, Json args) {
 			"__schema" : {
 				"types" : [
 					{
-						"name": "Query"
+						"name": "StarWarsQuery"
 					},
 					{
 						"name": "Episode"
@@ -181,10 +181,17 @@ Json query(string s, Json args) {
 			}
 		}
 	}`;
-	immutable Json exp = parseJson(s);
-	// TODO write a json array compare that does not depend on the order
-	//assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
-	//		rslt.toPrettyString()));
+	Json exp = parseJson(s);
+	auto cmpResult = compareJson(exp, rslt, "", true);
+	// TODO make this test pass
+	//assert(cmpResult.okay, format("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
+	//		, cmpResult.message, cmpResult.path, exp.toPrettyString()
+	//		, rslt.toPrettyString()));
+	if(!cmpResult.okay) {
+		writefln("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
+			, cmpResult.message, cmpResult.path, exp.toPrettyString()
+			, rslt.toPrettyString());
+	}
 }
 
 @safe unittest {
