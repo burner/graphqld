@@ -57,7 +57,6 @@ struct DirectiveEntry {
 }
 
 class SchemaValidator(Schema) : Visitor {
-	import std.experimental.typecons : Final;
 	import graphql.schema.typeconversions;
 	import graphql.traits;
 	import graphql.helper : StringTypeStrip, stringTypeStrip;
