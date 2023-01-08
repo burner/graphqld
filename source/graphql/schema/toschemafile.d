@@ -258,8 +258,8 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 	}
 
 	void dumpMem(bool inputType) {
-		string typeToStringMaybeIn(const(GQLDType) t) {
-			return gqldTypeToString(t, inputType && t.baseTypeName in tab
+		string typeToStringMaybeIn(const(GQLDType) t, bool isParam = false) {
+			return gqldTypeToString(t, (isParam || inputType) && t.baseTypeName in tab
 						&& tab[t.baseTypeName].vis != Visibility.inputOnly
 						&& tab[t.baseTypeName].vis != Visibility.inputOrOutput ? "In" : "");
 		}
@@ -280,7 +280,7 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 					formIndent(o, 1, "%s(%s): %s%s", mem
 					        , op.parameters.byKeyValue()
 								.map!(kv => format("%s: %s", kv.key
-										, typeToStringMaybeIn(kv.value)))
+										, typeToStringMaybeIn(kv.value, true)))
 								.joiner(", ")
 					            .to!string
 					        , map.name == "mutationType"
