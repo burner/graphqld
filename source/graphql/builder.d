@@ -1,6 +1,10 @@
 module graphql.builder;
 
-import std.logger : logf;
+version(LDC) {
+	import std.experimental.logger : logf;
+} else {
+	import std.logger : logf;
+}
 import std.exception : enforce;
 import std.format : format;
 
@@ -43,7 +47,6 @@ const(FragmentDefinition) findFragmentImpl(const(Definitions) cur,
 
 Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
-	import std.logger : logf;
 	if(doc is null) {
 		return null;
 	}
