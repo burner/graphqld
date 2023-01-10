@@ -1,8 +1,6 @@
 module graphql.builder;
 
-import std.experimental.allocator;
-import std.experimental.logger : logf;
-import std.experimental.allocator.mallocator : Mallocator;
+import std.logger : logf;
 import std.exception : enforce;
 import std.format : format;
 
@@ -21,7 +19,6 @@ import graphql.directives;
 
 const(FragmentDefinition) findFragment(const(Document) doc, string name) {
 	import std.algorithm.searching : canFind;
-	import std.experimental.logger : logf;
 	enforce(doc !is null);
 	const(Definitions) cur = doc.defs;
 	return findFragmentImpl(cur, name);
@@ -46,7 +43,7 @@ const(FragmentDefinition) findFragmentImpl(const(Definitions) cur,
 
 Selections findFragment(Document doc, string name, string[] typenames) {
 	import std.algorithm.searching : canFind;
-	import std.experimental.logger : logf;
+	import std.logger : logf;
 	if(doc is null) {
 		return null;
 	}

@@ -11,7 +11,6 @@ import std.getopt;
 import std.regex;
 
 import std.logger;
-import std.logger.filelogger;
 
 import vibe.vibe;
 import vibe.core.core;

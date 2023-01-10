@@ -6,7 +6,6 @@ import std.algorithm.searching : startsWith, endsWith, canFind;
 import std.conv : to;
 import std.datetime : DateTime, Date;
 import std.exception : enforce, assertThrown;
-import std.experimental.logger;
 import std.format : format;
 import std.stdio;
 import std.string : capitalize, indexOf, strip;
@@ -127,7 +126,6 @@ bool isScalar(ref const(Json) data) {
 }
 
 bool dataIsEmpty(ref const(Json) data) {
-	import std.experimental.logger;
 	if(data.type == Json.Type.object) {
 		foreach(key, value; data.byKeyValue()) {
 			if(key != Constants.errors && !value.dataIsEmpty()) {

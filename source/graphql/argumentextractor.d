@@ -5,7 +5,6 @@ import std.conv : to;
 import std.format : format;
 import std.exception : enforce;
 import std.stdio : writefln;
-import std.experimental.logger;
 
 import vibe.data.json;
 

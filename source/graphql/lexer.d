@@ -1,6 +1,6 @@
 module graphql.lexer;
 
-import std.experimental.logger;
+import std.logger;
 import std.format : format;
 import std.typecons : Flag;
 import std.stdio;

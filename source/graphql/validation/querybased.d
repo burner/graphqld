@@ -9,7 +9,6 @@ import std.algorithm.comparison : equal;
 import std.conv : to;
 import std.format : format;
 import std.exception : enforce;
-import std.experimental.logger;
 
 import vibe.data.json;
 

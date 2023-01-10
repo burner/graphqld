@@ -2,7 +2,6 @@ module graphql.starwars.introspection;
 
 import std.typecons : Nullable, nullable;
 import std.format : format;
-import std.experimental.logger;
 import std.stdio;
 
 import vibe.data.json;
