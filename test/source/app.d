@@ -10,8 +10,8 @@ import std.algorithm;
 import std.getopt;
 import std.regex;
 
-import std.experimental.logger;
-import std.experimental.logger.filelogger;
+import std.logger;
+import std.logger.filelogger;
 
 import vibe.vibe;
 import vibe.core.core;
@@ -71,10 +71,10 @@ void main() {
 	GQLDOptions opts;
 	opts.asyncList = AsyncList.no;
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
-	graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
-	graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
+	graphqld.defaultResolverLog.logLevel = std.logger.LogLevel.off;
+	graphqld.resolverLog.logLevel = std.logger.LogLevel.off;
 	//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-	graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
+	graphqld.executationTraceLog.logLevel = std.logger.LogLevel.off;
 
 	writeln(graphqld.schema);
 
