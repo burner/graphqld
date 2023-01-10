@@ -74,10 +74,17 @@ void main() {
 	GQLDOptions opts;
 	opts.asyncList = AsyncList.no;
 	graphqld = new GraphQLD!(Schema,CustomContext)(opts);
-	graphqld.defaultResolverLog.logLevel = std.logger.LogLevel.off;
-	graphqld.resolverLog.logLevel = std.logger.LogLevel.off;
-	//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-	graphqld.executationTraceLog.logLevel = std.logger.LogLevel.off;
+	version(LDC) {
+		graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
+		graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
+		//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+		graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
+	} else {
+		graphqld.defaultResolverLog.logLevel = std.logger.LogLevel.off;
+		graphqld.resolverLog.logLevel = std.logger.LogLevel.off;
+		//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+		graphqld.executationTraceLog.logLevel = std.logger.LogLevel.off;
+	}
 
 	writeln(graphqld.schema);
 
