@@ -118,7 +118,7 @@ type queryType {
 	starship(id: Int!): Starship
 	androids: [Android!]!
 	resolverWillThrow: [Android!]!
-	numberBetween(searchInput: Input!): Starship!
+	numberBetween(searchInput: InputIn!): Starship!
 	search(name: String!): SearchResult!
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
