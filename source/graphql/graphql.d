@@ -2,7 +2,12 @@ module graphql.graphql;
 
 import std.array : array, front, empty;
 import std.stdio;
-import std.logger;
+version(LDC) {
+	import std.experimental.logger;
+} else {
+	import std.logger;
+}
+
 import std.traits;
 import std.meta : AliasSeq;
 import std.range.primitives : popBack;

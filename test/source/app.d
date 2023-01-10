@@ -10,7 +10,11 @@ import std.algorithm;
 import std.getopt;
 import std.regex;
 
-import std.logger;
+version(LDC) {
+	import std.experimental.logger;
+} else {
+	import std.logger;
+}
 
 import vibe.vibe;
 import vibe.core.core;
