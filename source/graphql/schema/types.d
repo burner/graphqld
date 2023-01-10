@@ -11,7 +11,6 @@ import std.container : RedBlackTree;
 import std.range : ElementEncodingType;
 import std.format;
 import std.string : strip;
-import std.experimental.logger;
 import std.stdio;
 
 import vibe.data.json;

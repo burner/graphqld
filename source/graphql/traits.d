@@ -4,7 +4,6 @@ import std.meta;
 import std.range : ElementEncodingType;
 import std.traits;
 import std.typecons : Nullable;
-import std.experimental.logger : logf;
 import std.meta : AliasSeq, Filter;
 
 import nullablestore;

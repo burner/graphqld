@@ -5,7 +5,6 @@ import std.format : format;
 import std.meta;
 import std.traits;
 import std.typecons : Nullable;
-import std.experimental.logger;
 import std.stdio;
 import std.string : capitalize;
 

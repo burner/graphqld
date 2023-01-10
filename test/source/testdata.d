@@ -8,7 +8,6 @@ import std.format : format;
 import std.algorithm : each, map, joiner;
 import std.range : tee;
 import std.typecons : nullable, Nullable;
-import std.experimental.logger;
 
 import vibe.data.json;
 

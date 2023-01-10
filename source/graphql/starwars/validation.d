@@ -2,7 +2,6 @@ module graphql.starwars.validation;
 
 import std.typecons : Nullable, nullable;
 import std.format : format;
-import std.experimental.logger;
 import std.exception;
 import std.stdio;
 
