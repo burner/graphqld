@@ -303,7 +303,7 @@ class SchemaValidator(Schema) : Visitor {
 					}
 				}
 
-				const array = ["In]!", "In!]", "In!]!"];
+				const array = ["]", "]!", "!]", "!]!", "In]!", "In!]", "In!]!"];
 				bool arrayR;
 				arrayOuter: foreach(g; array) {
 					string gstr = argElem.front[Constants.typenameOrig]
