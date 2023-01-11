@@ -254,7 +254,7 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(Argument) arg) {
-		import std.algorithm.searching : find, endsWith;
+		import std.algorithm.searching : find, startsWith, endsWith;
 		const argName = arg.name.value;
 		if(this.directiveStack.empty) {
 			const parent = this.schemaStack[$ - 2];
@@ -284,7 +284,6 @@ class SchemaValidator(Schema) : Visitor {
 				enforce(varName !is null);
 
 				string typeStr = astTypeToString(*varType);
-				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
 				const nonArray = ["", "!", "In", "In!"];
 				bool nonArrayR;
 				nonArrayOuter: foreach(g; nonArray) {
