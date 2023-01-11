@@ -285,26 +285,54 @@ class SchemaValidator(Schema) : Visitor {
 
 				string typeStr = astTypeToString(*varType);
 				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
-				const c2 = (typeStr.endsWith("!")
-							&& typeStr[0 .. $ - 1] == argElem.front[Constants.typenameOrig]);
-				const c3 = (typeStr.endsWith("In")
-							&& typeStr[0 .. $ - 2] == argElem.front[Constants.typenameOrig]);
-				const c4 = (typeStr.endsWith("In!")
-							&& (typeStr[0 .. $ - 3] ~ "!") == argElem.front[Constants.typenameOrig]);
-				const c5 = (typeStr.endsWith("In]!")
-							&& (typeStr[0 .. $ - 4] ~ "]!") == argElem.front[Constants.typenameOrig]);
-				const c6 = (typeStr.endsWith("In!]!")
-							&& (typeStr[0 .. $ - 5] ~ "!]!") == argElem.front[Constants.typenameOrig]);
-				const c7 = (typeStr.endsWith("In!]")
-							&& (typeStr[0 .. $ - 4] ~ "!]") == argElem.front[Constants.typenameOrig]);
-				enforce!VariableInputTypeMismatch(c1 || c2 || c3 || c4 || c5
-					|| c6 || c7
+				const nonArray = ["", "!", "In", "In!"];
+				bool nonArrayR;
+				nonArrayOuter: foreach(g; nonArray) {
+					string gstr = argElem.front[Constants.typenameOrig]
+						.to!string();
+					string gtmp = gstr.endsWith(g)
+						? gstr[0 .. $ - g.length]
+						: gstr;
+					foreach(h; nonArray) {
+						const htmp = typeStr.endsWith(h)
+							? typeStr[0 .. $ - h.length]
+							: typeStr;
+						if(htmp == gtmp) {
+							nonArrayR = true;
+							break nonArrayOuter;
+						}
+					}
+				}
+
+				const array = ["In]!", "In!]", "In!]!"];
+				bool arrayR;
+				arrayOuter: foreach(g; array) {
+					string gstr = argElem.front[Constants.typenameOrig]
+						.to!string();
+					if(!gstr.startsWith("[")) {
+						break;
+					}
+					const gtmp = gstr.endsWith(g)
+						? gstr[0 .. $ - g.length]
+						: gstr;
+					foreach(h; array) {
+						if(!typeStr.startsWith("[")) {
+							break arrayOuter;
+						}
+						const htmp = typeStr.endsWith(h)
+							? typeStr[0 .. $ - h.length]
+							: typeStr;
+						if(htmp == gtmp) {
+							arrayR = true;
+							break arrayOuter;
+						}
+					}
+				}
+
+				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
+				enforce!VariableInputTypeMismatch(c1 || nonArrayR || arrayR
 						, format("Variable type '%s' does not match argument type '%s'"
-							~ " ! %s In %s In! %s c1 %s c2 %s c3 %s c4 %s c5 %s"
-							~ " c6 %s c7 %s"
 						, argElem.front[Constants.typenameOrig], typeStr
-						, typeStr.endsWith("!"), typeStr.endsWith("In")
-						, typeStr.endsWith("In!") , c1, c2, c3, c4, c5, c6, c7
 						));
 			}
 		} else {
