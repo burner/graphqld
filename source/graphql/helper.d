@@ -248,9 +248,10 @@ Json joinJson(JoinJsonPrecedence jjp = JoinJsonPrecedence.none)(Json a, Json b)
 				ret[key] = joinJson(*ap, value);
 			} else {
 				static if(jjp == JoinJsonPrecedence.none) {
-					throw new Exception(format(
-							"Can not join '%s' and '%s' on key '%s'",
-							ap.type, value.type, key));
+					enforce(ap.type == value.type && *ap == value
+						, format("Can not join '%s' and '%s' on key '%s'"
+							, ap.type, value.type, key)
+					);
 				} else static if(jjp == JoinJsonPrecedence.a) {
 				} else {
 					ret[key] = value;
