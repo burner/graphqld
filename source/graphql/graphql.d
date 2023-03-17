@@ -347,9 +347,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json de;
 		try {
 			de = this.resolve(objectType.name,
-					field.aka.empty ? field.name : field.aka,
-				"data" in objectValue ? objectValue["data"] : objectValue,
-				arguments, context, ec
+					field.aka.empty ? field.name : field.aka
+				, objectValue.type == Json.Type.object && "data" in objectValue
+					? objectValue["data"]
+					: objectValue
+				, arguments, context, ec
 			);
 		} catch(GQLDExecutionException e) {
 			auto ret = Json.emptyObject();
