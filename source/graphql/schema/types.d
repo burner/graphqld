@@ -542,6 +542,42 @@ GQLDNonNull toNonNull(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
+GQLDFloat toFloat(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDInt toInt(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDEnum toEnum(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDBool toBool(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDString toString(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDUnion toUnion(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDQuery toQuery(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDMutation toMutation(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDSubscription toSubscription(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
 unittest {
 	auto str = new GQLDString();
 	assert(str.name == "String");
@@ -630,7 +666,14 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 		alias fieldTypes = Fields!(Type);
 		static foreach(idx; 0 .. fieldNames.length) {{
 			enum GQLDUdaData uda = getUdaData!(Type, fieldNames[idx]);
-			static if(uda.ignore != Ignore.yes) {
+			static if(uda.ignore != Ignore.yes
+					&& fieldNames[idx] != "factory"
+					&& fieldNames[idx] != "opEquals"
+					&& fieldNames[idx] != "opCmp"
+					&& fieldNames[idx] != "toHash"
+					&& fieldNames[idx] != "toString"
+					&& fieldNames[idx] != "__ctor")
+			{
 				static if (fieldNames[idx] != Constants.directives) {
 					auto tmp = typeToGQLDType!(fieldTypes[idx])(ret);
 					tmp.deprecatedInfo = uda.deprecationInfo;
@@ -660,7 +703,14 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 			static if(!is(__traits(getMember, Type, mem))) {
 				enum GQLDUdaData uda = getUdaData!(Type, mem);
 				alias MemType = typeof(__traits(getMember, Type, mem));
-				static if(uda.ignore != Ignore.yes && isCallable!MemType) {
+				static if(uda.ignore != Ignore.yes && isCallable!MemType
+					&& mem != "factory"
+					&& mem != "opEquals"
+					&& mem != "opCmp"
+					&& mem != "toHash"
+					&& mem != "__ctor"
+					&& mem != "toString"
+				) {
 					GQLDOperation op = new GQLDQuery();
 					op.deprecatedInfo = uda.deprecationInfo;
 
