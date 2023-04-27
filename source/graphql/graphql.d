@@ -97,9 +97,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 				} else {
 					ret[Constants.errors] = Json.emptyArray();
 					ret.insertError(format(
-							"no field name '%s' found on type '%s'",
-									name,
-									parent.getWithDefault!string("__typename")
+							"no field name '%s' found on type '%s' parent '%s'"
+									, name
+									, parent.getWithDefault!string("__typename")
+									, parent.toString()
 							), ec.path
 						);
 				}
