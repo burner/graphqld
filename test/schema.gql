@@ -3,6 +3,12 @@ schema {
 	query: queryType
 	subscription: subscriptionType
 }
+type StarshipSimple {
+	series: [Series]!
+}
+input StarshipSimpleIn {
+	series: [Series]!
+}
 scalar Date
 type Android implements Character {
 	isDead: Boolean!
@@ -121,6 +127,7 @@ type queryType {
 	numberBetween(searchInput: InputIn!): Starship!
 	search(name: String!): SearchResult!
 	starshipDoesNotExist: Starship!
+	starshipSimple(id: Int!): StarshipSimple
 	character(id: Int!): Character
 	alwaysEmpty: [Starship!]
 }
