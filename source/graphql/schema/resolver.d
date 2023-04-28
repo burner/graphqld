@@ -2,7 +2,8 @@ module graphql.schema.resolver;
 
 import std.array : array, empty;
 import std.conv : to;
-import std.algorithm.iteration : map;
+import std.algorithm.iteration : filter, map;
+import std.algorithm.searching : canFind, startsWith;
 import std.exception : enforce;
 import std.format : format;
 import std.meta;
@@ -212,7 +213,7 @@ string toKind(GQLDType type) {
 		ret ="OBJECT";
 	}
 	enforce(!ret.empty, "Unhandled type " ~ type.toString());
-	writefln("toKind %s %s %s", ret, type.kind, type.toString());
+	//writefln("toKind %s %s %s", ret, type.kind, type.toString());
 	return ret;
 }
 
@@ -269,55 +270,45 @@ private Json toJsonType(GQLDType type, string into = "ofType") {
 	ret["name"] = type.name;
 
 	if(GQLDInt i = toInt(type)) {
-		writefln("%s Int", i.toString());
 		ret["kind"] = "SCALAR";
 		ret["name"] = "Int";
 	} else if(GQLDFloat i = toFloat(type)) {
-		writefln("%s Float", i.toString());
 		ret["kind"] = "SCALAR";
 		ret["name"] = "Float";
 	} else if(GQLDNonNull nn = toNonNull(type)) {
-		writefln("%s NON_NULL", nn.toString());
 		ret["kind"] = "NON_NULL";
 		ret[into] = toJsonType(nn.elementType);
 		ret["name"] = nn.name;
 	} else if(GQLDList l = toList(type)) {
-		writefln("%s LIST", l.toString());
 		ret["kind"] = "LIST";
 		ret[into] = toJsonType(l.elementType);
 		ret["name"] = l.name;
 	} else if(GQLDNullable l = toNullable(type)) {
-		writefln("%s NULLABLE", l.toString());
 		ret["kind"] = "NULLABLE";
 		ret[into] = toJsonType(l.elementType);
 		ret["name"] = l.name;
 	} else if(GQLDOperation o = toOperation(type)) {
-		writefln("%s OPERATION", o.toString());
 		ret["kind"] = toKind(o);
 		ret[into] = toJsonType(o.returnType);
 		ret["name"] = o.name;
 	}
-	writefln("%s DEFAULT", type.toString());
 
 	return ret;
 }
 
 private void enforceGQLD(bool cond, string msg, long line = __LINE__) {
 	msg = msg ~ " " ~ to!string(line);
-	if(!cond) {
-		writeln(msg);
-	}
+	//if(!cond) {
+	//	writeln(msg);
+	//}
 	enforce!GQLDExecutionException(cond, msg);
 }
 
 private Json getJsonForTypeFrom(GQLD)(GQLD graphql, string typename, long line = __LINE__) {
-	writefln("getJsonForTypeFrom %s", typename);
-
 	GQLDType* type = typename in graphql.schema.types;
 	enforceGQLD(type !is null, format("No type for typename '%s' found in the Schema"
 			, typename), line);
 	Json ret = toJsonType(*type);
-	writefln("getJosnForTypeFrom ret %s", ret);
 	return ret;
 }
 
@@ -399,9 +390,15 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			Json ret = Json.emptyObject();
 			if(m !is null) {
 				ret["data"] = Json.emptyArray();
-				foreach(key, value; m.member) {
-					ret["data"] ~= toJsonField(value, key);
-				}
+				ret["data"] = m.member.byKeyValue
+					.filter!(kv => !kv.key.startsWith("__"))
+					.filter!(kv => !canFind(["Query", "Mutation", "Subscription"], kv.key))
+					.map!(kv => toJsonField(kv.value, kv.key))
+					.array
+					.Json();
+				//foreach(key, value; m.member) {
+				//	ret["data"] ~= toJsonField(value, key);
+				//}
 			} else {
 				ret["data"] = Json(null);
 			}
@@ -412,14 +409,14 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__Type", "ofType",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
-			writefln("\n__Type.ofType args %s parent %s", args.toPrettyString(),
-					parent.toPrettyString());
+			//writefln("\n__Type.ofType args %s parent %s", args.toPrettyString(),
+			//		parent.toPrettyString());
 			if(parent.type == Json.Type.object && "ofType" in parent
 					&& parent["ofType"].type == Json.Type.object)
 			{
 				Json ret = Json.emptyObject();
 				ret["data"] = parent["ofType"];
-				writefln("__Type.ofType via parent['ofType'] %s", ret.toPrettyString());
+				//writefln("__Type.ofType via parent['ofType'] %s", ret.toPrettyString());
 				return ret;
 			}
 			if(parent.type == Json.Type.object && "type" in parent
@@ -427,7 +424,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			{
 				Json ret = Json.emptyObject();
 				ret["data"] = parent["type"];
-				writefln("__Type.ofType via parent['type'] %s", ret.toPrettyString());
+				//writefln("__Type.ofType via parent['type'] %s", ret.toPrettyString());
 				return ret;
 			}
 			if(parent.type == Json.Type.object && "kind" in parent
@@ -458,7 +455,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			GQLDType type = *typePtr;
 
 			ret["data"] = toJsonType(type);
-			writefln("__Type.ofType via __gqldTypeName %s", ret.toPrettyString());
+			//writefln("__Type.ofType via __gqldTypeName %s", ret.toPrettyString());
 			return ret;
 		}
 	);
@@ -469,15 +466,23 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			//writefln("\n__Field.type args %s parent %s", args.toPrettyString(),
 			//		parent.toPrettyString());
 			string nameOfType = getName(args, parent, "__gqldTypeName");
-			writefln("\n\nname %s %s\n\n", nameOfType, parent);
+			//writefln("\n\nname %s %s\n\n", nameOfType, parent);
 			if(parent.type == Json.Type.object && "type" in parent
 					&& parent["type"].type == Json.Type.object)
 			{
 				Json ret = Json.emptyObject();
 				ret["data"] = parent["type"];
-				writefln("__Field.type via parent %s", ret.toPrettyString());
+				//writefln("__Field.type via parent %s", ret.toPrettyString());
 				return ret;
 			}
+			/*
+			if(nameOfType == "Query") {
+				nameOfType = "queryType";
+			} else if(nameOfType == "Mutation") {
+				nameOfType = "mutationType";
+			} else if(nameOfType == "Subscription") {
+				nameOfType = "subscriptionType";
+			}*/
 			return getJsonForTypeFrom(graphql, nameOfType);
 		}
 	);
@@ -502,7 +507,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("__schema", "queryType",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
-			return getJsonForTypeFrom(graphql, "queryType");
+			Json ret = getJsonForTypeFrom(graphql, "queryType");
+			return ret;
 		}
 	);
 
