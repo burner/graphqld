@@ -48,6 +48,7 @@ abstract class GQLDType {
 	const GQLDKind kind;
 	GQLDDeprecatedData deprecatedInfo;
 	string name;
+	string description;
 
 	this(GQLDKind kind) {
 		this.kind = kind;
@@ -347,14 +348,18 @@ class GQLDSchema(Type) : GQLDMap {
 
 	void createInbuildTypes() {
 		this.types["string"] = new GQLDString();
-		foreach(t; ["String", "Int", "Float", "Boolean"]) {
-			GQLDObject tmp = new GQLDObject(t);
-			this.types[t] = tmp;
-			tmp.member[Constants.name] = new GQLDString();
-			tmp.member[Constants.description] = new GQLDString();
-			tmp.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
-			//tmp.resolver = buildTypeResolver!(Type,Con)();
-		}
+		this.types["String"] = new GQLDString();
+		this.types["Int"] = new GQLDInt();
+		this.types["Float"] = new GQLDFloat();
+		this.types["Boolean"] = new GQLDBool();
+		//foreach(t; ["String", "Int", "Float", "Boolean"]) {
+		//	GQLDObject tmp = new GQLDObject(t);
+		//	this.types[t] = tmp;
+		//	tmp.member[Constants.name] = new GQLDString();
+		//	tmp.member[Constants.description] = new GQLDString();
+		//	tmp.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
+		//	//tmp.resolver = buildTypeResolver!(Type,Con)();
+		//}
 	}
 
 	void createIntrospectionTypes() {
@@ -451,10 +456,10 @@ class GQLDSchema(Type) : GQLDMap {
 			);
 
 
-		foreach(t; ["String", "Int", "Float", "Boolean"]) {
-			this.types[t].toObject().member[Constants.fields] =
-				this.__listOfNonNullField;
-		}
+		//foreach(t; ["String", "Int", "Float", "Boolean"]) {
+		//	this.types[t].toObject().member[Constants.fields] =
+		//		this.__listOfNonNullField;
+		//}
 	}
 
 	override string toString() const {
@@ -738,4 +743,9 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret) {
 	} else {
 		static assert(false, Type.stringof);
 	}
+}
+
+unittest {
+	int a;
+	GQLDType i = typeToGQLDType!(int)(a);
 }

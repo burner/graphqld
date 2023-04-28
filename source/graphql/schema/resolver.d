@@ -177,40 +177,43 @@ private template RemoveInout(T) {
 }
 
 string toKind(GQLDType type) {
+	string ret;
 	if(GQLDNonNull nn = toNonNull(type)) {
-		return "NON_NULL";
+		ret = "NON_NULL";
 	} else if(GQLDNullable l = toNullable(type)) {
-		return "OBJECT";
+		ret ="OBJECT";
 	} else if(GQLDList l = toList(type)) {
-		return "LIST";
+		ret ="LIST";
 	} else if(GQLDString l = toString(type)) {
-		return "SCALAR";
+		ret ="SCALAR";
 	} else if(GQLDFloat l = toFloat(type)) {
-		return "SCALAR";
+		ret ="SCALAR";
 	} else if(GQLDInt l = toInt(type)) {
-		return "SCALAR";
+		ret ="SCALAR";
 	} else if(GQLDEnum l = toEnum(type)) {
-		return "ENUM";
+		ret ="ENUM";
 	} else if(GQLDBool l = toBool(type)) {
-		return "SCALAR";
-	} else if(GQLDObject l = toObject(type)) {
-		return "OBJECT";
-	} else if(GQLDUnion l = toUnion(type)) {
-		return "UNION";
-	} else if(GQLDQuery l = toQuery(type)) {
-		return "OBJECT";
-	} else if(GQLDMutation l = toMutation(type)) {
-		return "OBJECT";
-	} else if(GQLDSubscription l = toSubscription(type)) {
-		return "OBJECT";
-	} else if(GQLDOperation l = toOperation(type)) {
-		return "OBJECT";
+		ret ="SCALAR";
 	} else if(GQLDScalar l = toScalar(type)) {
-		return "SCALAR";
+		ret ="SCALAR";
+	} else if(GQLDObject l = toObject(type)) {
+		ret ="OBJECT";
+	} else if(GQLDUnion l = toUnion(type)) {
+		ret ="UNION";
+	} else if(GQLDQuery l = toQuery(type)) {
+		ret ="OBJECT";
+	} else if(GQLDMutation l = toMutation(type)) {
+		ret ="OBJECT";
+	} else if(GQLDSubscription l = toSubscription(type)) {
+		ret ="OBJECT";
+	} else if(GQLDOperation l = toOperation(type)) {
+		ret ="OBJECT";
 	} else if(GQLDMap l = toMap(type)) {
-		return "OBJECT";
+		ret ="OBJECT";
 	}
-	throw new Exception("Unhandled type " ~ type.toString());
+	enforce(!ret.empty, "Unhandled type " ~ type.toString());
+	writefln("toKind %s %s %s", ret, type.kind, type.toString());
+	return ret;
 }
 
 private Json toJsonInputValue(GQLDType field, string argsName) {
@@ -220,6 +223,7 @@ private Json toJsonInputValue(GQLDType field, string argsName) {
 	ret["name"] = argsName;
 	//ret["description"] = field.description;
 	ret["defaultValue"] = Json(null);
+	ret["description"] = field.description;
 	if(GQLDList l = toList(field)) {
 		ret["type"] = toJsonType(l, "type");
 	} else if(GQLDNullable n = toNullable(field)) {
@@ -232,11 +236,14 @@ private Json toJsonField(GQLDType field, string fieldName) {
 	Json ret = Json.emptyObject();
 	ret["__typename"] = "__Field";
 	ret["name"] = fieldName;
+	ret["description"] = field.description;
 	ret["__gqldTypeName"] = field.name;
 	//ret["description"] = field.description;
 	ret["isDeprecated"] = field.deprecatedInfo.isDeprecated == IsDeprecated.yes;
 	if(field.deprecatedInfo.isDeprecated == IsDeprecated.yes) {
 		ret["deprecationReason"] = field.deprecatedInfo.deprecationReason;
+	} else {
+		ret["deprecationReason"] = Json(null);
 	}
 	GQLDOperation op = toOperation(field);
 	ret["args"] = Json.emptyArray();
@@ -260,7 +267,6 @@ private Json toJsonType(GQLDType type, string into = "ofType") {
 	ret["kind"] = toKind(type);
 	ret[Constants.__typename] = "__Type";
 	ret["name"] = type.name;
-	ret["__gqldTypeName"] = type.name;
 
 	if(GQLDInt i = toInt(type)) {
 		writefln("%s Int", i.toString());
@@ -306,13 +312,13 @@ private void enforceGQLD(bool cond, string msg, long line = __LINE__) {
 
 private Json getJsonForTypeFrom(GQLD)(GQLD graphql, string typename, long line = __LINE__) {
 	writefln("getJsonForTypeFrom %s", typename);
-	Json ret = Json.emptyObject();
-	ret["data"] = Json(null);
 
 	GQLDType* type = typename in graphql.schema.types;
 	enforceGQLD(type !is null, format("No type for typename '%s' found in the Schema"
 			, typename), line);
-	return toJsonType(*type);
+	Json ret = toJsonType(*type);
+	writefln("getJosnForTypeFrom ret %s", ret);
+	return ret;
 }
 
 private string getName(Json args, Json parent, string which = "name") {
@@ -436,7 +442,12 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				}
 			}
 
+			Json ret = Json.emptyObject();
 			string nameOfType = getName(args, parent, "__gqldTypeName");
+			if(nameOfType.empty) {
+				ret["data"] = Json(null);
+				return ret;
+			}
 			enforceGQLD(!nameOfType.empty, format("No __typename in args %s nor parent %s"
 					, args.toPrettyString(), parent.toPrettyString()));
 
@@ -446,7 +457,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 			GQLDType type = *typePtr;
 
-			Json ret = Json.emptyObject();
 			ret["data"] = toJsonType(type);
 			writefln("__Type.ofType via __gqldTypeName %s", ret.toPrettyString());
 			return ret;
@@ -458,6 +468,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		{
 			//writefln("\n__Field.type args %s parent %s", args.toPrettyString(),
 			//		parent.toPrettyString());
+			string nameOfType = getName(args, parent, "__gqldTypeName");
+			writefln("\n\nname %s %s\n\n", nameOfType, parent);
 			if(parent.type == Json.Type.object && "type" in parent
 					&& parent["type"].type == Json.Type.object)
 			{
@@ -466,7 +478,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				writefln("__Field.type via parent %s", ret.toPrettyString());
 				return ret;
 			}
-			string nameOfType = getName(args, parent, "__gqldTypeName");
 			return getJsonForTypeFrom(graphql, nameOfType);
 		}
 	);
@@ -488,4 +499,64 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		}
 	);
 
+	graphql.setResolver("__schema", "queryType",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			return getJsonForTypeFrom(graphql, "queryType");
+		}
+	);
+
+	graphql.setResolver("__schema", "mutationType",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			GQLDType* type = "mutationType" in graphql.schema.types;
+			Json ret = Json.emptyObject();
+			ret["data"] = type is null
+				? Json(null)
+				: toJsonType(*type);
+			return ret;
+		}
+	);
+
+	graphql.setResolver("__schema", "subscriptionType",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			GQLDType* type = "subscriptionType" in graphql.schema.types;
+			Json ret = Json.emptyObject();
+			ret["data"] = type is null
+				? Json(null)
+				: toJsonType(*type);
+			return ret;
+		}
+	);
+
+	graphql.setResolver("__schema", "types",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			Json ret = Json.emptyObject();
+			ret["data"] = graphql.schema.types.byValue
+				.map!(t => toJsonType(t))
+				.array
+				.Json();
+			return ret;
+		}
+	);
+
+	graphql.setResolver("__schema", "directives",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			Json ret = Json.emptyObject();
+			ret["data"] = parseJsonString(`
+					[ { "name" : "include", "description": null
+					  , "locations" : []
+					  , "args" : []
+					  }
+					, { "name" : "skip", "description": null
+					  , "locations" : []
+					  , "args" : []
+					  }
+					]`);
+			return ret;
+		}
+	);
 }
