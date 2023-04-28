@@ -570,7 +570,7 @@ void hello(HTTPServerRequest req, HTTPServerResponse res) {
 		CustomContext con;
 		Json gqld = graphqld.execute(d, vars, con);
 
-		writeln(gqld.toPrettyString());
+		//writeln(gqld.toPrettyString());
 
 		// DOCUMENTATION
 		//
