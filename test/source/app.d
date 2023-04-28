@@ -87,7 +87,7 @@ void main() {
 		graphqld.executationTraceLog.logLevel = std.logger.LogLevel.off;
 	}
 
-	//testSchemaDump("schema.gql", schemaToString(graphqld));
+	testSchemaDump("schema.gql", schemaToString(graphqld));
 	//testSchemaDump("schema2.gql", schemaToString!Schema2());
 
 	graphqld.setResolver("queryType", "search",

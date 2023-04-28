@@ -128,7 +128,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson!(JoinJsonPrecedence.a)(args, defaultArgs);
 		//this.resolverLog.logf(
-		assert(type != "__type" && field != "__ofType",
+		enforce(type != "__type" && field != "__ofType"
+			, "type != '__type' && field != '__ofType' " ~
 				parent.toPrettyString());
 		this.resolverLog.logf(
 				"type: %s field: %s defArgs: %s par: %s args: %s %s", type,
@@ -391,8 +392,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 		if(GQLDMap map = objectType.toMap()) {
 			this.executationTraceLog.log("MMMMMAP %s %s", map.name, ss !is null);
 			enforce(ss !is null && ss.sel !is null, format(
-					"ss null %s, ss.sel null %s", ss is null,
-					(ss is null) ? true : ss.sel is null));
+					"ss null %s, ss.sel null %s %s", ss is null,
+					(ss is null) ? true : ss.sel is null, ec.path));
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables,
 					doc, context, ec
 				);
@@ -472,7 +473,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
 				objectType.name, objectValue, variables
 			);
-		assert("data" in objectValue, objectValue.toString());
+		enforce("data" in objectValue, "Excepted object got " ~ objectValue.toString());
 		GQLDType elemType = objectType.elementType;
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();

@@ -53,6 +53,8 @@ struct Query {
 	SearchResult search(string name);
 	Nullable!Starship starship(long id);
 	Nullable!StarshipSimple starshipSimple(long id);
+	Nullable!StarshipSimple2 starshipSimple2(long id);
+	Nullable!StarshipSimple3 starshipSimple3(long id);
 	Starship starshipDoesNotExist();
 	Starship[] starships(float overSize = 100.0);
 	Starship[] shipsselection(long[] ids);
@@ -186,12 +188,29 @@ class Starship {
 	}
 }
 
-@GQLDUda(
-	GQLDDescription("The thing Chracters fly around in")
-)
 class StarshipSimple {
 	//Nullable!(Series)[] series;
+	//long id;
+	Character commander;
+
+	override string toString() const @safe {
+		//return format("ShipSimple(series[%(%s,%)])", series);
+		return "";
+	}
+}
+
+class StarshipSimple2 {
+	//Nullable!(Series)[] series;
 	long id;
+
+	override string toString() const @safe {
+		//return format("ShipSimple(series[%(%s,%)])", series);
+		return "";
+	}
+}
+
+class StarshipSimple3 {
+	Nullable!(Series)[] series;
 
 	override string toString() const @safe {
 		//return format("ShipSimple(series[%(%s,%)])", series);

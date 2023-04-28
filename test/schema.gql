@@ -4,10 +4,10 @@ schema {
 	subscription: subscriptionType
 }
 type StarshipSimple {
-	series: [Series]!
+	commander: Character!
 }
 input StarshipSimpleIn {
-	series: [Series]!
+	commander: CharacterIn!
 }
 scalar Date
 type Android implements Character {
@@ -75,9 +75,21 @@ input StarshipIn {
 	crew: [CharacterIn!]!
 	designation: String!
 }
+type StarshipSimple2 {
+	id: Int!
+}
+input StarshipSimple2In {
+	id: Int!
+}
 input Vector {
 	y: Float!
 	x: Float!
+}
+type StarshipSimple3 {
+	series: [Series]!
+}
+input StarshipSimple3In {
+	series: [Series]!
 }
 input AddCrewmanData {
 	shipId: Int!
@@ -122,12 +134,14 @@ type queryType {
 	captain(series: Series!): Character!
 	humanoids: [Humanoid!]!
 	starship(id: Int!): Starship
+	starshipSimple2(id: Int!): StarshipSimple2
 	androids: [Android!]!
 	resolverWillThrow: [Android!]!
 	numberBetween(searchInput: InputIn!): Starship!
 	search(name: String!): SearchResult!
-	starshipDoesNotExist: Starship!
+	starshipSimple3(id: Int!): StarshipSimple3
 	starshipSimple(id: Int!): StarshipSimple
+	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
 	alwaysEmpty: [Starship!]
 }
