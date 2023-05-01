@@ -347,7 +347,6 @@ class GQLDSchema(Type) : GQLDMap {
 	}
 
 	void createInbuildTypes() {
-		this.types["string"] = new GQLDString();
 		this.types["String"] = new GQLDString();
 		this.types["Int"] = new GQLDInt();
 		this.types["Float"] = new GQLDFloat();

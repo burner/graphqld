@@ -132,49 +132,31 @@ Json query(string s, Json args) {
 			"__schema" : {
 				"types" : [
 					{
-						"name": "StarWarsQuery"
-					},
-					{
-						"name": "Episode"
-					},
-					{
-						"name": "Character"
-					},
-					{
-						"name": "String"
+						"name": "Int"
 					},
 					{
 						"name": "Human"
 					},
 					{
+						"name": "Episode"
+					},
+					{
+						"name": "String"
+					},
+					{
 						"name": "Droid"
-					},
-					{
-						"name": "__Schema"
-					},
-					{
-						"name": "__Type"
-					},
-					{
-						"name": "__TypeKind"
 					},
 					{
 						"name": "Boolean"
 					},
 					{
-						"name": "__Field"
+						"name": "Float"
 					},
 					{
-						"name": "__InputValue"
+						"name": "Character"
 					},
 					{
-						"name": "__EnumValue"
-					},
-					{
-						"name": "__Directive"
-					},
-					{
-						"name": "__DirectiveLocation"
+						"name": "StarWarsQuery"
 					}
 				]
 			}
