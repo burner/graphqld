@@ -2,8 +2,9 @@ module graphql.schema.resolver;
 
 import std.array : array, empty;
 import std.conv : to;
-import std.algorithm.iteration : filter, map;
+import std.algorithm.iteration : filter, map, uniq;
 import std.algorithm.searching : canFind, startsWith;
+import std.algorithm.sorting : sort;
 import std.exception : enforce;
 import std.format : format;
 import std.meta;
@@ -42,46 +43,17 @@ GQLDSchema!(Type) toSchema(Type)() {
 	typeof(return) ret = new GQLDSchema!Type();
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
-		GQLDMap cur = new GQLDObject(qms, TypeKind.OBJECT);
-		cur.name = qms;
-		ret.member[qms] = cur;
-		ret.types[qms] = cur;
-		if(qms == "queryType") {
-			cur.member["__schema"] = ret.__schema;
-			cur.member["__type"] = ret.__nonNullType;
-		}
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
-			static foreach(mem; __traits(allMembers, QMSType)) {{
-				enum uda = getUdaData!(QMSType, mem);
-				static if(uda.ignore != Ignore.yes) {
-					alias MemType = typeof(__traits(getMember, QMSType, mem));
-					static if(isCallable!(MemType)) {{
-						GQLDOperation op = qms == "queryType"
-							? new GQLDQuery()
-							: qms == "mutationType" ? new GQLDMutation()
-							: qms == "subscriptionType" ? new GQLDSubscription()
-							: null;
-						cur.member[mem] = op;
-						assert(op !is null);
-						op.returnType = typeToGQLDType!(ReturnType!(MemType))(
-								ret
-							);
-
-						alias paraNames = ParameterIdentifierTuple!(
-								__traits(getMember, QMSType, mem)
-							);
-						alias paraTypes = Parameters!(
-								__traits(getMember, QMSType, mem)
-							);
-						static foreach(idx; 0 .. paraNames.length) {
-							auto tmp = typeToGQLDType!(paraTypes[idx])(ret);
-							op.parameters[paraNames[idx]] = tmp;
-						}
-
-					}}
-				}
-			}}
+			GQLDMap cur = toMap(typeToGQLDType!(QMSType)(ret));
+			ret.member[qms] = cur;
+			ret.types[qms] = cur;
+			ret.types[QMSType.stringof] = cur;
+			if(qms == "queryType") {
+				ret.types["__schema"] = ret.__schema;
+				cur.member["__schema"] = ret.__schema;
+				cur.member["__type"] = ret.__nonNullType;
+			}
 		}
 	}}
 	return ret;
@@ -329,8 +301,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("queryType", "__type",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
-			//writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
-			//		parent.toPrettyString());
+			writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
+					parent.toPrettyString());
 			string typeName;
 			if(Constants.name in args) {
 				typeName = args[Constants.name].get!string();
@@ -343,6 +315,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 			enforceGQLD(!typeName.empty, "No typename found to look for");
 			typeName = typeName.strip("'");
+			writefln("typeName %s", typeName);
 			return getJsonForTypeFrom(graphql, typeName);
 		}
 	);
@@ -541,6 +514,10 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		{
 			Json ret = Json.emptyObject();
 			ret["data"] = graphql.schema.types.byValue
+				.filter!(it => it.name != "__schema")
+				.array
+				.sort!((a, b) => a.name < b.name)
+				.uniq!((a, b) => a.name == b.name)
 				.map!(t => toJsonType(t))
 				.array
 				.Json();
