@@ -960,22 +960,29 @@ struct JsonCompareResult {
 	bool okay;
 	string[] path;
 	string message;
+	long onLine;
 }
 
 JsonCompareResult compareJson(Json a, Json b, string path
-		, bool allowArrayReorder)
+		, bool allowArrayReorder, bool trace = false)
 {
 	import std.algorithm.comparison : min;
 	import std.algorithm.setops : setDifference;
 	import std.algorithm.sorting : sort;
 	import std.math : isClose;
 
-	if(a.type != b.type) {
-		return JsonCompareResult(false, [path], format("a.type %s != b.type %s"
-					, a.type, b.type));
+	if(trace) {
+		writefln("\na: %s\nb: %s", a, b);
 	}
 
-	if(a.type == Json.Type.array) {
+	if(a.type != b.type) {
+		return JsonCompareResult(false, [path], format("a.type %s != b.type %s"
+					, a.type, b.type), __LINE__);
+	}
+
+	if(a.type == Json.Type.null_) {
+		return JsonCompareResult(true, [path], "", __LINE__);
+	} else if(a.type == Json.Type.array) {
 		Json[] aArray = a.get!(Json[])();
 		Json[] bArray = b.get!(Json[])();
 
@@ -984,21 +991,23 @@ JsonCompareResult compareJson(Json a, Json b, string path
 			outer: foreach(idx, it; aArray) {
 				foreach(jt; bArray) {
 					JsonCompareResult idxRslt = compareJson(it, jt
-							, format("[%s]", idx), allowArrayReorder);
+							, format("[%s]", idx), allowArrayReorder, trace);
 					if(idxRslt.okay) {
 						continue outer;
 					}
 				}
 				return JsonCompareResult(false, [ format("[%s]", idx) ]
-						, "No array element of 'b' matches");
+						, format("No array element of 'b' matches %s", it)
+						, __LINE__);
 			}
 		} else {
 			foreach(idx; 0 .. minLength) {
 				JsonCompareResult idxRslt = compareJson(aArray[idx]
-						, bArray[idx], format("[%s]", idx), allowArrayReorder);
+						, bArray[idx], format("[%s]", idx), allowArrayReorder
+						, trace);
 				if(!idxRslt.okay) {
 					return JsonCompareResult(false, [path] ~ idxRslt.path,
-							idxRslt.message);
+							idxRslt.message, __LINE__);
 				}
 			}
 		}
@@ -1006,7 +1015,7 @@ JsonCompareResult compareJson(Json a, Json b, string path
 		if(aArray.length != bArray.length) {
 			return JsonCompareResult(false, [path]
 					, format("a.length %s != b.length %s", aArray.length
-						, bArray.length));
+						, bArray.length), __LINE__);
 		}
 
 		return JsonCompareResult(true, [path], "");
@@ -1018,13 +1027,14 @@ JsonCompareResult compareJson(Json a, Json b, string path
 			Json* bVal = key in bObj;
 			if(bVal is null) {
 				return JsonCompareResult(false, [path]
-						, format("a[\"%s\"] not in b", key));
+						, format("a[\"%s\"] not in b", key), __LINE__);
 			} else {
 				JsonCompareResult keyRslt = compareJson(value
-						, *bVal, format("[\"%s\"]", key), allowArrayReorder);
+						, *bVal, format("[\"%s\"]", key), allowArrayReorder
+						, trace);
 				if(!keyRslt.okay) {
 					return JsonCompareResult(false, [path] ~ keyRslt.path,
-							keyRslt.message);
+							keyRslt.message, __LINE__);
 				}
 			}
 		}
@@ -1038,35 +1048,38 @@ JsonCompareResult compareJson(Json a, Json b, string path
 			return JsonCompareResult(false, [path]
 					, format("keys present in 'a' but not in 'b' %s, keys "
 						~ "present in 'b' but not in 'a' %s", aMinusB
-						, bMinusA));
+						, bMinusA), __LINE__);
 		} else if(aMinusB.empty && !bMinusA.empty) {
 			return JsonCompareResult(false, [path]
-					, format("keys present in 'b' but not in 'a' %s", bMinusA));
+					, format("keys present in 'b' but not in 'a' %s", bMinusA)
+					, __LINE__);
 		} else if(!aMinusB.empty && bMinusA.empty) {
 			return JsonCompareResult(false, [path]
-					, format("keys present in 'a' but not in 'b' %s", aMinusB));
+					, format("keys present in 'a' but not in 'b' %s", aMinusB)
+					, __LINE__);
 		}
+
 		return JsonCompareResult(true, [path], "");
 	} else if(a.type == Json.Type.Bool) {
 		const aBool = a.get!bool();
 		const bBool = b.get!bool();
 		return JsonCompareResult(aBool == bBool, [path], format("%s != %s", aBool
-					, bBool));
+					, bBool), __LINE__);
 	} else if(a.type == Json.Type.Int) {
 		const aLong = a.get!long();
 		const bLong = b.get!long();
 		return JsonCompareResult(aLong == bLong, [path], format("%s != %s", aLong
-					, bLong));
+					, bLong), __LINE__);
 	} else if(a.type == Json.Type.string) {
 		const aStr = a.get!string();
 		const bStr = b.get!string();
 		return JsonCompareResult(aStr == bStr, [path], format("%s != %s", aStr
-					, bStr));
+					, bStr), __LINE__);
 	} else if(a.type == Json.Type.Float) {
 		const aFloat = a.get!double();
 		const bFloat = b.get!double();
 		return JsonCompareResult(isClose(aFloat, bFloat), [path]
-				, format("%s != %s", aFloat, bFloat));
+				, format("%s != %s", aFloat, bFloat), __LINE__);
 	}
-	return JsonCompareResult(true, [path], "");
+	return JsonCompareResult(false, [path], "", __LINE__);
 }

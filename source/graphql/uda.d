@@ -3,6 +3,7 @@ module graphql.uda;
 import std.array : empty;
 import std.datetime : DateTime;
 import std.traits : isBuiltinType;
+import std.meta : Filter;
 
 @safe:
 
@@ -162,16 +163,18 @@ private template isGQLDUdaData(alias Type) {
 }
 
 private template getGQLDUdaData(Type, string mem) {
-	import std.meta : Filter;
 	alias getGQLDUdaData =
 		Filter!(isGQLDUdaData,
 				__traits(getAttributes, __traits(getMember, Type, mem)));
 }
 
 private template getGQLDUdaData(Type) {
-	import std.meta : Filter;
 	alias getGQLDUdaData =
 		Filter!(isGQLDUdaData, __traits(getAttributes, Type));
+}
+
+template filterGQLDUdaParameter(Attrs...) {
+	alias filterGQLDUdaParameter = Filter!(isGQLDUdaData, Attrs);
 }
 
 template getUdaData(Type) {

@@ -287,61 +287,63 @@ Json query(string s, Json args) {
 		}
 		`);
 
-	string s = `{
-		"data" : {
-			"__type" : {
-				"name" : "Droid",
-				"fields" : [
-					{
-						"name": "primaryFunction",
-						"type": {
-							"name": "String",
-							"kind": "SCALAR"
-						}
+	string s = `
+{
+	"data": {
+		"__type": {
+			"fields": [
+				{
+					"type": {
+						"kind": "SCALAR",
+						"name": "String"
 					},
-					{
-						"name": "id",
-						"type": {
-							"name": null,
-							"kind": "NON_NULL"
-						}
+					"name": "name"
+				},
+				{
+					"type": {
+						"kind": "LIST",
+						"name": null
 					},
-					{
-						"name": "name",
-						"type": {
-							"name": "String",
-							"kind": "SCALAR"
-						}
+					"name": "friends"
+				},
+				{
+					"type": {
+						"kind": "SCALAR",
+						"name": "String"
 					},
-					{
-						"name": "friends",
-						"type": {
-							"name": null,
-							"kind": "LIST"
-						}
+					"name": "secretBackstory"
+				},
+				{
+					"type": {
+						"kind": "SCALAR",
+						"name": "String"
 					},
-					{
-						"name": "appearsIn",
-						"type": {
-							"name": null,
-							"kind": "LIST"
-						}
+					"name": "primaryFunction"
+				},
+				{
+					"type": {
+						"kind": "NON_NULL",
+						"name": null
 					},
-					{
-						"name": "secretBackstory",
-						"type": {
-							"name": "String",
-							"kind": "SCALAR"
-						}
+					"name": "id"
+				},
+				{
+					"type": {
+						"kind": "LIST",
+						"name": null
 					},
-				]
-			}
+					"name": "appearsIn"
+				}
+			],
+			"name": "Droid"
 		}
 	}
+}
 	`;
 	Json exp = parseJson(s);
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
-			rslt.toPrettyString()));
+	auto r = compareJson(exp, rslt, "", true);
+	assert(r.okay, format("msg: %s\nexp:\n%s\ngot:\n%s", r
+			, exp.toPrettyString(), rslt.toPrettyString()));
 }
 
 @safe unittest {
@@ -432,8 +434,11 @@ Json query(string s, Json args) {
 	}
 	`;
 	Json exp = parseJson(s);
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
-			rslt.toPrettyString()));
+	auto r = compareJson(exp, rslt, "", true);
+	assert(r.okay, format("msg: %s\nexp:\n%s\ngot:\n%s"
+			, r.message
+			, exp.toPrettyString()
+			, rslt.toPrettyString()));
 }
 
 @safe unittest {
@@ -468,20 +473,37 @@ Json query(string s, Json args) {
 				"queryType": {
 					"fields": [
 						{
-							"name": "hero",
+							"name": "droid",
 							"args": [
 								{
-									"defaultValue": null,
-									"description":
-										"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
-									"name": "episode",
+									"name": "id",
+									"description": "id of the droid",
+									"type": {
+										"kind": "NON_NULL",
+										"name": null,
+										"ofType": {
+											"kind": "SCALAR",
+											"name": "String"
+										}
+									},
+									"defaultValue": null
+								}
+							]
+						},
+						{
+							"args": [
+								{
+									"description": "If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
 									"type": {
 										"kind": "ENUM",
 										"name": "Episode",
 										"ofType": null
-									}
+									},
+									"defaultValue": null,
+									"name": "episode",
 								}
-							]
+							],
+							"name": "hero"
 						},
 						{
 							"name": "human",
@@ -500,24 +522,6 @@ Json query(string s, Json args) {
 									"defaultValue": null
 								}
 							]
-						},
-						{
-							"name": "droid",
-							"args": [
-								{
-									"name": "id",
-									"description": "id of the droid",
-									"type": {
-										"kind": "NON_NULL",
-										"name": null,
-										"ofType": {
-											"kind": "SCALAR",
-											"name": "String"
-										}
-									},
-									"defaultValue": null
-								}
-							]
 						}
 					]
 				}
@@ -525,9 +529,10 @@ Json query(string s, Json args) {
 		}
 	}`;
 	Json exp = parseJson(s);
+	auto r = compareJson(exp, rslt, "", true);
 	string extS = exp.toPrettyString();
 	string rsltS = rslt.toPrettyString();
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
+	assert(r.okay, format("msg: %s\nexp:\n%s\ngot:\n%s", r.message, extS, rsltS));
 }
 
 @safe unittest {
@@ -548,9 +553,10 @@ Json query(string s, Json args) {
 		}
 	}`;
 	Json exp = parseJson(s);
+	auto r = compareJson(exp, rslt, "", true);
 	string extS = exp.toPrettyString();
 	string rsltS = rslt.toPrettyString();
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
+	assert(r.okay, format("msg: %s\nexp:\n%s\ngot:\n%s", r.message, extS, rsltS));
 }
 
 @safe unittest {
@@ -593,7 +599,8 @@ Json query(string s, Json args) {
 	}
 	}`;
 	Json exp = parseJson(s);
+	auto r = compareJson(exp, rslt, "", true);
 	string extS = exp.toPrettyString();
 	string rsltS = rslt.toPrettyString();
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", extS, rsltS));
+	assert(r.okay, format("msg: %s\nexp:\n%s\ngot:\n%s", r.message, extS, rsltS));
 }
