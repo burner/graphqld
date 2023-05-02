@@ -74,7 +74,7 @@ class Human : Character {
 @GQLDUda(
 	GQLDDescription("A mechanical creature in the Star Wars universe.")
 )
-class Droid : Character{
+class Droid : Character {
 	@GQLDUda(
 		GQLDDescription("The primary function of the droid.")
 	)

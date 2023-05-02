@@ -120,6 +120,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 		enforce(second !in this.resolver[first], format(
 				"'%s'.'%s' is already registered", first, second));
 		this.resolver[first][second] = resolver;
+		if(first == "queryType") {
+			auto qt = "queryType" in this.schema.member;
+			if(qt !is null) {
+				this.resolver[qt.name][second] = resolver;
+			}
+		}
 	}
 
 	Json resolve(string type, string field, Json parent, Json args,
@@ -286,9 +292,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 			ref Con context, ref ExecutionContext ec)
 	{
 		this.executationTraceLog.log("query");
-		Json tmp = this.executeSelections(op.ss.sel,
-				this.schema.member["queryType"],
-				Json.emptyObject(), variables, doc, context, ec
+		auto qt = this.schema.member["queryType"];
+		//debug writefln(qt.toString());
+		Json tmp = this.executeSelections(op.ss.sel, qt
+				, Json.emptyObject(), variables, doc, context, ec
 			);
 		return tmp;
 	}

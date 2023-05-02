@@ -1,6 +1,6 @@
 module graphql.schema.resolver;
 
-import std.array : array, empty;
+import std.array : array, assocArray, empty;
 import std.conv : to;
 import std.algorithm.iteration : filter, map, uniq;
 import std.algorithm.searching : canFind, startsWith;
@@ -9,7 +9,7 @@ import std.exception : enforce;
 import std.format : format;
 import std.meta;
 import std.traits;
-import std.typecons : Nullable;
+import std.typecons : Nullable, tuple;
 import std.stdio;
 import std.string : capitalize, strip;
 
@@ -24,6 +24,7 @@ import graphql.schema.typeconversions;
 import graphql.schema.types;
 import graphql.traits;
 import graphql.uda;
+import graphql.schema.introspectiontypes;
 
 @safe:
 
@@ -45,8 +46,9 @@ GQLDSchema!(Type) toSchema(Type)() {
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
-			GQLDMap cur = toMap(typeToGQLDType!(QMSType)(ret));
+			GQLDMap cur = toMap(typeToGQLDType!(QMSType)(ret, false));
 			ret.member[qms] = cur;
+			ret.member[QMSType.stringof] = cur;
 			ret.types[qms] = cur;
 			ret.types[QMSType.stringof] = cur;
 			if(qms == "queryType") {
@@ -59,88 +61,6 @@ GQLDSchema!(Type) toSchema(Type)() {
 	return ret;
 }
 
-enum __DirectiveLocation {
-	QUERY
-	, MUTATION
-	, SUBSCRIPTION
-	, FIELD
-	, FRAGMENT_DEFINITION
-	, FRAGMENT_SPREAD
-	, INLINE_FRAGMENT
-	, SCHEMA
-	, SCALAR
-	, OBJECT
-	, FIELD_DEFINITION
-	, ARGUMENT_DEFINITION
-	, INTERFACE
-	, UNION
-	, ENUM
-	, ENUM_VALUE
-	, INPUT_OBJECT
-	, INPUT_FIELD_DEFINITION
-}
-
-class __Directive {
-	string name;
-	Nullable!string description;
-	__DirectiveLocation[] locations;
-	__InputValue[] args;
-}
-
-enum __TypeKind {
-	SCALAR
-	, OBJECT
-	, INTERFACE
-	, UNION
-	, ENUM
-	, INPUT_OBJECT
-	, LIST
-	, NON_NULL
-}
-
-class __EnumValue {
-	string name;
-	Nullable!string description;
-	bool isDeprecated;
-	Nullable!string deprecationReason;
-}
-
-class __InputValue {
-	string name;
-	Nullable!string description;
-	__Type type;
-	Nullable!string defaultValue;
-}
-
-class __Field {
-	string name;
-	Nullable!string description;
-	__InputValue[] args;
-	__Type type;
-	bool isDeprecated;
-	Nullable!string deprecationReason;
-}
-
-class __Type {
-	__TypeKind kind;
-	string name;
-	Nullable!string description;
-	__Field[] fields(bool includeDeprecated = false) { assert(false);
-	}
-	Nullable!(__Type[]) interfaces;
-	Nullable!(__Type[]) possibleTypes;
-	Nullable!(__Field[]) enumValues(bool includeDeprecated = false) {
-		assert(false);
-	}
-	Nullable!(__InputValue[]) inputFields;
-	Nullable!(__Type) ofType;
-}
-
-class __Schema {
-	__Type types;
-	__Directive directives;
-}
-
 private template RemoveInout(T) {
 	static if (is(T == inout V, V)) {
 	    alias RemoveInout = V;
@@ -149,57 +69,19 @@ private template RemoveInout(T) {
 	}
 }
 
-string toKind(GQLDType type) {
-	string ret;
-	if(GQLDNonNull nn = toNonNull(type)) {
-		ret = "NON_NULL";
-	} else if(GQLDNullable l = toNullable(type)) {
-		ret ="OBJECT";
-	} else if(GQLDList l = toList(type)) {
-		ret ="LIST";
-	} else if(GQLDString l = toString(type)) {
-		ret ="SCALAR";
-	} else if(GQLDFloat l = toFloat(type)) {
-		ret ="SCALAR";
-	} else if(GQLDInt l = toInt(type)) {
-		ret ="SCALAR";
-	} else if(GQLDEnum l = toEnum(type)) {
-		ret ="ENUM";
-	} else if(GQLDBool l = toBool(type)) {
-		ret ="SCALAR";
-	} else if(GQLDScalar l = toScalar(type)) {
-		ret ="SCALAR";
-	} else if(GQLDObject l = toObject(type)) {
-		ret ="OBJECT";
-	} else if(GQLDUnion l = toUnion(type)) {
-		ret ="UNION";
-	} else if(GQLDQuery l = toQuery(type)) {
-		ret ="OBJECT";
-	} else if(GQLDMutation l = toMutation(type)) {
-		ret ="OBJECT";
-	} else if(GQLDSubscription l = toSubscription(type)) {
-		ret ="OBJECT";
-	} else if(GQLDOperation l = toOperation(type)) {
-		ret ="OBJECT";
-	} else if(GQLDMap l = toMap(type)) {
-		ret ="OBJECT";
-	}
-	enforce(!ret.empty, "Unhandled type " ~ type.toString());
-	//writefln("toKind %s %s %s", ret, type.kind, type.toString());
-	return ret;
-}
-
 private Json toJsonInputValue(GQLDType field, string argsName) {
+	//writefln("%s %s", field.name, field.udaData);
 	Json ret = Json.emptyObject();
 	ret["__typename"] = "__InputValue";
 	ret["__gqldTypeName"] = field.name;
 	ret["name"] = argsName;
-	//ret["description"] = field.description;
+	ret["description"] = field.udaData.description.getText();
 	ret["defaultValue"] = Json(null);
-	ret["description"] = field.description;
 	if(GQLDList l = toList(field)) {
 		ret["type"] = toJsonType(l, "type");
 	} else if(GQLDNullable n = toNullable(field)) {
+		ret["type"] = toJsonType(n.elementType, "type");
+	} else if(GQLDNonNull n = toNonNull(field)) {
 		ret["type"] = toJsonType(n, "type");
 	}
 	return ret;
@@ -209,9 +91,8 @@ private Json toJsonField(GQLDType field, string fieldName) {
 	Json ret = Json.emptyObject();
 	ret["__typename"] = "__Field";
 	ret["name"] = fieldName;
-	ret["description"] = field.description;
+	ret["description"] = field.udaData.description.getText();
 	ret["__gqldTypeName"] = field.name;
-	//ret["description"] = field.description;
 	ret["isDeprecated"] = field.deprecatedInfo.isDeprecated == IsDeprecated.yes;
 	if(field.deprecatedInfo.isDeprecated == IsDeprecated.yes) {
 		ret["deprecationReason"] = field.deprecatedInfo.deprecationReason;
@@ -228,39 +109,111 @@ private Json toJsonField(GQLDType field, string fieldName) {
 	if(GQLDList l = toList(field)) {
 		ret["type"] = toJsonType(l, "type");
 	} else if(GQLDNullable n = toNullable(field)) {
+		ret = toJsonField(n.elementType, fieldName);
+		if(ret.type == Json.Type.object && "description" in ret
+				&& ret["description"].get!string() == "")
+		{
+			ret["description"] = field.udaData.description.getText();
+		}
+		//ret["type"] = toJsonType(n, "type");
+	} else if(GQLDNonNull n = toNonNull(field)) {
 		ret["type"] = toJsonType(n, "type");
 	}
 	return ret;
+}
+
+private string typeKindToString(GQLDType type) {
+	final switch(type.udaData.typeKind) {
+		case TypeKind.UNDEFINED: {
+			if(GQLDNonNull nn = toNonNull(type)) {
+				return "NON_NULL";
+			} else if(GQLDList l = toList(type)) {
+				return "LIST";
+			} else if(GQLDString l = toString(type)) {
+				return "SCALAR";
+			} else if(GQLDFloat l = toFloat(type)) {
+				return "SCALAR";
+			} else if(GQLDInt l = toInt(type)) {
+				return "SCALAR";
+			} else if(GQLDEnum l = toEnum(type)) {
+				return "ENUM";
+			} else if(GQLDBool l = toBool(type)) {
+				return "SCALAR";
+			} else if(GQLDObject l = toObject(type)) {
+				return "OBJECT";
+			} else if(GQLDUnion l = toUnion(type)) {
+				return "UNION";
+			} else if(GQLDQuery l = toQuery(type)) {
+				return "QUERY";
+			} else if(GQLDMutation l = toMutation(type)) {
+				return "OBJECT";
+			} else if(GQLDSubscription l = toSubscription(type)) {
+				return "OBJECT";
+			} else if(GQLDOperation l = toOperation(type)) {
+				return "OBJECT";
+			} else if(GQLDScalar l = toScalar(type)) {
+				return "SCALAR";
+			} else if(GQLDMap l = toMap(type)) {
+				return "SCALAR";
+			}
+			return "UNDEFINED";
+		}
+		case TypeKind.SCALAR: return "SCALAR";
+		case TypeKind.OBJECT: return "OBJECT";
+		case TypeKind.INTERFACE: return "INTERFACE";
+		case TypeKind.UNION: return "UNION";
+		case TypeKind.ENUM: return "ENUM";
+		case TypeKind.INPUT_OBJECT: return "INPUT_OBJECT";
+		case TypeKind.LIST: return "LIST";
+		case TypeKind.NON_NULL: return "NON_NULL";
+	}
 }
 
 private Json toJsonType(GQLDType type, string into = "ofType") {
 	Json ret = emptyType();
 	ret[Constants.isDeprecated] = type.deprecatedInfo.isDeprecated;
 	ret[Constants.deprecationReason] = type.deprecatedInfo.deprecationReason;
-	ret["kind"] = toKind(type);
+	ret[Constants.description] = type.udaData.description.getText();
+	//ret["kind"] = toKind(type);
+	ret["kind"] = typeKindToString(type);
 	ret[Constants.__typename] = "__Type";
 	ret["name"] = type.name;
 
 	if(GQLDInt i = toInt(type)) {
-		ret["kind"] = "SCALAR";
+		ret["kind"] = typeKindToString(i);
 		ret["name"] = "Int";
 	} else if(GQLDFloat i = toFloat(type)) {
-		ret["kind"] = "SCALAR";
+		ret["kind"] = typeKindToString(i);
 		ret["name"] = "Float";
+	} else if(GQLDEnum i = toEnum(type)) {
+		ret["kind"] = typeKindToString(i);
+		ret["name"] = i.name;
 	} else if(GQLDNonNull nn = toNonNull(type)) {
-		ret["kind"] = "NON_NULL";
+		ret["kind"] = typeKindToString(nn);
 		ret[into] = toJsonType(nn.elementType);
-		ret["name"] = nn.name;
+		//ret["name"] = nn.elementType.name;
+		ret["name"] = Json(null);
 	} else if(GQLDList l = toList(type)) {
-		ret["kind"] = "LIST";
+		ret["kind"] = typeKindToString(l);
 		ret[into] = toJsonType(l.elementType);
-		ret["name"] = l.name;
+		if(GQLDNullable nn = toNullable(l.elementType)) {
+			ret["name"] = Json(null);
+		} else {
+			ret["name"] = l.elementType.name;
+		}
 	} else if(GQLDNullable l = toNullable(type)) {
-		ret["kind"] = "NULLABLE";
+		ret["kind"] = typeKindToString(l.elementType);
 		ret[into] = toJsonType(l.elementType);
-		ret["name"] = l.name;
+		if(GQLDNullable nn = toNullable(l.elementType)) {
+			ret["name"] = Json(null);
+		} else {
+			ret["name"] = l.elementType.name;
+		}
+		//ret["name"] = l.elementType.name;
+		//ret["name"] = Json(null);
 	} else if(GQLDOperation o = toOperation(type)) {
-		ret["kind"] = toKind(o);
+		//ret["kind"] = toKind(o);
+		ret["kind"] = typeKindToString(o);
 		ret[into] = toJsonType(o.returnType);
 		ret["name"] = o.name;
 	}
@@ -301,8 +254,8 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	graphql.setResolver("queryType", "__type",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
-			writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
-					parent.toPrettyString());
+			//writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
+			//		parent.toPrettyString());
 			string typeName;
 			if(Constants.name in args) {
 				typeName = args[Constants.name].get!string();
@@ -315,7 +268,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 			enforceGQLD(!typeName.empty, "No typename found to look for");
 			typeName = typeName.strip("'");
-			writefln("typeName %s", typeName);
 			return getJsonForTypeFrom(graphql, typeName);
 		}
 	);
@@ -362,13 +314,24 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 
 			Json ret = Json.emptyObject();
 			if(m !is null) {
-				ret["data"] = Json.emptyArray();
-				ret["data"] = m.member.byKeyValue
+				Json[string] fields = m.member.byKeyValue
 					.filter!(kv => !kv.key.startsWith("__"))
 					.filter!(kv => !canFind(["Query", "Mutation", "Subscription"], kv.key))
-					.map!(kv => toJsonField(kv.value, kv.key))
-					.array
-					.Json();
+					.map!(kv => tuple(kv.key, toJsonField(kv.value, kv.key)))
+					.assocArray;
+
+				GQLDObject obj = toObject(m);
+				if(obj.base !is null) {
+					foreach(kv; obj.base.member.byKeyValue
+							.filter!(kv => !kv.key.startsWith("__"))
+							.filter!(kv => !canFind(["Query", "Mutation", "Subscription"], kv.key)))
+					{
+						if(kv.key !in fields) {
+							fields[kv.key] = toJsonField(kv.value, kv.key);
+						}
+					}
+				}
+				ret["data"] = fields.byValue.array.Json();
 				//foreach(key, value; m.member) {
 				//	ret["data"] ~= toJsonField(value, key);
 				//}
@@ -448,14 +411,6 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				//writefln("__Field.type via parent %s", ret.toPrettyString());
 				return ret;
 			}
-			/*
-			if(nameOfType == "Query") {
-				nameOfType = "queryType";
-			} else if(nameOfType == "Mutation") {
-				nameOfType = "mutationType";
-			} else if(nameOfType == "Subscription") {
-				nameOfType = "subscriptionType";
-			}*/
 			return getJsonForTypeFrom(graphql, nameOfType);
 		}
 	);

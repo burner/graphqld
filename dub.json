@@ -9,6 +9,7 @@
 		"darser": ">=1.0.1",
 		"nullablestore": ">=2.1.0"
 	},
+	"dflags": [ "-d"],
 	"description": "A library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2019, Robert burner Schadek",
 	"license": "LGPL3"
