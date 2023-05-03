@@ -57,7 +57,7 @@ void testSchemaDump(string fname, string newSchemaText) {
 	// output format of schemaToString, simply remove the old schema[2].gql
 	auto oSplit = oldSchemaText.split("\n");
 	auto nSplit = newSchemaText.split("\n");
-	//writeln(newSchemaText);
+	writeln(newSchemaText);
 	foreach(lineIdx; 0 .. min(oSplit.length, nSplit.length)) {
 		assert(oSplit[lineIdx] == nSplit[lineIdx]
 				, format("line %s + 1 differed\ngot: %s\nexp: %s"
@@ -90,7 +90,7 @@ void main() {
 	testSchemaDump("schema.gql", schemaToString(graphqld));
 	//testSchemaDump("schema2.gql", schemaToString!Schema2());
 
-	graphqld.setResolver("queryType", "search",
+	graphqld.setResolver("Query", "search",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -117,7 +117,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("queryType", "currentTime",
+	graphqld.setResolver("Query", "currentTime",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -130,7 +130,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("queryType", "starships",
+	graphqld.setResolver("Query", "starships",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -148,7 +148,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("queryType", "starshipDoesNotExist",
+	graphqld.setResolver("Query", "starshipDoesNotExist",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -161,7 +161,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("queryType", "alwaysEmpty",
+	graphqld.setResolver("Query", "alwaysEmpty",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -170,7 +170,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("queryType", "resolverWillThrow",
+	graphqld.setResolver("Query", "resolverWillThrow",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -184,7 +184,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("queryType", "starship",
+	graphqld.setResolver("Query", "starship",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -204,7 +204,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("mutationType", "addCrewman",
+	graphqld.setResolver("Mutation", "addCrewman",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @trusted
 			{
@@ -234,7 +234,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("queryType", "shipsselection",
+	graphqld.setResolver("Query", "shipsselection",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @trusted
 			{

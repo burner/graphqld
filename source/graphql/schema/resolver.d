@@ -321,7 +321,7 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 					.assocArray;
 
 				GQLDObject obj = toObject(m);
-				if(obj.base !is null) {
+				if(obj !is null && obj.base !is null) {
 					foreach(kv; obj.base.member.byKeyValue
 							.filter!(kv => !kv.key.startsWith("__"))
 							.filter!(kv => !canFind(["Query", "Mutation", "Subscription"], kv.key)))

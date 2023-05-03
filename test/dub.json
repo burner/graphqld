@@ -8,6 +8,7 @@
 		"nullablestore": "~>2.1.0",
 		"vibe-d": ">=0.9.0"
 	},
+	"dflags": [ "-d"],
 	"versions" : ["VibeNoSSL"],
 	"description": "A simple vibe.d server application.",
 	"license": "GPL3",

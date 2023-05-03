@@ -489,8 +489,29 @@ class GQLDSchema(Type) : GQLDMap {
 			if(field in map.member) {
 				auto tmp = map.member[field];
 				if(auto op = tmp.toOperation()) {
-					ret = op.returnType;
+					GQLDType rt = op.returnType.unpack();
+					if(auto u = rt.toUnion()) {
+						foreach(key, value; u.member) {
+							if(GQLDMap valueM = toMap(value.unpack())) {
+								if(field in valueM.member) {
+									ret = valueM.member[field];
+									writeln(__LINE__);
+									goto retLabel;
+								}
+							}
+						}
+					}
+					ret = rt;
 					goto retLabel;
+				} else if(auto u = t.unpack().toUnion()) {
+					foreach(key, value; u.member) {
+						if(GQLDMap valueM = toMap(value.unpack())) {
+							if(field in valueM.member) {
+								ret = valueM.member[field];
+								goto retLabel;
+							}
+						}
+					}
 				} else {
 					ret = tmp;
 					goto retLabel;
@@ -501,6 +522,15 @@ class GQLDSchema(Type) : GQLDMap {
 				// the type of the field __typename is always a string
 				ret = this.types["String"];
 				goto retLabel;
+			} else if(auto u = t.unpack().toUnion()) {
+				foreach(key, value; u.member) {
+					if(GQLDMap valueM = toMap(value.unpack())) {
+						if(field in valueM.member) {
+							ret = valueM.member[field];
+							goto retLabel;
+						}
+					}
+				}
 			} else {
 				// if we couldn't find it in the passed map, maybe it is in some
 				// of its derivatives
@@ -552,6 +582,10 @@ GQLDFloat toFloat(GQLDType t) {
 }
 
 GQLDInt toInt(GQLDType t) {
+	return cast(typeof(return))t;
+}
+
+GQLDLeaf toLeaf(GQLDType t) {
 	return cast(typeof(return))t;
 }
 
@@ -786,6 +820,13 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 	} else {
 		return retValue;
 	}
+}
+
+GQLDType unpack(GQLDType t) {
+	if(GQLDNonNull nn = toNonNull(t)) {
+		return nn.elementType;
+	}
+	return t;
 }
 
 unittest {

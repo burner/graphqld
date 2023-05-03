@@ -9,6 +9,7 @@ import std.meta : AliasSeq, Filter;
 import nullablestore;
 
 import graphql.uda;
+import graphql.schema.types;
 
 template AllIncarnations(T, SCH...) {
 	static if(SCH.length > 0 && is(T : SCH[0])) {
@@ -422,11 +423,25 @@ template stringofType(T) {
 	enum stringofType = T.stringof;
 }
 
-string[] interfacesForType(Schema)(string typename) {
+string[] basesOfType(Sch)(Sch schema, string typename) {
+	GQLDType* t = typename in schema.types;
+	if(t !is null) {
+		GQLDObject o = toObject(*t);
+		if(o !is null && o.base !is null) {
+			return [typename] ~ basesOfType(schema, o.base.name);
+		}
+	}
+	return [typename];
+}
+
+string[] interfacesForType(Schema)(Schema schema, string typename) {
 	import std.algorithm.searching : canFind;
 	import graphql.reflection : SchemaReflection;
-	if(auto result = typename in SchemaReflection!Schema.instance.bases) {
-		return *result;
+	//if(auto result = typename in SchemaReflection!Schema.instance.bases) {
+	//	return *result;
+	//}
+	if(typename in schema.types) {
+		return basesOfType(schema, typename);
 	}
 	if(canFind(["__Type", "__Field", "__InputValue", "__Schema",
 			   "__EnumValue", "__TypeKind", "__Directive",

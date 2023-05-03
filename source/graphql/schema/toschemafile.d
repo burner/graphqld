@@ -2,6 +2,7 @@ module graphql.schema.toschemafile;
 
 import std.array;
 import std.algorithm.iteration : map, joiner;
+import std.algorithm.searching : canFind, startsWith;
 import std.conv : to;
 import std.stdio;
 import std.format;
@@ -10,7 +11,268 @@ import std.typecons;
 import graphql.graphql;
 import graphql.schema.types;
 import graphql.uda;
+import graphql.schema.resolver;
 
+string schemaToString(T)() {
+	return schemaToString(toSchema!T());
+}
+
+string schemaToString(T, Q)(GraphQLD!(T, Q) gqld) {
+	return schemaToString(gqld.schema);
+}
+
+string schemaToString(T)(GQLDSchema!T sch) {
+	auto app = appender!string();
+	TraceType[string] tts;
+	formIndent(app, 0, "schema {");
+	foreach(it; ["mutationType", "queryType", "subscriptionType"]) {
+		auto t = sch.member[it];
+		if(t !is null) {
+			formIndent(app, 1, "%s: %s", it, t.name);
+			tts[t.name] = TraceType(t, false);
+		}
+	}
+	formIndent(app, 0, "}");
+	outer: while(true) {
+		foreach(key, ref it; tts) {
+			if(!it.normalDone
+					|| (it.inDone.isNull == false && it.inDone.get() == false)
+			) {
+				toSchemaString(app, it, tts);
+				continue outer;
+			}
+		}
+		break outer;
+	}
+	return app.data;
+}
+
+struct TraceType {
+	GQLDType type;
+	bool normalDone;
+	Nullable!bool inDone;
+}
+
+private:
+
+void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts) {
+	if(isPrimitiveType(tt.type) || isNameSpecial(tt.type.name)) {
+		return;
+	}
+	//writefln("%s %s %s", tt.type.name, tt.normalDone, tt.inDone.isNull()
+	//		, !tt.inDone.isNull() ? to!string(tt.inDone.get()) : "");
+	if(!tt.normalDone) {
+		tt.normalDone = true;
+		if(GQLDEnum e = toEnum(tt.type)) {
+			formIndent(o, 0, "enum %s {", tt.type.name);
+			foreach (m; e.memberNames) {
+				formIndent(o, 1, "%s,", m);
+			}
+			formIndent(o, 0, "}");
+		} else if(GQLDLeaf l = toLeaf(tt.type)) {
+			formIndent(o, 0, "scalar %s", l.name);
+		} else if(GQLDUnion u = toUnion(tt.type)) {
+			formIndent(o, 0, "union %s = %--(%s | %)", u.name
+					, u.member.byValue.map!(v => baseType(v).name));
+		} else if(GQLDMap map = toMap(tt.type)) {
+			string implementsStr;
+			if(auto obj = cast(GQLDObject)map) {
+				if(obj.base && obj.base.typeKind == TypeKind.INTERFACE) {
+					implementsStr = " implements " ~ obj.base.name;
+				}
+			}
+			formIndent(o, 0, "%s %s%s {", schemaTypeIndicator(tt.type)
+					, tt.type.name, implementsStr);
+			foreach(memName, mem; allMember(map)) {
+				string typename = typeToStringMaybeIn(mem, false, false);
+				if(isNameSpecial(typename)) {
+					continue;
+				}
+				if(GQLDOperation op = toOperation(mem)) {
+					formIndent(o, 1, "%s%s: %s%s", memName,
+						op.parameters.keys.length > 0
+							? format("(%--(%s, %))", op.parameters.byKeyValue
+								.map!(kv => format("%s: %s", kv.key,
+									typeToStringMaybeIn(kv.value
+										, kv.value.udaData.typeKind == TypeKind.INPUT_OBJECT
+										, true))))
+							: ""
+						, op.returnType.gqldTypeToString()
+						, typeToDeprecationMessage(mem));
+					addIfNew(tts, op.returnType, false);
+					foreach(p; op.parameters.byValue) {
+						addIfNew(tts, p, true);
+					}
+				} else {
+					formIndent(o, 1, "%s: %s%s", memName, typename
+							, typeToDeprecationMessage(mem));
+					addIfNew(tts, mem, false);
+				}
+			}
+			formIndent(o, 0, "}");
+		}
+	}
+	if(!tt.inDone.isNull() && tt.inDone.get() == false) {
+		tt.inDone = nullable(true);
+		if(tt.type.udaData.typeKind != TypeKind.INPUT_OBJECT
+			&& tt.type.udaData.typeKind != TypeKind.ENUM
+			&& toEnum(tt.type) is null
+		) {
+			formIndent(o, 0, "input %sIn {", tt.type.name);
+			if(GQLDMap map = toMap(tt.type)) {
+				foreach(memName, mem; allMember(map)) {
+					string typename = typeToStringMaybeIn(mem, false, false);
+					if(isNameSpecial(typename)) {
+						continue;
+					}
+					if(GQLDOperation op = toOperation(mem)) {
+					} else {
+						formIndent(o, 1, "%s: %s%s", memName, typename
+								, typeToDeprecationMessage(mem));
+					}
+				}
+			}
+			formIndent(o, 0, "}");
+		}
+	}
+}
+
+void addIfNew(ref TraceType[string] tts, GQLDType t, bool isUsedAsInput) {
+	t = baseType(t);
+	if(isPrimitiveType(t)) {
+		return;
+	}
+	TraceType* tt = t.name in tts;
+	if(tt is null) {
+		tts[t.name] = TraceType(t, false, Nullable!(bool).init);
+		tt = t.name in tts;
+	}
+	if(isUsedAsInput && (*tt).inDone.isNull() == true) {
+		(*tt).inDone = nullable(false);
+	}
+}
+
+string schemaTypeIndicator(GQLDType t) {
+	if(t.udaData.typeKind != TypeKind.UNDEFINED) {
+		final switch(t.udaData.typeKind) {
+			case TypeKind.UNDEFINED: return "type";
+			case TypeKind.SCALAR: return "scalar";
+			case TypeKind.OBJECT: return "type";
+			case TypeKind.INTERFACE: return "interface";
+			case TypeKind.UNION: return "union";
+			case TypeKind.ENUM: return "enum";
+			case TypeKind.INPUT_OBJECT: return "input";
+			case TypeKind.LIST: return "type";
+			case TypeKind.NON_NULL: return "type";
+		}
+	}
+	if(auto u = toUnion(t)) {
+		return "union";
+	} else if(auto e = toEnum(t)) {
+		return "enum";
+	}
+	return "type";
+}
+
+void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args args) {
+	foreach(it; 0 .. indent) {
+		formattedWrite(o, "\t");
+	}
+	formattedWrite(o, s, args);
+	formattedWrite(o, "\n");
+}
+
+
+bool isNameSpecial(string s) {
+	// takes care of gql buildins (__Type, __TypeKind, etc.), as well as
+	// some unuseful pieces from the d side (__ctor, opCmp, etc.)
+	return s.startsWith("__") || s.startsWith("op") || ["factory", "toHash", "toString"].canFind(s);
+}
+
+bool isPrimitiveType(const(GQLDType) type) {
+	return type.kind == GQLDKind.String
+		|| type.kind == GQLDKind.Float
+		|| type.kind == GQLDKind.Int
+		|| type.kind == GQLDKind.Bool;
+}
+
+// all members of o, including derived ones
+GQLDType[string] allMember(GQLDMap m) {
+	import std.algorithm;
+	GQLDType[string] ret;
+
+	void process(GQLDMap m) {
+		foreach(k,v; m.member.byPair) {
+			ret.require(k,v);
+		}
+
+		if(auto o = cast(GQLDObject)m) {
+			if(o.base) {
+				process(o.base);
+			}
+		}
+	}
+
+	// inout(V)[K].require is broken
+	process(m);
+	return ret;
+}
+
+string gqldTypeToString(const(GQLDType) t, string nameSuffix = "", Flag!"nonNullable" nonNullable = Yes.nonNullable) {
+	if(auto base = cast(const(GQLDNullable))t) {
+		return gqldTypeToString(base.elementType, nameSuffix, No.nonNullable);
+	} else if(auto list = cast(const(GQLDList))t) {
+		return '[' ~ gqldTypeToString(list.elementType, nameSuffix, Yes.nonNullable) ~ ']' ~ (nonNullable ? "!" : "");
+	} else if(auto nn = cast(const(GQLDNonNull))t) {
+		return gqldTypeToString(nn.elementType, nameSuffix, Yes.nonNullable);
+	}
+	return t.name ~ nameSuffix ~ (nonNullable ? "!" : "");
+}
+
+
+string typeToStringMaybeIn(GQLDType t, bool inputType, bool isParam) {
+	auto bt = baseType(t);
+	const bool baseTypeIsNotInputObject = bt.udaData.typeKind != TypeKind.INPUT_OBJECT;
+	const bool isScalar = (toScalar(bt) !is null);
+	if(isParam) {
+		//writefln("bt: %s, name: %s, baseTypeIsNotInputObject %s, isScalar %s",
+		//		bt.kind, bt.name, baseTypeIsNotInputObject, isScalar);
+		//writefln("\nt.name: %s\nbaseTypeName: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOrOutput: %s"
+		//		~ "\n%s"
+		//		, t.name, baseTypeName
+		//		, inputType, baseTypeNameInTab
+		//		, isNotInputOnly, isNotInputOrOutput
+		//		, tab.byKey
+		//		);
+	}
+	return gqldTypeToString(t, isParam && !isScalar && !inputType && baseTypeIsNotInputObject
+				//&& baseTypeNameInTab
+				//&& isNotInputOnly
+				//&& isNotInputOrOutput
+			? "In"
+			: "");
+}
+
+string typeToDeprecationMessage(const(GQLDType) t) {
+	return t.deprecatedInfo.isDeprecated == IsDeprecated.yes
+		? ` @deprecated(reason: "`
+			~ t.deprecatedInfo.deprecationReason
+			~ `")`
+		: "";
+}
+
+GQLDType baseType(GQLDType t) {
+	if(auto base = cast(GQLDNullable)t) {
+		return baseType(base.elementType);
+	} else if(auto list = cast(GQLDList)t) {
+		return baseType(list.elementType);
+	} else if(auto nn = cast(GQLDNonNull)t) {
+		return baseType(nn.elementType);
+	}
+	return t;
+}
+
+/+
 string schemaToString(T)(GQLDSchema!T sch) {
 	auto app = appender!string();
 
@@ -73,50 +335,6 @@ struct TraceableType {
 	Visibility vis; // only valid for black types
 }
 
-void formIndent(Out, Args...)(ref Out o, size_t indent, string s, Args args) {
-	foreach(it; 0 .. indent) {
-		formattedWrite(o, "\t");
-	}
-	formattedWrite(o, s, args);
-	formattedWrite(o, "\n");
-}
-
-bool isNameSpecial(string s) {
-	import std.algorithm.searching: startsWith, canFind;
-	// takes care of gql buildins (__Type, __TypeKind, etc.), as well as
-	// some unuseful pieces from the d side (__ctor, opCmp, etc.)
-	return s.startsWith("__") || s.startsWith("op") || ["factory", "toHash", "toString"].canFind(s);
-}
-
-bool isPrimitiveType(const(GQLDType) type) {
-	return type.kind == GQLDKind.String
-		|| type.kind == GQLDKind.Float
-		|| type.kind == GQLDKind.Int
-		|| type.kind == GQLDKind.Bool;
-}
-
-// all members of o, including derived ones
-inout(GQLDType)[string] allMember(inout(GQLDMap) m) {
-	import std.algorithm;
-	GQLDType[string] ret;
-
-	void process(GQLDMap m) {
-		foreach(k,v; m.member.byPair) {
-			ret.require(k,v);
-		}
-
-		if(auto o = cast(GQLDObject)m) {
-			if(o.base) {
-				process(o.base);
-			}
-		}
-	}
-
-	// inout(V)[K].require is broken
-	process(cast()m);
-	return cast(inout(GQLDType)[string])ret;
-}
-
 Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	import std.algorithm.comparison : max;
 	import std.algorithm.iteration : filter;
@@ -126,7 +344,6 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 		return Visibility.inputOrOutput;
 	}
 
-	writefln("traceType %s %s", t.baseTypeName, t.name);
 	if(t.baseTypeName in tab) {
 		return tab[t.baseTypeName].colour == Colour.black
 			? tab[t.baseTypeName].vis
@@ -177,7 +394,6 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	}
 
 	foreach(mem, val; map.allMember) {
-		writefln("%s.%s", map.name, mem);
 		if(isNameSpecial(mem) || isPrimitiveType(val)) {
 			continue;
 		}
@@ -262,7 +478,6 @@ void typeImpl(Out)(ref Out o, TraceableType type, ref TraceableType[string] tab
 		return;
 	}
 
-
 	string implementsStr = "";
 	string typestr = "type";
 	if(auto unio = cast(GQLDUnion)map) {
@@ -275,7 +490,6 @@ void typeImpl(Out)(ref Out o, TraceableType type, ref TraceableType[string] tab
 	}
 
 	formIndent(o, 0, "%s %s%s {", typestr, map.name, implementsStr);
-	writefln("beforeDump %s %s %s", map.name, mutationTypeName, typestr);
 	dumpMem(o, map, map.name == mutationTypeName || typestr == "input", tab
 			, mutationTypeName);
 	formIndent(o, 0, "}");
@@ -284,7 +498,9 @@ void typeImpl(Out)(ref Out o, TraceableType type, ref TraceableType[string] tab
 		formIndent(o, 0, "# note: nestedness of type '%s' not determined; output may be suboptimal", map.name);
 	}
 
-	if(type.vis != Visibility.inputOnly && map.name !in gqlSpecialOps) {
+	if(type.vis != Visibility.inputOnly
+			&& !canFind(gqlSpecialOps.values(), map.name))
+	{
 		formIndent(o, 0, "input %sIn {", map.name);
 		dumpMem(o, map, true, tab, mutationTypeName);
 		formIndent(o, 0, "}");
@@ -296,22 +512,27 @@ string typeToStringMaybeIn(const(GQLDType) t, bool inputType
 {
 	const baseTypeName = t.baseTypeName();
 	const bool isParamOrInputType = isParam || inputType;
+	auto bt = cast()baseType(t);
+	const bool isScalar = (toScalar(bt) !is null);
 	const bool baseTypeNameInTab = cast(bool)(baseTypeName in tab);
+	const bool baseTypeIsNotInputObject = bt.udaData.typeKind != TypeKind.INPUT_OBJECT;
 	const bool isNotInputOnly = baseTypeNameInTab && tab[baseTypeName].vis != Visibility.inputOnly;
 	const bool isNotInputOrOutput = baseTypeNameInTab && tab[baseTypeName].vis != Visibility.inputOrOutput;
 	if(isParam) {
-		writefln("\nt.name: %s\nbaseTypeName: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOnly: %s"
-				~ "\n%s"
-				, t.name, baseTypeName
-				, inputType, baseTypeNameInTab
-				, isNotInputOnly, isNotInputOrOutput
-				, tab.byKey
-				);
+		//writefln("bt: %s, name: %s, isParamOrInputType %s, isScalar %s",
+		//		bt.kind, baseTypeName, isParamOrInputType, isScalar);
+		//writefln("\nt.name: %s\nbaseTypeName: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOrOutput: %s"
+		//		~ "\n%s"
+		//		, t.name, baseTypeName
+		//		, inputType, baseTypeNameInTab
+		//		, isNotInputOnly, isNotInputOrOutput
+		//		, tab.byKey
+		//		);
 	}
-	return gqldTypeToString(t, isParamOrInputType
-				&& baseTypeNameInTab
-				&& isNotInputOnly
-				&& isNotInputOrOutput
+	return gqldTypeToString(t, isParamOrInputType && !isScalar && baseTypeIsNotInputObject
+				//&& baseTypeNameInTab
+				//&& isNotInputOnly
+				//&& isNotInputOrOutput
 			? "In"
 			: "");
 }
@@ -358,11 +579,4 @@ void dumpMem(Out)(ref Out o, const(GQLDMap) map, bool inputType
 		}
 	}
 }
-
-private string typeToDeprecationMessage(const(GQLDType) t) {
-	return t.deprecatedInfo.isDeprecated == IsDeprecated.yes
-		? ` @deprecated(reason: "`
-			~ t.deprecatedInfo.deprecationReason
-			~ `")`
-		: "";
-}
++/
