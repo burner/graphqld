@@ -1,10 +1,7 @@
 schema {
-	mutation: mutationType
-	query: queryType
-	subscription: subscriptionType
+	queryType: Query2
 }
-type mutationType { _: Boolean }
-type queryType {
+type Query2 {
 	maybeNull: Int
 	small: Small
 	manysmall: [Small!]!
@@ -12,24 +9,14 @@ type queryType {
 	foo: Int!
 	bar: Int!
 }
-type subscriptionType { _: Boolean }
 type Small {
 	name: String!
 	arg(a: Int!): [SmallChild!]!
 	id: Int!
 	foobar: [SmallChild!]!
 }
-input SmallIn {
-	name: String!
-	id: Int!
-	foobar: [SmallChildIn!]!
-}
 type SmallChild {
 	foo(a: Int!): Int!
-	id: Int!
-	name: String!
-}
-input SmallChildIn {
 	id: Int!
 	name: String!
 }
