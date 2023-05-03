@@ -1,7 +1,25 @@
 schema {
-	mutation: mutationType
-	query: queryType
-	subscription: subscriptionType
+	mutationType: Mutation
+	queryType: Query
+	subscriptionType: Subscription
+}
+type Query {
+	shipsselection(ids: [Int!]!): [Starship!]!
+	currentTime: DateTime!
+	starships(overSize: Float!): [Starship!]!
+	captain(series: Series!): Character!
+	humanoids: [Humanoid!]!
+	starship(id: Int!): Starship
+	starshipSimple2(id: Int!): StarshipSimple2
+	androids: [Android!]!
+	resolverWillThrow: [Android!]!
+	numberBetween(searchInput: InputIn!): Starship!
+	search(name: String!): SearchResult!
+	starshipSimple3(id: Int!): StarshipSimple3
+	starshipSimple(id: Int!): StarshipSimple
+	starshipDoesNotExist: Starship!
+	character(id: Int!): Character
+	alwaysEmpty: [Starship!]
 }
 type StarshipSimple {
 	commander: Character!
@@ -38,7 +56,7 @@ input AndroidIn {
 	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [CharacterIn!]!
 }
-type subscriptionType {
+type Subscription {
 	starships: [Starship!]!
 }
 enum Series {
@@ -123,27 +141,9 @@ input CharacterIn {
 	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [CharacterIn!]!
 }
-type mutationType {
+type Mutation {
 	getStupidestCrewman: Character!
 	addCrewman(input: AddCrewmanData!): Character!
-}
-type queryType {
-	shipsselection(ids: [Int!]!): [Starship!]!
-	currentTime: DateTime!
-	starships(overSize: Float!): [Starship!]!
-	captain(series: Series!): Character!
-	humanoids: [Humanoid!]!
-	starship(id: Int!): Starship
-	starshipSimple2(id: Int!): StarshipSimple2
-	androids: [Android!]!
-	resolverWillThrow: [Android!]!
-	numberBetween(searchInput: InputIn!): Starship!
-	search(name: String!): SearchResult!
-	starshipSimple3(id: Int!): StarshipSimple3
-	starshipSimple(id: Int!): StarshipSimple
-	starshipDoesNotExist: Starship!
-	character(id: Int!): Character
-	alwaysEmpty: [Starship!]
 }
 type Humanoid implements Character {
 	isDead: Boolean!
