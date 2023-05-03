@@ -1,11 +1,13 @@
 module graphql.schema.typeconversions;
 
-import std.array : empty;
+import std.array : array, empty;
 import std.algorithm.searching : canFind;
+import std.algorithm.iteration : map;
 import std.conv : to;
 import std.stdio;
 import std.traits;
 import std.meta;
+import std.format : format;
 import std.typecons : Nullable, nullable;
 import std.range : ElementEncodingType;
 
@@ -330,22 +332,22 @@ Json removeNonNullAndList(Json j) {
 }
 
 // remove the top nullable to find out if we have a NON_NULL or not
-Json typeToJson(Type,Schema)() {
+Json typeToJson(Type,Schema)(Schema schema) {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJson1!(F,Schema,Type)();
+		return typeToJson1!(F,Schema,Type)(schema);
 	} else static if(is(Type : NullableStore!F, F)) {
-		return typeToJson1!(Type.TypeValue,Schema,Type)();
+		return typeToJson1!(Type.TypeValue,Schema,Type)(schema);
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret[Constants.__typename] = "__Type";
-		ret["ofType"] = typeToJson1!(Type,Schema,Type)();
+		ret["ofType"] = typeToJson1!(Type,Schema,Type)(schema);
 		return ret;
 	}
 }
 
 // remove the array is present
-Json typeToJson1(Type,Schema,Orig)() {
+Json typeToJson1(Type,Schema,Orig)(Schema schema) {
 	static if(isArray!Type && !isSomeString!Type && !is(Type == enum)) {
 		Json ret = emptyType();
 		ret["kind"] = "LIST";
@@ -353,21 +355,21 @@ Json typeToJson1(Type,Schema,Orig)() {
 		ret["ofType"] = typeToJson2!(ElementEncodingType!Type, Schema, Orig)();
 		return ret;
 	} else {
-		return typeToJsonImpl!(Type, Schema, Orig)();
+		return typeToJsonImpl!(Type, Schema, Orig)(schema);
 	}
 }
 
 // remove another nullable
-Json typeToJson2(Type,Schema,Orig)() {
+Json typeToJson2(Type,Schema,Orig)(Schema schema) {
 	static if(is(Type : Nullable!F, F)) {
-		return typeToJsonImpl!(F, Schema, Orig)();
+		return typeToJsonImpl!(F, Schema, Orig)(schema);
 	} else static if(is(Type : NullableStore!F, F)) {
-		return typeToJsonImpl!(Type.TypeValue, Schema, Orig)();
+		return typeToJsonImpl!(Type.TypeValue, Schema, Orig)(schema);
 	} else {
 		Json ret = emptyType();
 		ret["kind"] = "NON_NULL";
 		ret[Constants.__typename] = "__Type";
-		ret["ofType"] = typeToJsonImpl!(Type, Schema, Orig)();
+		ret["ofType"] = typeToJsonImpl!(Type, Schema, Orig)(schema);
 		return ret;
 	}
 }
@@ -382,7 +384,7 @@ template notNullOrArray(T,S) {
 	}
 }
 
-Json typeToJsonImpl(Type,Schema,Orig)() {
+Json typeToJsonImpl(Type,Schema,Orig)(Schema schema) {
 	Json ret = Json.emptyObject();
 	enum string kind = typeToTypeEnum!(stripArrayAndNullable!Type);
 	ret["kind"] = kind;
@@ -445,12 +447,25 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 			// need to search for all types that we support that are derived
 			// from this type
 			ret[Constants.possibleTypesNames] = Json.emptyArray();
+			if(schema !is null) {
+				if(GQLDType gqldT = Type.stringof in schema.types) {
+					if(GQLDMap gqldM = toMap(gqldT)) {
+						ret[Constants.possibleTypesNames] =
+							gqldM.derivatives.map!(it => it.name.Json)
+							.array
+							.Json;
+					}
+				}
+
+			}
+			/*
 			foreach(tname;
 					SchemaReflection!Schema.instance.derivatives.get(typeid(Type),
 																	 null))
 			{
 				ret[Constants.possibleTypesNames] ~= tname;
 			}
+			*/
 		}
 	} else {
 		ret[Constants.possibleTypesNames] = Json(null);
@@ -491,7 +506,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 @safe unittest {
 	import std.format : format;
-	Json r = typeToJson!(string,void)();
+	Json r = typeToJson!(string)(null);
 	Json e = parseJsonString(`
 		{
 			"__typename": "__Type",
@@ -534,7 +549,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 	}
 
 	import std.format : format;
-	Json r = typeToJson!(FooBar,void)();
+	Json r = typeToJson!(FooBar)(null);
 	Json e = parseJsonString(`
 {
 	"__typename": "__Type",
@@ -580,7 +595,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 }
 @safe unittest {
 	import std.format : format;
-	Json r = typeToJson!(Nullable!string,void)();
+	Json r = typeToJson!(Nullable!string)(null);
 	Json e = parseJsonString(`
 		{
 			"__typename": "__Type",
@@ -603,7 +618,7 @@ Json typeToJsonImpl(Type,Schema,Orig)() {
 
 @safe unittest {
 	import std.format : format;
-	Json r = typeToJson!(Nullable!string,void)();
+	Json r = typeToJson!(Nullable!string)(null);
 	Json e = parseJsonString(`
 		{
 			"__typename": "__Type",
@@ -709,8 +724,17 @@ Json getField(Json j, string name) {
 	return Json.init;
 }
 
+string getIntrospectionFieldGQLD(string name) {
+	return name == Constants.__typename
+		? "String"
+		: name == Constants.__schema
+			? "__Schema"
+			: name == Constants.__type
+				? "__Type"
+				: format("Not known introspection name '%s'", name);
+}
+
 Json getIntrospectionField(string name) {
-	import std.format : format;
 	Json ret = Json.emptyObject();
 	ret[Constants.typenameOrig] = name == Constants.__typename
 		? "String"
