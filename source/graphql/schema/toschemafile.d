@@ -16,17 +16,21 @@ string schemaToString(T)(GQLDSchema!T sch) {
 
 	TraceableType[string] symTab;
 
+	foreach(it; [ "mutationType", "queryType", "subscriptionType"]) {
+		gqlSpecialOps[it] = sch.member[it].name;
+	}
+
 	formIndent(app, 0, "schema {");
 	foreach(it; gqlSpecialOps.byKeyValue) {
 		if(auto mem = it.key in sch.member) {
-			formIndent(app, 1, "%s: %s", it.value, mem.name);
+			formIndent(app, 1, "%s: %s", it.key, mem.name);
 			traceType(*mem, symTab);
 		}
 	}
 	formIndent(app, 0, "}");
 
 	foreach(type; symTab.byValue) {
-		typeImpl(app, type, symTab);
+		typeImpl(app, type, symTab, gqlSpecialOps["mutationType"]);
 	}
 
 	return app.data;
@@ -43,12 +47,7 @@ string schemaToString(T, Q)(GraphQLD!(T, Q) gqld) {
 
 private:
 
-static immutable string[string] gqlSpecialOps;
-shared static this() {
-	gqlSpecialOps = [ "mutationType":     "mutation",
-	                  "queryType":        "query",
-	                  "subscriptionType": "subscription"];
-}
+string[string] gqlSpecialOps;
 
 // for tracing; taken from gc algorithms
 enum Colour {
@@ -127,10 +126,11 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 		return Visibility.inputOrOutput;
 	}
 
+	writefln("traceType %s %s", t.baseTypeName, t.name);
 	if(t.baseTypeName in tab) {
 		return tab[t.baseTypeName].colour == Colour.black
-		 ? tab[t.baseTypeName].vis
-		 : max(tab[t.baseTypeName].vis, Visibility.indeterminate);
+			? tab[t.baseTypeName].vis
+			: max(tab[t.baseTypeName].vis, Visibility.indeterminate);
 	}
 
 	// identifies itself as an object, but we really want to dump it as a scalar
@@ -138,7 +138,8 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	                                 .allMember.byKey
 	                                 .filter!(m => !isNameSpecial(m))
 	                                 .empty)
-	    || cast(GQLDUnion)t) {
+	    || cast(GQLDUnion)t)
+	{
 		auto n = new GQLDScalar(GQLDKind.SimpleScalar);
 		n.name = t.name;
 		tab[n.name] = TraceableType(n, Colour.black, Visibility.inputOrOutput);
@@ -154,6 +155,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 		foreach(val; op.parameters.byValue) {
 			traceType(val, tab);
 		}
+		writeln(")");
 		return Visibility.inputAndOutput;
 	} else if(auto l = cast(GQLDList)t) {
 		return traceType(l.elementType, tab);
@@ -175,6 +177,7 @@ Visibility traceType(GQLDType t, ref TraceableType[string] tab) {
 	}
 
 	foreach(mem, val; map.allMember) {
+		writefln("%s.%s", map.name, mem);
 		if(isNameSpecial(mem) || isPrimitiveType(val)) {
 			continue;
 		}
@@ -226,7 +229,9 @@ string typeKindToString(TypeKind tk) {
 	}
 }
 
-void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) {
+void typeImpl(Out)(ref Out o, TraceableType type, ref TraceableType[string] tab
+		, const string mutationTypeName)
+{
 	assert(!isPrimitiveType(type.type) && !isNameSpecial(type.type.baseTypeName));
 
 	if(auto enu = cast(GQLDEnum)type.type) {
@@ -257,52 +262,6 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 		return;
 	}
 
-	void dumpMem(bool inputType) {
-		string typeToStringMaybeIn(const(GQLDType) t, bool isParam = false) {
-			return gqldTypeToString(t, (isParam || inputType) && t.baseTypeName in tab
-						&& tab[t.baseTypeName].vis != Visibility.inputOnly
-						&& tab[t.baseTypeName].vis != Visibility.inputOrOutput ? "In" : "");
-		}
-
-		foreach(mem, value; map.allMember) {
-			if(isNameSpecial(mem)
-					|| (inputType
-						&& (mem in map.outputOnlyMembers
-							|| (cast(GQLDOperation)value && map.name != "mutationType")
-							)
-						))
-			{
-				continue;
-			}
-
-			if(auto op = cast(GQLDOperation)value) {
-				if(op.parameters.keys().length) {
-					formIndent(o, 1, "%s(%s): %s%s", mem
-					        , op.parameters.byKeyValue()
-								.map!(kv => format("%s: %s", kv.key
-										, typeToStringMaybeIn(kv.value, true)))
-								.joiner(", ")
-					            .to!string
-					        , map.name == "mutationType"
-								? gqldTypeToString(op.returnType)
-					            : typeToStringMaybeIn(op.returnType)
-							, typeToDeprecationMessage(op));
-				} else {
-					// apparently graphql doesn't allow foo(): bar
-					// so special-case that and turn it into foo: bar
-					formIndent(o, 1, "%s: %s%s", mem
-					        , map.name == "mutationType"
-								? gqldTypeToString(op.returnType)
-					            : typeToStringMaybeIn(op.returnType)
-							, typeToDeprecationMessage(op));
-				}
-			} else {
-				formIndent(o, 1, "%s: %s%s", mem, typeToStringMaybeIn(value)
-						, typeToDeprecationMessage(value)
-						);
-			}
-		}
-	}
 
 	string implementsStr = "";
 	string typestr = "type";
@@ -316,7 +275,9 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 	}
 
 	formIndent(o, 0, "%s %s%s {", typestr, map.name, implementsStr);
-	dumpMem(map.name == "mutationType" || typestr == "input");
+	writefln("beforeDump %s %s %s", map.name, mutationTypeName, typestr);
+	dumpMem(o, map, map.name == mutationTypeName || typestr == "input", tab
+			, mutationTypeName);
 	formIndent(o, 0, "}");
 
 	if (type.vis == Visibility.indeterminate) {
@@ -325,8 +286,76 @@ void typeImpl(Out)(ref Out o, TraceableType type, in TraceableType[string] tab) 
 
 	if(type.vis != Visibility.inputOnly && map.name !in gqlSpecialOps) {
 		formIndent(o, 0, "input %sIn {", map.name);
-		dumpMem(true);
+		dumpMem(o, map, true, tab, mutationTypeName);
 		formIndent(o, 0, "}");
+	}
+}
+
+string typeToStringMaybeIn(const(GQLDType) t, bool inputType
+		, ref TraceableType[string] tab, bool isParam)
+{
+	const baseTypeName = t.baseTypeName();
+	const bool isParamOrInputType = isParam || inputType;
+	const bool baseTypeNameInTab = cast(bool)(baseTypeName in tab);
+	const bool isNotInputOnly = baseTypeNameInTab && tab[baseTypeName].vis != Visibility.inputOnly;
+	const bool isNotInputOrOutput = baseTypeNameInTab && tab[baseTypeName].vis != Visibility.inputOrOutput;
+	if(isParam) {
+		writefln("\nt.name: %s\nbaseTypeName: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOnly: %s"
+				~ "\n%s"
+				, t.name, baseTypeName
+				, inputType, baseTypeNameInTab
+				, isNotInputOnly, isNotInputOrOutput
+				, tab.byKey
+				);
+	}
+	return gqldTypeToString(t, isParamOrInputType
+				&& baseTypeNameInTab
+				&& isNotInputOnly
+				&& isNotInputOrOutput
+			? "In"
+			: "");
+}
+
+void dumpMem(Out)(ref Out o, const(GQLDMap) map, bool inputType
+		, ref TraceableType[string] tab, const string mutationTypeName)
+{
+	foreach(mem, value; map.allMember) {
+		if(isNameSpecial(mem)
+				|| (inputType
+					&& (mem in map.outputOnlyMembers
+						|| (cast(GQLDOperation)value && map.name != mutationTypeName)
+						)
+					))
+		{
+			continue;
+		}
+
+		if(auto op = cast(GQLDOperation)value) {
+			if(op.parameters.keys().length) {
+				formIndent(o, 1, "%s(%s): %s%s", mem
+						, op.parameters.byKeyValue()
+							.map!(kv => format("%s: %s", kv.key
+									, typeToStringMaybeIn(kv.value, inputType, tab, true)))
+							.joiner(", ")
+							.to!string
+						, map.name == mutationTypeName
+							? gqldTypeToString(op.returnType)
+							: typeToStringMaybeIn(op.returnType, inputType, tab, false)
+						, typeToDeprecationMessage(op));
+			} else {
+				// apparently graphql doesn't allow foo(): bar
+				// so special-case that and turn it into foo: bar
+				formIndent(o, 1, "%s: %s%s", mem
+						, map.name == mutationTypeName
+							? gqldTypeToString(op.returnType)
+							: typeToStringMaybeIn(op.returnType, inputType, tab, false)
+						, typeToDeprecationMessage(op));
+			}
+		} else {
+			formIndent(o, 1, "%s: %s%s", mem, typeToStringMaybeIn(value, inputType, tab, false)
+					, typeToDeprecationMessage(value)
+					);
+		}
 	}
 }
 

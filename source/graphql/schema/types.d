@@ -757,9 +757,9 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 								);
 						static foreach(idx; 0 .. paraNames.length) {{
 							GQLDType p = typeToGQLDType!(paraTypes[idx])(ret, true);
-							static if(idx + 1 < paraNames.length) {
+							static if(idx < paraNames.length) {
 								enum udaPAS = filterGQLDUdaParameter!(__traits(getAttributes, paraTypes[idx .. idx + 1]));
-								static if(is(udaPAS : AliasSeq!())) {
+								static if(udaPAS.length == 0) {
 									enum GQLDUdaData udaP = GQLDUdaData.init;
 								} else {
 									enum GQLDUdaData udaP = udaPAS[0];
