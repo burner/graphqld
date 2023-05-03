@@ -88,7 +88,7 @@ void main() {
 	}
 
 	testSchemaDump("schema.gql", schemaToString(graphqld));
-	//testSchemaDump("schema2.gql", schemaToString!Schema2());
+	testSchemaDump("schema2.gql", schemaToString!Schema2());
 
 	graphqld.setResolver("Query", "search",
 			delegate(string name, Json parent, Json args,

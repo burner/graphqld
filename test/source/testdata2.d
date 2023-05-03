@@ -27,12 +27,6 @@ interface Query2 {
 	long neverNull();
 }
 
-interface Mutation2 {
-}
-
-interface Subscription2 {
-}
-
 class Schema2 {
 	Query2 queryType;
 	DefaultDirectives directives;
