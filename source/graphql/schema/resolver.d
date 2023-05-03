@@ -51,10 +51,14 @@ GQLDSchema!(Type) toSchema(Type)() {
 			ret.member[QMSType.stringof] = cur;
 			ret.types[qms] = cur;
 			ret.types[QMSType.stringof] = cur;
+			ret.__schema.member[qms] = cur;
+			ret.__schema.member[QMSType.stringof] = cur;
 			if(qms == "queryType") {
 				ret.types["__schema"] = ret.__schema;
 				cur.member["__schema"] = ret.__schema;
 				cur.member["__type"] = ret.__nonNullType;
+				ret.__schema.member["__schema"] = ret.__schema;
+				ret.__schema.member["__type"] = ret.__nonNullType;
 			}
 		}
 	}}
