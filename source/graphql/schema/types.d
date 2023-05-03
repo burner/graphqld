@@ -75,6 +75,7 @@ class GQLDLeaf : GQLDScalar {
 	this(string name) {
 		super(GQLDKind.CustomLeaf);
 		super.name = name;
+		super.typeKind = TypeKind.SCALAR;
 	}
 
 	override string toString() const {
@@ -86,6 +87,7 @@ class GQLDString : GQLDScalar {
 	this() {
 		super(GQLDKind.String);
 		super.name = "String";
+		super.typeKind = TypeKind.SCALAR;
 	}
 
 	override string toString() const {
@@ -97,6 +99,7 @@ class GQLDFloat : GQLDScalar {
 	this() {
 		super(GQLDKind.Float);
 		super.name = "Float";
+		super.typeKind = TypeKind.SCALAR;
 	}
 
 	override string toString() const {
@@ -108,6 +111,7 @@ class GQLDInt : GQLDScalar {
 	this() {
 		super(GQLDKind.Int);
 		super.name = "Int";
+		super.typeKind = TypeKind.SCALAR;
 	}
 
 	override string toString() const {
@@ -122,9 +126,10 @@ class GQLDEnum : GQLDScalar {
 	// https://www.apollographql.com/docs/apollo-server/schema/scalars-enums/#internal-values ?
 	this(string enumName, string[] memberNames = []) {
 		super(GQLDKind.Enum);
+		super.name = enumName;
+		super.typeKind = TypeKind.SCALAR;
 		this.enumName = enumName;
 		this.memberNames = memberNames;
-		super.name = enumName;
 	}
 
 	override string toString() const {
@@ -768,7 +773,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			GQLDObject r;
 			r = tuda.typeKind != TypeKind.UNDEFINED
 				? new GQLDObject(Type.stringof, tuda.typeKind)
-				: new GQLDObject(Type.stringof);
+				: new GQLDObject(Type.stringof, typeToTypeEnum!Type(tuda));
 			r.deprecatedInfo = tuda.deprecationInfo;
 			ret.types[Type.stringof] = r;
 			r.udaData = tuda;
@@ -806,7 +811,6 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 							(ret, false);
 					r.base = d;
 					d.addDerivative(r);
-
 				}
 				assert(bct.length > 1 ? r.base !is null : true);
 			}
@@ -841,6 +845,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 								);
 						static foreach(idx; 0 .. paraNames.length) {{
 							GQLDType p = typeToGQLDType!(paraTypes[idx])(ret, true);
+							p.typeKind = typeToTypeEnum!(paraTypes[idx])(GQLDUdaData.init);
 							static if(idx < paraNames.length) {
 								enum udaPAS = filterGQLDUdaParameter!(__traits(getAttributes, paraTypes[idx .. idx + 1]));
 								static if(udaPAS.length == 0) {
@@ -864,12 +869,14 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 	} else {
 		static assert(false, Type.stringof);
 	}
+	retValue.udaData = tuda;
+	retValue.typeKind = typeToTypeEnum!Type(tuda);
 	if(wrapInNonNull) {
+		assert(retValue.typeKind != TypeKind.UNDEFINED, format("%s", retValue));
 		auto realRet = new GQLDNonNull(retValue);
-		realRet.udaData = tuda;
-		realRet.typeKind = typeToTypeEnum!Type(tuda);
 		return realRet;
 	} else {
+		assert(retValue.typeKind != TypeKind.UNDEFINED, format("%s", retValue));
 		return retValue;
 	}
 }
@@ -886,6 +893,8 @@ GQLDType unpack2(GQLDType t) {
 		return unpack2(nn.elementType);
 	} else if(GQLDNullable nn = toNullable(t)) {
 		return unpack2(nn.elementType);
+	} else if(GQLDOperation nn = toOperation(t)) {
+		return unpack2(nn.returnType);
 	} else if(GQLDList nn = toList(t)) {
 		return unpack2(nn.elementType);
 	}

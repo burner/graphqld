@@ -110,6 +110,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 		setDefaultSchemaResolver(this);
 		initializeDefaultArgFunctions();
+		writeln("\n\n\n\n");
+		//foreach(key, value; this.resolver) {
+		//	writefln("%s %s", key, value);
+		//}
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {

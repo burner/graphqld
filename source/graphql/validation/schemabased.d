@@ -85,46 +85,30 @@ class SchemaValidator(Schema) : Visitor {
 
 	DirectiveEntry[] directiveStack;
 
+	this(const(Document) doc, GQLDSchema!(Schema) schema) {
+		import graphql.schema.introspectiontypes : IntrospectionTypes;
+		this.doc = doc;
+		this.schema = schema;
+		this.schemaStack ~= TypePlusName(
+				this.schema.__schema
+				, typeof(schema).stringof
+			);
+	}
+
 	void addToTypeStack(string name) {
-		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
+		writefln("\naddToTypeStack %s %s", name, this.schemaStack.map!(i => i.type.name));
+		GQLDMap backMap = toMap(this.schemaStack.back.type.unpack2());
+		//enforce!FieldDoesNotExist(backMap !is null,
+		//		format("Type '%s' does not have fields",
+		//			this.schemaStack.back.name));
 
+		GQLDType t = this.schema.getReturnType(this.schemaStack.back.type, name);
+		enforce!VariablesNotUniqueException(t !is null
+				, format("No returnType for field '%s' %s", name
+					, this.schemaStack.map!(i => i.type.name))
+			);
+		GQLDType un = t.unpack2();
 		/*
-		enforce!FieldDoesNotExist(
-				Constants.fields in this.schemaStack.back.type,
-				format("Type '%s' does not have fields",
-					this.schemaStack.back.name)
-			);
-
-		enforce!FieldDoesNotExist(
-				this.schemaStack.back.type.type == Json.Type.object,
-				format("Field '%s' of type '%s' is not a Json.Type.object",
-					name, this.schemaStack.back.name)
-			);
-
-		immutable toFindIn = [Constants.__typename, Constants.__schema,
-					Constants.__type];
-		Json field = canFind(toFindIn, name)
-			? getIntrospectionField(name)
-			: this.schemaStack.back.type.getField(name);
-		enforce!FieldDoesNotExist(
-				field.type == Json.Type.object,
-				format("Type '%s' does not have fields named '%s'",
-					this.schemaStack.back.name, name)
-			);
-
-
-		//writefln("%s %s %s", __LINE__, name, field.toString());
-		string followType = field[Constants.typenameOrig].get!string();
-		string old = followType;
-		StringTypeStrip stripped = followType.stringTypeStrip();
-		this.addTypeToStackImpl(name, stripped.str, old);
-		*/
-		GQLDMap backMap = toMap(this.schemaStack.back.type);
-		enforce!FieldDoesNotExist(backMap !is null,
-				format("Type '%s' does not have fields",
-					this.schemaStack.back.name));
-
-		GQLDType* t = name in backMap.member;
 		immutable toFindIn = [Constants.__typename, Constants.__schema,
 					Constants.__type];
 		if(canFind(toFindIn, name)) {
@@ -133,45 +117,13 @@ class SchemaValidator(Schema) : Visitor {
 			t = name in backMap.member;
 		}
 		enforce!FieldDoesNotExist(t !is null
-				,format("Type '%s' does not have fields named '%s' but [%--(%s, %)]"
+				, format("Type '%s' does not have fields named '%s' but [%--(%s, %)]"
 					, this.schemaStack.back.name, name
 					, backMap.member.byKey())
 			);
-		this.addTypeToStackImpl(name, (*t).unpack2().name, "");
-	}
-
-	void addTypeToStackImpl(string name, string followType, string old) {
-		if(auto tp = followType in this.schema.types) {
-			this.schemaStack ~= TypePlusName((*tp).unpack2(), name);
-		} else if(followType == "__Type") {
-			this.schemaStack ~= TypePlusName(this.schema.__type, name);
-		} else if(followType == "__Schema") {
-			this.schemaStack ~= TypePlusName(this.schema.__schema, name);
-		} else {
-			throw new UnknownTypeName(
-					  format("No type with name '%s' '%s' is known",
-							 followType, old), __FILE__, __LINE__);
-		}
-	}
-
-	this(const(Document) doc, GQLDSchema!(Schema) schema) {
-		import graphql.schema.introspectiontypes : IntrospectionTypes;
-		this.doc = doc;
-		this.schema = schema;
-		//static void buildTypeMap(T)(ref Json[string] map) {
-		//	static if(is(T == stripArrayAndNullable!T)) {
-		//		map[typeToTypeName!T] =
-		//		   	removeNonNullAndList(typeToJson!(T)(schema));
-		//	}
-		//}
-		//execForAllTypes!(Schema, buildTypeMap)(typeMap);
-		//foreach(T; IntrospectionTypes) {
-		//	buildTypeMap!T(typeMap);
-		//}
-		this.schemaStack ~= TypePlusName(
-				this.schema.__schema
-				, typeof(schema).stringof
-			);
+		GQLDType un = (*t).unpack2();
+		writefln("%s", un.name);*/
+		this.schemaStack ~= TypePlusName(un, un.name);
 	}
 
 	override void enter(const(Directive) dir) {
@@ -219,10 +171,11 @@ class SchemaValidator(Schema) : Visitor {
 
 	override void enter(const(FragmentSpread) fragSpread) {
 		enum uo = [TypeKind.OBJECT, TypeKind.UNION, TypeKind.INTERFACE];
-		enforce!FragmentNotOnCompositeType(canFind(uo,
-					this.schemaStack.back.type.typeKind),
-				format("'%s' is not an %(%s, %)",
-					this.schemaStack.back.type.toString(), uo)
+		enforce!FragmentNotOnCompositeType(canFind(uo
+					, this.schemaStack.back.type.typeKind),
+				format("'%s' is not an %(%s, %) but '%s'"
+					, this.schemaStack.back.type.toString(), uo
+					, this.schemaStack.back.type.typeKind)
 			);
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
@@ -235,7 +188,7 @@ class SchemaValidator(Schema) : Visitor {
 				|| op.ot.ruleSelection == OperationTypeEnum.Query
 			? "queryType"
 			: op.ot.ruleSelection == OperationTypeEnum.Mutation
-				?	"mutationType"
+				? "mutationType"
 				: op.ot.ruleSelection == OperationTypeEnum.Sub
 					? "subscriptionType"
 					: "";
@@ -261,7 +214,14 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(InlineFragment) inF) {
-		this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
+		//this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
+		if(auto tp = inF.tc.value in this.schema.types) {
+			this.schemaStack ~= TypePlusName((*tp).unpack2(), inF.tc.value);
+		} else {
+			throw new UnknownTypeName(
+					  format("No type with name '%s' is known",
+							 inF.tc.value), __FILE__, __LINE__);
+		}
 	}
 
 	override void exit(const(Selection) op) {
