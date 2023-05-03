@@ -3,6 +3,9 @@ schema {
 	queryType: Query
 	subscriptionType: Subscription
 }
+type Subscription {
+	starships: [Starship!]!
+}
 type Query {
 	shipsselection(ids: [Int!]!): [Starship!]!
 	currentTime: DateTime!
@@ -14,7 +17,7 @@ type Query {
 	androids: [Android!]!
 	resolverWillThrow: [Android!]!
 	numberBetween(searchInput: InputIn!): Starship!
-	search(name: String!): SearchResult!
+	search(name: String!): SearchResult! @deprecated(reason: "To complex")
 	starshipSimple3(id: Int!): StarshipSimple3
 	starshipSimple(id: Int!): StarshipSimple
 	starshipDoesNotExist: Starship!
@@ -24,10 +27,6 @@ type Query {
 type StarshipSimple {
 	commander: Character!
 }
-input StarshipSimpleIn {
-	commander: CharacterIn!
-}
-scalar Date
 type Android implements Character {
 	isDead: Boolean!
 	ships: Starship
@@ -42,23 +41,6 @@ type Android implements Character {
 	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
-input AndroidIn {
-	isDead: Boolean!
-	ships: StarshipIn
-	series: [Series!]!
-	id: Int!
-	ship: StarshipIn
-	primaryFunction: String!
-	name: String!
-	allwaysNull: StarshipIn
-	commands: [CharacterIn!]!
-	alsoAllwaysNull: Int
-	someOldField: Int! @deprecated(reason: "Stupid name")
-	commanders: [CharacterIn!]!
-}
-type Subscription {
-	starships: [Starship!]!
-}
 enum Series {
 	TheOriginalSeries,
 	TheNextGeneration,
@@ -67,13 +49,9 @@ enum Series {
 	Enterprise,
 	Discovery,
 }
-type Input {
-	first: Int!
-	after: String
-}
-input InputIn {
-	first: Int!
-	after: String
+type Mutation {
+	getStupidestCrewman: Character!
+	addCrewman(input: AddCrewmanData!): Character!
 }
 type Starship {
 	series: [Series]!
@@ -84,36 +62,19 @@ type Starship {
 	crew: [Character!]!
 	designation: String!
 }
-input StarshipIn {
-	series: [Series]!
-	id: Int!
-	commander: CharacterIn!
-	name: String!
-	size: Float!
-	crew: [CharacterIn!]!
-	designation: String!
+type Input {
+	first: Int!
+	after: String
+}
+input InputIn {
+	first: Int!
+	after: String
 }
 type StarshipSimple2 {
 	id: Int!
 }
-input StarshipSimple2In {
-	id: Int!
-}
-input Vector {
-	y: Float!
-	x: Float!
-}
 type StarshipSimple3 {
 	series: [Series]!
-}
-input StarshipSimple3In {
-	series: [Series]!
-}
-input AddCrewmanData {
-	shipId: Int!
-	location: Vector!
-	series: [Series!]!
-	name: String!
 }
 interface Character {
 	isDead: Boolean!
@@ -128,22 +89,15 @@ interface Character {
 	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
-input CharacterIn {
-	isDead: Boolean!
-	ships: StarshipIn
+input AddCrewmanData {
+	shipId: Int!
+	location: Vector!
 	series: [Series!]!
-	id: Int!
-	ship: StarshipIn
 	name: String!
-	allwaysNull: StarshipIn
-	commands: [CharacterIn!]!
-	alsoAllwaysNull: Int
-	someOldField: Int! @deprecated(reason: "Stupid name")
-	commanders: [CharacterIn!]!
 }
-type Mutation {
-	getStupidestCrewman: Character!
-	addCrewman(input: AddCrewmanData!): Character!
+input Vector {
+	y: Float!
+	x: Float!
 }
 type Humanoid implements Character {
 	isDead: Boolean!
@@ -160,20 +114,6 @@ type Humanoid implements Character {
 	someOldField: Int! @deprecated(reason: "Stupid name")
 	commanders: [Character!]!
 }
-input HumanoidIn {
-	isDead: Boolean!
-	ships: StarshipIn
-	series: [Series!]!
-	id: Int!
-	ship: StarshipIn
-	dateOfBirth: Date!
-	name: String!
-	species: String!
-	allwaysNull: StarshipIn
-	commands: [CharacterIn!]!
-	alsoAllwaysNull: Int
-	someOldField: Int! @deprecated(reason: "Stupid name")
-	commanders: [CharacterIn!]!
-}
-scalar SearchResult
+scalar Date
+union SearchResult = Humanoid | Android | Starship
 scalar DateTime

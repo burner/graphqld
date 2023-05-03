@@ -180,10 +180,11 @@ unittest {
 }
 
 bool dataIsNull(ref const(Json) data) {
-	import std.format : format;
-	enforce(data.type == Json.Type.object, format("%s", data));
-	if(const(Json)* d = "data" in data) {
-		return d.type == Json.Type.null_;
+	//enforce(data.type == Json.Type.object, format("%s", data));
+	if(data.type == Json.Type.object) {
+		if(const(Json)* d = "data" in data) {
+			return d.type == Json.Type.null_;
+		}
 	}
 	return false;
 }
