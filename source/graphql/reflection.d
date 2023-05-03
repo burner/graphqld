@@ -6,6 +6,7 @@ import vibe.data.json;
 
 @safe:
 
+/*
 package struct TypeWithStrippedName {
 	Json typeJson;
 	string name;
@@ -73,3 +74,4 @@ private void builderPhase2(T,Schema)(ref SchemaReflection!Schema ths) {
 							 stripped.stringof,
 							 is(stripArrayAndNullable!T == T));
 }
+*/

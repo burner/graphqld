@@ -50,6 +50,7 @@ abstract class GQLDType {
 	string name;
 	string description;
 	GQLDUdaData udaData;
+	TypeKind typeKind;
 
 	this(GQLDKind kind) {
 		this.kind = kind;
@@ -635,6 +636,40 @@ string toShortString(const(GQLDType) e) {
 	}
 }
 
+TypeKind typeToTypeEnum(Type)(GQLDUdaData uda) {
+	if(uda.typeKind != TypeKind.UNDEFINED) {
+		return uda.typeKind;
+	} else {
+		static if(is(Type : Nullable!F, F)) {
+			return typeToTypeEnum!F(uda);
+		} else static if(isCallable!Type) {
+			return typeToTypeEnum!(ReturnType!Type)(uda);
+		} else static if(is(Type == enum)) {
+			return TypeKind.ENUM;
+		} else static if(is(Type == bool)) {
+			return TypeKind.SCALAR;
+		} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
+			return TypeKind.SCALAR;
+		} else static if(isFloatingPoint!(Type)) {
+			return TypeKind.SCALAR;
+		} else static if(isIntegral!(Type)) {
+			return TypeKind.SCALAR;
+		} else static if(isSomeString!Type) {
+			return TypeKind.SCALAR;
+		} else static if(isArray!Type) {
+			return typeToTypeEnum!(ElementEncodingType!Type)(uda);
+		} else static if(is(Type == void)) {
+			return TypeKind.SCALAR;
+		} else static if(is(Type == union)) {
+			return TypeKind.UNION;
+		} else static if(isAggregateType!Type) {
+			return TypeKind.OBJECT;
+		} else {
+			static assert(false, Type.stringof ~ " not handled");
+		}
+	}
+}
+
 GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 	alias TypeUQ = Unqual!TypeQ;
 	alias Type = TypeQ;
@@ -650,19 +685,24 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			ret.types[Type.stringof] = r;
 		}
 		r.udaData = tuda;
+		r.typeKind = typeToTypeEnum!Type(tuda);
 		retValue = r;
 	} else static if(is(Type == bool) || is(TypeUQ == bool)) {
 		retValue = new GQLDBool();
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(isFloatingPoint!(Type) || isFloatingPoint!(TypeUQ)) {
 		retValue = new GQLDFloat();
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(isIntegral!(Type) || isIntegral!(TypeUQ)) {
 		retValue = new GQLDInt();
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(isSomeString!Type) {
 		retValue = new GQLDString();
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(is(Type == union)) {
 		GQLDUnion r;
 		if(Type.stringof in ret.types) {
@@ -685,6 +725,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			}}
 		}
 		r.udaData = tuda;
+		r.typeKind = typeToTypeEnum!Type(tuda);
 		retValue = r;
 	} else static if(is(Type : Nullable!F, F)) {
 		auto et = typeToGQLDType!(F)(ret, false);
@@ -694,10 +735,12 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			retValue = new GQLDNullable(et);
 		}
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 		wrapInNonNull = false;
 	} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
 		retValue = new GQLDLeaf(Fs[0].stringof);
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(is(Type : NullableStore!F, F)) {
 		auto et = typeToGQLDType!(F)(ret, false);
 		if(GQLDNullable etN = toNullable(et)) {
@@ -706,10 +749,12 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			retValue = new GQLDNullable(et);
 		}
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 		wrapInNonNull = false;
 	} else static if(isArray!Type) {
 		retValue = new GQLDList(typeToGQLDType!(ElementEncodingType!Type)(ret, true));
 		retValue.udaData = tuda;
+		retValue.typeKind = typeToTypeEnum!Type(tuda);
 	} else static if(isAggregateType!Type) {
 		import graphql.uda;
 
@@ -725,6 +770,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 			r.deprecatedInfo = tuda.deprecationInfo;
 			ret.types[Type.stringof] = r;
 			r.udaData = tuda;
+			r.typeKind = typeToTypeEnum!Type(tuda);
 
 			alias fieldNames = FieldNameTuple!(Type);
 			alias fieldTypes = Fields!(Type);
@@ -742,6 +788,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 						auto tmp = typeToGQLDType!(fieldTypes[idx])(ret, true);
 						tmp.deprecatedInfo = uda.deprecationInfo;
 						tmp.udaData = uda;
+						tmp.typeKind = typeToTypeEnum!Type(uda);
 						r.member[fieldNames[idx]] = tmp;
 						static if(uda.ignoreForInput == IgnoreForInput.yes) {
 							r.outputOnlyMembers.insert(fieldNames[idx]);
@@ -777,6 +824,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 					) {
 						GQLDOperation op = new GQLDQuery();
 						op.udaData = uda;
+						op.typeKind = typeToTypeEnum!MemType(uda);
 						op.deprecatedInfo = uda.deprecationInfo;
 
 						r.member[mem] = op;
@@ -799,6 +847,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 									enum GQLDUdaData udaP = udaPAS[0];
 								}
 								p.udaData = udaP;
+								p.typeKind = typeToTypeEnum!(paraTypes[idx])(udaPAS);
 							}
 							op.parameters[paraNames[idx]] = p;
 						}}
@@ -816,6 +865,7 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 	if(wrapInNonNull) {
 		auto realRet = new GQLDNonNull(retValue);
 		realRet.udaData = tuda;
+		realRet.typeKind = typeToTypeEnum!Type(tuda);
 		return realRet;
 	} else {
 		return retValue;

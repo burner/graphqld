@@ -436,7 +436,7 @@ string[] basesOfType(Sch)(Sch schema, string typename) {
 
 string[] interfacesForType(Schema)(Schema schema, string typename) {
 	import std.algorithm.searching : canFind;
-	import graphql.reflection : SchemaReflection;
+	//import graphql.reflection : SchemaReflection;
 	//if(auto result = typename in SchemaReflection!Schema.instance.bases) {
 	//	return *result;
 	//}

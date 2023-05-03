@@ -22,6 +22,8 @@ import graphql.schema.types;
 import graphql.schema.helper;
 import graphql.validation.exception;
 import graphql.helper : lexAndParse;
+import graphql.schema.types;
+import graphql.uda;
 
 @safe:
 
@@ -44,7 +46,7 @@ enum IsSubscription {
 }
 
 struct TypePlusName {
-	Json type;
+	GQLDType type;
 	string name;
 
 	string toString() const {
@@ -86,6 +88,7 @@ class SchemaValidator(Schema) : Visitor {
 	void addToTypeStack(string name) {
 		//writefln("\n\nFoo '%s' %s", name, this.schemaStack.map!(a => a.name));
 
+		/*
 		enforce!FieldDoesNotExist(
 				Constants.fields in this.schemaStack.back.type,
 				format("Type '%s' does not have fields",
@@ -115,11 +118,30 @@ class SchemaValidator(Schema) : Visitor {
 		string old = followType;
 		StringTypeStrip stripped = followType.stringTypeStrip();
 		this.addTypeToStackImpl(name, stripped.str, old);
+		*/
+		GQLDMap backMap = toMap(this.schemaStack.back.type);
+		enforce!FieldDoesNotExist(backMap !is null,
+				format("Type '%s' does not have fields",
+					this.schemaStack.back.name));
+
+		GQLDType* t = name in backMap.member;
+		immutable toFindIn = [Constants.__typename, Constants.__schema,
+					Constants.__type];
+		if(canFind(toFindIn, name)) {
+			t = name in this.schema.types;
+		} else {
+			t = name in backMap.member;
+		}
+		enforce!FieldDoesNotExist(t !is null
+				,format("Type '%s' does not have fields named '%s'",
+					this.schemaStack.back.name, name)
+			);
+		this.addTypeToStackImpl(name, t.name, "");
 	}
 
 	void addTypeToStackImpl(string name, string followType, string old) {
-		if(auto tp = followType in typeMap) {
-			this.schemaStack ~= TypePlusName(tp.clone, name);
+		if(auto tp = followType in this.schema.types) {
+			this.schemaStack ~= TypePlusName(*tp, name);
 		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' '%s' is known",
@@ -131,19 +153,19 @@ class SchemaValidator(Schema) : Visitor {
 		import graphql.schema.introspectiontypes : IntrospectionTypes;
 		this.doc = doc;
 		this.schema = schema;
-		static void buildTypeMap(T)(ref Json[string] map) {
-			static if(is(T == stripArrayAndNullable!T)) {
-				map[typeToTypeName!T] =
-				   	removeNonNullAndList(typeToJson!(T, Schema)());
-			}
-		}
-		execForAllTypes!(Schema, buildTypeMap)(typeMap);
-		foreach(T; IntrospectionTypes) {
-			buildTypeMap!T(typeMap);
-		}
+		//static void buildTypeMap(T)(ref Json[string] map) {
+		//	static if(is(T == stripArrayAndNullable!T)) {
+		//		map[typeToTypeName!T] =
+		//		   	removeNonNullAndList(typeToJson!(T)(schema));
+		//	}
+		//}
+		//execForAllTypes!(Schema, buildTypeMap)(typeMap);
+		//foreach(T; IntrospectionTypes) {
+		//	buildTypeMap!T(typeMap);
+		//}
 		this.schemaStack ~= TypePlusName(
-				removeNonNullAndList(typeToJson!(Schema,Schema)()),
-				Schema.stringof
+				this.schema.__schema
+				, typeof(schema).stringof
 			);
 	}
 
@@ -181,8 +203,8 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(FragmentDefinition) fragDef) {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
-		if(auto tp = typeName in typeMap) {
-			this.schemaStack ~= TypePlusName(tp.clone, typeName);
+		if(auto tp = typeName in this.schema.types) {
+			this.schemaStack ~= TypePlusName(*tp, typeName);
 		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' is known", typeName),
@@ -191,12 +213,11 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(FragmentSpread) fragSpread) {
-		enum uo = ["OBJECT", "UNION", "INTERFACE"];
-		enforce!FragmentNotOnCompositeType(
-				"kind" in this.schemaStack.back.type
-				&& canFind(uo, this.schemaStack.back.type["kind"].get!string()),
+		enum uo = [TypeKind.OBJECT, TypeKind.UNION, TypeKind.INTERFACE];
+		enforce!FragmentNotOnCompositeType(canFind(uo,
+					this.schemaStack.back.type.typeKind),
 				format("'%s' is not an %(%s, %)",
-					this.schemaStack.back.type.toPrettyString(), uo)
+					this.schemaStack.back.type.toString(), uo)
 			);
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
@@ -220,11 +241,11 @@ class SchemaValidator(Schema) : Visitor {
 	override void accept(const(Field) f) {
 		super.accept(f);
 		enforce!LeafIsNotAScalar(f.ss !is null ||
-				(this.schemaStack.back.type["kind"].get!string() == "SCALAR"
-				|| this.schemaStack.back.type["kind"].get!string() == "ENUM"),
+				(this.schemaStack.back.type.typeKind == TypeKind.SCALAR
+				|| this.schemaStack.back.type.typeKind == TypeKind.ENUM),
 				format("Leaf field '%s' is not a SCALAR but '%s'",
 					this.schemaStack.back.name,
-					this.schemaStack.back.type.toPrettyString())
+					this.schemaStack.back.type.toString())
 				);
 	}
 
@@ -259,6 +280,7 @@ class SchemaValidator(Schema) : Visitor {
 		if(this.directiveStack.empty) {
 			const parent = this.schemaStack[$ - 2];
 			const curName = this.schemaStack.back.name;
+			GQLDMap* asMap = toMap(this.schemaStack.back.type);
 			auto fields = parent.type[Constants.fields];
 			if(fields.type != Json.Type.Array) {
 				return;

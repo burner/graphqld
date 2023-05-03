@@ -811,10 +811,10 @@ template isNotInTypeSet(T, R...) {
 	enum isNotInTypeSet = staticIndexOf!(T, R) == -1;
 }
 
-string getTypename(Schema,T)(auto ref T input) @trusted {
+string getTypename(Schema,T)(auto ref T input, Schema schema) @trusted {
 	//pragma(msg, T);
 	//writefln("To %s", T.stringof);
-	static if(!isClass!(T)) {
+	/*static if(!isClass!(T)) {
 		return T.stringof;
 	} else {
 		// fetch the typeinfo of the item, and compare it down until we get to a
@@ -830,9 +830,15 @@ string getTypename(Schema,T)(auto ref T input) @trusted {
 		}
 		return T.stringof;
 	}
+	*/
+	return T.stringof;
+	//if(schema is null) {
+	//} else {
+
+	//}
 }
 
-Json toGraphqlJson(Schema,T)(auto ref T input) {
+Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 	import std.array : empty;
 	import std.conv : to;
 	import std.typecons : Nullable;
@@ -844,13 +850,13 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 	static if(isArray!T && !isSomeString!T) {
 		Json ret = Json.emptyArray();
 		foreach(ref it; input) {
-			ret ~= toGraphqlJson!Schema(it);
+			ret ~= toGraphqlJson(it, schema);
 		}
 		return ret;
 	} else static if(is(T : GQLDCustomLeaf!Type, Type...)) {
 		return Json(Type[1](input));
 	} else static if(is(T : Nullable!Type, Type)) {
-		return input.isNull() ? Json(null) : toGraphqlJson!Schema(input.get());
+		return input.isNull() ? Json(null) : toGraphqlJson(input.get(), schema);
 	} else static if(is(T == enum)) {
 		return Json(to!string(input));
 	} else static if(isBasicType!T || isScalarType!T || isSomeString!T) {
@@ -859,7 +865,7 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 		Json ret = Json.emptyObject();
 
 		// the important bit is the setting of the __typename field
-		ret["__typename"] = getTypename!(Schema)(input);
+		ret["__typename"] = getTypename!(Schema)(input, schema);
 		//writefln("Got %s", ret["__typename"].to!string());
 
 		alias names = FieldNameTuple!(T);
@@ -873,8 +879,9 @@ Json toGraphqlJson(Schema,T)(auto ref T input) {
 					ret[names[idx]] =
 						to!string(__traits(getMember, input, names[idx]));
 				} else {
-					ret[names[idx]] = toGraphqlJson!Schema(
+					ret[names[idx]] = toGraphqlJson(
 							__traits(getMember, input, names[idx])
+							, schema
 						);
 				}
 			}
@@ -917,7 +924,7 @@ unittest {
 	Foo foo;
 	foo.dt2 = DT(dt2);
 	foo.dt = nullable(DT(dt));
-	Json j = toGraphqlJson!int(foo);
+	Json j = toGraphqlJson(foo, null);
 	assert(j["a"].to!int() == 0);
 	assert(j["b"].type == Json.Type.null_);
 	assert(j["dt"].type == Json.Type.string, format("%s\n%s", j["dt"].type,
