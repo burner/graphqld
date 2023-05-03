@@ -353,7 +353,9 @@ class GQLDSchema(Type) : GQLDMap {
 		this.types["Int"] = new GQLDInt();
 		this.types["Float"] = new GQLDFloat();
 		this.types["Boolean"] = new GQLDBool();
-		//foreach(t; ["String", "Int", "Float", "Boolean"]) {
+		foreach(t; ["String", "Int", "Float", "Boolean"]) {
+			this.types[t].typeKind = TypeKind.SCALAR;
+		}
 		//	GQLDObject tmp = new GQLDObject(t);
 		//	this.types[t] = tmp;
 		//	tmp.member[Constants.name] = new GQLDString();
@@ -875,6 +877,17 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 GQLDType unpack(GQLDType t) {
 	if(GQLDNonNull nn = toNonNull(t)) {
 		return nn.elementType;
+	}
+	return t;
+}
+
+GQLDType unpack2(GQLDType t) {
+	if(GQLDNonNull nn = toNonNull(t)) {
+		return unpack2(nn.elementType);
+	} else if(GQLDNullable nn = toNullable(t)) {
+		return unpack2(nn.elementType);
+	} else if(GQLDList nn = toList(t)) {
+		return unpack2(nn.elementType);
 	}
 	return t;
 }

@@ -133,15 +133,20 @@ class SchemaValidator(Schema) : Visitor {
 			t = name in backMap.member;
 		}
 		enforce!FieldDoesNotExist(t !is null
-				,format("Type '%s' does not have fields named '%s'",
-					this.schemaStack.back.name, name)
+				,format("Type '%s' does not have fields named '%s' but [%--(%s, %)]"
+					, this.schemaStack.back.name, name
+					, backMap.member.byKey())
 			);
-		this.addTypeToStackImpl(name, t.name, "");
+		this.addTypeToStackImpl(name, (*t).unpack2().name, "");
 	}
 
 	void addTypeToStackImpl(string name, string followType, string old) {
 		if(auto tp = followType in this.schema.types) {
-			this.schemaStack ~= TypePlusName(*tp, name);
+			this.schemaStack ~= TypePlusName((*tp).unpack2(), name);
+		} else if(followType == "__Type") {
+			this.schemaStack ~= TypePlusName(this.schema.__type, name);
+		} else if(followType == "__Schema") {
+			this.schemaStack ~= TypePlusName(this.schema.__schema, name);
 		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' '%s' is known",
@@ -245,7 +250,7 @@ class SchemaValidator(Schema) : Visitor {
 				|| this.schemaStack.back.type.typeKind == TypeKind.ENUM),
 				format("Leaf field '%s' is not a SCALAR but '%s'",
 					this.schemaStack.back.name,
-					this.schemaStack.back.type.toString())
+					this.schemaStack.back.type.typeKind)
 				);
 	}
 
@@ -277,6 +282,7 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(Argument) arg) {
 		import std.algorithm.searching : find, startsWith, endsWith;
 		const argName = arg.name.value;
+		/*
 		if(this.directiveStack.empty) {
 			const parent = this.schemaStack[$ - 2];
 			const curName = this.schemaStack.back.name;
@@ -372,7 +378,7 @@ class SchemaValidator(Schema) : Visitor {
 						format("Variable type '%s' does not match argument type 'Boolean!'"
 						, typeStr));
 			}
-		}
+		}*/
 	}
 }
 

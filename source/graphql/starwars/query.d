@@ -45,8 +45,8 @@ Json query(string s, Json args) {
 						ret["data"] = Json(null);
 						return ret;
 					}
-					Json hj = toGraphqlJson!StarWarsSchema(h);
-					Json cj = toGraphqlJson!StarWarsSchema(cast(Character)h);
+					Json hj = toGraphqlJson(h, graphqld.schema);
+					Json cj = toGraphqlJson(cast(Character)h, graphqld.schema);
 					cj.remove("__typename");
 					ret["data"] = joinJson(hj, cj);
 				}
@@ -61,10 +61,10 @@ Json query(string s, Json args) {
 				import std.conv : to;
 				auto e = "episode" in args;
 				Json ret = Json.emptyObject();
-				ret["data"] = toGraphqlJson!StarWarsSchema(getHero(
+				ret["data"] = toGraphqlJson(getHero(
 						e ? nullable((*e).to!string().to!Episode())
 							: Nullable!(Episode).init
-					));
+					), graphqld.schema);
 				return ret;
 			}
 		);
@@ -91,7 +91,7 @@ Json query(string s, Json args) {
 				if(idPtr) {
 					string id = idPtr.to!string();
 					foreach(it; getFriends(getCharacter(id))) {
-						ret["data"] ~= toGraphqlJson!StarWarsSchema(it);
+						ret["data"] ~= toGraphqlJson(it, graphqld.schema);
 					}
 				}
 				return ret;
