@@ -26,8 +26,9 @@ string schemaToString(T)(GQLDSchema!T sch) {
 	TraceType[string] tts;
 	formIndent(app, 0, "schema {");
 	foreach(it; ["mutationType", "queryType", "subscriptionType"]) {
-		auto t = sch.member[it];
-		if(t !is null) {
+		auto tPtr = it in sch.member;
+		if(tPtr !is null) {
+			auto t = *tPtr;
 			formIndent(app, 1, "%s: %s", it, t.name);
 			tts[t.name] = TraceType(t, false);
 		}
