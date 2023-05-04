@@ -10,7 +10,7 @@ type queryType {
 	neverNull: Int!
 	foo: Int!
 	bar: Int!
-	fields: [__Field!]
+	fields(includeDeprecated: Boolean): [__Field!]
 }
 type Small {
 	name: String!

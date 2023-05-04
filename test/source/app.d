@@ -90,7 +90,7 @@ void main() {
 	testSchemaDump("schema.gql", schemaToString(graphqld));
 	testSchemaDump("schema2.gql", schemaToString!Schema2());
 
-	graphqld.setResolver("Query", "search",
+	graphqld.setResolver("queryType", "search",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -117,7 +117,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Query", "currentTime",
+	graphqld.setResolver("queryType", "currentTime",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -130,7 +130,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Query", "starships",
+	graphqld.setResolver("queryType", "starships",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -148,7 +148,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Query", "starshipDoesNotExist",
+	graphqld.setResolver("queryType", "starshipDoesNotExist",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -161,7 +161,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Query", "alwaysEmpty",
+	graphqld.setResolver("queryType", "alwaysEmpty",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -170,7 +170,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("Query", "resolverWillThrow",
+	graphqld.setResolver("queryType", "resolverWillThrow",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -184,7 +184,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Query", "starship",
+	graphqld.setResolver("queryType", "starship",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @safe
 			{
@@ -204,7 +204,7 @@ void main() {
 			}
 		);
 
-	graphqld.setResolver("Mutation", "addCrewman",
+	graphqld.setResolver("mutationType", "addCrewman",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @trusted
 			{
@@ -234,7 +234,7 @@ void main() {
 				return ret;
 			}
 		);
-	graphqld.setResolver("Query", "shipsselection",
+	graphqld.setResolver("queryType", "shipsselection",
 			delegate(string name, Json parent, Json args,
 					ref CustomContext con) @trusted
 			{
@@ -418,7 +418,7 @@ void main() {
 						writefln("IM DIENING NOW %s %s %s\n%s", tqIdx, __LINE__, e,
 								q
 							);
-						//assert(false, format("%s %s", tqIdx, e.msg));
+						assert(false, format("%s %s", tqIdx, e.msg));
 					} else {
 						if(!q.expectedResult.empty) {
 							Json c = parseJsonString(e.msg);
@@ -440,7 +440,7 @@ void main() {
 					writefln("I SHOULD HAVE THROWN NOW %s %s %s\n%s", tqIdx,
 							__LINE__, e, q
 						);
-					//assert(false, format("%s", tqIdx));
+					assert(false, format("%s", tqIdx));
 				}
 				//});
 				//qt.join();

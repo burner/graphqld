@@ -37,7 +37,6 @@ string schemaToString(T)(GQLDSchema!T sch) {
 	formIndent(app, 0, "}");
 	outer: while(true) {
 		foreach(key, ref it; tts) {
-			writefln("%s", key);
 			if(!it.normalDone
 					|| (it.inDone.isNull == false && it.inDone.get() == false)
 			) {

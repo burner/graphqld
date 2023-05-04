@@ -19,7 +19,6 @@ import graphql.constants;
 import graphql.exception;
 import graphql.graphql;
 import graphql.helper;
-import graphql.reflection;
 import graphql.schema.typeconversions;
 import graphql.schema.types;
 import graphql.traits;
@@ -42,6 +41,7 @@ QueryResolver!(Con) buildTypeResolver(Type, Con)() {
 GQLDSchema!(Type) toSchema(Type)() {
 	import graphql.uda : getUdaData, Ignore, TypeKind;
 	typeof(return) ret = new GQLDSchema!Type();
+	ret.typeKind = TypeKind.OBJECT;
 
 	static foreach(qms; ["queryType", "mutationType", "subscriptionType"]) {{
 		static if(__traits(hasMember, Type, qms)) {
@@ -65,6 +65,27 @@ GQLDSchema!(Type) toSchema(Type)() {
 			}
 		}
 	}}
+	foreach(key, value; ret.types) {
+		writefln("%s %s", key, value.typeKind);
+	}
+
+	writefln("__type %s", ret.__type.typeKind);
+	writefln("__field %s", ret.__field.typeKind);
+	writefln("__inputValue %s", ret.__inputValue.typeKind);
+	writefln("__enumValue %s", ret.__enumValue.typeKind);
+	writefln("__directives %s", ret.__directives.typeKind);
+	writefln("__typeIntrospection %s", ret.__typeIntrospection.typeKind);
+	writefln("__nonNullType %s", ret.__nonNullType.typeKind);
+	writefln("__nullableType %s", ret.__nullableType.typeKind);
+	writefln("__listOfNonNullType %s", ret.__listOfNonNullType.typeKind);
+	writefln("__nonNullListOfNonNullType %s", ret.__nonNullListOfNonNullType.typeKind);
+	writefln("__nonNullField %s", ret.__nonNullField.typeKind);
+	writefln("__listOfNonNullField %s", ret.__listOfNonNullField.typeKind);
+	writefln("__nonNullInputValue %s", ret.__nonNullInputValue.typeKind);
+	writefln("__listOfNonNullInputValue %s", ret.__listOfNonNullInputValue.typeKind);
+	writefln("__nonNullListOfNonNullInputValue %s", ret.__nonNullListOfNonNullInputValue.typeKind);
+	writefln("__listOfNonNullEnumValue %s", ret.__listOfNonNullEnumValue.typeKind);
+	writefln("__nnStr %s", ret.__nnStr.typeKind);
 	return ret;
 }
 

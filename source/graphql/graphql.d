@@ -109,11 +109,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			};
 
 		setDefaultSchemaResolver(this);
-		initializeDefaultArgFunctions();
-		//writeln("\n\n\n\n");
-		//foreach(key, value; this.resolver) {
-		//	writefln("%s %s", key, value);
-		//}
 	}
 
 	void setResolver(string first, string second, QueryResolver resolver) {
@@ -166,63 +161,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 	}
 
-	static Json getDefaultArgumentImpl(Type)(string field) {
-		static if(isAggregateType!Type) {
-			switch(field) {
-				static foreach(mem; __traits(allMembers, Type)) {
-					static if(std.traits.isCallable!(__traits(getMember, Type, mem))
-							&& !__traits(isTemplate, __traits(getMember, Type, mem)))
-					{
-						case mem: {
-							alias parNames = ParameterIdentifierTuple!(
-									__traits(getMember, Type, mem)
-								);
-							alias parDef = ParameterDefaultValueTuple!(
-									__traits(getMember, Type, mem)
-								);
-
-							Json ret = Json.emptyObject();
-							static foreach(i; 0 .. parNames.length) {
-								static if(!is(parDef[i] == void)) {
-									ret[parNames[i]] =
-										serializeToJson(parDef[i]);
-								}
-							}
-							return ret;
-						}
+	Json getDefaultArguments(string type, string field) {
+		if(GQLDType* t = type in this.schema.types) {
+			if(GQLDMap m = toMap(*t)) {
+				if(GQLDType* ft = field in m.member) {
+					if(GQLDOperation op = (*ft).toOperation()) {
+						return op.defaultParameter;
 					}
 				}
-				default: break;
-			}
-		}
-		return Json.init;
-	}
-
-	private {
-		alias _defaultArgFn = Json function(string) @safe;
-		_defaultArgFn[string] _defaultArgFunctions;
-
-		void initializeDefaultArgFunctions()
-		{
-			import graphql.traits : execForAllTypes;
-			static void setupItems(T)(ref _defaultArgFn[string] items) {
-				items[T.stringof] = &getDefaultArgumentImpl!T;
-			}
-			execForAllTypes!(T, setupItems)(_defaultArgFunctions);
-			// add entry points
-			foreach(entryPoint; FieldNameTuple!T) {
-				_defaultArgFunctions[entryPoint] =
-					&getDefaultArgumentImpl!(typeof(__traits(getMember, T,
-															 entryPoint)));
-			}
-		}
-	}
-
-	Json getDefaultArguments(string type, string field) {
-		if(auto f = type in _defaultArgFunctions) {
-			auto tmp = (*f)(field);
-			if(tmp.type != Json.Type.undefined && tmp.type != Json.Type.null_) {
-				return tmp;
 			}
 		}
 		return Json.init;
