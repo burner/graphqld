@@ -1,17 +1,22 @@
 schema {
-	mutationType: Mutation
-	queryType: Query
-	subscriptionType: Subscription
+	mutationType: mutationType
+	queryType: queryType
+	subscriptionType: subscriptionType
 }
-type Subscription {
-	starships: [Starship!]!
+type mutationType {
+	getStupidestCrewman: Character!
+	addCrewman(input: AddCrewmanData!): Character!
+	fields: [__Field!]
+	name: String!
 }
-type Query {
+type queryType {
 	shipsselection(ids: [Int!]!): [Starship!]!
+	__type(name: String!): __Type!
 	currentTime: DateTime!
 	starships(overSize: Float!): [Starship!]!
 	captain(series: Series!): Character!
 	humanoids: [Humanoid!]!
+	name: String!
 	starship(id: Int!): Starship
 	starshipSimple2(id: Int!): StarshipSimple2
 	androids: [Android!]!
@@ -23,9 +28,15 @@ type Query {
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
 	alwaysEmpty: [Starship!]
+	fields: [__Field!]
 }
 type StarshipSimple {
 	commander: Character!
+}
+type subscriptionType {
+	fields: [__Field!]
+	starships: [Starship!]!
+	name: String!
 }
 type Android implements Character {
 	isDead: Boolean!
@@ -49,9 +60,13 @@ enum Series {
 	Enterprise,
 	Discovery,
 }
-type Mutation {
-	getStupidestCrewman: Character!
-	addCrewman(input: AddCrewmanData!): Character!
+type Input {
+	first: Int!
+	after: String
+}
+input InputIn {
+	first: Int!
+	after: String
 }
 type Starship {
 	series: [Series]!
@@ -61,14 +76,6 @@ type Starship {
 	size: Float!
 	crew: [Character!]!
 	designation: String!
-}
-type Input {
-	first: Int!
-	after: String
-}
-input InputIn {
-	first: Int!
-	after: String
 }
 type StarshipSimple2 {
 	id: Int!
