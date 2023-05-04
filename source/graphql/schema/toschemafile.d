@@ -121,8 +121,8 @@ void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts)
 			&& tt.type.udaData.typeKind != TypeKind.ENUM
 			&& toEnum(tt.type) is null
 		) {
-			formIndent(o, 0, "input %sIn {", tt.type.name);
 			if(GQLDMap map = toMap(tt.type)) {
+				formIndent(o, 0, "input %sIn {", tt.type.name);
 				foreach(memName, mem; allMember(map)) {
 					string typename = typeToStringMaybeIn(mem, false, false);
 					if(isNameSpecial(typename)) {
@@ -134,8 +134,8 @@ void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts)
 								, typeToDeprecationMessage(mem));
 					}
 				}
+				formIndent(o, 0, "}");
 			}
-			formIndent(o, 0, "}");
 		}
 	}
 }

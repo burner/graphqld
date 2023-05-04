@@ -848,8 +848,16 @@ Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 		alias names = __traits(allMembers, T);
 		static foreach(idx; 0 .. names.length) {{
 			static if(!__traits(hasMember, Object, names[idx])) {
-				alias IdxType = typeof(__traits(getMember, input, names[idx]));
-				static if(!names[idx].empty && !isNameSpecial(names[idx])
+				static if(__traits(compiles, typeof(__traits(getMember, input,
+									names[idx]))))
+				{
+					alias IdxType = typeof(__traits(getMember, input, names[idx]));
+					enum bool keep = true;
+				} else {
+					alias IdxType = __traits(getMember, input, names[idx]); // alias
+					enum bool keep = false;
+				}
+				static if(keep && !names[idx].empty && !isNameSpecial(names[idx])
 						&& getUdaData!(T, names[idx]).ignore != Ignore.yes
 						&& !is(IdxType : NullableStore!Type, Type))
 				{
