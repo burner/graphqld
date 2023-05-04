@@ -47,6 +47,9 @@ GQLDSchema!(Type) toSchema(Type)() {
 		static if(__traits(hasMember, Type, qms)) {
 			alias QMSType = typeof(__traits(getMember, Type, qms));
 			GQLDMap cur = toMap(typeToGQLDType!(QMSType)(ret, false));
+			cur.name = qms;
+			cur.member["fields"] = ret.__type.member[Constants.fields];
+			cur.member["name"] = ret.__nnStr;
 			ret.member[qms] = cur;
 			ret.member[QMSType.stringof] = cur;
 			ret.types[qms] = cur;
@@ -56,9 +59,9 @@ GQLDSchema!(Type) toSchema(Type)() {
 			if(qms == "queryType") {
 				ret.types["__schema"] = ret.__schema;
 				cur.member["__schema"] = ret.__schema;
-				cur.member["__type"] = ret.__nonNullType;
+				cur.member["__type"] = ret.__typeIntrospection;
 				ret.__schema.member["__schema"] = ret.__schema;
-				ret.__schema.member["__type"] = ret.__nonNullType;
+				ret.__schema.member["__type"] = ret.__typeIntrospection;
 			}
 		}
 	}}
@@ -255,53 +258,7 @@ private string getName(Json args, Json parent, string which = "name") {
 }
 
 void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
-	graphql.setResolver("queryType", "__type",
-		delegate(string name, Json parent, Json args, ref Con context) @safe
-		{
-			//writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
-			//		parent.toPrettyString());
-			string typeName;
-			if(Constants.name in args) {
-				typeName = args[Constants.name].get!string();
-			}
-			if(Constants.typenameOrig in parent) {
-				typeName = parent[Constants.typenameOrig].get!string();
-			} else if(Constants.name in parent) {
-				typeName = parent[Constants.name].get!string();
-			}
-
-			enforceGQLD(!typeName.empty, "No typename found to look for");
-			typeName = typeName.strip("'");
-			return getJsonForTypeFrom(graphql, typeName);
-		}
-	);
-
-	graphql.setResolver("__Type", "interfaces",
-		delegate(string name, Json parent, Json args, ref Con context) @safe
-		{
-			//writefln("\n__Type.interfaces args %s parent %s", args.toPrettyString(),
-			//		parent.toPrettyString());
-			string nameOfType = getName(args, parent);
-			enforceGQLD(!nameOfType.empty, format("No __typename in args %s nor parent %s"
-					, args.toPrettyString(), parent.toPrettyString()));
-
-			GQLDType* typePtr = nameOfType in graphql.schema.types;
-			enforceGQLD(typePtr !is null, format("No type for typename '%s' found in the Schema"
-					, nameOfType));
-
-			GQLDType type = *typePtr;
-			GQLDMap m = toMap(type);
-
-			Json ret = Json.emptyObject();
-			ret["data"] = m is null
-				? Json(null)
-				: m.derivatives.map!(i => i.toJsonType()).array.Json();
-			return ret;
-		}
-	);
-
-	graphql.setResolver("__Type", "fields",
-		delegate(string name, Json parent, Json args, ref Con context) @safe
+	auto fieldsResolver = delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
 			//writefln("\n__Type.fields args %s parent %s", args.toPrettyString(),
 			//		parent.toPrettyString());
@@ -343,8 +300,56 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 				ret["data"] = Json(null);
 			}
 			return ret;
+		};
+
+	graphql.setResolver("queryType", "__type",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			//writefln("\nqueryType.__type args %s parent %s", args.toPrettyString(),
+			//		parent.toPrettyString());
+			string typeName;
+			if(Constants.name in args) {
+				typeName = args[Constants.name].get!string();
+			}
+			if(Constants.typenameOrig in parent) {
+				typeName = parent[Constants.typenameOrig].get!string();
+			} else if(Constants.name in parent) {
+				typeName = parent[Constants.name].get!string();
+			}
+
+			enforceGQLD(!typeName.empty, "No typename found to look for");
+			typeName = typeName.strip("'");
+			return getJsonForTypeFrom(graphql, typeName);
 		}
 	);
+
+	graphql.setResolver("queryType", "fields", fieldsResolver);
+
+	graphql.setResolver("__Type", "interfaces",
+		delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			//writefln("\n__Type.interfaces args %s parent %s", args.toPrettyString(),
+			//		parent.toPrettyString());
+			string nameOfType = getName(args, parent);
+			enforceGQLD(!nameOfType.empty, format("No __typename in args %s nor parent %s"
+					, args.toPrettyString(), parent.toPrettyString()));
+
+			GQLDType* typePtr = nameOfType in graphql.schema.types;
+			enforceGQLD(typePtr !is null, format("No type for typename '%s' found in the Schema"
+					, nameOfType));
+
+			GQLDType type = *typePtr;
+			GQLDMap m = toMap(type);
+
+			Json ret = Json.emptyObject();
+			ret["data"] = m is null
+				? Json(null)
+				: m.derivatives.map!(i => i.toJsonType()).array.Json();
+			return ret;
+		}
+	);
+
+	graphql.setResolver("__Type", "fields", fieldsResolver);
 
 	graphql.setResolver("__Type", "ofType",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
@@ -460,10 +465,12 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
 			GQLDType* type = "subscriptionType" in graphql.schema.types;
+			writefln("sub is null %s", type is null);
 			Json ret = Json.emptyObject();
 			ret["data"] = type is null
 				? Json(null)
 				: toJsonType(*type);
+			writeln(ret);
 			return ret;
 		}
 	);

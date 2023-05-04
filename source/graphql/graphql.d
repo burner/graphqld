@@ -110,7 +110,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 		setDefaultSchemaResolver(this);
 		initializeDefaultArgFunctions();
-		writeln("\n\n\n\n");
+		//writeln("\n\n\n\n");
 		//foreach(key, value; this.resolver) {
 		//	writefln("%s %s", key, value);
 		//}
@@ -126,6 +126,16 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.resolver[first][second] = resolver;
 		if(first == "queryType") {
 			auto qt = "queryType" in this.schema.member;
+			if(qt !is null) {
+				this.resolver[qt.name][second] = resolver;
+			}
+		} else if(first == "mutationType") {
+			auto qt = "mutationType" in this.schema.member;
+			if(qt !is null) {
+				this.resolver[qt.name][second] = resolver;
+			}
+		} else if(first == "subscriptionType") {
+			auto qt = "subscriptionType" in this.schema.member;
 			if(qt !is null) {
 				this.resolver[qt.name][second] = resolver;
 			}

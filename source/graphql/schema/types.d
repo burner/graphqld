@@ -334,6 +334,7 @@ class GQLDSchema(Type) : GQLDMap {
 	GQLDObject __inputValue;
 	GQLDObject __enumValue;
 	GQLDObject __directives;
+	GQLDOperation __typeIntrospection;
 
 	GQLDNonNull __nonNullType;
 	GQLDNullable __nullableType;
@@ -345,6 +346,7 @@ class GQLDSchema(Type) : GQLDMap {
 	GQLDList __listOfNonNullInputValue;
 	GQLDNonNull __nonNullListOfNonNullInputValue;
 	GQLDList __listOfNonNullEnumValue;
+	GQLDType __nnStr;
 
 	this() {
 		super(GQLDKind.Schema);
@@ -373,7 +375,7 @@ class GQLDSchema(Type) : GQLDMap {
 	void createIntrospectionTypes() {
 		// build base types
 		auto str = new GQLDString();
-		auto nnStr = new GQLDNonNull(str);
+		this.__nnStr = new GQLDNonNull(str);
 		auto nllStr = new GQLDNullable(str);
 
 		auto b = new GQLDBool();
@@ -401,7 +403,7 @@ class GQLDSchema(Type) : GQLDMap {
 		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
 
 		this.__field = new GQLDObject("__Field");
-		this.__field.member[Constants.name] = nnStr;
+		this.__field.member[Constants.name] = this.__nnStr;
 		this.__field.member[Constants.description] = nllStr;
 		this.__field.member[Constants.type] = this.__nonNullType;
 		this.__field.member[Constants.isDeprecated] = nnB;
@@ -413,7 +415,7 @@ class GQLDSchema(Type) : GQLDMap {
 		this.__type.member[Constants.fields] = this.__listOfNonNullField;
 
 		this.__inputValue = new GQLDObject(Constants.__InputValue);
-		this.__inputValue.member[Constants.name] = nnStr;
+		this.__inputValue.member[Constants.name] = this.__nnStr;
 		this.__inputValue.member[Constants.description] = nllStr;
 		this.__inputValue.member["defaultValue"] = nllStr;
 		this.__inputValue.member[Constants.type] = this.__nonNullType;
@@ -435,7 +437,7 @@ class GQLDSchema(Type) : GQLDMap {
 		this.__field.member[Constants.args] = this.__nonNullListOfNonNullInputValue;
 
 		this.__enumValue = new GQLDObject(Constants.__EnumValue);
-		this.__enumValue.member[Constants.name] = nnStr;
+		this.__enumValue.member[Constants.name] = this.__nnStr;
 		this.__enumValue.member[Constants.description] = nllStr;
 		this.__enumValue.member[Constants.isDeprecated] = nnB;
 		this.__enumValue.member[Constants.deprecationReason] = nllStr;
@@ -451,7 +453,7 @@ class GQLDSchema(Type) : GQLDMap {
 		this.__type.member[Constants.enumValues] = nnListOfNonNullEnumValue;
 
 		this.__directives = new GQLDObject(Constants.__Directive);
-		this.__directives.member[Constants.name] = nnStr;
+		this.__directives.member[Constants.name] = this.__nnStr;
 		this.__directives.member[Constants.description] = str;
 		this.__directives.member[Constants.args] =
 			this.__nonNullListOfNonNullInputValue;
@@ -463,6 +465,9 @@ class GQLDSchema(Type) : GQLDMap {
 				new GQLDList(new GQLDNonNull(this.__directives))
 			);
 
+		this.__typeIntrospection = new GQLDOperation(GQLDKind.Object_);
+		this.__typeIntrospection.returnType = this.__type;
+		this.__typeIntrospection.parameters["name"] = this.__nnStr;
 
 		//foreach(t; ["String", "Int", "Float", "Boolean"]) {
 		//	this.types[t].toObject().member[Constants.fields] =
@@ -485,12 +490,14 @@ class GQLDSchema(Type) : GQLDMap {
 	}
 
 	GQLDType getReturnType(GQLDType t, string field) {
+		//writefln("%s %s", t.name, field);
 		GQLDType ret;
 		GQLDObject ob = t.toObject();
-		if(auto s = t.toScalar()) {
-			ret = s;
-			goto retLabel;
-		} else if(auto op = t.toOperation()) {
+		//if(auto s = t.toScalar()) {
+		//	ret = s;
+		//	goto retLabel;
+		//} else
+		if(auto op = t.toOperation()) {
 			ret = op.returnType;
 			goto retLabel;
 		} else if(auto map = t.toMap()) {
@@ -503,7 +510,6 @@ class GQLDSchema(Type) : GQLDMap {
 							if(GQLDMap valueM = toMap(value.unpack())) {
 								if(field in valueM.member) {
 									ret = valueM.member[field];
-									writeln(__LINE__);
 									goto retLabel;
 								}
 							}
@@ -549,10 +555,11 @@ class GQLDSchema(Type) : GQLDMap {
 				}
 				return null;
 			}
-		} else {
-			ret = t;
+		//} else {
+		//	ret = t;
 		}
 		retLabel:
+		//writefln("%s %s", __LINE__, ret);
 		return ret;
 	}
 }
@@ -647,32 +654,33 @@ TypeKind typeToTypeEnum(Type)(GQLDUdaData uda) {
 	if(uda.typeKind != TypeKind.UNDEFINED) {
 		return uda.typeKind;
 	} else {
-		static if(is(Type : Nullable!F, F)) {
+		alias TypeU = Unqual!Type;
+		static if(is(TypeU : Nullable!F, F)) {
 			return typeToTypeEnum!F(uda);
-		} else static if(isCallable!Type) {
-			return typeToTypeEnum!(ReturnType!Type)(uda);
-		} else static if(is(Type == enum)) {
+		} else static if(isCallable!TypeU) {
+			return typeToTypeEnum!(ReturnType!TypeU)(uda);
+		} else static if(is(TypeU == enum)) {
 			return TypeKind.ENUM;
-		} else static if(is(Type == bool)) {
+		} else static if(is(TypeU == bool)) {
 			return TypeKind.SCALAR;
-		} else static if(is(Type : GQLDCustomLeaf!Fs, Fs...)) {
+		} else static if(is(TypeU : GQLDCustomLeaf!Fs, Fs...)) {
 			return TypeKind.SCALAR;
-		} else static if(isFloatingPoint!(Type)) {
+		} else static if(isFloatingPoint!(TypeU)) {
 			return TypeKind.SCALAR;
-		} else static if(isIntegral!(Type)) {
+		} else static if(isIntegral!(TypeU)) {
 			return TypeKind.SCALAR;
-		} else static if(isSomeString!Type) {
+		} else static if(isSomeString!TypeU) {
 			return TypeKind.SCALAR;
-		} else static if(isArray!Type) {
-			return typeToTypeEnum!(ElementEncodingType!Type)(uda);
-		} else static if(is(Type == void)) {
+		} else static if(isArray!TypeU) {
+			return typeToTypeEnum!(ElementEncodingType!TypeU)(uda);
+		} else static if(is(TypeU == void)) {
 			return TypeKind.SCALAR;
-		} else static if(is(Type == union)) {
+		} else static if(is(TypeU == union)) {
 			return TypeKind.UNION;
-		} else static if(isAggregateType!Type) {
+		} else static if(isAggregateType!TypeU) {
 			return TypeKind.OBJECT;
 		} else {
-			static assert(false, Type.stringof ~ " not handled");
+			static assert(false, TypeU.stringof ~ " not handled");
 		}
 	}
 }
@@ -854,7 +862,6 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 									enum GQLDUdaData udaP = udaPAS[0];
 								}
 								p.udaData = udaP;
-								p.typeKind = typeToTypeEnum!(paraTypes[idx])(udaPAS);
 							}
 							op.parameters[paraNames[idx]] = p;
 						}}

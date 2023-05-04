@@ -9,6 +9,7 @@
 		"vibe-d": ">=0.9.0"
 	},
 	"dflags": [ "-d"],
+	"dflags-ldc": ["-d", "-ftime-trace", "-ftime-trace-file=$PACKAGE_DIR/trace.json"],
 	"versions" : ["VibeNoSSL"],
 	"description": "A simple vibe.d server application.",
 	"license": "GPL3",

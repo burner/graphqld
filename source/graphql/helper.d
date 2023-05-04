@@ -1,7 +1,7 @@
 module graphql.helper;
 
-import std.array : empty;
-import std.algorithm.iteration : each, splitter;
+import std.array : array, assocArray, empty;
+import std.algorithm.iteration : each, map, splitter;
 import std.algorithm.searching : startsWith, endsWith, canFind;
 import std.conv : to;
 import std.datetime : DateTime, Date;
@@ -9,7 +9,7 @@ import std.exception : enforce, assertThrown;
 import std.format : format;
 import std.stdio;
 import std.string : capitalize, indexOf, strip;
-import std.typecons : nullable, Nullable;
+import std.typecons : nullable, tuple, Nullable;
 
 import vibe.data.json;
 
@@ -17,6 +17,7 @@ import graphql.ast;
 import graphql.uda;
 import graphql.constants;
 import graphql.exception;
+import graphql.schema.types;
 
 @safe:
 
@@ -838,6 +839,8 @@ string getTypename(Schema,T)(auto ref T input, Schema schema) @trusted {
 	//}
 }
 
+private enum string[] dlangObjectMemberNames = [__traits(allMembers, Object)];
+
 Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 	import std.array : empty;
 	import std.conv : to;
@@ -868,21 +871,25 @@ Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 		ret["__typename"] = getTypename!(Schema)(input, schema);
 		//writefln("Got %s", ret["__typename"].to!string());
 
-		alias names = FieldNameTuple!(T);
-		alias types = FieldTypeTuple!(T);
+		//alias names = FieldNameTuple!(T);
+		//alias types = FieldTypeTuple!(T);
+		alias names = __traits(allMembers, T);
 		static foreach(idx; 0 .. names.length) {{
-			static if(!names[idx].empty
-					&& getUdaData!(T, names[idx]).ignore != Ignore.yes
-					&& !is(types[idx] : NullableStore!Type, Type))
-			{
-				static if(is(types[idx] == enum)) {
-					ret[names[idx]] =
-						to!string(__traits(getMember, input, names[idx]));
-				} else {
-					ret[names[idx]] = toGraphqlJson(
-							__traits(getMember, input, names[idx])
-							, schema
-						);
+			static if(!canFind(dlangObjectMemberNames, names[idx])) {
+				alias IdxType = typeof(__traits(getMember, input, names[idx]));
+				static if(!names[idx].empty && !isNameSpecial(names[idx])
+						&& getUdaData!(T, names[idx]).ignore != Ignore.yes
+						&& !is(IdxType : NullableStore!Type, Type))
+				{
+					static if(is(IdxType == enum)) {
+						ret[names[idx]] =
+							to!string(__traits(getMember, input, names[idx]));
+					} else {
+						ret[names[idx]] = toGraphqlJson(
+								__traits(getMember, input, names[idx])
+								, schema
+							);
+					}
 				}
 			}
 		}}
@@ -1091,3 +1098,32 @@ JsonCompareResult compareJson(Json a, Json b, string path
 	}
 	return JsonCompareResult(false, [path], "", __LINE__);
 }
+
+bool isNameSpecial(string s) {
+	// takes care of gql buildins (__Type, __TypeKind, etc.), as well as
+	// some unuseful pieces from the d side (__ctor, opCmp, etc.)
+	return s.startsWith("__") || s.startsWith("op") || ["factory", "toHash", "toString"].canFind(s);
+}
+
+// all members of o, including derived ones
+GQLDType[string] allMember(GQLDMap m) @safe {
+	import std.algorithm;
+	GQLDType[string] ret;
+
+	void process(GQLDMap m) {
+		foreach(k, v; m.member) {
+			ret.require(k,v);
+		}
+
+		if(auto o = cast(GQLDObject)m) {
+			if(o.base) {
+				process(o.base);
+			}
+		}
+	}
+
+	// inout(V)[K].require is broken
+	process(m);
+	return ret;
+}
+
