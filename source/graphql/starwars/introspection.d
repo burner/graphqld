@@ -157,6 +157,15 @@ Json query(string s, Json args) {
 					"name": "String"
 				},
 				{
+					"name": "__InputValue"
+				},
+				{
+					"name": "__Type"
+				},
+				{
+					"name": "__TypeKind"
+				},
+				{
 					"name": "queryType"
 				},
 				{
@@ -528,7 +537,18 @@ Json query(string s, Json args) {
 							]
 						},
 						{
-							"args": [],
+							"args": [
+								{
+									"description": "",
+									"type": {
+										"kind": "SCALAR",
+										"ofType": null,
+										"name": "Boolean"
+									},
+									"defaultValue": null,
+									"name": "includeDeprecated"
+								}
+							],
 							"name": "fields"
 						},
 						{

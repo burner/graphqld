@@ -814,33 +814,8 @@ template isNotInTypeSet(T, R...) {
 }
 
 string getTypename(Schema,T)(auto ref T input, Schema schema) @trusted {
-	//pragma(msg, T);
-	//writefln("To %s", T.stringof);
-	/*static if(!isClass!(T)) {
-		return T.stringof;
-	} else {
-		// fetch the typeinfo of the item, and compare it down until we get to a
-		// class we have. If none found, return the name of the type itself.
-		import graphql.reflection;
-		auto tinfo = typeid(input);
-		const auto reflect = SchemaReflection!Schema.instance;
-		while(tinfo !is null) {
-			if(auto cname = tinfo in reflect.classes) {
-				return *cname;
-			}
-			tinfo = tinfo.base;
-		}
-		return T.stringof;
-	}
-	*/
 	return T.stringof;
-	//if(schema is null) {
-	//} else {
-
-	//}
 }
-
-private enum string[] dlangObjectMemberNames = [__traits(allMembers, Object)];
 
 Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 	import std.array : empty;
@@ -870,13 +845,9 @@ Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 
 		// the important bit is the setting of the __typename field
 		ret["__typename"] = getTypename!(Schema)(input, schema);
-		//writefln("Got %s", ret["__typename"].to!string());
-
-		//alias names = FieldNameTuple!(T);
-		//alias types = FieldTypeTuple!(T);
 		alias names = __traits(allMembers, T);
 		static foreach(idx; 0 .. names.length) {{
-			static if(!canFind(dlangObjectMemberNames, names[idx])) {
+			static if(!__traits(hasMember, Object, names[idx])) {
 				alias IdxType = typeof(__traits(getMember, input, names[idx]));
 				static if(!names[idx].empty && !isNameSpecial(names[idx])
 						&& getUdaData!(T, names[idx]).ignore != Ignore.yes
