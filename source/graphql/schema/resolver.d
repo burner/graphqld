@@ -65,6 +65,7 @@ GQLDSchema!(Type) toSchema(Type)() {
 			}
 		}
 	}}
+	/*
 	foreach(key, value; ret.types) {
 		writefln("%s %s", key, value.typeKind);
 	}
@@ -86,6 +87,7 @@ GQLDSchema!(Type) toSchema(Type)() {
 	writefln("__nonNullListOfNonNullInputValue %s", ret.__nonNullListOfNonNullInputValue.typeKind);
 	writefln("__listOfNonNullEnumValue %s", ret.__listOfNonNullEnumValue.typeKind);
 	writefln("__nnStr %s", ret.__nnStr.typeKind);
+	*/
 	return ret;
 }
 

@@ -332,98 +332,11 @@ class SchemaValidator(Schema) : Visitor {
 				//	writefln("%s %s", astTypeToString(*varType), *theArg);
 				//}();
 				enforce!VariableInputTypeMismatch(compareOkay
-						//, format("Variable type '%s' does not match argument type '%s'"
-						//, astTypeToString(arg.vv.var), (*theArg))
+						, format("Variable type '%s' does not match argument type '%s'"
+						, astTypeToString(*varType), (*theArg))
 					);
 			}
 
-			/*
-			const curName = this.schemaStack.back.name;
-			GQLDMap asMap = toMap(this.schemaStack.back.type);
-			auto curNameFieldRange = asMap.member.byValue
-				.find!(f => f.name == curName);
-			if(curNameFieldRange.empty) {
-				return;
-			}
-
-			GQLDType curNameMap = curNameFieldRange.front;
-			GQLDOperation asOp = toOperation(curNameMap);
-			enforce!ArgumentDoesNotExist(asOp !is null, format(
-					"'%s.%s' does not have arguments therefore it can not be"
-					~ " called with '%s'", this.schemaStack.back.type.name
-					, curName, argName));
-
-			GQLDType* theArg = argName in asOp.parameters;
-			writefln("%s %s %s", asOp.name, argName, theArg !is null
-					? theArg.name : "null");
-			enforce!ArgumentDoesNotExist(theArg !is null, format(
-					"Argument with name '%s' does not exist for field '%s' of type "
-					~ " '%s'", argName, curName, parent.type.name));
-
-			const Json curArgs = curNameField[Constants.args];
-			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
-
-			enforce!ArgumentDoesNotExist(!argElem.empty, format(
-					"Argument with name '%s' does not exist for field '%s' of type "
-					~ " '%s'", argName, curName, parent.type[Constants.name]));
-
-			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
-				const varName = arg.vv.var.name.value;
-				auto varType = varName in this.variables;
-				enforce(varName !is null);
-
-				string typeStr = astTypeToString(*varType);
-				const nonArray = ["", "!", "In", "In!"];
-				bool nonArrayR;
-				nonArrayOuter: foreach(g; nonArray) {
-					string gstr = argElem.front[Constants.typenameOrig]
-						.to!string();
-					string gtmp = gstr.endsWith(g)
-						? gstr[0 .. $ - g.length]
-						: gstr;
-					foreach(h; nonArray) {
-						const htmp = typeStr.endsWith(h)
-							? typeStr[0 .. $ - h.length]
-							: typeStr;
-						if(htmp == gtmp) {
-							nonArrayR = true;
-							break nonArrayOuter;
-						}
-					}
-				}
-
-				const array = ["]", "]!", "!]", "!]!", "In]!", "In!]", "In!]!"];
-				bool arrayR;
-				arrayOuter: foreach(g; array) {
-					string gstr = argElem.front[Constants.typenameOrig]
-						.to!string();
-					if(!gstr.startsWith("[")) {
-						break;
-					}
-					const gtmp = gstr.endsWith(g)
-						? gstr[0 .. $ - g.length]
-						: gstr;
-					foreach(h; array) {
-						if(!typeStr.startsWith("[")) {
-							break arrayOuter;
-						}
-						const htmp = typeStr.endsWith(h)
-							? typeStr[0 .. $ - h.length]
-							: typeStr;
-						if(htmp == gtmp) {
-							arrayR = true;
-							break arrayOuter;
-						}
-					}
-				}
-
-				const c1 = argElem.front[Constants.typenameOrig] == typeStr;
-				enforce!VariableInputTypeMismatch(c1 || nonArrayR || arrayR
-						, format("Variable type '%s' does not match argument type '%s'"
-						, argElem.front[Constants.typenameOrig], typeStr
-						));
-			}
-			*/
 		} else {
 			enforce!ArgumentDoesNotExist(argName == "if", format(
 					"Argument of Directive '%s' is 'if' not '%s'",
