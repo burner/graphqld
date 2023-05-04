@@ -8,6 +8,7 @@ import std.datetime : DateTime, Date;
 import std.exception : enforce, assertThrown;
 import std.format : format;
 import std.stdio;
+import std.traits;
 import std.string : capitalize, indexOf, strip;
 import std.typecons : nullable, tuple, Nullable;
 
@@ -884,7 +885,7 @@ Json toGraphqlJson(Schema,T)(auto ref T input, Schema schema) {
 					static if(is(IdxType == enum)) {
 						ret[names[idx]] =
 							to!string(__traits(getMember, input, names[idx]));
-					} else {
+					} else static if(!isCallable!IdxType) {
 						ret[names[idx]] = toGraphqlJson(
 								__traits(getMember, input, names[idx])
 								, schema
