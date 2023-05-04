@@ -1,13 +1,16 @@
 schema {
-	queryType: Query2
+	queryType: queryType
 }
-type Query2 {
+type queryType {
+	__type(name: String!): __Type!
 	maybeNull: Int
 	small: Small
 	manysmall: [Small!]!
+	name: String!
 	neverNull: Int!
 	foo: Int!
 	bar: Int!
+	fields: [__Field!]
 }
 type Small {
 	name: String!

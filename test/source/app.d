@@ -57,7 +57,7 @@ void testSchemaDump(string fname, string newSchemaText) {
 	// output format of schemaToString, simply remove the old schema[2].gql
 	auto oSplit = oldSchemaText.split("\n");
 	auto nSplit = newSchemaText.split("\n");
-	writeln(newSchemaText);
+	//writeln(newSchemaText);
 	foreach(lineIdx; 0 .. min(oSplit.length, nSplit.length)) {
 		assert(oSplit[lineIdx] == nSplit[lineIdx]
 				, format("line %s + 1 differed\ngot: %s\nexp: %s"
