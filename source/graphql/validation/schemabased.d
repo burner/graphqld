@@ -1,7 +1,7 @@
 module graphql.validation.schemabased;
 
 import std.algorithm.iteration : map;
-import std.algorithm.searching : canFind;
+import std.algorithm.searching : canFind, find, startsWith, endsWith;
 import std.array : array, back, empty, front, popBack;
 import std.conv : to;
 import std.meta : staticMap, NoDuplicates;
@@ -17,13 +17,15 @@ import fixedsizearray;
 import graphql.ast;
 import graphql.builder;
 import graphql.constants;
-import graphql.visitor;
-import graphql.schema.types;
+import graphql.helper : allMember, lexAndParse;
 import graphql.schema.helper;
-import graphql.validation.exception;
-import graphql.helper : lexAndParse;
+import graphql.schema.introspectiontypes : IntrospectionTypes;
+import graphql.schema.types;
 import graphql.schema.types;
 import graphql.uda;
+import graphql.validation.exception;
+import graphql.visitor;
+import graphql.graphql;
 
 @safe:
 
@@ -40,6 +42,38 @@ string astTypeToString(const(Type) input) pure {
 	}
 }
 
+bool stringCompareWithOutInPostfix(string a, string b) {
+	string diff = a.length < b.length
+		? b[a.length .. $]
+		: a[b.length .. $];
+	return diff.empty || diff == "In";
+}
+
+bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
+	final switch(ast.ruleSelection) {
+		case TypeEnum.TN: // NonNull
+			GQLDNonNull nn = type.toNonNull();
+			return nn is null
+				? false
+				: stringCompareWithOutInPostfix(ast.tname.value, nn.elementType.name);
+		case TypeEnum.LN: // NonNull(List)
+			GQLDNonNull nn = type.toNonNull();
+			if(nn is null) {
+				return false;
+			}
+			GQLDList l = nn.elementType.toList();
+			return l is null
+				? false
+				: astTypeCompareToGQLDType(ast.list.type, l.elementType);
+		case TypeEnum.T: // anker
+			bool ret = stringCompareWithOutInPostfix(ast.tname.value, type.name);
+			return ret;
+		case TypeEnum.L: // List
+			GQLDList l = type.toList();
+			return l !is null;
+	}
+}
+
 enum IsSubscription {
 	no,
 	yes
@@ -48,6 +82,7 @@ enum IsSubscription {
 struct TypePlusName {
 	GQLDType type;
 	string name;
+	string fieldName;
 
 	string toString() const {
 		return format("%s %s", this.name, this.type);
@@ -86,26 +121,29 @@ class SchemaValidator(Schema) : Visitor {
 	DirectiveEntry[] directiveStack;
 
 	this(const(Document) doc, GQLDSchema!(Schema) schema) {
-		import graphql.schema.introspectiontypes : IntrospectionTypes;
 		this.doc = doc;
 		this.schema = schema;
 		this.schemaStack ~= TypePlusName(
 				this.schema.__schema
 				, typeof(schema).stringof
+				, "__schema"
 			);
 	}
 
 	void addToTypeStack(string name) {
-		writefln("\naddToTypeStack %s %s", name, this.schemaStack.map!(i => i.type.name));
+		//writefln("\naddToTypeStack %s %s", name, this.schemaStack.map!(i => i.type.name));
 		GQLDMap backMap = toMap(this.schemaStack.back.type.unpack2());
 		//enforce!FieldDoesNotExist(backMap !is null,
 		//		format("Type '%s' does not have fields",
 		//			this.schemaStack.back.name));
 
 		GQLDType t = this.schema.getReturnType(this.schemaStack.back.type, name);
-		enforce!VariablesNotUniqueException(t !is null
-				, format("No returnType for field '%s' %s", name
-					, this.schemaStack.map!(i => i.type.name))
+		enforce!FieldDoesNotExist(t !is null
+				, format("No returnType for field '%s.%s' %s all members [%(%s, %)]"
+					, this.schemaStack.back.type.name
+					, name
+					, this.schemaStack.map!(i => i.type.name)
+					, backMap is null ? [] : allMember(backMap).byKey().array)
 			);
 		GQLDType un = t.unpack2();
 		/*
@@ -116,14 +154,16 @@ class SchemaValidator(Schema) : Visitor {
 		} else {
 			t = name in backMap.member;
 		}
-		enforce!FieldDoesNotExist(t !is null
+		*/
+		enforce!FieldDoesNotExist(un !is null
 				, format("Type '%s' does not have fields named '%s' but [%--(%s, %)]"
 					, this.schemaStack.back.name, name
 					, backMap.member.byKey())
 			);
+		/*
 		GQLDType un = (*t).unpack2();
 		writefln("%s", un.name);*/
-		this.schemaStack ~= TypePlusName(un, un.name);
+		this.schemaStack ~= TypePlusName(un, un.name, name);
 	}
 
 	override void enter(const(Directive) dir) {
@@ -161,7 +201,7 @@ class SchemaValidator(Schema) : Visitor {
 		string typeName = fragDef.tc.value;
 		//writefln("%s %s", typeName, fragDef.name.value);
 		if(auto tp = typeName in this.schema.types) {
-			this.schemaStack ~= TypePlusName(*tp, typeName);
+			this.schemaStack ~= TypePlusName(*tp, typeName, fragDef.name.value);
 		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' is known", typeName),
@@ -216,7 +256,7 @@ class SchemaValidator(Schema) : Visitor {
 	override void enter(const(InlineFragment) inF) {
 		//this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
 		if(auto tp = inF.tc.value in this.schema.types) {
-			this.schemaStack ~= TypePlusName((*tp).unpack2(), inF.tc.value);
+			this.schemaStack ~= TypePlusName((*tp).unpack2(), inF.tc.value, "");
 		} else {
 			throw new UnknownTypeName(
 					  format("No type with name '%s' is known",
@@ -240,24 +280,80 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(Argument) arg) {
-		import std.algorithm.searching : find, startsWith, endsWith;
 		const argName = arg.name.value;
-		/*
-		if(this.directiveStack.empty) {
-			const parent = this.schemaStack[$ - 2];
-			const curName = this.schemaStack.back.name;
-			GQLDMap* asMap = toMap(this.schemaStack.back.type);
-			auto fields = parent.type[Constants.fields];
-			if(fields.type != Json.Type.Array) {
-				return;
+		if(this.directiveStack.empty) { // means normal field variable
+			auto parent = this.schemaStack[$ - 2];
+			//writefln("%s %s", argName, parent.type);
+			GQLDMap parentMap = parent.type.toMap();
+			enforce!ValidationException(parentMap !is null, format(
+					"'%s' has no fields" , parent.type.name
+				));
+			//writeln(__LINE__);
+
+			GQLDType* fieldPtr = this.schemaStack.back.fieldName in
+				parentMap.member;
+			enforce!ValidationException(fieldPtr !is null, format(
+					"'%s' has no field names '%s'" , parent.type.name
+					, this.schemaStack.back.fieldName
+				));
+			//writeln(__LINE__);
+
+			GQLDOperation op = (*fieldPtr).unpack().toOperation();
+			enforce!ValidationException(op !is null, format(
+					"Field '%s.%s' is not callable. Type is '%s'"
+					, parent.type.name
+					, this.schemaStack.back.fieldName
+					, (*fieldPtr).unpack()
+				));
+			//writeln(__LINE__);
+
+			GQLDType* theArg = argName in op.parameters;
+			enforce!ArgumentDoesNotExist(theArg !is null, format(
+					"No argument with name '%s' exists on '%s.%s'"
+					~ " available are [%s]", argName
+					, parent.type.name
+					, this.schemaStack.back.fieldName
+					, op.parameters.byKey()
+			));
+			if(arg.vv.ruleSelection == ValueOrVariableEnum.Var) {
+				const varName = arg.vv.var.name.value;
+				auto varType = varName in this.variables;
+				enforce(varName !is null);
+
+				bool compareOkay = astTypeCompareToGQLDType(*varType,
+					*theArg);
+
+				//() @trusted {
+				//	writefln("%s %s", astTypeToString(*varType), *theArg);
+				//}();
+				enforce!VariableInputTypeMismatch(compareOkay
+						//, format("Variable type '%s' does not match argument type '%s'"
+						//, astTypeToString(arg.vv.var), (*theArg))
+					);
 			}
-			auto curNameFieldRange = fields.byValue
-				.find!(f => f[Constants.name].to!string() == curName);
+
+			/*
+			const curName = this.schemaStack.back.name;
+			GQLDMap asMap = toMap(this.schemaStack.back.type);
+			auto curNameFieldRange = asMap.member.byValue
+				.find!(f => f.name == curName);
 			if(curNameFieldRange.empty) {
 				return;
 			}
 
-			auto curNameField = curNameFieldRange.front;
+			GQLDType curNameMap = curNameFieldRange.front;
+			GQLDOperation asOp = toOperation(curNameMap);
+			enforce!ArgumentDoesNotExist(asOp !is null, format(
+					"'%s.%s' does not have arguments therefore it can not be"
+					~ " called with '%s'", this.schemaStack.back.type.name
+					, curName, argName));
+
+			GQLDType* theArg = argName in asOp.parameters;
+			writefln("%s %s %s", asOp.name, argName, theArg !is null
+					? theArg.name : "null");
+			enforce!ArgumentDoesNotExist(theArg !is null, format(
+					"Argument with name '%s' does not exist for field '%s' of type "
+					~ " '%s'", argName, curName, parent.type.name));
 
 			const Json curArgs = curNameField[Constants.args];
 			auto argElem = curArgs.byValue.find!(a => a[Constants.name] == argName);
@@ -322,6 +418,7 @@ class SchemaValidator(Schema) : Visitor {
 						, argElem.front[Constants.typenameOrig], typeStr
 						));
 			}
+			*/
 		} else {
 			enforce!ArgumentDoesNotExist(argName == "if", format(
 					"Argument of Directive '%s' is 'if' not '%s'",
@@ -338,80 +435,23 @@ class SchemaValidator(Schema) : Visitor {
 						format("Variable type '%s' does not match argument type 'Boolean!'"
 						, typeStr));
 			}
-		}*/
+		}
 	}
 }
 
 import graphql.testschema;
 
 private void test(T)(string str) {
-	GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
+	auto graphqld = new GraphQLD!(Schema);
+	//GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
-	auto fv = new SchemaValidator!Schema(doc, testSchema);
+	auto fv = new SchemaValidator!Schema(doc, graphqld.schema);
 
 	static if(is(T == void)) {
 		assertNotThrown(fv.accept(doc));
 	} else {
 		assertThrown!T(fv.accept(doc));
 	}
-}
-
-unittest {
-	string str = `
-subscription sub {
-	starships {
-		id
-		name
-	}
-}`;
-	test!void(str);
-}
-
-unittest {
-	string str = `
-subscription sub {
-	starships {
-		id
-		name
-	}
-	starships {
-		size
-	}
-}`;
-
-	test!SingleRootField(str);
-}
-
-unittest {
-	string str = `
-subscription sub {
-	...multipleSubscriptions
-}
-
-fragment multipleSubscriptions on Subscription {
-	starships {
-		id
-		name
-	}
-	starships {
-	size
-	}
-}`;
-
-	test!SingleRootField(str);
-}
-
-unittest {
-	string str = `
-subscription sub {
-	starships {
-		id
-		name
-	}
-	__typename
-}`;
-
-	test!SingleRootField(str);
 }
 
 unittest {
@@ -756,6 +796,17 @@ unittest {
 unittest {
 	string str = `
 query q($size: String) {
+	starships(overSizeg: $size) {
+		id
+	}
+}`;
+
+	test!ArgumentDoesNotExist(str);
+}
+
+unittest {
+	string str = `
+query q($size: String) {
 	starships(overSize: $size) {
 		id
 	}
@@ -902,3 +953,62 @@ query q {
 `;
 	test!void(str);
 }
+
+unittest {
+	string str = `
+subscription sub {
+	starships {
+		id
+		name
+	}
+}`;
+	test!void(str);
+}
+
+unittest {
+	string str = `
+subscription sub {
+	starships {
+		id
+		name
+	}
+	starships {
+		size
+	}
+}`;
+
+	test!SingleRootField(str);
+}
+
+unittest {
+	string str = `
+subscription sub {
+	...multipleSubscriptions
+}
+
+fragment multipleSubscriptions on Subscription {
+	starships {
+		id
+		name
+	}
+	starships {
+	size
+	}
+}`;
+
+	test!SingleRootField(str);
+}
+
+unittest {
+	string str = `
+subscription sub {
+	starships {
+		id
+		name
+	}
+	__typename
+}`;
+
+	test!SingleRootField(str);
+}
+

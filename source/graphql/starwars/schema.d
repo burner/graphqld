@@ -24,6 +24,10 @@ struct StarWarsQuery {
 		);
 }
 
+struct StarWarsSubscription {
+}
+
 class StarWarsSchema {
 	StarWarsQuery queryType;
+	StarWarsSubscription subscriptionType;
 }

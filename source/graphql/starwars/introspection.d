@@ -32,7 +32,7 @@ Json query(string s, Json args) {
 	//graphqld.executationTraceLog = lo;
 	//graphqld.resolverLog = lo;
 
-	graphqld.setResolver("QueryType", "human",
+	graphqld.setResolver("queryType", "human",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @safe
 			{
@@ -55,7 +55,7 @@ Json query(string s, Json args) {
 			}
 		);
 
-	graphqld.setResolver("QueryType", "hero",
+	graphqld.setResolver("queryType", "hero",
 			delegate(string name, Json parent, Json args,
 					ref DefaultContext con) @safe
 			{
@@ -128,52 +128,77 @@ Json query(string s, Json args) {
 		}
 		`);
 
-	string s = `{
-		"data" : {
-			"__schema" : {
-				"types" : [
-					{
-						"name": "Int"
-					},
-					{
-						"name": "Human"
-					},
-					{
-						"name": "Episode"
-					},
-					{
-						"name": "String"
-					},
-					{
-						"name": "Droid"
-					},
-					{
-						"name": "Boolean"
-					},
-					{
-						"name": "Float"
-					},
-					{
-						"name": "Character"
-					},
-					{
-						"name": "StarWarsQuery"
-					}
-				]
-			}
+	string s = ` {
+	"data": {
+		"__schema": {
+			"types": [
+				{
+					"name": "Boolean"
+				},
+				{
+					"name": "Character"
+				},
+				{
+					"name": "Droid"
+				},
+				{
+					"name": "Episode"
+				},
+				{
+					"name": "Float"
+				},
+				{
+					"name": "Human"
+				},
+				{
+					"name": "Int"
+				},
+				{
+					"name": "String"
+				},
+				{
+					"name": "queryType"
+				},
+				{
+					"name": "subscriptionType"
+				}
+			]
 		}
-	}`;
+	}
+}`;
 	Json exp = parseJson(s);
 	auto cmpResult = compareJson(exp, rslt, "", true);
 	// TODO make this test pass
-	//assert(cmpResult.okay, format("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
-	//		, cmpResult.message, cmpResult.path, exp.toPrettyString()
-	//		, rslt.toPrettyString()));
-	if(!cmpResult.okay) {
-		writefln("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
+	assert(cmpResult.okay, format("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
 			, cmpResult.message, cmpResult.path, exp.toPrettyString()
-			, rslt.toPrettyString());
+			, rslt.toPrettyString()));
+	//if(!cmpResult.okay) {
+	//	writefln("msg: %s\npath: %--(%s,%)\nexp:\n%s\ngot:\n%s"
+	//		, cmpResult.message, cmpResult.path, exp.toPrettyString()
+	//		, rslt.toPrettyString());
+	//}
+}
+
+@safe unittest {
+	Json rslt = query(`
+		query IntrospectionDroidTypeQuery {
+			__type(name: "Droid") {
+				name
+			}
+		}
+		`);
+
+	string s = `{
+		"data" : {
+			"__type" : {
+				"name" : "Droid"
+			}
+		}
 	}
+	`;
+	Json exp = parseJson(s);
+	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
+			rslt.toPrettyString()));
 }
 
 @safe unittest {
@@ -191,30 +216,8 @@ Json query(string s, Json args) {
 		"data" : {
 			"__schema" : {
 				"queryType" : {
-					"name" : "StarWarsQuery"
+					"name" : "queryType"
 				}
-			}
-		}
-	}
-	`;
-	Json exp = parseJson(s);
-	assert(rslt == exp, format("exp:\n%s\ngot:\n%s", exp.toPrettyString(),
-			rslt.toPrettyString()));
-}
-
-@safe unittest {
-	Json rslt = query(`
-		query IntrospectionDroidTypeQuery {
-			__type(name: "Droid") {
-				name
-			}
-		}
-		`);
-
-	string s = `{
-		"data" : {
-			"__type" : {
-				"name" : "Droid"
 			}
 		}
 	}
@@ -523,6 +526,14 @@ Json query(string s, Json args) {
 									"defaultValue": null
 								}
 							]
+						},
+						{
+							"args": [],
+							"name": "fields"
+						},
+						{
+							"args": [],
+							"name": "name"
 						}
 					]
 				}

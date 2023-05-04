@@ -61,10 +61,16 @@ Json query(string s, Json args) {
 				import std.conv : to;
 				auto e = "episode" in args;
 				Json ret = Json.emptyObject();
-				ret["data"] = toGraphqlJson(getHero(
-						e ? nullable((*e).to!string().to!Episode())
-							: Nullable!(Episode).init
-					), graphqld.schema);
+				Character c = getHero(e
+					? nullable((*e).to!string().to!Episode())
+					: Nullable!(Episode).init);
+				if(Human h = cast(Human)c) {
+					ret["data"] = toGraphqlJson(h, graphqld.schema);
+				} else if(Droid d = cast(Droid)c) {
+					ret["data"] = toGraphqlJson(d, graphqld.schema);
+				} else {
+					ret["data"] = toGraphqlJson(c, graphqld.schema);
+				}
 				return ret;
 			}
 		);
