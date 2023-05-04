@@ -68,6 +68,7 @@ abstract class GQLDType {
 class GQLDScalar : GQLDType {
 	this(GQLDKind kind = GQLDKind.SimpleScalar) {
 		super(kind);
+		this.typeKind = TypeKind.SCALAR;
 	}
 }
 
@@ -155,9 +156,11 @@ class GQLDMap : GQLDType {
 
 	this() {
 		this(GQLDKind.Map);
+		this.typeKind = TypeKind.OBJECT;
 	}
 	this(GQLDKind kind) {
 		super(kind);
+		this.typeKind = TypeKind.OBJECT;
 		this.outputOnlyMembers = new RedBlackTree!string();
 	}
 
@@ -182,6 +185,7 @@ class GQLDObject : GQLDMap {
 
 	this(string name) {
 		super(GQLDKind.Object_);
+		this.typeKind = TypeKind.OBJECT;
 		super.name = name;
 	}
 
@@ -212,6 +216,7 @@ class GQLDObject : GQLDMap {
 class GQLDUnion : GQLDMap {
 	this(string name) {
 		super(GQLDKind.Union);
+		this.typeKind = TypeKind.UNION;
 		super.name = name;
 	}
 
@@ -233,6 +238,7 @@ class GQLDList : GQLDType {
 
 	this(GQLDType elemType) {
 		super(GQLDKind.List);
+		this.typeKind = TypeKind.LIST;
 		super.name = "List";
 		this.elementType = elemType;
 	}
@@ -253,6 +259,7 @@ class GQLDNonNull : GQLDType {
 		super(GQLDKind.NonNull);
 		super.name = "NonNull";
 		this.elementType = elemType;
+		this.typeKind = TypeKind.NON_NULL;
 	}
 
 	override string toString() const {
@@ -271,6 +278,7 @@ class GQLDNullable : GQLDType {
 		super(GQLDKind.Nullable);
 		super.name = "Nullable";
 		this.elementType = elemType;
+		this.typeKind = TypeKind.OBJECT;
 	}
 
 	override string toString() const {
@@ -287,9 +295,11 @@ class GQLDOperation : GQLDType {
 	string returnTypeName;
 
 	GQLDType[string] parameters;
+	Json defaultParameter;
 
 	this(GQLDKind kind) {
 		super(kind);
+		this.typeKind = TypeKind.OBJECT;
 	}
 
 	override string toString() const {
@@ -307,6 +317,7 @@ class GQLDOperation : GQLDType {
 class GQLDQuery : GQLDOperation {
 	this() {
 		super(GQLDKind.Query);
+		this.typeKind = TypeKind.OBJECT;
 		super.name = "Query";
 	}
 }
@@ -314,6 +325,7 @@ class GQLDQuery : GQLDOperation {
 class GQLDMutation : GQLDOperation {
 	this() {
 		super(GQLDKind.Mutation);
+		this.typeKind = TypeKind.OBJECT;
 		super.name = "Mutation";
 	}
 }
@@ -321,6 +333,7 @@ class GQLDMutation : GQLDOperation {
 class GQLDSubscription : GQLDOperation {
 	this() {
 		super(GQLDKind.Subscription);
+		this.typeKind = TypeKind.OBJECT;
 		super.name = "Subscription";
 	}
 }
@@ -363,46 +376,53 @@ class GQLDSchema(Type) : GQLDMap {
 		foreach(t; ["String", "Int", "Float", "Boolean"]) {
 			this.types[t].typeKind = TypeKind.SCALAR;
 		}
-		//	GQLDObject tmp = new GQLDObject(t);
-		//	this.types[t] = tmp;
-		//	tmp.member[Constants.name] = new GQLDString();
-		//	tmp.member[Constants.description] = new GQLDString();
-		//	tmp.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
-		//	//tmp.resolver = buildTypeResolver!(Type,Con)();
-		//}
 	}
 
 	void createIntrospectionTypes() {
 		// build base types
 		auto str = new GQLDString();
 		this.__nnStr = new GQLDNonNull(str);
+		this.__nnStr.typeKind = TypeKind.NON_NULL;
 		auto nllStr = new GQLDNullable(str);
 
 		auto b = new GQLDBool();
+		b.typeKind = TypeKind.SCALAR;
 		auto nnB = new GQLDNonNull(b);
 		this.__schema = new GQLDObject(Constants.__schema);
+		this.__schema.typeKind = TypeKind.OBJECT;
 		this.__type = new GQLDObject(Constants.__Type);
+		this.__type.typeKind = TypeKind.OBJECT;
+		this.types["__Type"] = this.__type;
 		this.__nullableType = new GQLDNullable(this.__type);
+		this.__nullableType.typeKind = TypeKind.OBJECT;
 		this.__schema.member["mutationType"] = this.__nullableType;
 		this.__schema.member["subscriptionType"] = this.__nullableType;
 
 		this.__type.member[Constants.ofType] = this.__nullableType;
-		this.__type.member[Constants.kind] = new GQLDEnum(Constants.__TypeKind);
+		this.types["__TypeKind"] = new GQLDEnum(Constants.__TypeKind);
+		this.__type.member[Constants.kind] = this.types["__TypeKind"];
+		this.__type.member[Constants.kind].typeKind = TypeKind.ENUM;
 		this.__type.member[Constants.name] = nllStr;
 		this.__type.member[Constants.description] = nllStr;
 
 		this.__nonNullType = new GQLDNonNull(this.__type);
+		this.__nonNullType.typeKind = TypeKind.NON_NULL;
 		this.__schema.member["queryType"] = this.__nonNullType;
 		auto lNNTypes = new GQLDList(this.__nonNullType);
+		lNNTypes.typeKind = TypeKind.LIST;
 		auto nlNNTypes = new GQLDNullable(lNNTypes);
 		this.__listOfNonNullType = new GQLDNullable(lNNTypes);
+		this.__listOfNonNullType.typeKind = TypeKind.OBJECT;
 		this.__type.member[Constants.interfaces] = new GQLDNonNull(lNNTypes);
+		this.__type.member[Constants.interfaces].typeKind = TypeKind.NON_NULL;
 		this.__type.member["possibleTypes"] = nlNNTypes;
 
 		this.__nonNullListOfNonNullType = new GQLDNonNull(lNNTypes);
+		this.__nonNullListOfNonNullType.typeKind = TypeKind.NON_NULL;
 		this.__schema.member["types"] = this.__nonNullListOfNonNullType;
 
 		this.__field = new GQLDObject("__Field");
+		this.__field.typeKind = TypeKind.OBJECT;
 		this.__field.member[Constants.name] = this.__nnStr;
 		this.__field.member[Constants.description] = nllStr;
 		this.__field.member[Constants.type] = this.__nonNullType;
@@ -410,62 +430,88 @@ class GQLDSchema(Type) : GQLDMap {
 		this.__field.member[Constants.deprecationReason] = nllStr;
 
 		this.__nonNullField = new GQLDNonNull(this.__field);
+		this.__nonNullField.typeKind = TypeKind.NON_NULL;
 		auto lNNFields = new GQLDList(this.__nonNullField);
 		this.__listOfNonNullField = new GQLDNullable(lNNFields);
-		this.__type.member[Constants.fields] = this.__listOfNonNullField;
+		this.__listOfNonNullField.typeKind = TypeKind.OBJECT;
+		//this.__type.member[Constants.fields] = this.__listOfNonNullField;
+		auto fieldTmp = new GQLDQuery();
+		fieldTmp.returnType = this.__listOfNonNullField;
+		fieldTmp.parameters["includeDeprecated"] = new GQLDNullable(new GQLDBool());
+		this.__type.member[Constants.fields] = fieldTmp;
 
 		this.__inputValue = new GQLDObject(Constants.__InputValue);
+		this.types["__InputValue"] = this.__inputValue;
+		this.__inputValue.typeKind = TypeKind.INPUT_OBJECT;
 		this.__inputValue.member[Constants.name] = this.__nnStr;
 		this.__inputValue.member[Constants.description] = nllStr;
 		this.__inputValue.member["defaultValue"] = nllStr;
 		this.__inputValue.member[Constants.type] = this.__nonNullType;
 
 		this.__nonNullInputValue = new GQLDNonNull(this.__inputValue);
+		this.__nonNullInputValue.typeKind = TypeKind.NON_NULL;
 		this.__listOfNonNullInputValue = new GQLDList(
 				this.__nonNullInputValue
 			);
+		this.__listOfNonNullInputValue.typeKind = TypeKind.LIST;
 		auto nlNNInputValue = new GQLDNullable(
 				this.__listOfNonNullInputValue
 			);
 
 		this.__type.member["inputFields"] = nlNNInputValue;
 
-		this.__nonNullListOfNonNullInputValue = new GQLDNonNull(
-				this.__listOfNonNullInputValue
-			);
-
-		this.__field.member[Constants.args] = this.__nonNullListOfNonNullInputValue;
-
 		this.__enumValue = new GQLDObject(Constants.__EnumValue);
+		this.__enumValue.typeKind = TypeKind.ENUM;
 		this.__enumValue.member[Constants.name] = this.__nnStr;
 		this.__enumValue.member[Constants.description] = nllStr;
 		this.__enumValue.member[Constants.isDeprecated] = nnB;
 		this.__enumValue.member[Constants.deprecationReason] = nllStr;
 
+		auto enumTmp = new GQLDQuery();
+		enumTmp.returnType = new GQLDNullable(new GQLDList(this.__enumValue));
+		enumTmp.parameters["includeDeprecated"] = new GQLDNullable(new GQLDBool());
+		this.__type.member["enumValues"] = enumTmp;
+
+		this.__nonNullListOfNonNullInputValue = new GQLDNonNull(
+				this.__listOfNonNullInputValue
+			);
+
+		this.__nonNullListOfNonNullInputValue.typeKind = TypeKind.NON_NULL;
+
+		this.__field.member[Constants.args] = this.__nonNullListOfNonNullInputValue;
+
 		this.__listOfNonNullEnumValue = new GQLDList(new GQLDNonNull(
 				this.__enumValue
 			));
+		this.__listOfNonNullEnumValue.typeKind = TypeKind.LIST;
+		this.__listOfNonNullEnumValue.elementType.typeKind = TypeKind.NON_NULL;
 
-		auto nnListOfNonNullEnumValue = new
-			GQLDNullable(this.__listOfNonNullEnumValue);
+		auto nnListOfNonNullEnumValue = new GQLDNullable(
+				this.__listOfNonNullEnumValue
+			);
+		nnListOfNonNullEnumValue.typeKind = TypeKind.OBJECT;
 
 		//this.__type.member[Constants.enumValues] = this.__listOfNonNullEnumValue;
-		this.__type.member[Constants.enumValues] = nnListOfNonNullEnumValue;
+		//this.__type.member[Constants.enumValues] = nnListOfNonNullEnumValue;
 
 		this.__directives = new GQLDObject(Constants.__Directive);
+		this.__directives.typeKind = TypeKind.OBJECT;
 		this.__directives.member[Constants.name] = this.__nnStr;
 		this.__directives.member[Constants.description] = str;
 		this.__directives.member[Constants.args] =
 			this.__nonNullListOfNonNullInputValue;
 		this.__directives.member[Constants.locations] = new GQLDNonNull(
-				this.__listOfNonNullEnumValue
+				new GQLDList(new GQLDNonNull(new GQLDEnum("__DirectiveLocation")))
 			);
+		this.__directives.typeKind = TypeKind.OBJECT;
 
 		this.__schema.member[Constants.directives] = new GQLDNonNull(
 				new GQLDList(new GQLDNonNull(this.__directives))
 			);
+		this.__schema.member[Constants.directives].typeKind = TypeKind.NON_NULL;
 
 		this.__typeIntrospection = new GQLDOperation(GQLDKind.Object_);
+		this.__typeIntrospection.typeKind = TypeKind.OBJECT;
 		this.__typeIntrospection.returnType = this.__type;
 		this.__typeIntrospection.parameters["name"] = this.__nnStr;
 
@@ -851,6 +897,17 @@ GQLDType typeToGQLDType(TypeQ, SCH)(ref SCH ret, bool wrapInNonNull) {
 						alias paraTypes = Parameters!(
 								__traits(getMember, Type, mem)
 								);
+						alias parDef = ParameterDefaultValueTuple!(
+								__traits(getMember, Type, mem)
+							);
+
+						Json dfArgs = Json.emptyObject();
+						static foreach(i; 0 .. paraNames.length) {
+							static if(!is(parDef[i] == void)) {
+								dfArgs[paraNames[i]] = serializeToJson(parDef[i]);
+							}
+						}
+						op.defaultParameter = dfArgs;
 						static foreach(idx; 0 .. paraNames.length) {{
 							GQLDType p = typeToGQLDType!(paraTypes[idx])(ret, true);
 							p.typeKind = typeToTypeEnum!(paraTypes[idx])(GQLDUdaData.init);

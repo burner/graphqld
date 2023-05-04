@@ -213,9 +213,11 @@ class SchemaValidator(Schema) : Visitor {
 		enum uo = [TypeKind.OBJECT, TypeKind.UNION, TypeKind.INTERFACE];
 		enforce!FragmentNotOnCompositeType(canFind(uo
 					, this.schemaStack.back.type.typeKind),
-				format("'%s' is not an %(%s, %) but '%s'"
+				format("'%s' is not an %(%s, %) but '%s'. Stack %s"
 					, this.schemaStack.back.type.toString(), uo
-					, this.schemaStack.back.type.typeKind)
+					, this.schemaStack.back.type.typeKind
+					, this.schemaStack.map!(it => format("%s.%s", it.name, it.fieldName))
+					)
 			);
 		const(FragmentDefinition) frag = findFragment(this.doc,
 				fragSpread.name.value
@@ -241,9 +243,12 @@ class SchemaValidator(Schema) : Visitor {
 		enforce!LeafIsNotAScalar(f.ss !is null ||
 				(this.schemaStack.back.type.typeKind == TypeKind.SCALAR
 				|| this.schemaStack.back.type.typeKind == TypeKind.ENUM),
-				format("Leaf field '%s' is not a SCALAR but '%s'",
-					this.schemaStack.back.name,
-					this.schemaStack.back.type.typeKind)
+				format("Leaf field '%s' is not a SCALAR nor ENUM but '%s'. Stack %s. Back %s"
+					, f.name.name.value
+					, this.schemaStack.back.type.typeKind
+					, this.schemaStack.map!(it => format("%s.%s", it.name, it.fieldName))
+					, this.schemaStack.back.type
+					)
 				);
 	}
 

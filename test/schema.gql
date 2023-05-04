@@ -6,7 +6,7 @@ schema {
 type mutationType {
 	getStupidestCrewman: Character!
 	addCrewman(input: AddCrewmanData!): Character!
-	fields: [__Field!]
+	fields(includeDeprecated: Boolean): [__Field!]
 	name: String!
 }
 type queryType {
@@ -28,13 +28,13 @@ type queryType {
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
 	alwaysEmpty: [Starship!]
-	fields: [__Field!]
+	fields(includeDeprecated: Boolean): [__Field!]
 }
 type StarshipSimple {
 	commander: Character!
 }
 type subscriptionType {
-	fields: [__Field!]
+	fields(includeDeprecated: Boolean): [__Field!]
 	starships: [Starship!]!
 	name: String!
 }
