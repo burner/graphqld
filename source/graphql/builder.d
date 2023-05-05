@@ -214,64 +214,6 @@ struct FieldRange {
 		}
 	}
 
-	/*void popFront() {
-		this.cur.back = this.cur.back.follow;
-		this.build();
-		this.test();
-	}
-
-	void test() {
-		import std.format : format;
-		import std.conv : to;
-		import std.algorithm.iteration : map;
-		//logf("%s", this.cur[].map!(i => format("nn %s, ft %s", i !is null,
-		//		i !is null ? to!string(i.sel.ruleSelection) : "null"))
-		//	);
-		foreach(it; this.cur[]) {
-			assert(it !is null);
-			assert(it.sel.ruleSelection == SelectionEnum.Field);
-		}
-	}
-
-	void build() {
-		if(this.cur.empty) {
-			return;
-		}
-		if(this.cur.back is null) {
-			this.cur.removeBack();
-			this.build();
-			this.test();
-			return;
-		}
-		if(this.cur.back.sel.ruleSelection == SelectionEnum.Field) {
-			return;
-		} else if(this.cur.back.sel.ruleSelection == SelectionEnum.Spread
-				|| this.cur.back.sel.ruleSelection == SelectionEnum.IFrag)
-		{
-			Selections follow = this.cur.back.follow;
-			Selections f =
-				this.cur.back.sel.ruleSelection == SelectionEnum.Spread
-					? findFragment(doc, this.cur.back.sel.frag.name.value,
-							this.typenames
-						)
-					: resolveInlineFragment(this.cur.back.sel.ifrag,
-							this.typenames
-						);
-
-			this.cur.removeBack();
-
-			if(follow !is null) {
-				this.cur.insertBack(follow);
-				this.build();
-				this.test();
-			}
-			if(f !is null) {
-				this.cur.insertBack(f);
-				this.build();
-				this.test();
-			}
-		}
-	}*/
 }
 
 Selections resolveInlineFragment(InlineFragment ilf, string[] typenames) {

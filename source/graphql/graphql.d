@@ -142,7 +142,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		Json defaultArgs = this.getDefaultArguments(type, field);
 		Json joinedArgs = joinJson!(JoinJsonPrecedence.a)(args, defaultArgs);
-		//this.resolverLog.logf(
 		enforce(type != "__type" && field != "__ofType"
 			, "type != '__type' && field != '__ofType' " ~
 				parent.toPrettyString());
@@ -253,7 +252,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 	{
 		this.executationTraceLog.log("query");
 		auto qt = this.schema.member["queryType"];
-		//debug writefln(qt.toString());
 		Json tmp = this.executeSelections(op.ss.sel, qt
 				, Json.emptyObject(), variables, doc, context, ec
 			);
