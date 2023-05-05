@@ -45,12 +45,54 @@ bool stringCompareWithOutInPostfix(string a, string b) {
 	string diff = a.length < b.length
 		? b[a.length .. $]
 		: a[b.length .. $];
-	return diff.empty || diff == "In";
+	//writefln("a %s b %s, diff '%s'", a, b, diff);
+	return diff.empty || diff == "In"
+		|| (a.length > b.length && diff == "!");
 }
 
 bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 	type = type.unpackNullable();
-	final switch(ast.ruleSelection) {
+	//writefln("%s %s %s", astTypeToString(ast), ast.ruleSelection, type.name);
+	bool ret;
+	if(GQLDNonNull nn = type.toNonNull()) {
+		final switch(ast.ruleSelection) {
+			case TypeEnum.TN: // NonNull
+				ret = ast.tname.value == nn.elementType.name;
+				break;
+			case TypeEnum.LN: // NonNull(List)
+				GQLDList l = nn.elementType.unpack().toList();
+				ret = l is null
+					? false
+					: astTypeCompareToGQLDType(ast.list.type, l.elementType);
+				break;
+			case TypeEnum.T: // anker
+				ret = false;
+				break;
+			case TypeEnum.L: // List
+				ret = false;
+				break;
+		}
+		return ret;
+	} else if(GQLDList l = type.toList()) {
+		final switch(ast.ruleSelection) {
+			case TypeEnum.TN: // NonNull
+				ret = false;
+				break;
+			case TypeEnum.LN: // NonNull(List)
+				ret = astTypeCompareToGQLDType(ast.list.type, l.elementType);
+				break;
+			case TypeEnum.T: // anker
+				ret = false;
+				break;
+			case TypeEnum.L: // List
+				ret = astTypeCompareToGQLDType(ast.list.type, l.elementType);
+				break;
+		}
+		return ret;
+	}
+	ret = ast.tname.value == type.name;
+	return ret;
+	/*final switch(ast.ruleSelection) {
 		case TypeEnum.TN: // NonNull
 			GQLDNonNull nn = type.toNonNull();
 			return nn is null
@@ -71,7 +113,7 @@ bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 		case TypeEnum.L: // List
 			GQLDList l = type.toList();
 			return l !is null;
-	}
+	}*/
 }
 
 enum IsSubscription {
@@ -133,9 +175,9 @@ class SchemaValidator(Schema) : Visitor {
 	void addToTypeStack(string name) {
 		//writefln("\naddToTypeStack %s %s", name, this.schemaStack.map!(i => i.type.name));
 		GQLDMap backMap = toMap(this.schemaStack.back.type.unpack2());
-		//enforce!FieldDoesNotExist(backMap !is null,
-		//		format("Type '%s' does not have fields",
-		//			this.schemaStack.back.name));
+		enforce!FieldDoesNotExist(backMap !is null,
+				format("Type '%s' does not have fields",
+					this.schemaStack.back.name));
 
 		GQLDType t = this.schema.getReturnType(this.schemaStack.back.type, name);
 		enforce!FieldDoesNotExist(t !is null
@@ -146,23 +188,11 @@ class SchemaValidator(Schema) : Visitor {
 					, backMap is null ? [] : allMember(backMap).byKey().array)
 			);
 		GQLDType un = t.unpack2();
-		/*
-		immutable toFindIn = [Constants.__typename, Constants.__schema,
-					Constants.__type];
-		if(canFind(toFindIn, name)) {
-			t = name in this.schema.types;
-		} else {
-			t = name in backMap.member;
-		}
-		*/
 		enforce!FieldDoesNotExist(un !is null
 				, format("Type '%s' does not have fields named '%s' but [%--(%s, %)]"
 					, this.schemaStack.back.name, name
 					, backMap.member.byKey())
 			);
-		/*
-		GQLDType un = (*t).unpack2();
-		writefln("%s", un.name);*/
 		this.schemaStack ~= TypePlusName(un, un.name, name);
 	}
 
@@ -180,7 +210,6 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(SelectionSet) ss) {
-		//writeln(this.schemaStack);
 		++this.ssCnt;
 	}
 
@@ -199,7 +228,6 @@ class SchemaValidator(Schema) : Visitor {
 
 	override void enter(const(FragmentDefinition) fragDef) {
 		string typeName = fragDef.tc.value;
-		//writefln("%s %s", typeName, fragDef.name.value);
 		if(auto tp = typeName in this.schema.types) {
 			this.schemaStack ~= TypePlusName(*tp, typeName, fragDef.name.value);
 		} else {
@@ -259,7 +287,6 @@ class SchemaValidator(Schema) : Visitor {
 	}
 
 	override void enter(const(InlineFragment) inF) {
-		//this.addTypeToStackImpl(inF.tc.value, inF.tc.value, "");
 		if(auto tp = inF.tc.value in this.schema.types) {
 			this.schemaStack ~= TypePlusName((*tp).unpack2(), inF.tc.value, "");
 		} else {
@@ -293,7 +320,6 @@ class SchemaValidator(Schema) : Visitor {
 			enforce!ValidationException(parentMap !is null, format(
 					"'%s' has no fields" , parent.type.name
 				));
-			//writeln(__LINE__);
 
 			GQLDType* fieldPtr = this.schemaStack.back.fieldName in
 				parentMap.member;
@@ -301,7 +327,6 @@ class SchemaValidator(Schema) : Visitor {
 					"'%s' has no field names '%s'" , parent.type.name
 					, this.schemaStack.back.fieldName
 				));
-			//writeln(__LINE__);
 
 			GQLDOperation op = (*fieldPtr).unpack().toOperation();
 			enforce!ValidationException(op !is null, format(
@@ -310,7 +335,6 @@ class SchemaValidator(Schema) : Visitor {
 					, this.schemaStack.back.fieldName
 					, (*fieldPtr).unpack()
 				));
-			//writeln(__LINE__);
 
 			GQLDType* theArg = argName in op.parameters;
 			enforce!ArgumentDoesNotExist(theArg !is null, format(
@@ -325,15 +349,12 @@ class SchemaValidator(Schema) : Visitor {
 				auto varType = varName in this.variables;
 				enforce(varName !is null);
 
-				bool compareOkay = astTypeCompareToGQLDType(*varType,
-					*theArg);
+				bool compareOkay = astTypeCompareToGQLDType(*varType
+					, *theArg);
 
-				//() @trusted {
-				//	writefln("%s %s", astTypeToString(*varType), *theArg);
-				//}();
 				enforce!VariableInputTypeMismatch(compareOkay
 						, format("Variable type '%s' does not match argument type '%s'"
-						, astTypeToString(*varType), (*theArg))
+						, astTypeToString(*varType), *theArg)
 					);
 			}
 
@@ -361,7 +382,6 @@ import graphql.testschema;
 
 private void test(T)(string str) {
 	auto graphqld = new GraphQLD!(Schema);
-	//GQLDSchema!(Schema) testSchema = new GQLDSchema!(Schema)();
 	auto doc = lexAndParse(str);
 	auto fv = new SchemaValidator!Schema(doc, graphqld.schema);
 

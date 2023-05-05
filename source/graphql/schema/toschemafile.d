@@ -219,7 +219,6 @@ string gqldTypeToStringIn(const(GQLDType) t) {
 	} else if(auto nn = cast(const(GQLDNonNull))t) {
 		return gqldTypeToStringIn(nn.elementType) ~ "!";
 	}
-	writefln("%s %s", t.name, t.typeKind);
 	return canFind([TypeKind.SCALAR, TypeKind.INPUT_OBJECT, TypeKind.ENUM], t.typeKind)
 		? t.name
 		: t.name ~ "In";
@@ -229,21 +228,7 @@ string typeToStringMaybeIn(GQLDType t, bool inputType, bool isParam) {
 	auto bt = baseType(t);
 	const bool baseTypeIsNotInputObject = bt.udaData.typeKind != TypeKind.INPUT_OBJECT;
 	const bool isScalar = (toScalar(bt) !is null);
-	//if(isParam) {
-	//	//writefln("bt: %s, name: %s, baseTypeIsNotInputObject %s, isScalar %s",
-	//	//		bt.kind, bt.name, baseTypeIsNotInputObject, isScalar);
-	//	writefln("\nt.name: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOrOutput: %s"
-	//			~ "\n%s"
-	//			, t.name
-	//			, inputType
-	//			, isNotInputOnly, isNotInputOrOutput
-	//			, tab.byKey
-	//			);
-	//}
 	return gqldTypeToString(t, isParam && !isScalar && !inputType && baseTypeIsNotInputObject
-				//&& baseTypeNameInTab
-				//&& isNotInputOnly
-				//&& isNotInputOrOutput
 			? "In"
 			: "");
 }
