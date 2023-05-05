@@ -92,28 +92,6 @@ bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 	}
 	ret = ast.tname.value == type.name;
 	return ret;
-	/*final switch(ast.ruleSelection) {
-		case TypeEnum.TN: // NonNull
-			GQLDNonNull nn = type.toNonNull();
-			return nn is null
-				? false
-				: stringCompareWithOutInPostfix(ast.tname.value, nn.elementType.name);
-		case TypeEnum.LN: // NonNull(List)
-			GQLDNonNull nn = type.toNonNull();
-			if(nn is null) {
-				return false;
-			}
-			GQLDList l = nn.elementType.unpack().toList();
-			return l is null
-				? false
-				: astTypeCompareToGQLDType(ast.list.type, l.elementType);
-		case TypeEnum.T: // anker
-			bool ret = stringCompareWithOutInPostfix(ast.tname.value, type.name);
-			return ret;
-		case TypeEnum.L: // List
-			GQLDList l = type.toList();
-			return l !is null;
-	}*/
 }
 
 enum IsSubscription {
