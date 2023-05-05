@@ -952,6 +952,13 @@ GQLDType unpack(GQLDType t) {
 	return t;
 }
 
+GQLDType unpackNullable(GQLDType t) {
+	if(GQLDNullable nn = toNullable(t)) {
+		return nn.elementType;
+	}
+	return t;
+}
+
 GQLDType unpack2(GQLDType t) {
 	if(GQLDNonNull nn = toNonNull(t)) {
 		return unpack2(nn.elementType);

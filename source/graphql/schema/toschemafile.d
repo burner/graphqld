@@ -30,7 +30,7 @@ string schemaToString(T)(GQLDSchema!T sch) {
 		auto tPtr = it in sch.member;
 		if(tPtr !is null) {
 			auto t = *tPtr;
-			formIndent(app, 1, "%s: %s", it, t.name);
+			formIndent(app, 1, "%s: %s", it[0 .. $ - 4], t.name);
 			tts[t.name] = TraceType(t, false);
 		}
 	}
@@ -77,10 +77,14 @@ void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts)
 		} else if(GQLDUnion u = toUnion(tt.type)) {
 			formIndent(o, 0, "union %s = %--(%s | %)", u.name
 					, u.member.byValue.map!(v => baseType(v).name));
+			foreach(it; u.member.byValue) {
+				addIfNew(tts, it, false);
+			}
 		} else if(GQLDMap map = toMap(tt.type)) {
 			string implementsStr;
 			if(auto obj = cast(GQLDObject)map) {
 				if(obj.base && obj.base.typeKind == TypeKind.INTERFACE) {
+					addIfNew(tts, obj.base, false);
 					implementsStr = " implements " ~ obj.base.name;
 				}
 			}
@@ -88,17 +92,19 @@ void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts)
 					, tt.type.name, implementsStr);
 			foreach(memName, mem; allMember(map)) {
 				string typename = typeToStringMaybeIn(mem, false, false);
-				if(isNameSpecial(typename)) {
+				if(isNameSpecial(memName)) {
 					continue;
 				}
 				if(GQLDOperation op = toOperation(mem)) {
+					string rt = op.returnType.gqldTypeToString();
+					if(canFind(["[__Field!]", "__Type!"], rt)) {
+						continue;
+					}
 					formIndent(o, 1, "%s%s: %s%s", memName,
 						op.parameters.keys.length > 0
 							? format("(%--(%s, %))", op.parameters.byKeyValue
 								.map!(kv => format("%s: %s", kv.key,
-									typeToStringMaybeIn(kv.value
-										, kv.value.udaData.typeKind == TypeKind.INPUT_OBJECT
-										, true))))
+									gqldTypeToStringIn(kv.value))))
 							: ""
 						, op.returnType.gqldTypeToString()
 						, typeToDeprecationMessage(mem));
@@ -124,14 +130,15 @@ void toSchemaString(Out)(ref Out o, ref TraceType tt, ref TraceType[string] tts)
 			if(GQLDMap map = toMap(tt.type)) {
 				formIndent(o, 0, "input %sIn {", tt.type.name);
 				foreach(memName, mem; allMember(map)) {
-					string typename = typeToStringMaybeIn(mem, false, false);
-					if(isNameSpecial(typename)) {
+					string typename = gqldTypeToStringIn(mem);
+					if(isNameSpecial(memName)) {
 						continue;
 					}
 					if(GQLDOperation op = toOperation(mem)) {
 					} else {
 						formIndent(o, 1, "%s: %s%s", memName, typename
 								, typeToDeprecationMessage(mem));
+						addIfNew(tts, mem, true);
 					}
 				}
 				formIndent(o, 0, "}");
@@ -204,22 +211,35 @@ string gqldTypeToString(const(GQLDType) t, string nameSuffix = "", Flag!"nonNull
 	return t.name ~ nameSuffix ~ (nonNullable ? "!" : "");
 }
 
+string gqldTypeToStringIn(const(GQLDType) t) {
+	if(auto base = cast(const(GQLDNullable))t) {
+		return gqldTypeToStringIn(base.elementType);
+	} else if(auto list = cast(const(GQLDList))t) {
+		return '[' ~ gqldTypeToStringIn(list.elementType) ~ ']';
+	} else if(auto nn = cast(const(GQLDNonNull))t) {
+		return gqldTypeToStringIn(nn.elementType) ~ "!";
+	}
+	writefln("%s %s", t.name, t.typeKind);
+	return canFind([TypeKind.SCALAR, TypeKind.INPUT_OBJECT, TypeKind.ENUM], t.typeKind)
+		? t.name
+		: t.name ~ "In";
+}
 
 string typeToStringMaybeIn(GQLDType t, bool inputType, bool isParam) {
 	auto bt = baseType(t);
 	const bool baseTypeIsNotInputObject = bt.udaData.typeKind != TypeKind.INPUT_OBJECT;
 	const bool isScalar = (toScalar(bt) !is null);
-	if(isParam) {
-		//writefln("bt: %s, name: %s, baseTypeIsNotInputObject %s, isScalar %s",
-		//		bt.kind, bt.name, baseTypeIsNotInputObject, isScalar);
-		//writefln("\nt.name: %s\nbaseTypeName: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOrOutput: %s"
-		//		~ "\n%s"
-		//		, t.name, baseTypeName
-		//		, inputType, baseTypeNameInTab
-		//		, isNotInputOnly, isNotInputOrOutput
-		//		, tab.byKey
-		//		);
-	}
+	//if(isParam) {
+	//	//writefln("bt: %s, name: %s, baseTypeIsNotInputObject %s, isScalar %s",
+	//	//		bt.kind, bt.name, baseTypeIsNotInputObject, isScalar);
+	//	writefln("\nt.name: %s\ninputType: %s\nbaseTypeNameInTab: %s\nisNotInputOnly: %s\nisNotInputOrOutput: %s"
+	//			~ "\n%s"
+	//			, t.name
+	//			, inputType
+	//			, isNotInputOnly, isNotInputOrOutput
+	//			, tab.byKey
+	//			);
+	//}
 	return gqldTypeToString(t, isParam && !isScalar && !inputType && baseTypeIsNotInputObject
 				//&& baseTypeNameInTab
 				//&& isNotInputOnly

@@ -21,7 +21,6 @@ import graphql.helper : allMember, lexAndParse;
 import graphql.schema.helper;
 import graphql.schema.introspectiontypes : IntrospectionTypes;
 import graphql.schema.types;
-import graphql.schema.types;
 import graphql.uda;
 import graphql.validation.exception;
 import graphql.visitor;
@@ -50,6 +49,7 @@ bool stringCompareWithOutInPostfix(string a, string b) {
 }
 
 bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
+	type = type.unpackNullable();
 	final switch(ast.ruleSelection) {
 		case TypeEnum.TN: // NonNull
 			GQLDNonNull nn = type.toNonNull();
@@ -61,7 +61,7 @@ bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 			if(nn is null) {
 				return false;
 			}
-			GQLDList l = nn.elementType.toList();
+			GQLDList l = nn.elementType.unpack().toList();
 			return l is null
 				? false
 				: astTypeCompareToGQLDType(ast.list.type, l.elementType);
