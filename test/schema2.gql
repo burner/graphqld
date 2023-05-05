@@ -1,8 +1,7 @@
 schema {
-	queryType: queryType
+	query: queryType
 }
 type queryType {
-	__type(name: String!): __Type!
 	maybeNull: Int
 	small: Small
 	manysmall: [Small!]!
@@ -10,7 +9,6 @@ type queryType {
 	neverNull: Int!
 	foo: Int!
 	bar: Int!
-	fields(includeDeprecated: Boolean): [__Field!]
 }
 type Small {
 	name: String!
