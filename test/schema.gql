@@ -1,17 +1,15 @@
 schema {
-	mutationType: mutationType
-	queryType: queryType
-	subscriptionType: subscriptionType
+	mutation: mutationType
+	query: queryType
+	subscription: subscriptionType
 }
 type mutationType {
 	getStupidestCrewman: Character!
 	addCrewman(input: AddCrewmanData!): Character!
-	fields(includeDeprecated: Boolean): [__Field!]
 	name: String!
 }
 type queryType {
 	shipsselection(ids: [Int!]!): [Starship!]!
-	__type(name: String!): __Type!
 	currentTime: DateTime!
 	starships(overSize: Float!): [Starship!]!
 	captain(series: Series!): Character!
@@ -28,13 +26,11 @@ type queryType {
 	starshipDoesNotExist: Starship!
 	character(id: Int!): Character
 	alwaysEmpty: [Starship!]
-	fields(includeDeprecated: Boolean): [__Field!]
 }
 type StarshipSimple {
 	commander: Character!
 }
 type subscriptionType {
-	fields(includeDeprecated: Boolean): [__Field!]
 	starships: [Starship!]!
 	name: String!
 }
