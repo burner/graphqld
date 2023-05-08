@@ -57,7 +57,8 @@ bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 	if(GQLDNonNull nn = type.toNonNull()) {
 		final switch(ast.ruleSelection) {
 			case TypeEnum.TN: // NonNull
-				ret = ast.tname.value == nn.elementType.name;
+				ret = stringCompareWithOutInPostfix(ast.tname.value,
+						nn.elementType.name);
 				break;
 			case TypeEnum.LN: // NonNull(List)
 				GQLDList l = nn.elementType.unpack().toList();
@@ -90,7 +91,7 @@ bool astTypeCompareToGQLDType(const(Type) ast, GQLDType type) {
 		}
 		return ret;
 	}
-	ret = ast.tname.value == type.name;
+	ret = stringCompareWithOutInPostfix(ast.tname.value, type.name);
 	return ret;
 }
 
