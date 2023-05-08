@@ -115,7 +115,9 @@ private Json toJsonField(GQLDType field, string fieldName) {
 	}
 	if(GQLDList l = toList(field)) {
 		ret["type"] = toJsonType(l, "type");
+		ret["__gqldTypeName"] = l.elementType.name;
 	} else if(GQLDNullable n = toNullable(field)) {
+		ret["__gqldTypeName"] = n.elementType.name;
 		ret = toJsonField(n.elementType, fieldName);
 		if(ret.type == Json.Type.object && "description" in ret
 				&& ret["description"].get!string() == "")
@@ -125,6 +127,10 @@ private Json toJsonField(GQLDType field, string fieldName) {
 		//ret["type"] = toJsonType(n, "type");
 	} else if(GQLDNonNull n = toNonNull(field)) {
 		ret["type"] = toJsonType(n, "type");
+		ret["__gqldTypeName"] = n.elementType.name;
+	} else if(op !is null) {
+		ret["type"] = toJsonType(op.returnType, "type");
+		ret["__gqldTypeName"] = op.returnType.name;
 	}
 	return ret;
 }
@@ -350,6 +356,32 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 	);
 
 	graphql.setResolver("__Type", "fields", fieldsResolver);
+	graphql.setResolver("__Type", "enumValues"
+		, delegate(string name, Json parent, Json args, ref Con context) @safe
+		{
+			string nameOfType = getName(args, parent);
+			enforceGQLD(!nameOfType.empty, format("No __typename in args %s nor parent %s"
+					, args.toPrettyString(), parent.toPrettyString()));
+
+			GQLDType* typePtr = nameOfType in graphql.schema.types;
+			enforceGQLD(typePtr !is null, format("No type for typename '%s' found in the Schema"
+					, nameOfType));
+
+			GQLDEnum e = toEnum(*typePtr);
+			enforceGQLD(e !is null, format("Type '%s' is not an enum but '%s'",
+					nameOfType, (*typePtr).toString()));
+			Json ret = Json.emptyObject();
+			ret["data"] = e.memberNames.empty
+				? Json(null)
+				: Json(e.memberNames.map!(i =>
+						Json(
+							[ "name": Json(i)
+							, "isDeprecated" : Json(false)
+							, "deprecationReason": Json(null)
+							, "description": Json(null)
+							])).array);
+			return ret;
+		});
 
 	graphql.setResolver("__Type", "ofType",
 		delegate(string name, Json parent, Json args, ref Con context) @safe
@@ -465,12 +497,11 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 		delegate(string name, Json parent, Json args, ref Con context) @safe
 		{
 			GQLDType* type = "subscriptionType" in graphql.schema.types;
-			writefln("sub is null %s", type is null);
+			//writefln("sub is null %s", type is null);
 			Json ret = Json.emptyObject();
 			ret["data"] = type is null
 				? Json(null)
 				: toJsonType(*type);
-			writeln(ret);
 			return ret;
 		}
 	);
