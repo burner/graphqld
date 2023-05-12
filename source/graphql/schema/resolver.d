@@ -124,7 +124,7 @@ private Json toJsonField(GQLDType field, string fieldName) {
 		{
 			ret["description"] = field.udaData.description.getText();
 		}
-		//ret["type"] = toJsonType(n, "type");
+		//ret["type"] = toJsonType(n.elementType, "type");
 	} else if(GQLDNonNull n = toNonNull(field)) {
 		ret["type"] = toJsonType(n, "type");
 		ret["__gqldTypeName"] = n.elementType.name;
@@ -367,10 +367,15 @@ void setDefaultSchemaResolver(T, Con)(GraphQLD!(T,Con) graphql) {
 			enforceGQLD(typePtr !is null, format("No type for typename '%s' found in the Schema"
 					, nameOfType));
 
+			Json ret = Json.emptyObject();
 			GQLDEnum e = toEnum(*typePtr);
+			if(e is null) {
+				ret["data"] = Json(null);
+				return ret;
+			}
+
 			enforceGQLD(e !is null, format("Type '%s' is not an enum but '%s'",
 					nameOfType, (*typePtr).toString()));
-			Json ret = Json.emptyObject();
 			ret["data"] = e.memberNames.empty
 				? Json(null)
 				: Json(e.memberNames.map!(i =>
