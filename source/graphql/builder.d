@@ -5,6 +5,7 @@ version(LDC) {
 } else {
 	import std.logger : logf;
 }
+import std.array : back, empty;
 import std.exception : enforce;
 import std.format : format;
 
@@ -125,7 +126,7 @@ struct FieldRangeItem {
 }
 
 struct FieldRange {
-	FixedSizeArray!(Selections,64) cur;
+	Selections[] cur;
 	Document doc;
 	string[] typenames;
 	Json vars;
@@ -134,7 +135,7 @@ struct FieldRange {
 		this.doc = doc;
 		this.typenames = typenames;
 		this.vars = vars;
-		this.cur.insertBack(sels);
+		this.cur ~= sels;
 		this.build();
 		//this.test();
 	}
@@ -183,7 +184,6 @@ struct FieldRange {
 			if(se == SelectionEnum.Field) {
 				return;
 			} else {
-				Selections follow = this.cur.back.follow;
 				Selections f = se == SelectionEnum.Spread
 					? findFragment(doc, this.cur.back.sel.frag.name.value,
 							this.typenames
@@ -192,21 +192,22 @@ struct FieldRange {
 							this.typenames
 						);
 
-				this.cur.removeBack();
+				Selections follow = this.cur.back.follow;
+				this.cur = this.cur[0 .. $ - 1];
 
 				if(follow !is null) {
-					this.cur.insertBack(follow);
+					this.cur ~= follow;
 					this.build();
 					//this.test();
 				}
 				if(f !is null) {
-					this.cur.insertBack(f);
+					this.cur ~= f;
 					this.build();
 					//this.test();
 				}
 			}
 		} else if(this.cur.back is null) {
-			this.cur.removeBack();
+			this.cur = this.cur[0 .. $ - 1];
 			this.build();
 		} else {
 			this.cur.back = this.cur.back.follow;

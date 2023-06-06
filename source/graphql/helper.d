@@ -1108,9 +1108,11 @@ GQLDType[string] allMember(GQLDMap m) @safe {
 }
 
 SelectionSet shallowCopy(SelectionSet s) {
-	SelectionSet ret = new SelectionSet();
-	ret.ruleSelection = s.ruleSelection;
-	ret.sel = shallowCopy(s.sel);
+	if(s is null) {
+		return null;
+	}
+	SelectionSet ret = new SelectionSet(s.ruleSelection
+			, shallowCopy(s.sel));
 	return ret;
 }
 
@@ -1118,10 +1120,9 @@ private Selections shallowCopy(Selections s) {
 	if(s is null) {
 		return null;
 	} else {
-		Selections ret = new Selections();
-		ret.ruleSelection = s.ruleSelection();
-		ret.sel = s.sel;
-		ret.follow = shallowCopy(s.follow);
+		Selections ret = new Selections(s.ruleSelection
+				, s.sel
+				, shallowCopy(s.follow));
 		return ret;
 	}
 }

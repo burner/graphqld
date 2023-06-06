@@ -463,6 +463,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 		enforce("data" in objectValue, "Excepted object got " ~ objectValue.toString());
 		GQLDType elemType = objectType.elementType;
 		GQLDType unPacked = unpack2(elemType);
+		Selections ssSelCopy = ss is null
+			? null
+			: shallowCopy(ss.sel);
 
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
