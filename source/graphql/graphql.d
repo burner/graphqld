@@ -67,7 +67,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
 	alias QueryArrayResolver = Json delegate(string name, ParentArgs parentArgs
-			, Selections selections, ref Con context) @safe;
+			, Field selections, ref Con context) @safe;
 
 	alias DefaultQueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context, ref ExecutionContext ec) @safe;
@@ -466,7 +466,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
-		QueryArrayResolver[string]* arrayTypeResolverArray = unPacked.name in this.arrayResolver;
+		QueryArrayResolver[string]* arrayTypeResolverArray =
+			unPacked !is null
+				? unPacked.name in this.arrayResolver
+				: null;
 		GQLDMap elemTypeMap = toMap(unPacked);
 
 		if(arrayTypeResolverArray !is null) {
@@ -486,6 +489,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 				writefln("Array Resolver %s %s %s", unPacked.name
 						, arrayTypeResolver !is null
 						, field.name);
+				if(arrayTypeResolver !is null) {
+					Json rslt = (*arrayTypeResolver)(field.name
+							, ParentArgs(objectValue, variables)
+							, field.f, context);
+				}
 			}
 		}
 
