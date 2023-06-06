@@ -8,6 +8,7 @@ version(LDC) {
 import std.array : back, empty;
 import std.exception : enforce;
 import std.format : format;
+import std.typecons : Flag;
 
 import vibe.data.json;
 
@@ -110,6 +111,8 @@ fragment fooo on Hero {
 	assert(f is null);
 }
 
+alias BuildLinear = Flag!"BuildLinear";
+
 struct FieldRangeItem {
 	import std.array : empty;
 	Field f;
@@ -129,13 +132,19 @@ struct FieldRange {
 	Selections[] cur;
 	Document doc;
 	string[] typenames;
+	Selection[] linear;
 	Json vars;
 
-	this(Selections sels, Document doc, string[] typenames, Json vars) {
+	this(Selections sels, Document doc, string[] typenames, Json vars
+			, BuildLinear buildLinear)
+	{
 		this.doc = doc;
 		this.typenames = typenames;
 		this.vars = vars;
 		this.cur ~= sels;
+		if(buildLinear == BuildLinear.yes) {
+			this.linear = copySelection(sels);
+		}
 		this.build();
 		//this.test();
 	}
@@ -232,28 +241,49 @@ Selections resolveInlineFragment(InlineFragment ilf, string[] typenames) {
 }
 
 FieldRange fieldRange(OperationDefinition od, Document doc,
-		string[] typenames)
+		string[] typenames, BuildLinear buildLinear = BuildLinear.no)
 {
 	return FieldRange(od.accessNN!(["ss", "sel"]), doc, typenames,
-			Json.emptyObject());
+			Json.emptyObject(), buildLinear);
 }
 
-FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames) {
-	return FieldRange(ss.sel, doc, typenames, Json.emptyObject());
+FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames
+		, BuildLinear buildLinear = BuildLinear.no)
+{
+	return FieldRange(ss.sel, doc, typenames, Json.emptyObject()
+			, buildLinear);
+}
+
+FieldRange fieldRange(SelectionSet ss, Document doc, string[] typenames
+		, Json vars
+		, BuildLinear buildLinear = BuildLinear.no)
+{
+	return FieldRange(ss.sel, doc, typenames, vars, buildLinear);
+}
+
+FieldRangeItem[] fieldRangeArr(Selections sel, Document doc
+		, string[] typenames, Json vars
+		, BuildLinear buildLinear = BuildLinear.no)
+{
+	import std.array : array;
+	return FieldRange(sel, doc, typenames, vars, buildLinear).array;
 }
 
 FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
-		string[] typenames, Json vars)
+		string[] typenames, BuildLinear buildLinear = BuildLinear.no)
 {
 	import std.array : array;
-	return FieldRange(sel, doc, typenames, vars).array;
+	return fieldRangeArr(sel, doc, typenames, Json.emptyObject(), BuildLinear.no);
 }
 
-FieldRangeItem[] fieldRangeArr(Selections sel, Document doc,
-		string[] typenames)
-{
-	import std.array : array;
-	return fieldRangeArr(sel, doc, typenames, Json.emptyObject());
+private Selection[] copySelection(Selections s) {
+	Selection[] ret;
+	Selections cur = s;
+	while(cur !is null) {
+		ret ~= cur.sel;
+		cur = cur.follow;
+	}
+	return ret;
 }
 
 struct OpDefRangeItem {

@@ -463,9 +463,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 		enforce("data" in objectValue, "Excepted object got " ~ objectValue.toString());
 		GQLDType elemType = objectType.elementType;
 		GQLDType unPacked = unpack2(elemType);
-		Selections ssSelCopy = ss is null
-			? null
-			: shallowCopy(ss.sel);
 
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
@@ -476,17 +473,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 		GQLDMap elemTypeMap = toMap(unPacked);
 
 		if(arrayTypeResolverArray !is null) {
-			foreach(FieldRangeItem field;
-					fieldRangeArr(
-						ss.sel,
-						doc,
-						interfacesForType(this.schema
-							, objectValue.getWithDefault!string(
-								"data.__typename", "__typename")
-							),
-						variables)
-				)
-			{
+			FieldRange fr = fieldRange(ss, doc
+					, interfacesForType(this.schema
+						, objectValue.getWithDefault!string("data.__typename"
+						, "__typename"))
+					, variables, BuildLinear.yes);
+			for(FieldRangeItem =
 				QueryArrayResolver* arrayTypeResolver =
 					field.name in (*arrayTypeResolverArray);
 				writefln("Array Resolver %s %s %s", unPacked.name
