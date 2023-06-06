@@ -55,10 +55,18 @@ private struct ExecutionContext {
 	}
 }
 
+struct ParentArgs {
+	Json parent;
+	Json args;
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
+	alias QueryArrayResolver = Json delegate(string name, ParentArgs parentArgs
+			, Selections selections, ref Con context) @safe;
+
 	alias DefaultQueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context, ref ExecutionContext ec) @safe;
 
@@ -74,6 +82,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	// [Type][field]
 	QueryResolver[string][string] resolver;
+	QueryArrayResolver[string][string] arrayResolver;
 	DefaultQueryResolver defaultResolver;
 
 	this(GQLDOptions options = GQLDOptions.init) {
@@ -135,6 +144,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 				this.resolver[qt.name][second] = resolver;
 			}
 		}
+	}
+
+	void setArrayResolver(string first, string second
+			, QueryArrayResolver resolver)
+	{
+		if(first !in this.arrayResolver) {
+			this.arrayResolver[first] = QueryArrayResolver[string].init;
+		}
+		enforce(second !in this.arrayResolver[first], format(
+				"'%s'.'%s' is already registered", first, second));
+		this.arrayResolver[first][second] = resolver;
 	}
 
 	Json resolve(string type, string field, Json parent, Json args,
@@ -441,8 +461,28 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		enforce("data" in objectValue, "Excepted object got " ~ objectValue.toString());
 		GQLDType elemType = objectType.elementType;
+		GQLDType unPacked = unpack2(elemType);
+
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
+		QueryArrayResolver[string]* arrayTypeResolverArray = unPacked.name in this.arrayResolver;
+		GQLDMap elemTypeMap = toMap(unPacked);
+		QueryArrayResolver* arrayTypeResolver = elemTypeMap is null
+			? null
+			: elemTypeMap.name in (*arrayTypeResolverArray);
+
+		writefln("Array Resolver %s %s %s %s", unPacked.name
+				, elemTypeMap is null
+					? ""
+					: elemTypeMap.name
+				, arrayTypeResolver !is null
+				, ss.sel);
+		if(arrayTypeResolver !is null) {
+			(*arrayTypeResolver)(elemTypeMap.name
+					, ParentArgs(objectValue, variables)
+					, ss.sel, context);
+		}
+
 		ret["data"] = Json.emptyArray();
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;

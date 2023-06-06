@@ -78,13 +78,13 @@ void main() {
 	version(LDC) {
 		graphqld.defaultResolverLog.logLevel = std.experimental.logger.LogLevel.off;
 		graphqld.resolverLog.logLevel = std.experimental.logger.LogLevel.off;
-		//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-		graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.off;
+		graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+		graphqld.executationTraceLog.logLevel = std.experimental.logger.LogLevel.trace;
 	} else {
 		graphqld.defaultResolverLog.logLevel = std.logger.LogLevel.off;
 		graphqld.resolverLog.logLevel = std.logger.LogLevel.off;
-		//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-		graphqld.executationTraceLog.logLevel = std.logger.LogLevel.off;
+		graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+		graphqld.executationTraceLog.logLevel = std.logger.LogLevel.trace;
 	}
 
 	testSchemaDump("schema.gql", schemaToString(graphqld));
@@ -179,6 +179,32 @@ void main() {
 				} else {
 					Json ret = Json.emptyObject();
 					ret["data"] = "foo";
+					return ret;
+				}
+			}
+		);
+
+	graphqld.setResolver("queryType", "character"
+			, delegate(string name, Json parent, Json args,
+					ref CustomContext con) @safe
+			{
+				Json ret = Json.emptyObject();
+				bool isObject = cast(bool)(args.type == Json.Type.object);
+				bool hasId = isObject
+					? cast(bool)("id" in args)
+					: false;
+				if(hasId) {
+					long id = args["id"].get!long();
+					foreach(ref it; database.chars) {
+						if(it.id == id) {
+							return characterToJson(it);
+						}
+					}
+					ret["errors"] = "No character by id %d found in args"
+						.format(id);
+					return ret;
+				} else {
+					ret["errors"] = "No id found in args";
 					return ret;
 				}
 			}
@@ -333,6 +359,35 @@ void main() {
 				return ret;
 			}
 		);
+
+	graphqld.setResolver("Character", "commands",
+			delegate(string name, Json parent, Json args
+				, ref CustomContext) @trusted
+			{
+				Json data = Json.emptyArray();
+				if("commandsIds" in parent) {
+					foreach(it; parent["commandsIds"]) {
+						auto c = database.chars.filter!(jt => jt.id == it);
+						if(!c.empty) {
+							data ~= characterToJson(c.front);
+						}
+					}
+				}
+				Json ret = Json.emptyObject();
+				ret["data"] = data;
+				return ret;
+			}
+		);
+
+	graphqld.setArrayResolver("Character", "commands",
+		delegate(string name, ParentArgs parentArgs
+			, Selections selection, ref CustomContext context) @trusted
+		{
+			writefln("HEERRRRRRR %s %s %s", name, parentArgs, selection);
+			Json ret = Json.emptyObject();
+			return ret;
+		}
+	);
 
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;

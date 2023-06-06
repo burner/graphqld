@@ -59,7 +59,7 @@ struct Query {
 	Starship[] starships(float overSize = 100.0);
 	Starship[] shipsselection(long[] ids);
 	Nullable!Character character(long id);
-	Character[] character(Series series);
+	Character[] characters(Series series);
 	Humanoid[] humanoids();
 	Android[] androids();
 	Android[] resolverWillThrow();

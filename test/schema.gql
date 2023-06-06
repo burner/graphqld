@@ -10,13 +10,14 @@ type mutationType {
 }
 type queryType {
 	shipsselection(ids: [Int!]!): [Starship!]!
-	currentTime: DateTime!
+	characters(series: Series!): [Character!]!
 	starships(overSize: Float!): [Starship!]!
 	captain(series: Series!): Character!
 	humanoids: [Humanoid!]!
-	name: String!
+	currentTime: DateTime!
 	starship(id: Int!): Starship
 	starshipSimple2(id: Int!): StarshipSimple2
+	name: String!
 	androids: [Android!]!
 	resolverWillThrow: [Android!]!
 	numberBetween(searchInput: InputIn!): Starship!
