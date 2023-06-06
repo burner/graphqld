@@ -27,6 +27,8 @@ import graphql.schema.resolver;
 import graphql.schema.types;
 import graphql.tokenmodule;
 import graphql.exception;
+import graphql.treevisitor;
+import graphql.traits : interfacesForType;
 
 @safe:
 
@@ -282,7 +284,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables, Document doc, ref Con context,
 			ref ExecutionContext ec)
 	{
-		import graphql.traits : interfacesForType;
 		Json ret = returnTemplate();
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
 				objectType.name, objectValue, variables);
@@ -467,20 +468,25 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json ret = returnTemplate();
 		QueryArrayResolver[string]* arrayTypeResolverArray = unPacked.name in this.arrayResolver;
 		GQLDMap elemTypeMap = toMap(unPacked);
-		QueryArrayResolver* arrayTypeResolver = elemTypeMap is null
-			? null
-			: elemTypeMap.name in (*arrayTypeResolverArray);
 
-		writefln("Array Resolver %s %s %s %s", unPacked.name
-				, elemTypeMap is null
-					? ""
-					: elemTypeMap.name
-				, arrayTypeResolver !is null
-				, ss.sel);
-		if(arrayTypeResolver !is null) {
-			(*arrayTypeResolver)(elemTypeMap.name
-					, ParentArgs(objectValue, variables)
-					, ss.sel, context);
+		if(arrayTypeResolverArray !is null) {
+			foreach(FieldRangeItem field;
+					fieldRangeArr(
+						ss.sel,
+						doc,
+						interfacesForType(this.schema
+							, objectValue.getWithDefault!string(
+								"data.__typename", "__typename")
+							),
+						variables)
+				)
+			{
+				QueryArrayResolver* arrayTypeResolver =
+					field.name in (*arrayTypeResolverArray);
+				writefln("Array Resolver %s %s %s", unPacked.name
+						, arrayTypeResolver !is null
+						, field.name);
+			}
 		}
 
 		ret["data"] = Json.emptyArray();
