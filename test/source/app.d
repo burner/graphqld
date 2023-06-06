@@ -381,9 +381,9 @@ void main() {
 
 	graphqld.setArrayResolver("Character", "commands",
 		delegate(string name, ParentArgs parentArgs
-			, Selections selection, ref CustomContext context) @trusted
+			, Field field, ref CustomContext context) @trusted
 		{
-			writefln("HEERRRRRRR %s %s %s", name, parentArgs, selection);
+			writefln("HEERRRRRRR %s %s %s", name, parentArgs, field);
 			Json ret = Json.emptyObject();
 			return ret;
 		}

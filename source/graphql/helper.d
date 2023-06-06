@@ -1107,3 +1107,21 @@ GQLDType[string] allMember(GQLDMap m) @safe {
 	return ret;
 }
 
+SelectionSet shallowCopy(SelectionSet s) {
+	SelectionSet ret = new SelectionSet();
+	ret.ruleSelection = s.ruleSelection;
+	ret.sel = shallowCopy(s.sel);
+	return ret;
+}
+
+private Selections shallowCopy(Selections s) {
+	if(s is null) {
+		return null;
+	} else {
+		Selections ret = new Selections();
+		ret.ruleSelection = s.ruleSelection();
+		ret.sel = s.sel;
+		ret.follow = shallowCopy(s.follow);
+		return ret;
+	}
+}
