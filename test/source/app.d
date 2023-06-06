@@ -83,8 +83,8 @@ void main() {
 	} else {
 		graphqld.defaultResolverLog.logLevel = std.logger.LogLevel.off;
 		graphqld.resolverLog.logLevel = std.logger.LogLevel.off;
-		graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
-		graphqld.executationTraceLog.logLevel = std.logger.LogLevel.trace;
+		//graphqld.executationTraceLog = new std.experimental.logger.FileLogger("exec.log");
+		//graphqld.executationTraceLog.logLevel = std.logger.LogLevel.trace;
 	}
 
 	testSchemaDump("schema.gql", schemaToString(graphqld));

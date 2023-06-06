@@ -1106,23 +1106,3 @@ GQLDType[string] allMember(GQLDMap m) @safe {
 	process(m);
 	return ret;
 }
-
-SelectionSet shallowCopy(SelectionSet s) {
-	if(s is null) {
-		return null;
-	}
-	SelectionSet ret = new SelectionSet(s.ruleSelection
-			, shallowCopy(s.sel));
-	return ret;
-}
-
-private Selections shallowCopy(Selections s) {
-	if(s is null) {
-		return null;
-	} else {
-		Selections ret = new Selections(s.ruleSelection
-				, s.sel
-				, shallowCopy(s.follow));
-		return ret;
-	}
-}
