@@ -55,7 +55,8 @@ Json characterToJson(Character c) {
 
 	if(Humanoid h = cast(Humanoid)c) {
 		ret["data"]["species"] = h.species;
-		ret["data"]["__typename"] = "Humanoid";
+		//ret["data"]["__typename"] = "Humanoid"; TODO reverse hack
+		ret["data"]["__typename"] = "Character";
 		ret["data"]["dateOfBirth"] = Json(h.dateOfBirth.toISOExtString());
 	}
 
