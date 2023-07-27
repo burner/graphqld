@@ -219,6 +219,39 @@ unittest {
 	assertThrown(j.getWithPath("name.alsoNotThere"));
 }
 
+Json getWithPath2(Json input, string path) {
+	auto sp = path.splitter(".");
+	foreach(s; sp) {
+		Json* n = s in input;
+        if(n is null || (*n).type == Json.Type.null_) {
+            return Json(null);
+        }
+		input = *n;
+	}
+	return input;
+}
+
+unittest {
+	string t =
+`{
+	"name" : {
+		"foo" : 13
+	}
+}`;
+	Json j = parseJsonString(t);
+	Json f = j.getWithPath2("name");
+	assert("foo" in f);
+
+	f = j.getWithPath2("name.foo");
+	enforce(f.to!int() == 13);
+
+	Json h = j.getWithPath("doesnotexist");
+	assert(h.type == Json.Type.null_);
+
+	h = j.getWithPath("name.alsoNotThere");
+	assert(h.type == Json.Type.null_);
+}
+
 enum JoinJsonPrecedence {
 	none,
 	a,
@@ -262,6 +295,18 @@ Json joinJson(JoinJsonPrecedence jjp = JoinJsonPrecedence.none)(Json a, Json b)
 			}
 		}
 		return ret;
+	}
+	if(a.type == Json.Type.array && b.type == Json.Type.array) {
+		Json[] aArr = a.get!(Json[])();
+		Json[] bArr = b.get!(Json[])();
+		enforce(aArr.length == bArr.length, "a and b must be of same length"
+				~ " got a: " ~ a.toPrettyString() ~ " and b: "
+				~ b.toPrettyString());
+		Json[] ret;
+		foreach(idx; 0 .. aArr.length) {
+			ret ~= joinJson!(jjp)(aArr[idx], bArr[idx]);
+		}
+		return Json(ret);
 	}
 	return a;
 }

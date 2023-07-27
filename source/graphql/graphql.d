@@ -11,6 +11,8 @@ version(LDC) {
 import std.traits;
 import std.meta : AliasSeq;
 import std.range.primitives : popBack;
+import std.algorithm.iteration : filter;
+import std.algorithm.searching : canFind;
 import std.format : format;
 import std.exception : enforce;
 
@@ -62,12 +64,18 @@ struct ParentArgs {
 	Json args;
 }
 
+struct DocumentArgs {
+	Document doc;
+	Field field;
+	FieldRangeItem[] fieldRangeItems;
+}
+
 class GraphQLD(T, QContext = DefaultContext) {
 	alias Con = QContext;
 	alias QueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context) @safe;
 	alias QueryArrayResolver = Json delegate(string name, ParentArgs parentArgs
-			, Field selections, ref Con context) @safe;
+			, DocumentArgs docArgs, ref Con context) @safe;
 
 	alias DefaultQueryResolver = Json delegate(string name, Json parent,
 			Json args, ref Con context, ref ExecutionContext ec) @safe;
@@ -280,9 +288,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 		return tmp;
 	}
 
-	Json executeSelections(Selections sel, GQLDType objectType,
-			Json objectValue, Json variables, Document doc, ref Con context,
-			ref ExecutionContext ec)
+	Json executeSelections(Selections sel, GQLDType objectType
+			, Json objectValue, Json variables, Document doc, ref Con context
+			, ref ExecutionContext ec
+			, string[] fieldsToSkip = [])
 	{
 		Json ret = returnTemplate();
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
@@ -300,6 +309,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 							"data.__typename", "__typename")
 						),
 					variables)
+				.filter!(it => !canFind(fieldsToSkip, it.name))
 			)
 		{
 			//Json args = getArguments(field, variables);
@@ -371,9 +381,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 	}
 
-	Json executeSelectionSet(SelectionSet ss, GQLDType objectType,
-			Json objectValue, Json variables, Document doc, ref Con context,
-			ref ExecutionContext ec)
+	Json executeSelectionSet(SelectionSet ss, GQLDType objectType
+			, Json objectValue, Json variables, Document doc, ref Con context
+			, ref ExecutionContext ec
+			, string[] fieldsToSkip = [])
 	{
 		Json rslt;
 		if(GQLDMap map = objectType.toMap()) {
@@ -382,14 +393,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 					"ss null %s, ss.sel null %s %s", ss is null,
 					(ss is null) ? true : ss.sel is null, ec.path));
 			rslt = this.executeSelections(ss.sel, map, objectValue, variables,
-					doc, context, ec
+					doc, context, ec, fieldsToSkip
 				);
 		} else if(GQLDNonNull nonNullType = objectType.toNonNull()) {
 			this.executationTraceLog.logf("NonNull %s objectValue %s",
 					nonNullType.elementType.name, objectValue
 				);
 			rslt = this.executeSelectionSet(ss, nonNullType.elementType,
-					objectValue, variables, doc, context, ec
+					objectValue, variables, doc, context, ec, fieldsToSkip
 				);
 			if(rslt.dataIsNull()) {
 				this.executationTraceLog.logf("%s", rslt);
@@ -413,7 +424,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 				rslt = objectValue;
 			} else {
 				rslt = this.executeSelectionSet(ss, nullType.elementType,
-						objectValue, variables, doc, context, ec
+						objectValue, variables, doc, context, ec, fieldsToSkip
 					);
 			}
 		} else if(GQLDList list = objectType.toList()) {
@@ -431,14 +442,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 
 	private void toRun(SelectionSet ss, GQLDType elemType, Json item,
 			Json variables, ref Json ret, Document doc, ref Con context,
-			ref ExecutionContext ec)
+			ref ExecutionContext ec, string[] fieldsToSkip)
 		@trusted
 	{
 		this.executationTraceLog.logf("ET: %s, item %s", elemType.name,
 				item
 			);
 		Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
-				doc, context, ec
+				doc, context, ec, fieldsToSkip
 			);
 		if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
@@ -452,6 +463,39 @@ class GraphQLD(T, QContext = DefaultContext) {
 		}
 	}
 
+	private void toRunArrayResolverFollow(SelectionSet ss, GQLDType elemType, Json item
+			, ref Json ret, Json variables, Document doc, ref Con context
+			, ref ExecutionContext ec) @trusted
+	{
+		//writefln("%s\n%s", elemType, item.toPrettyString());
+		if(GQLDList l = elemType.toList()) {
+			enforce(item.type == Json.Type.array, "Expected Array got "
+					~ item.toPrettyString());
+			foreach(it; item) {
+				Json tmp = this.executeSelectionSet(ss, l.elementType, it, variables,
+					doc, context, ec
+				);
+				if("data" in tmp) {
+					ret["data"] ~= tmp["data"];
+				}
+				foreach(err; tmp[Constants.errors]) {
+					ret[Constants.errors] ~= err;
+				}
+				writeln(ret["data"].toPrettyString());
+			}
+		} else {
+			Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
+					doc, context, ec
+				);
+			if("data" in tmp) {
+				ret["data"] ~= tmp["data"];
+			}
+			foreach(err; tmp[Constants.errors]) {
+				ret[Constants.errors] ~= err;
+			}
+		}
+	}
+
 	Json executeList(SelectionSet ss, GQLDList objectType,
 			Json objectValue, Json variables, Document doc, ref Con context,
 			ref ExecutionContext ec)
@@ -460,39 +504,93 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.executationTraceLog.logf("OT: %s, OJ: %s, VAR: %s",
 				objectType.name, objectValue, variables
 			);
-		enforce("data" in objectValue, "Excepted object got " ~ objectValue.toString());
+		enforce(objectValue.type == Json.Type.object, "Excepted object got "
+				~ objectValue.toPrettyString());
+		enforce("data" in objectValue, "Excepted object to contain key with name"
+				~ " 'data' but got " ~ objectValue.toPrettyString());
 		GQLDType elemType = objectType.elementType;
 		GQLDType unPacked = unpack2(elemType);
 
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
+		ret["data"] = Json.emptyArray();
+
 		QueryArrayResolver[string]* arrayTypeResolverArray =
 			unPacked !is null
 				? unPacked.name in this.arrayResolver
 				: null;
 		GQLDMap elemTypeMap = toMap(unPacked);
 
+		string[] fieldsHandledByArrayResolver;
 		if(arrayTypeResolverArray !is null) {
 			FieldRange fr = fieldRange(ss, doc
 					, interfacesForType(this.schema
 						, objectValue.getWithDefault!string("data.__typename"
 						, "__typename"))
 					, variables, BuildLinear.yes);
-			for(FieldRangeItem =
+			foreach(FieldRangeItem field; fr) {
 				QueryArrayResolver* arrayTypeResolver =
 					field.name in (*arrayTypeResolverArray);
-				writefln("Array Resolver %s %s %s", unPacked.name
-						, arrayTypeResolver !is null
-						, field.name);
+
+				writefln("Array Resolver %s.%s %s", unPacked.name
+						, field.name
+						, arrayTypeResolver !is null);
 				if(arrayTypeResolver !is null) {
+					FieldRangeItem[] fri = fieldRangeArr(field.f.ss.sel, doc
+						, interfacesForType(this.schema
+							, objectValue.getWithDefault!string("data.__typename"
+								, "__typename"))
+						, variables);
+
+					fieldsHandledByArrayResolver ~= field.name;
 					Json rslt = (*arrayTypeResolver)(field.name
 							, ParentArgs(objectValue, variables)
-							, field.f, context);
+							, DocumentArgs(doc, field.f, fri)
+							, context);
+
+					enforce(rslt.type == Json.Type.object, "ArrayResolver"
+							~ " results must be an Json.Type.object not " ~
+							rslt.toPrettyString());
+					enforce("data" in rslt, "data must be a member of an"
+							~ "ArrayResolver result. Given "
+							~ rslt.toPrettyString());
+					enforce(rslt["data"].type == Json.Type.array, "ArrayResolver"
+							~ "['data'] must be an array not " ~ rslt["data"]
+							.toPrettyString());
+					//objectValue[field.name] = rslt;
+
+					writefln("objV %s\nrslt %s", objectValue.toPrettyString()
+							, rslt.toPrettyString());
+
+					string fieldName = field.aka.empty ? field.name : field.aka;
+					auto rsltType = this.schema.getReturnType(unPacked, fieldName);
+					auto rsltTypeUn = unpackNonList(rsltType);
+					writefln("%s\n%s", rsltType, rsltTypeUn);
+
+					size_t idx;
+					foreach(Json item;
+							"data" in rslt
+									&& rslt["data"].type == Json.Type.array
+								? rslt["data"]
+								: Json.emptyArray()
+						)
+					{
+						ec.path ~= PathElement(idx);
+						++idx;
+						scope(exit) {
+							ec.path.popBack();
+						}
+						this.toRunArrayResolverFollow(field.f.ss, rsltTypeUn
+								, item, ret, variables, doc, context, ec);
+					}
+					//joinInArray(ret, rslt, fieldName);
+					//return ret;
+					//writeln(ret.toPrettyString());
 				}
 			}
 		}
+		writefln("already handled %s", fieldsHandledByArrayResolver);
 
-		ret["data"] = Json.emptyArray();
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;
 			foreach(Json item;
@@ -506,7 +604,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					try {
 						auto newEC = ec.dup;
 						this.toRun(ss, elemType, item, variables, ret, doc,
-								context, newEC
+								context, newEC, fieldsHandledByArrayResolver
 							);
 					} catch(Exception e) {
 						try {
@@ -534,7 +632,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				scope(exit) {
 					ec.path.popBack();
 				}
-				this.toRun(ss, elemType, item, variables, ret, doc, context, ec);
+				this.toRun(ss, elemType, item, variables, ret, doc, context, ec
+						, fieldsHandledByArrayResolver);
 			}
 		}
 		return ret;
@@ -571,4 +670,24 @@ unittest {
 	//pragma(msg, InheritedClasses!Schema);
 
 	//auto g = new GraphQLD!(Schema,int)();
+}
+
+void joinInArray(ref Json target, ref Json source, string joinFieldName) @trusted {
+	writefln("target: %s\nsource: %s", target.toPrettyString()
+			, source.toPrettyString());
+	if(target.type == Json.Type.object && "data" in target) {
+		//enforce(source.type == Json.object && "data" in source.type
+		//		, source.toPrettyString());
+		joinInArray(target["data"], source, joinFieldName);
+	} else if(target.type == Json.Type.object) {
+		target[joinFieldName] = source;
+	} else if(target.type == Json.Type.array) {
+		enforce(source.type == Json.Type.array, source.toPrettyString());
+		Json[] sArr = source.get!(Json[])();
+		foreach(ref ulong idx, ref Json value; target) {
+			enforce(idx < sArr.length, "Source array out of bounds "
+					~ source.toPrettyString());
+			joinInArray(value, sArr[idx], joinFieldName);
+		}
+	}
 }
