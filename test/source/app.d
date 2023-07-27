@@ -379,12 +379,48 @@ void main() {
 			}
 		);
 
-	graphqld.setArrayResolver("Character", "commands",
+	graphqld.setArrayResolver("Character", "commanders",
 		delegate(string name, ParentArgs parentArgs
-			, Field field, ref CustomContext context) @trusted
+			, DocumentArgs docArgs, ref CustomContext context) @trusted
 		{
-			writefln("HEERRRRRRR %s %s %s", name, parentArgs, field);
+			writefln("HEERRRRRRR %s %s %s %s", name, parentArgs, docArgs.field
+					, docArgs.fieldRangeItems.map!(it => it.name));
+			Json data = parentArgs.parent.getWithPath2("data");
 			Json ret = Json.emptyObject();
+			if(data.type != Json.Type.array) {
+				ret["errors"] = Json("Parent Json not an array");
+				return ret;
+			}
+			Json[] parentArray = data.get!(Json[])();
+			Json[] retData = new Json[parentArray.length];
+			string[] keysToKeep = docArgs.fieldRangeItems.map!(it => it.name)
+				.array;
+			keysToKeep ~= "__typename";
+			foreach(idx, ref it; parentArray) {
+				Json itCommandersIds = it.getWithPath2("data.commandersIds");
+				if(itCommandersIds.type == Json.Type.array) {
+					long[] comIds = itCommandersIds.get!(Json[])()
+						.map!(kt => kt.get!long())
+						.array;
+
+					Json ret2 = database.chars
+						.filter!(ht => canFind(comIds, ht.id))
+						.map!(ht => () @trusted {
+							Json t = characterToJson(ht);
+							Json g = Json.emptyObject();
+							g["data"] = Json.emptyObject();
+							foreach(v; t["data"].byKeyValue) {
+								if(canFind(keysToKeep, v.key)) {
+									g[v.key] = v.value;
+								}
+							}
+							return g;
+						}())
+						.array;
+					retData[idx] = ret2;
+				}
+			}
+			ret["data"] = retData;
 			return ret;
 		}
 	);

@@ -972,6 +972,17 @@ GQLDType unpack2(GQLDType t) {
 	return t;
 }
 
+GQLDType unpackNonList(GQLDType t) {
+	if(GQLDNonNull nn = toNonNull(t)) {
+		return unpackNonList(nn.elementType);
+	} else if(GQLDNullable nn = toNullable(t)) {
+		return unpackNonList(nn.elementType);
+	} else if(GQLDOperation nn = toOperation(t)) {
+		return unpackNonList(nn.returnType);
+	}
+	return t;
+}
+
 unittest {
 	int a;
 	GQLDType i = typeToGQLDType!(int)(a, true);
