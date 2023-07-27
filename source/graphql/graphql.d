@@ -479,9 +479,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 					ret["data"] ~= tmp["data"];
 				}
 				foreach(err; tmp[Constants.errors]) {
-					ret[Constants.errors] ~= err;
+					ret.insertError(err);
+					//ret[Constants.errors] ~= err;
 				}
-				writeln(ret["data"].toPrettyString());
 			}
 		} else {
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
@@ -581,9 +581,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 							ec.path.popBack();
 						}
 						this.toRunArrayResolverFollow(field.f.ss, rsltTypeUn
-								, item, ret, variables, doc, context, ec);
+								, item, rslt, variables, doc, context, ec);
 					}
-					//joinInArray(ret, rslt, fieldName);
+					joinInArray(ret, rslt, fieldName);
 					//return ret;
 					//writeln(ret.toPrettyString());
 				}
