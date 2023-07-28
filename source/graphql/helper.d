@@ -83,12 +83,39 @@ void insertPayload(ref Json result, string field, Json data) {
 		if(d !in result) {
 			result[d] = Json.emptyObject();
 		}
-		enforce(result[d].type == Json.Type.object);
+		enforce(result[d].type == Json.Type.object, "Expected Json.Type.object"
+				~ " got " ~ result[d].toPrettyString());
 		Json* df = field in result[d];
 		if(df) {
 			result[d][field] = joinJson(*df, data[d]);
 		} else {
 			result[d][field] = data[d];
+		}
+	}
+	if(e in data) {
+		if(e !in result) {
+			result[e] = Json.emptyArray();
+		}
+		enforce(result[e].type == Json.Type.array);
+		if(!canFind(result[e].byValue(), data[e])) {
+			result[e] ~= data[e];
+		}
+	}
+}
+
+void insertPayload(ref Json result, Json data) @trusted {
+	if(d in data) {
+		if(d !in result) {
+			result[d] = Json.emptyObject();
+		}
+		enforce(result[d].type == Json.Type.object);
+		foreach(string key, ref Json value; data) {
+			Json* df = key in result[d];
+			if(df) {
+				result[d][key] = joinJson(*df, value);
+			} else {
+				result[d][key] = value;
+			}
 		}
 	}
 	if(e in data) {

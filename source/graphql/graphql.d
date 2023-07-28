@@ -11,7 +11,8 @@ version(LDC) {
 import std.traits;
 import std.meta : AliasSeq;
 import std.range.primitives : popBack;
-import std.algorithm.iteration : filter;
+import std.range : iota;
+import std.algorithm.iteration : filter, map;
 import std.algorithm.searching : canFind;
 import std.format : format;
 import std.exception : enforce;
@@ -453,21 +454,44 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
-				ret["data"] ~= tmp["data"];
+				insertPayload(ret, tmp);
+				//ret["data"] = tmp["data"];
 			}
-			foreach(err; tmp[Constants.errors]) {
-				ret[Constants.errors] ~= err;
-			}
+			//foreach(err; tmp[Constants.errors]) {
+			//	ret[Constants.errors] = err;
+			//}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-			ret["data"] ~= tmp;
+			ret["data"] = tmp;
 		}
 	}
 
-	private void toRunArrayResolverFollow(SelectionSet ss, GQLDType elemType, Json item
+	private void toRunArrayResolverFollow(string fieldName, SelectionSet ss, GQLDType elemType, Json item
 			, ref Json ret, Json variables, Document doc, ref Con context
 			, ref ExecutionContext ec) @trusted
 	{
+		auto t = Json(["data": item]);
+		writefln("to send down %s", t.toPrettyString());
+		Json tmp = this.executeSelectionSet(ss, elemType, t, variables,
+				doc, context, ec
+			);
+		tmp = tmp.type == Json.Type.object && "data" in tmp
+			? tmp["data"]
+			: tmp;
+		writefln("join %s\n%s", tmp.toPrettyString(), ret.toPrettyString());
+		if(tmp.type == Json.Type.object) {
+			if("data" in tmp) {
+				ret["data"][fieldName] = tmp["data"];
+				//insertPayload(ret["data"], fieldName, tmp["data"]);
+				//ret["data"] = tmp["data"];
+			}
+			//foreach(err; tmp[Constants.errors]) {
+			//	ret[Constants.errors] = err;
+			//}
+		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
+			ret["data"][fieldName] = tmp;
+		}
 		//writefln("%s\n%s", elemType, item.toPrettyString());
+		/*
 		if(GQLDList l = elemType.toList()) {
 			enforce(item.type == Json.Type.array, "Expected Array got "
 					~ item.toPrettyString());
@@ -475,25 +499,28 @@ class GraphQLD(T, QContext = DefaultContext) {
 				Json tmp = this.executeSelectionSet(ss, l.elementType, it, variables,
 					doc, context, ec
 				);
-				if("data" in tmp) {
-					ret["data"] ~= tmp["data"];
-				}
-				foreach(err; tmp[Constants.errors]) {
-					ret.insertError(err);
-					//ret[Constants.errors] ~= err;
-				}
+				insertPayload(ret, fieldName, tmp);
+				//if("data" in tmp) {
+				//	ret["data"] ~= tmp["data"];
+				//}
+				//foreach(err; tmp[Constants.errors]) {
+				//	ret.insertError(err);
+				//	//ret[Constants.errors] ~= err;
+				//}
 			}
 		} else {
 			Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
 					doc, context, ec
 				);
-			if("data" in tmp) {
-				ret["data"] ~= tmp["data"];
-			}
-			foreach(err; tmp[Constants.errors]) {
-				ret[Constants.errors] ~= err;
-			}
+			insertPayload(ret, fieldName, tmp);
+			//if("data" in tmp) {
+			//	ret["data"] ~= tmp["data"];
+			//}
+			//foreach(err; tmp[Constants.errors]) {
+			//	ret[Constants.errors] ~= err;
+			//}
 		}
+		*/
 	}
 
 	Json executeList(SelectionSet ss, GQLDList objectType,
@@ -521,6 +548,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 				: null;
 		GQLDMap elemTypeMap = toMap(unPacked);
 
+		Json[] items = (objectValue["data"].type == Json.Type.array
+					? objectValue["data"]
+					: Json.emptyArray()).get!(Json[])();
+		Json[] results = iota(items.length)
+			.map!(it => returnTemplate())
+			.array;
 		string[] fieldsHandledByArrayResolver;
 		if(arrayTypeResolverArray !is null) {
 			FieldRange fr = fieldRange(ss, doc
@@ -568,42 +601,38 @@ class GraphQLD(T, QContext = DefaultContext) {
 					writefln("%s\n%s", rsltType, rsltTypeUn);
 
 					size_t idx;
-					foreach(Json item;
-							"data" in rslt
-									&& rslt["data"].type == Json.Type.array
+					foreach(ref Json item;
+							"data" in rslt && rslt["data"].type == Json.Type.array
 								? rslt["data"]
-								: Json.emptyArray()
-						)
+								: Json.emptyArray())
 					{
 						ec.path ~= PathElement(idx);
-						++idx;
 						scope(exit) {
 							ec.path.popBack();
+							++idx;
 						}
-						this.toRunArrayResolverFollow(field.f.ss, rsltTypeUn
-								, item, rslt, variables, doc, context, ec);
+						writefln("iter %s %s", idx, item.toPrettyString());
+						this.toRunArrayResolverFollow(fieldName, field.f.ss, rsltTypeUn
+								, item, results[idx], variables, doc, context, ec);
 					}
-					joinInArray(ret, rslt, fieldName);
+					//joinInArray(ret, rslt, fieldName);
 					//return ret;
 					//writeln(ret.toPrettyString());
 				}
 			}
 		}
 		writefln("already handled %s", fieldsHandledByArrayResolver);
+		writeln(Json(results).toPrettyString());
 
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;
-			foreach(Json item;
-					objectValue["data"].type == Json.Type.array
-						? objectValue["data"]
-						: Json.emptyArray()
-				)
-			{
+
+			foreach(idx, ref Json item; items) {
 				tasks ~= runTask({
 					() nothrow {
 					try {
 						auto newEC = ec.dup;
-						this.toRun(ss, elemType, item, variables, ret, doc,
+						this.toRun(ss, elemType, item, variables, results[idx], doc,
 								context, newEC, fieldsHandledByArrayResolver
 							);
 					} catch(Exception e) {
@@ -620,20 +649,21 @@ class GraphQLD(T, QContext = DefaultContext) {
 				task.join();
 			}
 		} else {
-			size_t idx;
-			foreach(Json item;
-					objectValue["data"].type == Json.Type.array
-						? objectValue["data"]
-						: Json.emptyArray()
-				)
-			{
+			foreach(idx, ref Json item; items) {
 				ec.path ~= PathElement(idx);
-				++idx;
 				scope(exit) {
 					ec.path.popBack();
+					++idx;
 				}
-				this.toRun(ss, elemType, item, variables, ret, doc, context, ec
+				this.toRun(ss, elemType, item, variables, results[idx], doc, context, ec
 						, fieldsHandledByArrayResolver);
+			}
+		}
+		foreach(idx, ref it; results) {
+			writefln("%s %s", idx, it.toPrettyString());
+			ret["data"] ~= it["data"];
+			if(it["errors"].length > 0) {
+				ret["errors"] ~= it["errors"];
 			}
 		}
 		return ret;
