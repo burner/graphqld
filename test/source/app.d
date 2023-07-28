@@ -408,7 +408,6 @@ void main() {
 						.map!(ht => () @trusted {
 							Json t = characterToJson(ht);
 							Json g = Json.emptyObject();
-							g["data"] = Json.emptyObject();
 							foreach(v; t["data"].byKeyValue) {
 								if(canFind(keysToKeep, v.key)) {
 									g[v.key] = v.value;
