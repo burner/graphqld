@@ -109,7 +109,7 @@ void insertPayload(ref Json result, Json data) @trusted {
 			result[d] = Json.emptyObject();
 		}
 		enforce(result[d].type == Json.Type.object);
-		foreach(string key, ref Json value; data) {
+		foreach(string key, ref Json value; data[d]) {
 			Json* df = key in result[d];
 			if(df) {
 				result[d][key] = joinJson(*df, value);
