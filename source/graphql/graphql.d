@@ -454,14 +454,17 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
+				writefln("toRun before %s %s", ret, tmp);
 				insertPayload(ret, tmp);
+				writefln("toRun after %s", ret);
 				//ret["data"] = tmp["data"];
 			}
-			//foreach(err; tmp[Constants.errors]) {
-			//	ret[Constants.errors] = err;
-			//}
+			foreach(err; tmp[Constants.errors]) {
+				ret[Constants.errors] = err;
+			}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-			ret["data"] = tmp;
+			insertPayload(ret, tmp);
+			//ret["data"] = tmp;
 		}
 	}
 
@@ -474,11 +477,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json tmp = this.executeSelectionSet(ss, elemType, t, variables,
 				doc, context, ec
 			);
+		/*
 		tmp = tmp.type == Json.Type.object && "data" in tmp
 			? tmp["data"]
 			: tmp;
-		writefln("join %s\n%s", tmp.toPrettyString(), ret.toPrettyString());
-		if(tmp.type == Json.Type.object) {
+		*/
+
+		writefln("join tmp %s\n ret %s", tmp.toPrettyString(), ret.toPrettyString());
+		/*if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
 				ret["data"][fieldName] = tmp["data"];
 				//insertPayload(ret["data"], fieldName, tmp["data"]);
@@ -489,17 +495,19 @@ class GraphQLD(T, QContext = DefaultContext) {
 			//}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
 			ret["data"][fieldName] = tmp;
-		}
-		//writefln("%s\n%s", elemType, item.toPrettyString());
-		/*
+		}*/
+		elemType = elemType.unpackNonList();
+		writefln("elemType %s", elemType);
 		if(GQLDList l = elemType.toList()) {
-			enforce(item.type == Json.Type.array, "Expected Array got "
-					~ item.toPrettyString());
-			foreach(it; item) {
-				Json tmp = this.executeSelectionSet(ss, l.elementType, it, variables,
-					doc, context, ec
-				);
-				insertPayload(ret, fieldName, tmp);
+			enforce(tmp.type == Json.Type.object, "Expected Object got "
+					~ tmp.toPrettyString());
+			writefln("before %s %s", ret, tmp);
+			insertPayload(ret, fieldName, tmp);
+			writefln("after %s", ret);
+			/*
+			foreach(it; "data" in tmp ? tmp["data"] : tmp) {
+				insertPayload(ret, fieldName, it);
+				writefln("after %s", ret);
 				//if("data" in tmp) {
 				//	ret["data"] ~= tmp["data"];
 				//}
@@ -508,11 +516,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 				//	//ret[Constants.errors] ~= err;
 				//}
 			}
+			*/
 		} else {
-			Json tmp = this.executeSelectionSet(ss, elemType, item, variables,
-					doc, context, ec
-				);
+			writefln("o before %s %s", ret, tmp);
 			insertPayload(ret, fieldName, tmp);
+			writefln("o after %s", ret);
 			//if("data" in tmp) {
 			//	ret["data"] ~= tmp["data"];
 			//}
@@ -520,7 +528,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 			//	ret[Constants.errors] ~= err;
 			//}
 		}
-		*/
 	}
 
 	Json executeList(SelectionSet ss, GQLDList objectType,
@@ -622,7 +629,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		writefln("already handled %s", fieldsHandledByArrayResolver);
-		writeln(Json(results).toPrettyString());
+		writefln("after ArrayResolver %s", Json(results).toPrettyString());
 
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;
@@ -660,12 +667,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		foreach(idx, ref it; results) {
-			writefln("%s %s", idx, it.toPrettyString());
+			writefln("final join %s %s", idx, it.toPrettyString());
 			ret["data"] ~= it["data"];
 			if(it["errors"].length > 0) {
 				ret["errors"] ~= it["errors"];
 			}
 		}
+		writefln("return %s", ret.toPrettyString());
 		return ret;
 	}
 }
