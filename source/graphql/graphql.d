@@ -463,8 +463,10 @@ class GraphQLD(T, QContext = DefaultContext) {
 				ret[Constants.errors] = err;
 			}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-			insertPayload(ret, tmp);
-			//ret["data"] = tmp;
+			writefln("toRun2 before %s %s", ret, tmp);
+			//insertPayload(ret, tmp);
+			ret["data"] = tmp;
+			writefln("toRun2 after %s", ret);
 		}
 	}
 
