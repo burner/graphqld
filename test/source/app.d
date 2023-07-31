@@ -372,6 +372,19 @@ void main() {
 							data ~= characterToJson(c.front);
 						}
 					}
+				} else if("id" in parent) {
+					long id = parent["id"].get!long();
+					foreach(ref it; database.chars
+							.filter!(jt => jt.id == id)
+						)
+					{
+						foreach(ht; it.commands) {
+							//auto c = database.chars.filter!(jt => jt.id == ht.id);
+							//if(!c.empty) {
+								data ~= characterToJson(ht);
+							//}
+						}
+					}
 				}
 				Json ret = Json.emptyObject();
 				ret["data"] = data;
@@ -413,6 +426,7 @@ void main() {
 									g[v.key] = v.value;
 								}
 							}
+							g["commandsIds"] = t["commandsIds"];
 							return g;
 						}())
 						.array;

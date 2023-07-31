@@ -454,19 +454,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 			);
 		if(tmp.type == Json.Type.object) {
 			if("data" in tmp) {
-				writefln("toRun before %s %s", ret, tmp);
 				insertPayload(ret, tmp);
-				writefln("toRun after %s", ret);
-				//ret["data"] = tmp["data"];
 			}
 			foreach(err; tmp[Constants.errors]) {
 				ret[Constants.errors] = err;
 			}
 		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-			writefln("toRun2 before %s %s", ret, tmp);
-			//insertPayload(ret, tmp);
 			ret["data"] = tmp;
-			writefln("toRun2 after %s", ret);
 		}
 	}
 
@@ -475,60 +469,20 @@ class GraphQLD(T, QContext = DefaultContext) {
 			, ref ExecutionContext ec) @trusted
 	{
 		auto t = Json(["data": item]);
-		writefln("to send down %s", t.toPrettyString());
+		//writefln("to send down %s", t.toPrettyString());
 		Json tmp = this.executeSelectionSet(ss, elemType, t, variables,
 				doc, context, ec
 			);
-		/*
-		tmp = tmp.type == Json.Type.object && "data" in tmp
-			? tmp["data"]
-			: tmp;
-		*/
 
-		writefln("join tmp %s\n ret %s", tmp.toPrettyString(), ret.toPrettyString());
-		/*if(tmp.type == Json.Type.object) {
-			if("data" in tmp) {
-				ret["data"][fieldName] = tmp["data"];
-				//insertPayload(ret["data"], fieldName, tmp["data"]);
-				//ret["data"] = tmp["data"];
-			}
-			//foreach(err; tmp[Constants.errors]) {
-			//	ret[Constants.errors] = err;
-			//}
-		} else if(!tmp.dataIsEmpty() && tmp.isScalar()) {
-			ret["data"][fieldName] = tmp;
-		}*/
+		//writefln("join tmp %s\n ret %s", tmp.toPrettyString(), ret.toPrettyString());
 		elemType = elemType.unpackNonList();
-		writefln("elemType %s", elemType);
+		//writefln("elemType %s", elemType);
 		if(GQLDList l = elemType.toList()) {
 			enforce(tmp.type == Json.Type.object, "Expected Object got "
 					~ tmp.toPrettyString());
-			writefln("before %s %s", ret, tmp);
 			insertPayload(ret, fieldName, tmp);
-			writefln("after %s", ret);
-			/*
-			foreach(it; "data" in tmp ? tmp["data"] : tmp) {
-				insertPayload(ret, fieldName, it);
-				writefln("after %s", ret);
-				//if("data" in tmp) {
-				//	ret["data"] ~= tmp["data"];
-				//}
-				//foreach(err; tmp[Constants.errors]) {
-				//	ret.insertError(err);
-				//	//ret[Constants.errors] ~= err;
-				//}
-			}
-			*/
 		} else {
-			writefln("o before %s %s", ret, tmp);
 			insertPayload(ret, fieldName, tmp);
-			writefln("o after %s", ret);
-			//if("data" in tmp) {
-			//	ret["data"] ~= tmp["data"];
-			//}
-			//foreach(err; tmp[Constants.errors]) {
-			//	ret[Constants.errors] ~= err;
-			//}
 		}
 	}
 
@@ -574,9 +528,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 				QueryArrayResolver* arrayTypeResolver =
 					field.name in (*arrayTypeResolverArray);
 
-				writefln("Array Resolver %s.%s %s", unPacked.name
-						, field.name
-						, arrayTypeResolver !is null);
+				//writefln("Array Resolver %s.%s %s", unPacked.name
+				//		, field.name
+				//		, arrayTypeResolver !is null);
 				if(arrayTypeResolver !is null) {
 					FieldRangeItem[] fri = fieldRangeArr(field.f.ss.sel, doc
 						, interfacesForType(this.schema
@@ -601,13 +555,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 							.toPrettyString());
 					//objectValue[field.name] = rslt;
 
-					writefln("objV %s\nrslt %s", objectValue.toPrettyString()
-							, rslt.toPrettyString());
+					//writefln("objV %s\nrslt %s", objectValue.toPrettyString()
+					//		, rslt.toPrettyString());
 
 					string fieldName = field.aka.empty ? field.name : field.aka;
 					auto rsltType = this.schema.getReturnType(unPacked, fieldName);
 					auto rsltTypeUn = unpackNonList(rsltType);
-					writefln("%s\n%s", rsltType, rsltTypeUn);
+					//writefln("%s\n%s", rsltType, rsltTypeUn);
 
 					size_t idx;
 					foreach(ref Json item;
@@ -620,7 +574,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 							ec.path.popBack();
 							++idx;
 						}
-						writefln("iter %s %s", idx, item.toPrettyString());
+						//writefln("iter %s %s", idx, item.toPrettyString());
 						this.toRunArrayResolverFollow(fieldName, field.f.ss, rsltTypeUn
 								, item, results[idx], variables, doc, context, ec);
 					}
@@ -630,8 +584,8 @@ class GraphQLD(T, QContext = DefaultContext) {
 				}
 			}
 		}
-		writefln("already handled %s", fieldsHandledByArrayResolver);
-		writefln("after ArrayResolver %s", Json(results).toPrettyString());
+		//writefln("already handled %s", fieldsHandledByArrayResolver);
+		//writefln("after ArrayResolver %s", Json(results).toPrettyString());
 
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;
@@ -669,13 +623,13 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		foreach(idx, ref it; results) {
-			writefln("final join %s %s", idx, it.toPrettyString());
+			//writefln("final join %s %s", idx, it.toPrettyString());
 			ret["data"] ~= it["data"];
 			if(it["errors"].length > 0) {
 				ret["errors"] ~= it["errors"];
 			}
 		}
-		writefln("return %s", ret.toPrettyString());
+		//writefln("return %s", ret.toPrettyString());
 		return ret;
 	}
 }
