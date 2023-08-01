@@ -272,10 +272,10 @@ unittest {
 	f = j.getWithPath2("name.foo");
 	enforce(f.to!int() == 13);
 
-	Json h = j.getWithPath("doesnotexist");
+	Json h = j.getWithPath2("doesnotexist");
 	assert(h.type == Json.Type.null_);
 
-	h = j.getWithPath("name.alsoNotThere");
+	h = j.getWithPath2("name.alsoNotThere");
 	assert(h.type == Json.Type.null_);
 }
 
