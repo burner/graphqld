@@ -532,6 +532,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 				//		, field.name
 				//		, arrayTypeResolver !is null);
 				if(arrayTypeResolver !is null) {
+					string fieldName = field.aka.empty ? field.name : field.aka;
+					ec.path ~= PathElement(fieldName);
+					scope(exit) {
+						ec.path.popBack();
+					}
 					FieldRangeItem[] fri = fieldRangeArr(field.f.ss.sel, doc
 						, interfacesForType(this.schema
 							, objectValue.getWithDefault!string("data.__typename"
@@ -558,9 +563,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					//writefln("objV %s\nrslt %s", objectValue.toPrettyString()
 					//		, rslt.toPrettyString());
 
-					string fieldName = field.aka.empty ? field.name : field.aka;
 					auto rsltType = this.schema.getReturnType(unPacked, fieldName);
-					auto rsltTypeUn = unpackNonList(rsltType);
 					//writefln("%s\n%s", rsltType, rsltTypeUn);
 
 					size_t idx;
@@ -575,7 +578,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 							++idx;
 						}
 						//writefln("iter %s %s", idx, item.toPrettyString());
-						this.toRunArrayResolverFollow(fieldName, field.f.ss, rsltTypeUn
+						this.toRunArrayResolverFollow(fieldName, field.f.ss, rsltType
 								, item, results[idx], variables, doc, context, ec);
 					}
 					//joinInArray(ret, rslt, fieldName);
