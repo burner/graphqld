@@ -250,9 +250,9 @@ Json getWithPath2(Json input, string path) {
 	auto sp = path.splitter(".");
 	foreach(s; sp) {
 		Json* n = s in input;
-        if(n is null || (*n).type == Json.Type.null_) {
-            return Json(null);
-        }
+		if(n is null || (*n).type == Json.Type.null_) {
+			return Json(null);
+		}
 		input = *n;
 	}
 	return input;
