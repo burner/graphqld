@@ -338,12 +338,9 @@ class GraphQLD(T, QContext = DefaultContext) {
 			ec.path.popBack();
 		}
 		this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
-		//this.executationTraceLog.logf("FRI: %s, OT: %s, OV: %s, VAR: %s",
 				field.name, objectType.name, objectValue, variables
 			);
 		Json arguments = getArguments(field, variables);
-		//writefln("field %s\nobj %s\nvar %s\narg %s", field.name, objectValue,
-		//		variables, arguments);
 		Json de;
 		try {
 			de = this.resolve(objectType.name,
@@ -469,14 +466,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 			, ref ExecutionContext ec) @trusted
 	{
 		auto t = Json(["data": item]);
-		//writefln("to send down %s", t.toPrettyString());
 		Json tmp = this.executeSelectionSet(ss, elemType, t, variables,
 				doc, context, ec
 			);
 
-		//writefln("join tmp %s\n ret %s", tmp.toPrettyString(), ret.toPrettyString());
 		elemType = elemType.unpackNonList();
-		//writefln("elemType %s", elemType);
 		if(GQLDList l = elemType.toList()) {
 			enforce(tmp.type == Json.Type.object, "Expected Object got "
 					~ tmp.toPrettyString());
@@ -528,9 +522,6 @@ class GraphQLD(T, QContext = DefaultContext) {
 				QueryArrayResolver* arrayTypeResolver =
 					field.name in (*arrayTypeResolverArray);
 
-				//writefln("Array Resolver %s.%s %s", unPacked.name
-				//		, field.name
-				//		, arrayTypeResolver !is null);
 				if(arrayTypeResolver !is null) {
 					string fieldName = field.aka.empty ? field.name : field.aka;
 					ec.path ~= PathElement(fieldName);
@@ -558,13 +549,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					enforce(rslt["data"].type == Json.Type.array, "ArrayResolver"
 							~ "['data'] must be an array not " ~ rslt["data"]
 							.toPrettyString());
-					//objectValue[field.name] = rslt;
-
-					//writefln("objV %s\nrslt %s", objectValue.toPrettyString()
-					//		, rslt.toPrettyString());
-
 					auto rsltType = this.schema.getReturnType(unPacked, fieldName);
-					//writefln("%s\n%s", rsltType, rsltTypeUn);
 
 					size_t idx;
 					foreach(ref Json item;
@@ -577,18 +562,12 @@ class GraphQLD(T, QContext = DefaultContext) {
 							ec.path.popBack();
 							++idx;
 						}
-						//writefln("iter %s %s", idx, item.toPrettyString());
 						this.toRunArrayResolverFollow(fieldName, field.f.ss, rsltType
 								, item, results[idx], variables, doc, context, ec);
 					}
-					//joinInArray(ret, rslt, fieldName);
-					//return ret;
-					//writeln(ret.toPrettyString());
 				}
 			}
 		}
-		//writefln("already handled %s", fieldsHandledByArrayResolver);
-		//writefln("after ArrayResolver %s", Json(results).toPrettyString());
 
 		if(this.options.asyncList == AsyncList.yes) {
 			Task[] tasks;
@@ -626,13 +605,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 			}
 		}
 		foreach(idx, ref it; results) {
-			//writefln("final join %s %s", idx, it.toPrettyString());
 			ret["data"] ~= it["data"];
 			if(it["errors"].length > 0) {
 				ret["errors"] ~= it["errors"];
 			}
 		}
-		//writefln("return %s", ret.toPrettyString());
 		return ret;
 	}
 }
@@ -667,24 +644,4 @@ unittest {
 	//pragma(msg, InheritedClasses!Schema);
 
 	//auto g = new GraphQLD!(Schema,int)();
-}
-
-void joinInArray(ref Json target, ref Json source, string joinFieldName) @trusted {
-	writefln("target: %s\nsource: %s", target.toPrettyString()
-			, source.toPrettyString());
-	if(target.type == Json.Type.object && "data" in target) {
-		//enforce(source.type == Json.object && "data" in source.type
-		//		, source.toPrettyString());
-		joinInArray(target["data"], source, joinFieldName);
-	} else if(target.type == Json.Type.object) {
-		target[joinFieldName] = source;
-	} else if(target.type == Json.Type.array) {
-		enforce(source.type == Json.Type.array, source.toPrettyString());
-		Json[] sArr = source.get!(Json[])();
-		foreach(ref ulong idx, ref Json value; target) {
-			enforce(idx < sArr.length, "Source array out of bounds "
-					~ source.toPrettyString());
-			joinInArray(value, sArr[idx], joinFieldName);
-		}
-	}
 }
