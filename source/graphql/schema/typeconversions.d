@@ -21,7 +21,7 @@ import graphql.uda;
 import graphql.constants;
 
 private enum memsToIgnore = ["__ctor", "toString", "toHash", "opCmp",
-                             "opEquals", "Monitor", "factory", "opAssign"];
+		"opEquals", "Monitor", "factory", "opAssign"];
 @safe:
 
 template typeToTypeEnum(Type) {
