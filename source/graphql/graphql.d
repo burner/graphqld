@@ -528,10 +528,15 @@ class GraphQLD(T, QContext = DefaultContext) {
 					scope(exit) {
 						ec.path.popBack();
 					}
+					GQLDType* top = unPacked.name in this.schema.types;
+					GQLDType nested = top is null
+						? GQLDType.init
+						: this.schema.getReturnType(*top, field.name);
+					GQLDType nestedUnpacked = unpack2(nested);
+
 					FieldRangeItem[] fri = fieldRangeArr(field.f.ss.sel, doc
 						, interfacesForType(this.schema
-							, objectValue.getWithDefault!string("data.__typename"
-								, "__typename"))
+						, nestedUnpacked.name)
 						, variables);
 
 					fieldsHandledByArrayResolver ~= field.name;
