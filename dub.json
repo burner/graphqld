@@ -10,7 +10,7 @@
 		"nullablestore": ">=2.1.0"
 	},
 	"dflags": [ "-d"],
-	"dflags-ldc": ["-d", "-ftime-trace", "-ftime-trace-file=$PACKAGE_DIR/trace.json", "-wi"],
+	"dflags-ldc": ["-d", "-wi"],
 	"description": "A library to handle the GraphQL Protocol",
 	"copyright": "Copyright © 2019, Robert burner Schadek",
 	"license": "LGPL3"
