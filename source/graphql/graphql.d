@@ -498,6 +498,14 @@ class GraphQLD(T, QContext = DefaultContext) {
 		this.executationTraceLog.logf("elemType %s", elemType);
 		Json ret = returnTemplate();
 		ret["data"] = Json.emptyArray();
+		if(Constants.errors in objectValue
+				&& !objectValue[Constants.errors].dataIsEmpty())
+		{
+			ret[Constants.errors] = Json.emptyArray();
+			foreach(err; objectValue[Constants.errors]) {
+				ret[Constants.errors] ~= err;
+			}
+		}
 
 		QueryArrayResolver[string]* arrayTypeResolverArray =
 			unPacked !is null
@@ -511,6 +519,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 		Json[] results = iota(items.length)
 			.map!(it => returnTemplate())
 			.array;
+
 		string[] fieldsHandledByArrayResolver;
 		if(arrayTypeResolverArray !is null) {
 			FieldRange fr = fieldRange(ss, doc
