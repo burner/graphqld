@@ -2,7 +2,7 @@ module graphql.tokenmodule;
 
 import graphql.visitor;
 
-enum TokenType {
+enum TokenType : ubyte {
 	undefined,
 	exclamation,
 	dollar,
@@ -47,6 +47,22 @@ enum TokenType {
 	implements,
 	extend,
 }
+
+struct Token {
+	ulong value;
+
+	TokenType tokenType() const {
+		return cast(TokenType)(this.value & 63LU);
+	}
+
+	void setTokenType(TokenType t) {
+		this.value = this.value >> 6;
+		this.value = this.value << 6;
+		this.value |= t;
+	}
+}
+
+__EOF__
 
 struct Token {
 @safe:
