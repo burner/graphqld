@@ -448,6 +448,20 @@ user(id: 1) {
 	}
 }}
 			`);
+	tests ~= TestCase(32, QueryParser.yes,
+`query IntrospectionDroidFieldsQuery {
+	__typenameA
+	__type(name: "Droid") {
+		name
+		fields {
+			name
+			type {
+				name
+				kind
+			}
+		}
+	}
+}`);
 
 	foreach(test; tests) {
 		auto l = Lexer(test.str, test.qp);
