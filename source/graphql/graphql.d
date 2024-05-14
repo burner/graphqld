@@ -532,6 +532,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					field.name in (*arrayTypeResolverArray);
 
 				if(arrayTypeResolver !is null) {
+					Json arguments = getArguments(field, variables);
 					string fieldName = field.aka.empty ? field.name : field.aka;
 					ec.path ~= PathElement(fieldName);
 					scope(exit) {
@@ -546,11 +547,11 @@ class GraphQLD(T, QContext = DefaultContext) {
 					FieldRangeItem[] fri = fieldRangeArr(field.f.ss.sel, doc
 						, interfacesForType(this.schema
 						, nestedUnpacked.name)
-						, variables);
+						, arguments);
 
 					fieldsHandledByArrayResolver ~= field.name;
 					Json rslt = (*arrayTypeResolver)(field.name
-							, ParentArgs(objectValue, variables)
+							, ParentArgs(objectValue, arguments)
 							, DocumentArgs(doc, field.f, fri)
 							, context);
 
