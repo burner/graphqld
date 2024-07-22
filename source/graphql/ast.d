@@ -1198,6 +1198,7 @@ class ListType : Node {
 enum ValuesEnum {
 	Val,
 	Vals,
+	ValsNoComma,
 }
 
 class Values : Node {
@@ -1927,22 +1928,16 @@ class NamedTypes : Node {
 
 enum ArgumentsDefinitionEnum {
 	A,
-	DA,
+	NA,
 }
 
 class ArgumentsDefinition : Node {
 @safe :
 
 	ArgumentsDefinitionEnum ruleSelection;
-	Description des;
 
 	this(ArgumentsDefinitionEnum ruleSelection) {
 		this.ruleSelection = ruleSelection;
-	}
-
-	this(ArgumentsDefinitionEnum ruleSelection, Description des) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
 	}
 
 	void visit(Visitor vis) {
@@ -1966,6 +1961,9 @@ enum InputValueDefinitionsEnum {
 	I,
 	ICF,
 	IF,
+	DI,
+	DICF,
+	DIF,
 }
 
 class InputValueDefinitions : Node {
@@ -1974,6 +1972,7 @@ class InputValueDefinitions : Node {
 	InputValueDefinitionsEnum ruleSelection;
 	InputValueDefinitions follow;
 	InputValueDefinition iv;
+	Description des;
 
 	this(InputValueDefinitionsEnum ruleSelection, InputValueDefinition iv) {
 		this.ruleSelection = ruleSelection;
@@ -1982,6 +1981,19 @@ class InputValueDefinitions : Node {
 
 	this(InputValueDefinitionsEnum ruleSelection, InputValueDefinition iv, InputValueDefinitions follow) {
 		this.ruleSelection = ruleSelection;
+		this.iv = iv;
+		this.follow = follow;
+	}
+
+	this(InputValueDefinitionsEnum ruleSelection, Description des, InputValueDefinition iv) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.iv = iv;
+	}
+
+	this(InputValueDefinitionsEnum ruleSelection, Description des, InputValueDefinition iv, InputValueDefinitions follow) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
 		this.iv = iv;
 		this.follow = follow;
 	}
@@ -2278,12 +2290,15 @@ class EnumValueDefinitions : Node {
 enum EnumValueDefinitionEnum {
 	ED,
 	E,
+	DED,
+	DE,
 }
 
 class EnumValueDefinition : Node {
 @safe :
 
 	EnumValueDefinitionEnum ruleSelection;
+	Description des;
 	Directives dirs;
 	Token name;
 
@@ -2295,6 +2310,19 @@ class EnumValueDefinition : Node {
 
 	this(EnumValueDefinitionEnum ruleSelection, Token name) {
 		this.ruleSelection = ruleSelection;
+		this.name = name;
+	}
+
+	this(EnumValueDefinitionEnum ruleSelection, Description des, Token name, Directives dirs) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
+		this.name = name;
+		this.dirs = dirs;
+	}
+
+	this(EnumValueDefinitionEnum ruleSelection, Description des, Token name) {
+		this.ruleSelection = ruleSelection;
+		this.des = des;
 		this.name = name;
 	}
 
