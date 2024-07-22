@@ -949,20 +949,6 @@ class Visitor : ConstVisitor {
 				obj.iv.visit(this);
 				obj.follow.visit(this);
 				break;
-			case InputValueDefinitionsEnum.DI:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				break;
-			case InputValueDefinitionsEnum.DICF:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				obj.follow.visit(this);
-				break;
-			case InputValueDefinitionsEnum.DIF:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				obj.follow.visit(this);
-				break;
 		}
 		exit(obj);
 	}
@@ -990,6 +976,30 @@ class Visitor : ConstVisitor {
 				obj.df.visit(this);
 				break;
 			case InputValueDefinitionEnum.T:
+				obj.name.visit(this);
+				obj.type.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTVD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.df.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTV:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.df.visit(this);
+				break;
+			case InputValueDefinitionEnum.DT:
+				obj.des.visit(this);
 				obj.name.visit(this);
 				obj.type.visit(this);
 				break;
@@ -2165,20 +2175,6 @@ class ConstVisitor {
 				obj.iv.visit(this);
 				obj.follow.visit(this);
 				break;
-			case InputValueDefinitionsEnum.DI:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				break;
-			case InputValueDefinitionsEnum.DICF:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				obj.follow.visit(this);
-				break;
-			case InputValueDefinitionsEnum.DIF:
-				obj.des.visit(this);
-				obj.iv.visit(this);
-				obj.follow.visit(this);
-				break;
 		}
 		exit(obj);
 	}
@@ -2206,6 +2202,30 @@ class ConstVisitor {
 				obj.df.visit(this);
 				break;
 			case InputValueDefinitionEnum.T:
+				obj.name.visit(this);
+				obj.type.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTVD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.df.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTD:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case InputValueDefinitionEnum.DTV:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.type.visit(this);
+				obj.df.visit(this);
+				break;
+			case InputValueDefinitionEnum.DT:
+				obj.des.visit(this);
 				obj.name.visit(this);
 				obj.type.visit(this);
 				break;

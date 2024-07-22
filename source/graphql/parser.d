@@ -3586,7 +3586,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition","stringValue -> Description","rparen"]
+				["name -> InputValueDefinition","stringValue -> InputValueDefinition","rparen"]
 			);
 
 		}
@@ -3604,8 +3604,7 @@ struct Parser {
 	}
 
 	bool firstInputValueDefinitions() const pure @nogc @safe {
-		return this.firstInputValueDefinition()
-			 || this.firstDescription();
+		return this.firstInputValueDefinition();
 	}
 
 	InputValueDefinitions parseInputValueDefinitions() {
@@ -3644,7 +3643,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> InputValueDefinition","stringValue -> Description"]
+					["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
@@ -3658,60 +3657,6 @@ struct Parser {
 			return new InputValueDefinitions(InputValueDefinitionsEnum.I
 				, iv
 			);
-		} else if(this.firstDescription()) {
-			Description des = this.parseDescription();
-			subRules = ["DI", "DICF", "DIF"];
-			if(this.firstInputValueDefinition()) {
-				InputValueDefinition iv = this.parseInputValueDefinition();
-				subRules = ["DICF"];
-				if(this.lex.front.type == TokenType.comma) {
-					this.lex.popFront();
-					subRules = ["DICF"];
-					if(this.firstInputValueDefinitions()) {
-						InputValueDefinitions follow = this.parseInputValueDefinitions();
-
-						return new InputValueDefinitions(InputValueDefinitionsEnum.DICF
-							, des
-							, iv
-							, follow
-						);
-					}
-					auto app = appender!string();
-					formattedWrite(app, 
-						"In 'InputValueDefinitions' found a '%s' while looking for", 
-						this.lex.front
-					);
-					throw new ParseException(app.data,
-						__FILE__, __LINE__,
-						subRules,
-						["name -> InputValueDefinition","stringValue -> Description"]
-					);
-
-				} else if(this.firstInputValueDefinitions()) {
-					InputValueDefinitions follow = this.parseInputValueDefinitions();
-
-					return new InputValueDefinitions(InputValueDefinitionsEnum.DIF
-						, des
-						, iv
-						, follow
-					);
-				}
-				return new InputValueDefinitions(InputValueDefinitionsEnum.DI
-					, des
-					, iv
-				);
-			}
-			auto app = appender!string();
-			formattedWrite(app, 
-				"In 'InputValueDefinitions' found a '%s' while looking for", 
-				this.lex.front
-			);
-			throw new ParseException(app.data,
-				__FILE__, __LINE__,
-				subRules,
-				["name"]
-			);
-
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3721,13 +3666,14 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstInputValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	InputValueDefinition parseInputValueDefinition() {
@@ -3809,6 +3755,90 @@ struct Parser {
 				["colon"]
 			);
 
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DT", "DTD", "DTV", "DTVD"];
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				subRules = ["DT", "DTD", "DTV", "DTVD"];
+				if(this.lex.front.type == TokenType.colon) {
+					this.lex.popFront();
+					subRules = ["DT", "DTD", "DTV", "DTVD"];
+					if(this.firstType()) {
+						Type type = this.parseType();
+						subRules = ["DTV", "DTVD"];
+						if(this.firstDefaultValue()) {
+							DefaultValue df = this.parseDefaultValue();
+							subRules = ["DTVD"];
+							if(this.firstDirectives()) {
+								Directives dirs = this.parseDirectives();
+
+								return new InputValueDefinition(InputValueDefinitionEnum.DTVD
+									, des
+									, name
+									, type
+									, df
+									, dirs
+								);
+							}
+							return new InputValueDefinition(InputValueDefinitionEnum.DTV
+								, des
+								, name
+								, type
+								, df
+							);
+						} else if(this.firstDirectives()) {
+							Directives dirs = this.parseDirectives();
+
+							return new InputValueDefinition(InputValueDefinitionEnum.DTD
+								, des
+								, name
+								, type
+								, dirs
+							);
+						}
+						return new InputValueDefinition(InputValueDefinitionEnum.DT
+							, des
+							, name
+							, type
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'InputValueDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["lbrack -> ListType","name"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'InputValueDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["colon"]
+				);
+
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'InputValueDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3818,7 +3848,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -4532,7 +4562,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition","stringValue -> Description"]
+							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 						);
 
 					}
@@ -4581,7 +4611,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition","stringValue -> Description"]
+						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 					);
 
 				}
@@ -4944,7 +4974,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition","stringValue -> Description"]
+							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 						);
 
 					}
@@ -4992,7 +5022,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition","stringValue -> Description"]
+						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 					);
 
 				}
