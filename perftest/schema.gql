@@ -1,0 +1,124 @@
+schema {
+	mutation: mutationType
+	query: queryType
+	subscription: subscriptionType
+}
+type mutationType {
+	getStupidestCrewman: Character!
+	addCrewman(arg: AddCrewmanData!): Character!
+	name: String!
+}
+type queryType {
+	shipsselection(ids: [Int!]!): [Starship!]!
+	characters(series: Series!): [Character!]!
+	starships(overSize: Float!): [Starship!]!
+	captain(series: Series!): Character!
+	humanoids: [Humanoid!]!
+	currentTime: DateTime!
+	starship(id: Int!): Starship
+	starshipSimple2(id: Int!): StarshipSimple2
+	name: String!
+	androids: [Android!]!
+	resolverWillThrow: [Android!]!
+	numberBetween(searchInput: InputIn!): Starship!
+	search(name: String!): SearchResult! @deprecated(reason: "To complex")
+	starshipSimple3(id: Int!): StarshipSimple3
+	starshipSimple(id: Int!): StarshipSimple
+	starshipDoesNotExist: Starship!
+	character(id: Int!): Character
+	alwaysEmpty: [Starship!]
+}
+type StarshipSimple {
+	commander: Character!
+}
+type subscriptionType {
+	starships: [Starship!]!
+	name: String!
+}
+type Android implements Character {
+	isDead: Boolean!
+	ships: Starship
+	series: [Series!]!
+	id: Int!
+	ship: Starship
+	primaryFunction: String!
+	name: String!
+	allwaysNull: Starship
+	commands: [Character!]!
+	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
+	commanders: [Character!]!
+}
+enum Series {
+	TheOriginalSeries,
+	TheNextGeneration,
+	DeepSpaceNine,
+	Voyager,
+	Enterprise,
+	Discovery
+}
+
+type Input {
+	first: Int!
+	after: String
+}
+input InputIn {
+	first: Int!
+	after: String
+}
+type Starship {
+	series: [Series]!
+	id: Int!
+	commander: Character!
+	name: String!
+	size: Float!
+	crew: [Character!]!
+	designation: String!
+}
+type StarshipSimple2 {
+	id: Int!
+}
+type StarshipSimple3 {
+	series: [Series]!
+}
+interface Character {
+	isDead: Boolean!
+	ships: Starship
+	series: [Series!]!
+	id: Int!
+	ship: Starship
+	name: String!
+	allwaysNull: Starship
+	commands: [Character!]!
+	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
+	commanders: [Character!]!
+}
+input AddCrewmanData {
+	shipId: Int!
+	location: Vector!
+	series: [Series!]!
+	name: String!
+}
+input Vector {
+	y: Float!
+	x: Float!
+}
+type Humanoid implements Character {
+	isDead: Boolean!
+	ships: Starship
+	series: [Series!]!
+	id: Int!
+	ship: Starship
+	dateOfBirth: Date!
+	name: String!
+	species: String!
+	allwaysNull: Starship
+	commands: [Character!]!
+	alsoAllwaysNull: Int
+	someOldField: Int! @deprecated(reason: "Stupid name")
+	commanders: [Character!]!
+}
+scalar Date
+union SearchResult = Humanoid | Android | Starship
+scalar DateTime

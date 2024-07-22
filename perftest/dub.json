@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"Robert Schadek"
+	],
+	"dependencies": {
+		"graphqld": { "path" : "../" }
+	},
+	"copyright": "Copyright © 2024, Robert Schadek",
+	"description": "A minimal D application.",
+	"license": "GPL-3.0-or-later",
+	"name": "perftest"
+}
