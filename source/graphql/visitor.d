@@ -584,6 +584,10 @@ class Visitor : ConstVisitor {
 				obj.val.visit(this);
 				obj.follow.visit(this);
 				break;
+			case ValuesEnum.ValsNoComma:
+				obj.val.visit(this);
+				obj.follow.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -922,8 +926,7 @@ class Visitor : ConstVisitor {
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
-			case ArgumentsDefinitionEnum.DA:
-				obj.des.visit(this);
+			case ArgumentsDefinitionEnum.NA:
 				break;
 		}
 		exit(obj);
@@ -943,6 +946,20 @@ class Visitor : ConstVisitor {
 				obj.follow.visit(this);
 				break;
 			case InputValueDefinitionsEnum.IF:
+				obj.iv.visit(this);
+				obj.follow.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DI:
+				obj.des.visit(this);
+				obj.iv.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DICF:
+				obj.des.visit(this);
+				obj.iv.visit(this);
+				obj.follow.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DIF:
+				obj.des.visit(this);
 				obj.iv.visit(this);
 				obj.follow.visit(this);
 				break;
@@ -1090,6 +1107,15 @@ class Visitor : ConstVisitor {
 				obj.dirs.visit(this);
 				break;
 			case EnumValueDefinitionEnum.E:
+				obj.name.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DED:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DE:
+				obj.des.visit(this);
 				obj.name.visit(this);
 				break;
 		}
@@ -1774,6 +1800,10 @@ class ConstVisitor {
 				obj.val.visit(this);
 				obj.follow.visit(this);
 				break;
+			case ValuesEnum.ValsNoComma:
+				obj.val.visit(this);
+				obj.follow.visit(this);
+				break;
 		}
 		exit(obj);
 	}
@@ -2112,8 +2142,7 @@ class ConstVisitor {
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
-			case ArgumentsDefinitionEnum.DA:
-				obj.des.visit(this);
+			case ArgumentsDefinitionEnum.NA:
 				break;
 		}
 		exit(obj);
@@ -2133,6 +2162,20 @@ class ConstVisitor {
 				obj.follow.visit(this);
 				break;
 			case InputValueDefinitionsEnum.IF:
+				obj.iv.visit(this);
+				obj.follow.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DI:
+				obj.des.visit(this);
+				obj.iv.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DICF:
+				obj.des.visit(this);
+				obj.iv.visit(this);
+				obj.follow.visit(this);
+				break;
+			case InputValueDefinitionsEnum.DIF:
+				obj.des.visit(this);
 				obj.iv.visit(this);
 				obj.follow.visit(this);
 				break;
@@ -2280,6 +2323,15 @@ class ConstVisitor {
 				obj.dirs.visit(this);
 				break;
 			case EnumValueDefinitionEnum.E:
+				obj.name.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DED:
+				obj.des.visit(this);
+				obj.name.visit(this);
+				obj.dirs.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DE:
+				obj.des.visit(this);
 				obj.name.visit(this);
 				break;
 		}

@@ -422,8 +422,10 @@ struct Lexer {
 							++this.stringPos;
 							++e;
 						}
-						this.cur = Token(TokenType.stringValue, this.input[b + 3
-								.. e - 3], this.line, this.column);
+						this.cur = Token(TokenType.stringValue
+								, this.input[b + 3 .. e - 3], this.line
+								, this.column
+								);
 					} else {
 						while(this.stringPos < this.input.length
 								&& (this.input[this.stringPos] != '"'
@@ -776,4 +778,85 @@ unittest {
 	assert(l.front.value.indexOf("\n") != -1);
 	l.popFront();
 	assert(l.empty);
+}
+
+unittest {
+	import std.string : indexOf;
+
+	string f = `
+"""
+Defines what type of global IDs are accepted for a mutation argument of type ID.
+"""
+directive @possibleTypes(
+  """
+  Abstract type of accepted global ID
+  """
+  abstractType: String
+
+  """
+  Accepted types of global IDs.
+  """
+  concreteTypes: [String!]!
+) on INPUT_FIELD_DEFINITION
+`;
+
+	auto l = Lexer(f, QueryParser.no);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.directive, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.at, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.lparen, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name, l.front.toString());
+	l.popFront();
+	assert(!l.empty);
+	assert(l.front.type == TokenType.colon, l.front.toString());
+	l.popFront();
+}
+
+unittest {
+	string f = `
+  """
+  Optional comment for approving deployments
+  """
+  comment: String = ""
+`;
+
+	auto l = Lexer(f, QueryParser.no);
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	l.popFront();
+
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name, l.front.toString());
+	l.popFront();
+
+	assert(!l.empty);
+	assert(l.front.type == TokenType.colon, l.front.toString());
+	l.popFront();
+
+	assert(!l.empty);
+	assert(l.front.type == TokenType.name, l.front.toString());
+	l.popFront();
+
+	assert(!l.empty);
+	assert(l.front.type == TokenType.equal, l.front.toString());
+	l.popFront();
+
+	assert(!l.empty);
+	assert(l.front.type == TokenType.stringValue, l.front.toString());
+	l.popFront();
 }

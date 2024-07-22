@@ -2034,7 +2034,7 @@ struct Parser {
 
 	Values parseValuesImpl() {
 		string[] subRules;
-		subRules = ["Val", "Vals"];
+		subRules = ["Val", "Vals", "ValsNoComma"];
 		if(this.firstValue()) {
 			Value val = this.parseValue();
 			subRules = ["Vals"];
@@ -2060,6 +2060,13 @@ struct Parser {
 					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
 
+			} else if(this.firstValues()) {
+				Values follow = this.parseValues();
+
+				return new Values(ValuesEnum.ValsNoComma
+					, val
+					, follow
+				);
 			}
 			return new Values(ValuesEnum.Val
 				, val
@@ -3541,7 +3548,7 @@ struct Parser {
 
 	ArgumentsDefinition parseArgumentsDefinitionImpl() {
 		string[] subRules;
-		subRules = ["A", "DA"];
+		subRules = ["A", "NA"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
 			subRules = ["A"];
@@ -3565,42 +3572,11 @@ struct Parser {
 					["rparen"]
 				);
 
-			} else if(this.firstDescription()) {
-				Description des = this.parseDescription();
-				subRules = ["DA"];
-				if(this.firstInputValueDefinitions()) {
-					this.parseInputValueDefinitions();
-					subRules = ["DA"];
-					if(this.lex.front.type == TokenType.rparen) {
-						this.lex.popFront();
+			} else if(this.lex.front.type == TokenType.rparen) {
+				this.lex.popFront();
 
-						return new ArgumentsDefinition(ArgumentsDefinitionEnum.DA
-							, des
-						);
-					}
-					auto app = appender!string();
-					formattedWrite(app, 
-						"In 'ArgumentsDefinition' found a '%s' while looking for", 
-						this.lex.front
-					);
-					throw new ParseException(app.data,
-						__FILE__, __LINE__,
-						subRules,
-						["rparen"]
-					);
-
-				}
-				auto app = appender!string();
-				formattedWrite(app, 
-					"In 'ArgumentsDefinition' found a '%s' while looking for", 
-					this.lex.front
+				return new ArgumentsDefinition(ArgumentsDefinitionEnum.NA
 				);
-				throw new ParseException(app.data,
-					__FILE__, __LINE__,
-					subRules,
-					["name -> InputValueDefinition"]
-				);
-
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -3610,7 +3586,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition","stringValue"]
+				["name -> InputValueDefinition","stringValue -> Description","rparen"]
 			);
 
 		}
@@ -3628,7 +3604,8 @@ struct Parser {
 	}
 
 	bool firstInputValueDefinitions() const pure @nogc @safe {
-		return this.firstInputValueDefinition();
+		return this.firstInputValueDefinition()
+			 || this.firstDescription();
 	}
 
 	InputValueDefinitions parseInputValueDefinitions() {
@@ -3667,7 +3644,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> InputValueDefinition"]
+					["name -> InputValueDefinition","stringValue -> Description"]
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
@@ -3681,6 +3658,60 @@ struct Parser {
 			return new InputValueDefinitions(InputValueDefinitionsEnum.I
 				, iv
 			);
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DI", "DICF", "DIF"];
+			if(this.firstInputValueDefinition()) {
+				InputValueDefinition iv = this.parseInputValueDefinition();
+				subRules = ["DICF"];
+				if(this.lex.front.type == TokenType.comma) {
+					this.lex.popFront();
+					subRules = ["DICF"];
+					if(this.firstInputValueDefinitions()) {
+						InputValueDefinitions follow = this.parseInputValueDefinitions();
+
+						return new InputValueDefinitions(InputValueDefinitionsEnum.DICF
+							, des
+							, iv
+							, follow
+						);
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'InputValueDefinitions' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["name -> InputValueDefinition","stringValue -> Description"]
+					);
+
+				} else if(this.firstInputValueDefinitions()) {
+					InputValueDefinitions follow = this.parseInputValueDefinitions();
+
+					return new InputValueDefinitions(InputValueDefinitionsEnum.DIF
+						, des
+						, iv
+						, follow
+					);
+				}
+				return new InputValueDefinitions(InputValueDefinitionsEnum.DI
+					, des
+					, iv
+				);
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'InputValueDefinitions' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3690,7 +3721,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -4200,7 +4231,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> EnumValueDefinition"]
+							["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 						);
 
 					}
@@ -4249,7 +4280,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> EnumValueDefinition"]
+						["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 					);
 
 				}
@@ -4330,7 +4361,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> EnumValueDefinition"]
+					["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 				);
 
 			} else if(this.firstEnumValueDefinitions()) {
@@ -4353,13 +4384,14 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstEnumValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	EnumValueDefinition parseEnumValueDefinition() {
@@ -4391,6 +4423,38 @@ struct Parser {
 			return new EnumValueDefinition(EnumValueDefinitionEnum.E
 				, name
 			);
+		} else if(this.firstDescription()) {
+			Description des = this.parseDescription();
+			subRules = ["DE", "DED"];
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				subRules = ["DED"];
+				if(this.firstDirectives()) {
+					Directives dirs = this.parseDirectives();
+
+					return new EnumValueDefinition(EnumValueDefinitionEnum.DED
+						, des
+						, name
+						, dirs
+					);
+				}
+				return new EnumValueDefinition(EnumValueDefinitionEnum.DE
+					, des
+					, name
+				);
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'EnumValueDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -4400,7 +4464,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -4468,7 +4532,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition"]
+							["name -> InputValueDefinition","stringValue -> Description"]
 						);
 
 					}
@@ -4517,7 +4581,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition"]
+						["name -> InputValueDefinition","stringValue -> Description"]
 					);
 
 				}
@@ -4880,7 +4944,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition"]
+							["name -> InputValueDefinition","stringValue -> Description"]
 						);
 
 					}
@@ -4928,7 +4992,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition"]
+						["name -> InputValueDefinition","stringValue -> Description"]
 					);
 
 				}
