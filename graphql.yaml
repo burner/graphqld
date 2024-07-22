@@ -231,15 +231,16 @@ InputValueDefinitions:
     I: [InputValueDefinition#iv]
     ICF: [InputValueDefinition#iv, comma, InputValueDefinitions#follow]
     IF: [InputValueDefinition#iv, InputValueDefinitions#follow]
-    DI: [Description#des, InputValueDefinition#iv]
-    DICF: [Description#des, InputValueDefinition#iv, comma, InputValueDefinitions#follow]
-    DIF: [Description#des, InputValueDefinition#iv, InputValueDefinitions#follow]
 
 InputValueDefinition:
     TVD: [name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
     TD: [name#name, colon, Type#type, Directives#dirs]
     TV: [name#name, colon, Type#type, DefaultValue#df]
     T: [name#name, colon, Type#type]
+    DTVD: [Description#des, name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
+    DTD: [Description#des, name#name, colon, Type#type, Directives#dirs]
+    DTV: [Description#des, name#name, colon, Type#type, DefaultValue#df]
+    DT: [Description#des, name#name, colon, Type#type]
 
 InterfaceTypeDefinition:
     NDF: [interface_, name#name, Directives#dirs, lcurly,
