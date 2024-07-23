@@ -46,7 +46,21 @@ struct Lexer {
 	private bool isTokenStop(const(char) c) const @safe {
 		import std.ascii : isWhite;
 		import std.algorithm.searching : canFind;
-		return isWhite(c) || "(){}!=|[:],@$".canFind(c);
+		return isWhite(c)
+			|| c == '('
+			|| c == ')'
+			|| c == '{'
+			|| c == '}'
+			|| c == '!'
+			|| c == '='
+			|| c == '|'
+			|| c == '['
+			|| c == ']'
+			|| c == ']'
+			|| c == ':'
+			|| c == ','
+			|| c == '@'
+			|| c == '$';
 	}
 
 	private bool eatComment() @safe {
