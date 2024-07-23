@@ -6,6 +6,7 @@ version(LDC) {
 	import std.logger;
 }
 
+import std.array : empty, front, popFront;
 import std.format : format;
 import std.typecons : Flag;
 import std.stdio;
@@ -408,11 +409,18 @@ struct Lexer {
 					++this.stringPos;
 					++this.column;
 					++e;
+					//writeln("string start '''", this.input[this.stringPos .. $]
+					//		, "'''");
 					if(this.qp == QueryParser.no
-							&& this.testStrAndInc!("\"\"")(e))
+							&& this.testStrAndIncOnFullMatch!(`""`)(e))
 					{
-						while(!this.testStrAndInc!("\"\"\"")(e)) {
-							if(this.input[this.stringPos] == '\n') {
+						while(!this.testStrAndIncOnFullMatch!(`"""`)(e))
+						{
+							if(this.stringPos > this.input.length) {
+								break;
+							}
+							if(this.input[this.stringPos] == '\n')
+							{
 								this.column = 1;
 								++this.line;
 
@@ -422,11 +430,16 @@ struct Lexer {
 							++this.stringPos;
 							++e;
 						}
+						//writeln("triple string done ", this.input[this.stringPos
+						//		.. $]);
+						//writefln("%s %s %s %s", b, e, this.stringPos
+						//		, this.input.length);
 						this.cur = Token(TokenType.stringValue
 								, this.input[b + 3 .. e - 3], this.line
 								, this.column
 								);
 					} else {
+						//writeln("normal string");
 						while(this.stringPos < this.input.length
 								&& (this.input[this.stringPos] != '"'
 									|| (this.input[this.stringPos] == '"'
@@ -472,6 +485,22 @@ struct Lexer {
 		}
 	}
 
+	bool testStrAndIncOnFullMatch(string s)(ref size_t e) @safe {
+		for(size_t i = 0; i < s.length; ++i) {
+			if(this.stringPos < this.input.length
+					&& this.input[this.stringPos + i] == s[i])
+			{
+			} else {
+				return false;
+			}
+		}
+		this.column += s.length;
+		this.stringPos += s.length;
+		e += s.length;
+
+		return true;
+	}
+
 	bool testStrAndInc(string s)(ref size_t e) @safe {
 		for(size_t i = 0; i < s.length; ++i) {
 			if(this.stringPos < this.input.length
@@ -507,6 +536,26 @@ struct Lexer {
 
 	string getRestOfInput() const @safe {
 		return this.input[this.stringPos .. $];
+	}
+}
+
+private void test(string input, TokenType[] tokens, bool requireEmpty = true) {
+	auto l = Lexer(input, QueryParser.no);
+	Token[] token;
+	foreach(idx, it; tokens) {
+		assert(!l.empty
+			, format("Was looking for '%s' at index '%s'in empty Lexer\n%s"
+				, it, idx, token));
+		assert(l.front.type == it
+			, format("Wanted '%s' got '%s' at index %s\n%s", it, l.front.type
+				, idx, token));
+		token ~= l.front;
+		l.popFront();
+	}
+	if(requireEmpty) {
+		assert(l.empty
+			, format("Lexer was not empty after all tokens have "
+				~ "been consumpt\n%s", token));
 	}
 }
 
@@ -755,7 +804,7 @@ unittest {
 	auto l = Lexer(f, QueryParser.no);
 	assert(!l.empty);
 	assert(l.front.type == TokenType.stringValue, l.front.toString());
-	assert(l.front.value == " a long comment ", l.front.value);
+	assert(l.front.value == " a long comment ", format("'%s'", l.front.value));
 	l.popFront();
 	assert(l.empty);
 }
@@ -801,30 +850,14 @@ directive @possibleTypes(
 `;
 
 	auto l = Lexer(f, QueryParser.no);
-	assert(!l.empty);
-	assert(l.front.type == TokenType.stringValue, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.directive, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.at, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.name, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.lparen, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.stringValue, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.name, l.front.toString());
-	l.popFront();
-	assert(!l.empty);
-	assert(l.front.type == TokenType.colon, l.front.toString());
-	l.popFront();
+	test(f, [ TokenType.stringValue, TokenType.directive, TokenType.at
+			, TokenType.name, TokenType.lparen, TokenType.stringValue
+			, TokenType.name, TokenType.colon, TokenType.name
+			, TokenType.stringValue, TokenType.name, TokenType.colon
+			, TokenType.lbrack, TokenType.name, TokenType.exclamation
+			, TokenType.rbrack, TokenType.exclamation, TokenType.rparen
+			, TokenType.on_, TokenType.name
+	]);
 }
 
 unittest {
@@ -834,29 +867,24 @@ unittest {
   """
   comment: String = ""
 `;
+	test(f, [ TokenType.stringValue, TokenType.name, TokenType.colon
+			, TokenType.name, TokenType.equal, TokenType.stringValue]);
 
-	auto l = Lexer(f, QueryParser.no);
-	assert(!l.empty);
-	assert(l.front.type == TokenType.stringValue, l.front.toString());
-	l.popFront();
+}
 
-	assert(!l.empty);
-	assert(l.front.type == TokenType.name, l.front.toString());
-	l.popFront();
+unittest {
+	string f = `
+  """
+  Optional comment for approving deployments
+  """
+  comment: String = ""
 
-	assert(!l.empty);
-	assert(l.front.type == TokenType.colon, l.front.toString());
-	l.popFront();
+  """
+  The ids of environments to reject deployments
+  """
+`;
+	test(f, [ TokenType.stringValue, TokenType.name, TokenType.colon
+			, TokenType.name, TokenType.equal, TokenType.stringValue
+			, TokenType.stringValue]);
 
-	assert(!l.empty);
-	assert(l.front.type == TokenType.name, l.front.toString());
-	l.popFront();
-
-	assert(!l.empty);
-	assert(l.front.type == TokenType.equal, l.front.toString());
-	l.popFront();
-
-	assert(!l.empty);
-	assert(l.front.type == TokenType.stringValue, l.front.toString());
-	l.popFront();
 }
