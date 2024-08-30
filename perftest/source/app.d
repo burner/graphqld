@@ -23,11 +23,32 @@ import countvisitor;
 
 void main() {
 	string toParse = readText("schema.docs.graphql");
-	auto l = Lexer(toParse, QueryParser.no);
-	//auto l = Lexer(toParse);
-	auto p = Parser(l);
-	Document d = p.parseDocument();
-	auto cv = new CountVisitor();
-	cv.accept(d);
-	writeln(cv.countsToString());
+	foreach(i; 0 .. 50) {
+		auto l = Lexer(toParse, QueryParser.no);
+		//auto l = Lexer(toParse);
+		auto p = Parser(l);
+		Document d = p.parseDocument();
+		auto cv = new CountVisitor();
+		cv.accept(d);
+		doNotOptimizeAway(cv.countsToString());
+	}
+}
+
+void doNotOptimizeAway(T...)(auto ref T t)
+{
+    foreach (ref it; t)
+    {
+        doNotOptimizeAwayImpl(&it);
+    }
+}
+
+private void doNotOptimizeAwayImpl(void* p)
+{
+    import core.thread : getpid;
+    import std.stdio : writeln;
+
+    if (getpid() == 0)
+    {
+        writeln(p);
+    }
 }
