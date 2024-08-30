@@ -20,8 +20,8 @@ struct Lexer {
 	string input;
 	size_t stringPos;
 
-	size_t line;
-	size_t column;
+	uint line;
+	ushort column;
 
 	Token cur;
 
