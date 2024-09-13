@@ -1,5 +1,7 @@
 module graphql.argumentextractortests;
 
+__EOF__
+
 import std.format : format;
 
 import vibe.data.json;

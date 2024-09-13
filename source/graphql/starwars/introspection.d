@@ -1,5 +1,7 @@
 module graphql.starwars.introspection;
 
+__EOF__
+
 import std.typecons : Nullable, nullable;
 import std.format : format;
 import std.stdio;

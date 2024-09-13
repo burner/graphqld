@@ -22,7 +22,7 @@ handWrittenFiles=source/graphql/argumentextractor.d \
 	source/graphql/directives.d
 
 gen:
-	../Darser/darser -i graphql.yaml \
+	../Darser/darser --dod -i graphql.yaml \
 	-a source/graphql/ast.d -b "graphql" \
 	-p source/graphql/parser.d -q "graphql" \
 	-e source/graphql/exception.d -g "graphql" \

@@ -6,127 +6,95 @@ import graphql.visitor;
 
 @safe :
 
-class Node {}
-
-enum DocumentEnum {
+enum DocumentEnum : ubyte {
 	Defi,
 }
 
-class Document : Node {
+struct Document {
 @safe :
 
+	uint defsIdx;
+
 	DocumentEnum ruleSelection;
-	Definitions defs;
 
-	this(DocumentEnum ruleSelection, Definitions defs) {
-		this.ruleSelection = ruleSelection;
-		this.defs = defs;
+	static Document ConstructDefi(uint defs) {
+		Document ret;
+		ret.ruleSelection = DocumentEnum.Defi;
+		ret.defsIdx = defs;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DefinitionsEnum {
+enum DefinitionsEnum : ubyte {
 	Def,
 	Defs,
 }
 
-class Definitions : Node {
+struct Definitions {
 @safe :
 
+	uint defIdx;
+	uint followIdx;
+
 	DefinitionsEnum ruleSelection;
-	Definition def;
-	Definitions follow;
 
-	this(DefinitionsEnum ruleSelection, Definition def) {
-		this.ruleSelection = ruleSelection;
-		this.def = def;
+	static Definitions ConstructDef(uint def) {
+		Definitions ret;
+		ret.ruleSelection = DefinitionsEnum.Def;
+		ret.defIdx = def;
+		return ret;
 	}
 
-	this(DefinitionsEnum ruleSelection, Definition def, Definitions follow) {
-		this.ruleSelection = ruleSelection;
-		this.def = def;
-		this.follow = follow;
+	static Definitions ConstructDefs(uint def, uint follow) {
+		Definitions ret;
+		ret.ruleSelection = DefinitionsEnum.Defs;
+		ret.defIdx = def;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DefinitionEnum {
+enum DefinitionEnum : ubyte {
 	O,
 	F,
 	T,
 }
 
-class Definition : Node {
+struct Definition {
 @safe :
 
+	uint fragIdx;
+	uint typeIdx;
+	uint opIdx;
+
 	DefinitionEnum ruleSelection;
-	FragmentDefinition frag;
-	TypeSystemDefinition type;
-	OperationDefinition op;
 
-	this(DefinitionEnum ruleSelection, OperationDefinition op) {
-		this.ruleSelection = ruleSelection;
-		this.op = op;
+	static Definition ConstructO(uint op) {
+		Definition ret;
+		ret.ruleSelection = DefinitionEnum.O;
+		ret.opIdx = op;
+		return ret;
 	}
 
-	this(DefinitionEnum ruleSelection, FragmentDefinition frag) {
-		this.ruleSelection = ruleSelection;
-		this.frag = frag;
+	static Definition ConstructF(uint frag) {
+		Definition ret;
+		ret.ruleSelection = DefinitionEnum.F;
+		ret.fragIdx = frag;
+		return ret;
 	}
 
-	this(DefinitionEnum ruleSelection, TypeSystemDefinition type) {
-		this.ruleSelection = ruleSelection;
-		this.type = type;
+	static Definition ConstructT(uint type) {
+		Definition ret;
+		ret.ruleSelection = DefinitionEnum.T;
+		ret.typeIdx = type;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum OperationDefinitionEnum {
+enum OperationDefinitionEnum : ubyte {
 	SelSet,
 	OT_N_VD,
 	OT_N_V,
@@ -138,348 +106,316 @@ enum OperationDefinitionEnum {
 	OT,
 }
 
-class OperationDefinition : Node {
+struct OperationDefinition {
 @safe :
 
-	OperationDefinitionEnum ruleSelection;
-	VariableDefinitions vd;
-	OperationType ot;
-	Directives d;
-	SelectionSet ss;
+	uint vdIdx;
+	uint otIdx;
+	uint dIdx;
+	uint ssIdx;
 	Token name;
 
-	this(OperationDefinitionEnum ruleSelection, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ss = ss;
+	OperationDefinitionEnum ruleSelection;
+
+	static OperationDefinition ConstructSelSet(uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.SelSet;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, VariableDefinitions vd, Directives d, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.name = name;
-		this.vd = vd;
-		this.d = d;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_N_VD(uint ot, Token name, uint vd, uint d, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_N_VD;
+		ret.otIdx = ot;
+		ret.name = name;
+		ret.vdIdx = vd;
+		ret.dIdx = d;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, VariableDefinitions vd, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.name = name;
-		this.vd = vd;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_N_V(uint ot, Token name, uint vd, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_N_V;
+		ret.otIdx = ot;
+		ret.name = name;
+		ret.vdIdx = vd;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, Directives d, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.name = name;
-		this.d = d;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_N_D(uint ot, Token name, uint d, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_N_D;
+		ret.otIdx = ot;
+		ret.name = name;
+		ret.dIdx = d;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, Token name, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.name = name;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_N(uint ot, Token name, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_N;
+		ret.otIdx = ot;
+		ret.name = name;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, VariableDefinitions vd, Directives d, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.vd = vd;
-		this.d = d;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_VD(uint ot, uint vd, uint d, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_VD;
+		ret.otIdx = ot;
+		ret.vdIdx = vd;
+		ret.dIdx = d;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, VariableDefinitions vd, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.vd = vd;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_V(uint ot, uint vd, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_V;
+		ret.otIdx = ot;
+		ret.vdIdx = vd;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, Directives d, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.d = d;
-		this.ss = ss;
+	static OperationDefinition ConstructOT_D(uint ot, uint d, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT_D;
+		ret.otIdx = ot;
+		ret.dIdx = d;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(OperationDefinitionEnum ruleSelection, OperationType ot, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.ss = ss;
+	static OperationDefinition ConstructOT(uint ot, uint ss) {
+		OperationDefinition ret;
+		ret.ruleSelection = OperationDefinitionEnum.OT;
+		ret.otIdx = ot;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum SelectionSetEnum {
+enum SelectionSetEnum : ubyte {
 	SS,
 }
 
-class SelectionSet : Node {
+struct SelectionSet {
 @safe :
 
+	uint selIdx;
+
 	SelectionSetEnum ruleSelection;
-	Selections sel;
 
-	this(SelectionSetEnum ruleSelection, Selections sel) {
-		this.ruleSelection = ruleSelection;
-		this.sel = sel;
+	static SelectionSet ConstructSS(uint sel) {
+		SelectionSet ret;
+		ret.ruleSelection = SelectionSetEnum.SS;
+		ret.selIdx = sel;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum OperationTypeEnum {
+enum OperationTypeEnum : ubyte {
 	Query,
 	Mutation,
 	Sub,
 }
 
-class OperationType : Node {
+struct OperationType {
 @safe :
 
-	OperationTypeEnum ruleSelection;
 	Token tok;
 
-	this(OperationTypeEnum ruleSelection, Token tok) {
-		this.ruleSelection = ruleSelection;
-		this.tok = tok;
+	OperationTypeEnum ruleSelection;
+
+	static OperationType ConstructQuery(Token tok) {
+		OperationType ret;
+		ret.ruleSelection = OperationTypeEnum.Query;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static OperationType ConstructMutation(Token tok) {
+		OperationType ret;
+		ret.ruleSelection = OperationTypeEnum.Mutation;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
+	static OperationType ConstructSub(Token tok) {
+		OperationType ret;
+		ret.ruleSelection = OperationTypeEnum.Sub;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum SelectionsEnum {
+enum SelectionsEnum : ubyte {
 	Sel,
 	Sels,
 	Selsc,
 }
 
-class Selections : Node {
+struct Selections {
 @safe :
 
+	uint selIdx;
+	uint followIdx;
+
 	SelectionsEnum ruleSelection;
-	Selection sel;
-	Selections follow;
 
-	this(SelectionsEnum ruleSelection, Selection sel) {
-		this.ruleSelection = ruleSelection;
-		this.sel = sel;
+	static Selections ConstructSel(uint sel) {
+		Selections ret;
+		ret.ruleSelection = SelectionsEnum.Sel;
+		ret.selIdx = sel;
+		return ret;
 	}
 
-	this(SelectionsEnum ruleSelection, Selection sel, Selections follow) {
-		this.ruleSelection = ruleSelection;
-		this.sel = sel;
-		this.follow = follow;
+	static Selections ConstructSels(uint sel, uint follow) {
+		Selections ret;
+		ret.ruleSelection = SelectionsEnum.Sels;
+		ret.selIdx = sel;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static Selections ConstructSelsc(uint sel, uint follow) {
+		Selections ret;
+		ret.ruleSelection = SelectionsEnum.Selsc;
+		ret.selIdx = sel;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum SelectionEnum {
+enum SelectionEnum : ubyte {
 	Field,
 	Spread,
 	IFrag,
 }
 
-class Selection : Node {
+struct Selection {
 @safe :
 
+	uint fragIdx;
+	uint fieldIdx;
+	uint ifragIdx;
+
 	SelectionEnum ruleSelection;
-	FragmentSpread frag;
-	Field field;
-	InlineFragment ifrag;
 
-	this(SelectionEnum ruleSelection, Field field) {
-		this.ruleSelection = ruleSelection;
-		this.field = field;
+	static Selection ConstructField(uint field) {
+		Selection ret;
+		ret.ruleSelection = SelectionEnum.Field;
+		ret.fieldIdx = field;
+		return ret;
 	}
 
-	this(SelectionEnum ruleSelection, FragmentSpread frag) {
-		this.ruleSelection = ruleSelection;
-		this.frag = frag;
+	static Selection ConstructSpread(uint frag) {
+		Selection ret;
+		ret.ruleSelection = SelectionEnum.Spread;
+		ret.fragIdx = frag;
+		return ret;
 	}
 
-	this(SelectionEnum ruleSelection, InlineFragment ifrag) {
-		this.ruleSelection = ruleSelection;
-		this.ifrag = ifrag;
+	static Selection ConstructIFrag(uint ifrag) {
+		Selection ret;
+		ret.ruleSelection = SelectionEnum.IFrag;
+		ret.ifragIdx = ifrag;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FragmentSpreadEnum {
+enum FragmentSpreadEnum : ubyte {
 	FD,
 	F,
 }
 
-class FragmentSpread : Node {
+struct FragmentSpread {
 @safe :
 
-	FragmentSpreadEnum ruleSelection;
-	Directives dirs;
+	uint dirsIdx;
 	Token name;
 
-	this(FragmentSpreadEnum ruleSelection, Token name, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
+	FragmentSpreadEnum ruleSelection;
+
+	static FragmentSpread ConstructFD(Token name, uint dirs) {
+		FragmentSpread ret;
+		ret.ruleSelection = FragmentSpreadEnum.FD;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(FragmentSpreadEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static FragmentSpread ConstructF(Token name) {
+		FragmentSpread ret;
+		ret.ruleSelection = FragmentSpreadEnum.F;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InlineFragmentEnum {
+enum InlineFragmentEnum : ubyte {
 	TDS,
 	TS,
 	DS,
 	S,
 }
 
-class InlineFragment : Node {
+struct InlineFragment {
 @safe :
 
-	InlineFragmentEnum ruleSelection;
 	Token tc;
-	Directives dirs;
-	SelectionSet ss;
+	uint dirsIdx;
+	uint ssIdx;
 
-	this(InlineFragmentEnum ruleSelection, Token tc, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.tc = tc;
-		this.dirs = dirs;
-		this.ss = ss;
+	InlineFragmentEnum ruleSelection;
+
+	static InlineFragment ConstructTDS(Token tc, uint dirs, uint ss) {
+		InlineFragment ret;
+		ret.ruleSelection = InlineFragmentEnum.TDS;
+		ret.tc = tc;
+		ret.dirsIdx = dirs;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(InlineFragmentEnum ruleSelection, Token tc, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.tc = tc;
-		this.ss = ss;
+	static InlineFragment ConstructTS(Token tc, uint ss) {
+		InlineFragment ret;
+		ret.ruleSelection = InlineFragmentEnum.TS;
+		ret.tc = tc;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(InlineFragmentEnum ruleSelection, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.dirs = dirs;
-		this.ss = ss;
+	static InlineFragment ConstructDS(uint dirs, uint ss) {
+		InlineFragment ret;
+		ret.ruleSelection = InlineFragmentEnum.DS;
+		ret.dirsIdx = dirs;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(InlineFragmentEnum ruleSelection, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.ss = ss;
+	static InlineFragment ConstructS(uint ss) {
+		InlineFragment ret;
+		ret.ruleSelection = InlineFragmentEnum.S;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FieldEnum {
+enum FieldEnum : ubyte {
 	FADS,
 	FAS,
 	FAD,
@@ -490,587 +426,471 @@ enum FieldEnum {
 	F,
 }
 
-class Field : Node {
+struct Field {
 @safe :
 
+	uint ssIdx;
+	uint argsIdx;
+	uint dirsIdx;
+	uint nameIdx;
+
 	FieldEnum ruleSelection;
-	SelectionSet ss;
-	Arguments args;
-	Directives dirs;
-	FieldName name;
 
-	this(FieldEnum ruleSelection, FieldName name, Arguments args, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.args = args;
-		this.dirs = dirs;
-		this.ss = ss;
+	static Field ConstructFADS(uint name, uint args, uint dirs, uint ss) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FADS;
+		ret.nameIdx = name;
+		ret.argsIdx = args;
+		ret.dirsIdx = dirs;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, Arguments args, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.args = args;
-		this.ss = ss;
+	static Field ConstructFAS(uint name, uint args, uint ss) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FAS;
+		ret.nameIdx = name;
+		ret.argsIdx = args;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, Arguments args, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.args = args;
-		this.dirs = dirs;
+	static Field ConstructFAD(uint name, uint args, uint dirs) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FAD;
+		ret.nameIdx = name;
+		ret.argsIdx = args;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
-		this.ss = ss;
+	static Field ConstructFDS(uint name, uint dirs, uint ss) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FDS;
+		ret.nameIdx = name;
+		ret.dirsIdx = dirs;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ss = ss;
+	static Field ConstructFS(uint name, uint ss) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FS;
+		ret.nameIdx = name;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
+	static Field ConstructFD(uint name, uint dirs) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FD;
+		ret.nameIdx = name;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name, Arguments args) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.args = args;
+	static Field ConstructFA(uint name, uint args) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.FA;
+		ret.nameIdx = name;
+		ret.argsIdx = args;
+		return ret;
 	}
 
-	this(FieldEnum ruleSelection, FieldName name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static Field ConstructF(uint name) {
+		Field ret;
+		ret.ruleSelection = FieldEnum.F;
+		ret.nameIdx = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FieldNameEnum {
+enum FieldNameEnum : ubyte {
 	A,
 	N,
 }
 
-class FieldName : Node {
+struct FieldName {
 @safe :
 
-	FieldNameEnum ruleSelection;
 	Token aka;
 	Token name;
 
-	this(FieldNameEnum ruleSelection, Token name, Token aka) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.aka = aka;
+	FieldNameEnum ruleSelection;
+
+	static FieldName ConstructA(Token name, Token aka) {
+		FieldName ret;
+		ret.ruleSelection = FieldNameEnum.A;
+		ret.name = name;
+		ret.aka = aka;
+		return ret;
 	}
 
-	this(FieldNameEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static FieldName ConstructN(Token name) {
+		FieldName ret;
+		ret.ruleSelection = FieldNameEnum.N;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ArgumentsEnum {
+enum ArgumentsEnum : ubyte {
 	List,
 	Empty,
 }
 
-class Arguments : Node {
+struct Arguments {
 @safe :
 
+	uint argIdx;
+
 	ArgumentsEnum ruleSelection;
-	ArgumentList arg;
 
-	this(ArgumentsEnum ruleSelection, ArgumentList arg) {
-		this.ruleSelection = ruleSelection;
-		this.arg = arg;
+	static Arguments ConstructList(uint arg) {
+		Arguments ret;
+		ret.ruleSelection = ArgumentsEnum.List;
+		ret.argIdx = arg;
+		return ret;
 	}
 
-	this(ArgumentsEnum ruleSelection) {
-		this.ruleSelection = ruleSelection;
+	static Arguments ConstructEmpty() {
+		Arguments ret;
+		ret.ruleSelection = ArgumentsEnum.Empty;
+
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ArgumentListEnum {
+enum ArgumentListEnum : ubyte {
 	A,
 	ACS,
 	AS,
 }
 
-class ArgumentList : Node {
+struct ArgumentList {
 @safe :
 
+	uint argIdx;
+	uint followIdx;
+
 	ArgumentListEnum ruleSelection;
-	Argument arg;
-	ArgumentList follow;
 
-	this(ArgumentListEnum ruleSelection, Argument arg) {
-		this.ruleSelection = ruleSelection;
-		this.arg = arg;
+	static ArgumentList ConstructA(uint arg) {
+		ArgumentList ret;
+		ret.ruleSelection = ArgumentListEnum.A;
+		ret.argIdx = arg;
+		return ret;
 	}
 
-	this(ArgumentListEnum ruleSelection, Argument arg, ArgumentList follow) {
-		this.ruleSelection = ruleSelection;
-		this.arg = arg;
-		this.follow = follow;
+	static ArgumentList ConstructACS(uint arg, uint follow) {
+		ArgumentList ret;
+		ret.ruleSelection = ArgumentListEnum.ACS;
+		ret.argIdx = arg;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static ArgumentList ConstructAS(uint arg, uint follow) {
+		ArgumentList ret;
+		ret.ruleSelection = ArgumentListEnum.AS;
+		ret.argIdx = arg;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ArgumentEnum {
+enum ArgumentEnum : ubyte {
 	Name,
 }
 
-class Argument : Node {
+struct Argument {
 @safe :
 
-	ArgumentEnum ruleSelection;
-	ValueOrVariable vv;
+	uint vvIdx;
 	Token name;
 
-	this(ArgumentEnum ruleSelection, Token name, ValueOrVariable vv) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.vv = vv;
+	ArgumentEnum ruleSelection;
+
+	static Argument ConstructName(Token name, uint vv) {
+		Argument ret;
+		ret.ruleSelection = ArgumentEnum.Name;
+		ret.name = name;
+		ret.vvIdx = vv;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FragmentDefinitionEnum {
+enum FragmentDefinitionEnum : ubyte {
 	FTDS,
 	FTS,
 }
 
-class FragmentDefinition : Node {
+struct FragmentDefinition {
 @safe :
 
-	FragmentDefinitionEnum ruleSelection;
-	SelectionSet ss;
+	uint ssIdx;
 	Token tc;
-	Directives dirs;
+	uint dirsIdx;
 	Token name;
 
-	this(FragmentDefinitionEnum ruleSelection, Token name, Token tc, Directives dirs, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.tc = tc;
-		this.dirs = dirs;
-		this.ss = ss;
+	FragmentDefinitionEnum ruleSelection;
+
+	static FragmentDefinition ConstructFTDS(Token name, Token tc, uint dirs, uint ss) {
+		FragmentDefinition ret;
+		ret.ruleSelection = FragmentDefinitionEnum.FTDS;
+		ret.name = name;
+		ret.tc = tc;
+		ret.dirsIdx = dirs;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	this(FragmentDefinitionEnum ruleSelection, Token name, Token tc, SelectionSet ss) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.tc = tc;
-		this.ss = ss;
+	static FragmentDefinition ConstructFTS(Token name, Token tc, uint ss) {
+		FragmentDefinition ret;
+		ret.ruleSelection = FragmentDefinitionEnum.FTS;
+		ret.name = name;
+		ret.tc = tc;
+		ret.ssIdx = ss;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DirectivesEnum {
+enum DirectivesEnum : ubyte {
 	Dir,
 	Dirs,
 }
 
-class Directives : Node {
+struct Directives {
 @safe :
 
+	uint dirIdx;
+	uint followIdx;
+
 	DirectivesEnum ruleSelection;
-	Directive dir;
-	Directives follow;
 
-	this(DirectivesEnum ruleSelection, Directive dir) {
-		this.ruleSelection = ruleSelection;
-		this.dir = dir;
+	static Directives ConstructDir(uint dir) {
+		Directives ret;
+		ret.ruleSelection = DirectivesEnum.Dir;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(DirectivesEnum ruleSelection, Directive dir, Directives follow) {
-		this.ruleSelection = ruleSelection;
-		this.dir = dir;
-		this.follow = follow;
+	static Directives ConstructDirs(uint dir, uint follow) {
+		Directives ret;
+		ret.ruleSelection = DirectivesEnum.Dirs;
+		ret.dirIdx = dir;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DirectiveEnum {
+enum DirectiveEnum : ubyte {
 	NArg,
 	N,
 }
 
-class Directive : Node {
+struct Directive {
 @safe :
 
-	DirectiveEnum ruleSelection;
-	Arguments arg;
+	uint argIdx;
 	Token name;
 
-	this(DirectiveEnum ruleSelection, Token name, Arguments arg) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.arg = arg;
+	DirectiveEnum ruleSelection;
+
+	static Directive ConstructNArg(Token name, uint arg) {
+		Directive ret;
+		ret.ruleSelection = DirectiveEnum.NArg;
+		ret.name = name;
+		ret.argIdx = arg;
+		return ret;
 	}
 
-	this(DirectiveEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static Directive ConstructN(Token name) {
+		Directive ret;
+		ret.ruleSelection = DirectiveEnum.N;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum VariableDefinitionsEnum {
+enum VariableDefinitionsEnum : ubyte {
 	Empty,
 	Vars,
 }
 
-class VariableDefinitions : Node {
+struct VariableDefinitions {
 @safe :
 
+	uint varsIdx;
+
 	VariableDefinitionsEnum ruleSelection;
-	VariableDefinitionList vars;
 
-	this(VariableDefinitionsEnum ruleSelection) {
-		this.ruleSelection = ruleSelection;
+	static VariableDefinitions ConstructEmpty() {
+		VariableDefinitions ret;
+		ret.ruleSelection = VariableDefinitionsEnum.Empty;
+
+		return ret;
 	}
 
-	this(VariableDefinitionsEnum ruleSelection, VariableDefinitionList vars) {
-		this.ruleSelection = ruleSelection;
-		this.vars = vars;
+	static VariableDefinitions ConstructVars(uint vars) {
+		VariableDefinitions ret;
+		ret.ruleSelection = VariableDefinitionsEnum.Vars;
+		ret.varsIdx = vars;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum VariableDefinitionListEnum {
+enum VariableDefinitionListEnum : ubyte {
 	V,
 	VCF,
 	VF,
 }
 
-class VariableDefinitionList : Node {
+struct VariableDefinitionList {
 @safe :
 
+	uint followIdx;
+	uint varIdx;
+
 	VariableDefinitionListEnum ruleSelection;
-	VariableDefinitionList follow;
-	VariableDefinition var;
 
-	this(VariableDefinitionListEnum ruleSelection, VariableDefinition var) {
-		this.ruleSelection = ruleSelection;
-		this.var = var;
+	static VariableDefinitionList ConstructV(uint var) {
+		VariableDefinitionList ret;
+		ret.ruleSelection = VariableDefinitionListEnum.V;
+		ret.varIdx = var;
+		return ret;
 	}
 
-	this(VariableDefinitionListEnum ruleSelection, VariableDefinition var, VariableDefinitionList follow) {
-		this.ruleSelection = ruleSelection;
-		this.var = var;
-		this.follow = follow;
+	static VariableDefinitionList ConstructVCF(uint var, uint follow) {
+		VariableDefinitionList ret;
+		ret.ruleSelection = VariableDefinitionListEnum.VCF;
+		ret.varIdx = var;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static VariableDefinitionList ConstructVF(uint var, uint follow) {
+		VariableDefinitionList ret;
+		ret.ruleSelection = VariableDefinitionListEnum.VF;
+		ret.varIdx = var;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum VariableDefinitionEnum {
+enum VariableDefinitionEnum : ubyte {
 	VarD,
 	Var,
 }
 
-class VariableDefinition : Node {
+struct VariableDefinition {
 @safe :
 
+	uint typeIdx;
+	uint dvalueIdx;
+	uint varIdx;
+
 	VariableDefinitionEnum ruleSelection;
-	Type type;
-	DefaultValue dvalue;
-	Variable var;
 
-	this(VariableDefinitionEnum ruleSelection, Variable var, Type type, DefaultValue dvalue) {
-		this.ruleSelection = ruleSelection;
-		this.var = var;
-		this.type = type;
-		this.dvalue = dvalue;
+	static VariableDefinition ConstructVarD(uint var, uint type, uint dvalue) {
+		VariableDefinition ret;
+		ret.ruleSelection = VariableDefinitionEnum.VarD;
+		ret.varIdx = var;
+		ret.typeIdx = type;
+		ret.dvalueIdx = dvalue;
+		return ret;
 	}
 
-	this(VariableDefinitionEnum ruleSelection, Variable var, Type type) {
-		this.ruleSelection = ruleSelection;
-		this.var = var;
-		this.type = type;
+	static VariableDefinition ConstructVar(uint var, uint type) {
+		VariableDefinition ret;
+		ret.ruleSelection = VariableDefinitionEnum.Var;
+		ret.varIdx = var;
+		ret.typeIdx = type;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum VariableEnum {
+enum VariableEnum : ubyte {
 	Var,
 }
 
-class Variable : Node {
+struct Variable {
 @safe :
 
-	VariableEnum ruleSelection;
 	Token name;
 
-	this(VariableEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	VariableEnum ruleSelection;
+
+	static Variable ConstructVar(Token name) {
+		Variable ret;
+		ret.ruleSelection = VariableEnum.Var;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DefaultValueEnum {
+enum DefaultValueEnum : ubyte {
 	DV,
 }
 
-class DefaultValue : Node {
+struct DefaultValue {
 @safe :
 
+	uint valueIdx;
+
 	DefaultValueEnum ruleSelection;
-	Value value;
 
-	this(DefaultValueEnum ruleSelection, Value value) {
-		this.ruleSelection = ruleSelection;
-		this.value = value;
+	static DefaultValue ConstructDV(uint value) {
+		DefaultValue ret;
+		ret.ruleSelection = DefaultValueEnum.DV;
+		ret.valueIdx = value;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ValueOrVariableEnum {
+enum ValueOrVariableEnum : ubyte {
 	Val,
 	Var,
 }
 
-class ValueOrVariable : Node {
+struct ValueOrVariable {
 @safe :
 
+	uint valIdx;
+	uint varIdx;
+
 	ValueOrVariableEnum ruleSelection;
-	Value val;
-	Variable var;
 
-	this(ValueOrVariableEnum ruleSelection, Value val) {
-		this.ruleSelection = ruleSelection;
-		this.val = val;
+	static ValueOrVariable ConstructVal(uint val) {
+		ValueOrVariable ret;
+		ret.ruleSelection = ValueOrVariableEnum.Val;
+		ret.valIdx = val;
+		return ret;
 	}
 
-	this(ValueOrVariableEnum ruleSelection, Variable var) {
-		this.ruleSelection = ruleSelection;
-		this.var = var;
+	static ValueOrVariable ConstructVar(uint var) {
+		ValueOrVariable ret;
+		ret.ruleSelection = ValueOrVariableEnum.Var;
+		ret.varIdx = var;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ValueEnum {
+enum ValueEnum : ubyte {
 	STR,
 	INT,
 	FLOAT,
@@ -1082,273 +902,267 @@ enum ValueEnum {
 	N,
 }
 
-class Value : Node {
+struct Value {
 @safe :
 
-	ValueEnum ruleSelection;
 	Token tok;
-	Array arr;
-	ObjectType obj;
+	uint arrIdx;
+	uint objIdx;
 
-	this(ValueEnum ruleSelection, Token tok) {
-		this.ruleSelection = ruleSelection;
-		this.tok = tok;
+	ValueEnum ruleSelection;
+
+	static Value ConstructSTR(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.STR;
+		ret.tok = tok;
+		return ret;
 	}
 
-	this(ValueEnum ruleSelection, Array arr) {
-		this.ruleSelection = ruleSelection;
-		this.arr = arr;
+	static Value ConstructINT(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.INT;
+		ret.tok = tok;
+		return ret;
 	}
 
-	this(ValueEnum ruleSelection, ObjectType obj) {
-		this.ruleSelection = ruleSelection;
-		this.obj = obj;
+	static Value ConstructFLOAT(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.FLOAT;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static Value ConstructT(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.T;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
+	static Value ConstructF(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.F;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
+	static Value ConstructARR(uint arr) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.ARR;
+		ret.arrIdx = arr;
+		return ret;
 	}
 
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
+	static Value ConstructO(uint obj) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.O;
+		ret.objIdx = obj;
+		return ret;
 	}
+
+	static Value ConstructE(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.E;
+		ret.tok = tok;
+		return ret;
+	}
+
+	static Value ConstructN(Token tok) {
+		Value ret;
+		ret.ruleSelection = ValueEnum.N;
+		ret.tok = tok;
+		return ret;
+	}
+
 }
 
-enum TypeEnum {
+enum TypeEnum : ubyte {
 	TN,
 	LN,
 	T,
 	L,
 }
 
-class Type : Node {
+struct Type {
 @safe :
 
-	TypeEnum ruleSelection;
-	ListType list;
+	uint listIdx;
 	Token tname;
 
-	this(TypeEnum ruleSelection, Token tname) {
-		this.ruleSelection = ruleSelection;
-		this.tname = tname;
+	TypeEnum ruleSelection;
+
+	static Type ConstructTN(Token tname) {
+		Type ret;
+		ret.ruleSelection = TypeEnum.TN;
+		ret.tname = tname;
+		return ret;
 	}
 
-	this(TypeEnum ruleSelection, ListType list) {
-		this.ruleSelection = ruleSelection;
-		this.list = list;
+	static Type ConstructLN(uint list) {
+		Type ret;
+		ret.ruleSelection = TypeEnum.LN;
+		ret.listIdx = list;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static Type ConstructT(Token tname) {
+		Type ret;
+		ret.ruleSelection = TypeEnum.T;
+		ret.tname = tname;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
+	static Type ConstructL(uint list) {
+		Type ret;
+		ret.ruleSelection = TypeEnum.L;
+		ret.listIdx = list;
+		return ret;
 	}
 
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ListTypeEnum {
+enum ListTypeEnum : ubyte {
 	T,
 }
 
-class ListType : Node {
+struct ListType {
 @safe :
 
+	uint typeIdx;
+
 	ListTypeEnum ruleSelection;
-	Type type;
 
-	this(ListTypeEnum ruleSelection, Type type) {
-		this.ruleSelection = ruleSelection;
-		this.type = type;
+	static ListType ConstructT(uint type) {
+		ListType ret;
+		ret.ruleSelection = ListTypeEnum.T;
+		ret.typeIdx = type;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ValuesEnum {
+enum ValuesEnum : ubyte {
 	Val,
 	Vals,
 }
 
-class Values : Node {
+struct Values {
 @safe :
 
+	uint valIdx;
+	uint followIdx;
+
 	ValuesEnum ruleSelection;
-	Value val;
-	Values follow;
 
-	this(ValuesEnum ruleSelection, Value val) {
-		this.ruleSelection = ruleSelection;
-		this.val = val;
+	static Values ConstructVal(uint val) {
+		Values ret;
+		ret.ruleSelection = ValuesEnum.Val;
+		ret.valIdx = val;
+		return ret;
 	}
 
-	this(ValuesEnum ruleSelection, Value val, Values follow) {
-		this.ruleSelection = ruleSelection;
-		this.val = val;
-		this.follow = follow;
+	static Values ConstructVals(uint val, uint follow) {
+		Values ret;
+		ret.ruleSelection = ValuesEnum.Vals;
+		ret.valIdx = val;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ArrayEnum {
+enum ArrayEnum : ubyte {
 	Empty,
 	Value,
 }
 
-class Array : Node {
+struct Array {
 @safe :
 
+	uint valsIdx;
+
 	ArrayEnum ruleSelection;
-	Values vals;
 
-	this(ArrayEnum ruleSelection) {
-		this.ruleSelection = ruleSelection;
+	static Array ConstructEmpty() {
+		Array ret;
+		ret.ruleSelection = ArrayEnum.Empty;
+
+		return ret;
 	}
 
-	this(ArrayEnum ruleSelection, Values vals) {
-		this.ruleSelection = ruleSelection;
-		this.vals = vals;
+	static Array ConstructValue(uint vals) {
+		Array ret;
+		ret.ruleSelection = ArrayEnum.Value;
+		ret.valsIdx = vals;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ObjectValuesEnum {
+enum ObjectValuesEnum : ubyte {
 	V,
 	Vsc,
 	Vs,
 }
 
-class ObjectValues : Node {
+struct ObjectValues {
 @safe :
 
-	ObjectValuesEnum ruleSelection;
-	ValueOrVariable val;
-	ObjectValues follow;
+	uint valIdx;
+	uint followIdx;
 	Token name;
 
-	this(ObjectValuesEnum ruleSelection, Token name, ValueOrVariable val) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.val = val;
+	ObjectValuesEnum ruleSelection;
+
+	static ObjectValues ConstructV(Token name, uint val) {
+		ObjectValues ret;
+		ret.ruleSelection = ObjectValuesEnum.V;
+		ret.name = name;
+		ret.valIdx = val;
+		return ret;
 	}
 
-	this(ObjectValuesEnum ruleSelection, Token name, ValueOrVariable val, ObjectValues follow) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.val = val;
-		this.follow = follow;
+	static ObjectValues ConstructVsc(Token name, uint val, uint follow) {
+		ObjectValues ret;
+		ret.ruleSelection = ObjectValuesEnum.Vsc;
+		ret.name = name;
+		ret.valIdx = val;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static ObjectValues ConstructVs(Token name, uint val, uint follow) {
+		ObjectValues ret;
+		ret.ruleSelection = ObjectValuesEnum.Vs;
+		ret.name = name;
+		ret.valIdx = val;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ObjectTypeEnum {
+enum ObjectTypeEnum : ubyte {
 	Var,
 }
 
-class ObjectType : Node {
+struct ObjectType {
 @safe :
 
+	uint valsIdx;
+
 	ObjectTypeEnum ruleSelection;
-	ObjectValues vals;
 
-	this(ObjectTypeEnum ruleSelection, ObjectValues vals) {
-		this.ruleSelection = ruleSelection;
-		this.vals = vals;
+	static ObjectType ConstructVar(uint vals) {
+		ObjectType ret;
+		ret.ruleSelection = ObjectTypeEnum.Var;
+		ret.valsIdx = vals;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum TypeSystemDefinitionEnum {
+enum TypeSystemDefinitionEnum : ubyte {
 	S,
 	T,
 	TE,
@@ -1359,78 +1173,80 @@ enum TypeSystemDefinitionEnum {
 	DD,
 }
 
-class TypeSystemDefinition : Node {
+struct TypeSystemDefinition {
 @safe :
 
+	uint desIdx;
+	uint ddIdx;
+	uint tedIdx;
+	uint schIdx;
+	uint tdIdx;
+
 	TypeSystemDefinitionEnum ruleSelection;
-	Description des;
-	DirectiveDefinition dd;
-	TypeExtensionDefinition ted;
-	SchemaDefinition sch;
-	TypeDefinition td;
 
-	this(TypeSystemDefinitionEnum ruleSelection, SchemaDefinition sch) {
-		this.ruleSelection = ruleSelection;
-		this.sch = sch;
+	static TypeSystemDefinition ConstructS(uint sch) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.S;
+		ret.schIdx = sch;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, TypeDefinition td) {
-		this.ruleSelection = ruleSelection;
-		this.td = td;
+	static TypeSystemDefinition ConstructT(uint td) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.T;
+		ret.tdIdx = td;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, TypeExtensionDefinition ted) {
-		this.ruleSelection = ruleSelection;
-		this.ted = ted;
+	static TypeSystemDefinition ConstructTE(uint ted) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.TE;
+		ret.tedIdx = ted;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, DirectiveDefinition dd) {
-		this.ruleSelection = ruleSelection;
-		this.dd = dd;
+	static TypeSystemDefinition ConstructD(uint dd) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.D;
+		ret.ddIdx = dd;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, Description des, SchemaDefinition sch) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.sch = sch;
+	static TypeSystemDefinition ConstructDS(uint des, uint sch) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.DS;
+		ret.desIdx = des;
+		ret.schIdx = sch;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, Description des, TypeDefinition td) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.td = td;
+	static TypeSystemDefinition ConstructDT(uint des, uint td) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.DT;
+		ret.desIdx = des;
+		ret.tdIdx = td;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, Description des, TypeExtensionDefinition ted) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.ted = ted;
+	static TypeSystemDefinition ConstructDTE(uint des, uint ted) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.DTE;
+		ret.desIdx = des;
+		ret.tedIdx = ted;
+		return ret;
 	}
 
-	this(TypeSystemDefinitionEnum ruleSelection, Description des, DirectiveDefinition dd) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.dd = dd;
+	static TypeSystemDefinition ConstructDD(uint des, uint dd) {
+		TypeSystemDefinition ret;
+		ret.ruleSelection = TypeSystemDefinitionEnum.DD;
+		ret.desIdx = des;
+		ret.ddIdx = dd;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum TypeDefinitionEnum {
+enum TypeDefinitionEnum : ubyte {
 	S,
 	O,
 	I,
@@ -1439,322 +1255,278 @@ enum TypeDefinitionEnum {
 	IO,
 }
 
-class TypeDefinition : Node {
+struct TypeDefinition {
 @safe :
 
+	uint otdIdx;
+	uint stdIdx;
+	uint utdIdx;
+	uint itdIdx;
+	uint etdIdx;
+	uint iodIdx;
+
 	TypeDefinitionEnum ruleSelection;
-	ObjectTypeDefinition otd;
-	ScalarTypeDefinition std;
-	UnionTypeDefinition utd;
-	InterfaceTypeDefinition itd;
-	EnumTypeDefinition etd;
-	InputObjectTypeDefinition iod;
 
-	this(TypeDefinitionEnum ruleSelection, ScalarTypeDefinition std) {
-		this.ruleSelection = ruleSelection;
-		this.std = std;
+	static TypeDefinition ConstructS(uint std) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.S;
+		ret.stdIdx = std;
+		return ret;
 	}
 
-	this(TypeDefinitionEnum ruleSelection, ObjectTypeDefinition otd) {
-		this.ruleSelection = ruleSelection;
-		this.otd = otd;
+	static TypeDefinition ConstructO(uint otd) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.O;
+		ret.otdIdx = otd;
+		return ret;
 	}
 
-	this(TypeDefinitionEnum ruleSelection, InterfaceTypeDefinition itd) {
-		this.ruleSelection = ruleSelection;
-		this.itd = itd;
+	static TypeDefinition ConstructI(uint itd) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.I;
+		ret.itdIdx = itd;
+		return ret;
 	}
 
-	this(TypeDefinitionEnum ruleSelection, UnionTypeDefinition utd) {
-		this.ruleSelection = ruleSelection;
-		this.utd = utd;
+	static TypeDefinition ConstructU(uint utd) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.U;
+		ret.utdIdx = utd;
+		return ret;
 	}
 
-	this(TypeDefinitionEnum ruleSelection, EnumTypeDefinition etd) {
-		this.ruleSelection = ruleSelection;
-		this.etd = etd;
+	static TypeDefinition ConstructE(uint etd) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.E;
+		ret.etdIdx = etd;
+		return ret;
 	}
 
-	this(TypeDefinitionEnum ruleSelection, InputObjectTypeDefinition iod) {
-		this.ruleSelection = ruleSelection;
-		this.iod = iod;
+	static TypeDefinition ConstructIO(uint iod) {
+		TypeDefinition ret;
+		ret.ruleSelection = TypeDefinitionEnum.IO;
+		ret.iodIdx = iod;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum SchemaDefinitionEnum {
+enum SchemaDefinitionEnum : ubyte {
 	DO,
 	O,
 }
 
-class SchemaDefinition : Node {
+struct SchemaDefinition {
 @safe :
 
+	uint dirIdx;
+	uint otdsIdx;
+
 	SchemaDefinitionEnum ruleSelection;
-	Directives dir;
-	OperationTypeDefinitions otds;
 
-	this(SchemaDefinitionEnum ruleSelection, Directives dir, OperationTypeDefinitions otds) {
-		this.ruleSelection = ruleSelection;
-		this.dir = dir;
-		this.otds = otds;
+	static SchemaDefinition ConstructDO(uint dir, uint otds) {
+		SchemaDefinition ret;
+		ret.ruleSelection = SchemaDefinitionEnum.DO;
+		ret.dirIdx = dir;
+		ret.otdsIdx = otds;
+		return ret;
 	}
 
-	this(SchemaDefinitionEnum ruleSelection, OperationTypeDefinitions otds) {
-		this.ruleSelection = ruleSelection;
-		this.otds = otds;
+	static SchemaDefinition ConstructO(uint otds) {
+		SchemaDefinition ret;
+		ret.ruleSelection = SchemaDefinitionEnum.O;
+		ret.otdsIdx = otds;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum OperationTypeDefinitionsEnum {
+enum OperationTypeDefinitionsEnum : ubyte {
 	O,
 	OCS,
 	OS,
 }
 
-class OperationTypeDefinitions : Node {
+struct OperationTypeDefinitions {
 @safe :
 
+	uint otdIdx;
+	uint followIdx;
+
 	OperationTypeDefinitionsEnum ruleSelection;
-	OperationTypeDefinition otd;
-	OperationTypeDefinitions follow;
 
-	this(OperationTypeDefinitionsEnum ruleSelection, OperationTypeDefinition otd) {
-		this.ruleSelection = ruleSelection;
-		this.otd = otd;
+	static OperationTypeDefinitions ConstructO(uint otd) {
+		OperationTypeDefinitions ret;
+		ret.ruleSelection = OperationTypeDefinitionsEnum.O;
+		ret.otdIdx = otd;
+		return ret;
 	}
 
-	this(OperationTypeDefinitionsEnum ruleSelection, OperationTypeDefinition otd, OperationTypeDefinitions follow) {
-		this.ruleSelection = ruleSelection;
-		this.otd = otd;
-		this.follow = follow;
+	static OperationTypeDefinitions ConstructOCS(uint otd, uint follow) {
+		OperationTypeDefinitions ret;
+		ret.ruleSelection = OperationTypeDefinitionsEnum.OCS;
+		ret.otdIdx = otd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static OperationTypeDefinitions ConstructOS(uint otd, uint follow) {
+		OperationTypeDefinitions ret;
+		ret.ruleSelection = OperationTypeDefinitionsEnum.OS;
+		ret.otdIdx = otd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum OperationTypeDefinitionEnum {
+enum OperationTypeDefinitionEnum : ubyte {
 	O,
 }
 
-class OperationTypeDefinition : Node {
+struct OperationTypeDefinition {
 @safe :
 
-	OperationTypeDefinitionEnum ruleSelection;
-	OperationType ot;
+	uint otIdx;
 	Token nt;
 
-	this(OperationTypeDefinitionEnum ruleSelection, OperationType ot, Token nt) {
-		this.ruleSelection = ruleSelection;
-		this.ot = ot;
-		this.nt = nt;
+	OperationTypeDefinitionEnum ruleSelection;
+
+	static OperationTypeDefinition ConstructO(uint ot, Token nt) {
+		OperationTypeDefinition ret;
+		ret.ruleSelection = OperationTypeDefinitionEnum.O;
+		ret.otIdx = ot;
+		ret.nt = nt;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ScalarTypeDefinitionEnum {
+enum ScalarTypeDefinitionEnum : ubyte {
 	D,
 	S,
 }
 
-class ScalarTypeDefinition : Node {
+struct ScalarTypeDefinition {
 @safe :
 
-	ScalarTypeDefinitionEnum ruleSelection;
-	Directives dir;
+	uint dirIdx;
 	Token name;
 
-	this(ScalarTypeDefinitionEnum ruleSelection, Token name, Directives dir) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dir = dir;
+	ScalarTypeDefinitionEnum ruleSelection;
+
+	static ScalarTypeDefinition ConstructD(Token name, uint dir) {
+		ScalarTypeDefinition ret;
+		ret.ruleSelection = ScalarTypeDefinitionEnum.D;
+		ret.name = name;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(ScalarTypeDefinitionEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static ScalarTypeDefinition ConstructS(Token name) {
+		ScalarTypeDefinition ret;
+		ret.ruleSelection = ScalarTypeDefinitionEnum.S;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ObjectTypeDefinitionEnum {
+enum ObjectTypeDefinitionEnum : ubyte {
 	ID,
 	I,
 	D,
 	F,
 }
 
-class ObjectTypeDefinition : Node {
+struct ObjectTypeDefinition {
 @safe :
 
-	ObjectTypeDefinitionEnum ruleSelection;
-	Directives dir;
-	ImplementsInterfaces ii;
-	FieldDefinitions fds;
+	uint dirIdx;
+	uint iiIdx;
+	uint fdsIdx;
 	Token name;
 
-	this(ObjectTypeDefinitionEnum ruleSelection, Token name, ImplementsInterfaces ii, Directives dir, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ii = ii;
-		this.dir = dir;
-		this.fds = fds;
+	ObjectTypeDefinitionEnum ruleSelection;
+
+	static ObjectTypeDefinition ConstructID(Token name, uint ii, uint dir, uint fds) {
+		ObjectTypeDefinition ret;
+		ret.ruleSelection = ObjectTypeDefinitionEnum.ID;
+		ret.name = name;
+		ret.iiIdx = ii;
+		ret.dirIdx = dir;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	this(ObjectTypeDefinitionEnum ruleSelection, Token name, ImplementsInterfaces ii, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ii = ii;
-		this.fds = fds;
+	static ObjectTypeDefinition ConstructI(Token name, uint ii, uint fds) {
+		ObjectTypeDefinition ret;
+		ret.ruleSelection = ObjectTypeDefinitionEnum.I;
+		ret.name = name;
+		ret.iiIdx = ii;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	this(ObjectTypeDefinitionEnum ruleSelection, Token name, Directives dir, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dir = dir;
-		this.fds = fds;
+	static ObjectTypeDefinition ConstructD(Token name, uint dir, uint fds) {
+		ObjectTypeDefinition ret;
+		ret.ruleSelection = ObjectTypeDefinitionEnum.D;
+		ret.name = name;
+		ret.dirIdx = dir;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	this(ObjectTypeDefinitionEnum ruleSelection, Token name, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.fds = fds;
+	static ObjectTypeDefinition ConstructF(Token name, uint fds) {
+		ObjectTypeDefinition ret;
+		ret.ruleSelection = ObjectTypeDefinitionEnum.F;
+		ret.name = name;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FieldDefinitionsEnum {
+enum FieldDefinitionsEnum : ubyte {
 	F,
 	FC,
 	FNC,
 }
 
-class FieldDefinitions : Node {
+struct FieldDefinitions {
 @safe :
 
+	uint followIdx;
+	uint fdIdx;
+
 	FieldDefinitionsEnum ruleSelection;
-	FieldDefinitions follow;
-	FieldDefinition fd;
 
-	this(FieldDefinitionsEnum ruleSelection, FieldDefinition fd) {
-		this.ruleSelection = ruleSelection;
-		this.fd = fd;
+	static FieldDefinitions ConstructF(uint fd) {
+		FieldDefinitions ret;
+		ret.ruleSelection = FieldDefinitionsEnum.F;
+		ret.fdIdx = fd;
+		return ret;
 	}
 
-	this(FieldDefinitionsEnum ruleSelection, FieldDefinition fd, FieldDefinitions follow) {
-		this.ruleSelection = ruleSelection;
-		this.fd = fd;
-		this.follow = follow;
+	static FieldDefinitions ConstructFC(uint fd, uint follow) {
+		FieldDefinitions ret;
+		ret.ruleSelection = FieldDefinitionsEnum.FC;
+		ret.fdIdx = fd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static FieldDefinitions ConstructFNC(uint fd, uint follow) {
+		FieldDefinitions ret;
+		ret.ruleSelection = FieldDefinitionsEnum.FNC;
+		ret.fdIdx = fd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum FieldDefinitionEnum {
+enum FieldDefinitionEnum : ubyte {
 	AD,
 	A,
 	D,
@@ -1765,784 +1537,655 @@ enum FieldDefinitionEnum {
 	DT,
 }
 
-class FieldDefinition : Node {
+struct FieldDefinition {
 @safe :
 
-	FieldDefinitionEnum ruleSelection;
-	Description des;
-	ArgumentsDefinition arg;
-	Type typ;
-	Directives dir;
+	uint desIdx;
+	uint argIdx;
+	uint typIdx;
+	uint dirIdx;
 	Token name;
 
-	this(FieldDefinitionEnum ruleSelection, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.arg = arg;
-		this.typ = typ;
-		this.dir = dir;
+	FieldDefinitionEnum ruleSelection;
+
+	static FieldDefinition ConstructAD(Token name, uint arg, uint typ, uint dir) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.AD;
+		ret.name = name;
+		ret.argIdx = arg;
+		ret.typIdx = typ;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, ArgumentsDefinition arg, Type typ) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.arg = arg;
-		this.typ = typ;
+	static FieldDefinition ConstructA(Token name, uint arg, uint typ) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.A;
+		ret.name = name;
+		ret.argIdx = arg;
+		ret.typIdx = typ;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, Type typ, Directives dir) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.typ = typ;
-		this.dir = dir;
+	static FieldDefinition ConstructD(Token name, uint typ, uint dir) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.D;
+		ret.name = name;
+		ret.typIdx = typ;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, Type typ) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.typ = typ;
+	static FieldDefinition ConstructT(Token name, uint typ) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.T;
+		ret.name = name;
+		ret.typIdx = typ;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.name = name;
-		this.arg = arg;
-		this.typ = typ;
-		this.dir = dir;
+	static FieldDefinition ConstructDAD(uint des, Token name, uint arg, uint typ, uint dir) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.DAD;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.argIdx = arg;
+		ret.typIdx = typ;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.name = name;
-		this.arg = arg;
-		this.typ = typ;
+	static FieldDefinition ConstructDA(uint des, Token name, uint arg, uint typ) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.DA;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.argIdx = arg;
+		ret.typIdx = typ;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ, Directives dir) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.name = name;
-		this.typ = typ;
-		this.dir = dir;
+	static FieldDefinition ConstructDD(uint des, Token name, uint typ, uint dir) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.DD;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.typIdx = typ;
+		ret.dirIdx = dir;
+		return ret;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
-		this.name = name;
-		this.typ = typ;
+	static FieldDefinition ConstructDT(uint des, Token name, uint typ) {
+		FieldDefinition ret;
+		ret.ruleSelection = FieldDefinitionEnum.DT;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.typIdx = typ;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ImplementsInterfacesEnum {
+enum ImplementsInterfacesEnum : ubyte {
 	N,
 }
 
-class ImplementsInterfaces : Node {
+struct ImplementsInterfaces {
 @safe :
 
+	uint ntsIdx;
+
 	ImplementsInterfacesEnum ruleSelection;
-	NamedTypes nts;
 
-	this(ImplementsInterfacesEnum ruleSelection, NamedTypes nts) {
-		this.ruleSelection = ruleSelection;
-		this.nts = nts;
+	static ImplementsInterfaces ConstructN(uint nts) {
+		ImplementsInterfaces ret;
+		ret.ruleSelection = ImplementsInterfacesEnum.N;
+		ret.ntsIdx = nts;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum NamedTypesEnum {
+enum NamedTypesEnum : ubyte {
 	N,
 	NCS,
 	NS,
 }
 
-class NamedTypes : Node {
+struct NamedTypes {
 @safe :
 
-	NamedTypesEnum ruleSelection;
-	NamedTypes follow;
+	uint followIdx;
 	Token name;
 
-	this(NamedTypesEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	NamedTypesEnum ruleSelection;
+
+	static NamedTypes ConstructN(Token name) {
+		NamedTypes ret;
+		ret.ruleSelection = NamedTypesEnum.N;
+		ret.name = name;
+		return ret;
 	}
 
-	this(NamedTypesEnum ruleSelection, Token name, NamedTypes follow) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.follow = follow;
+	static NamedTypes ConstructNCS(Token name, uint follow) {
+		NamedTypes ret;
+		ret.ruleSelection = NamedTypesEnum.NCS;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static NamedTypes ConstructNS(Token name, uint follow) {
+		NamedTypes ret;
+		ret.ruleSelection = NamedTypesEnum.NS;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum ArgumentsDefinitionEnum {
+enum ArgumentsDefinitionEnum : ubyte {
 	A,
 	DA,
 }
 
-class ArgumentsDefinition : Node {
+struct ArgumentsDefinition {
 @safe :
 
+	uint desIdx;
+
 	ArgumentsDefinitionEnum ruleSelection;
-	Description des;
 
-	this(ArgumentsDefinitionEnum ruleSelection) {
-		this.ruleSelection = ruleSelection;
+	static ArgumentsDefinition ConstructA() {
+		ArgumentsDefinition ret;
+		ret.ruleSelection = ArgumentsDefinitionEnum.A;
+
+		return ret;
 	}
 
-	this(ArgumentsDefinitionEnum ruleSelection, Description des) {
-		this.ruleSelection = ruleSelection;
-		this.des = des;
+	static ArgumentsDefinition ConstructDA(uint des) {
+		ArgumentsDefinition ret;
+		ret.ruleSelection = ArgumentsDefinitionEnum.DA;
+		ret.desIdx = des;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InputValueDefinitionsEnum {
+enum InputValueDefinitionsEnum : ubyte {
 	I,
 	ICF,
 	IF,
 }
 
-class InputValueDefinitions : Node {
+struct InputValueDefinitions {
 @safe :
 
+	uint followIdx;
+	uint ivIdx;
+
 	InputValueDefinitionsEnum ruleSelection;
-	InputValueDefinitions follow;
-	InputValueDefinition iv;
 
-	this(InputValueDefinitionsEnum ruleSelection, InputValueDefinition iv) {
-		this.ruleSelection = ruleSelection;
-		this.iv = iv;
+	static InputValueDefinitions ConstructI(uint iv) {
+		InputValueDefinitions ret;
+		ret.ruleSelection = InputValueDefinitionsEnum.I;
+		ret.ivIdx = iv;
+		return ret;
 	}
 
-	this(InputValueDefinitionsEnum ruleSelection, InputValueDefinition iv, InputValueDefinitions follow) {
-		this.ruleSelection = ruleSelection;
-		this.iv = iv;
-		this.follow = follow;
+	static InputValueDefinitions ConstructICF(uint iv, uint follow) {
+		InputValueDefinitions ret;
+		ret.ruleSelection = InputValueDefinitionsEnum.ICF;
+		ret.ivIdx = iv;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static InputValueDefinitions ConstructIF(uint iv, uint follow) {
+		InputValueDefinitions ret;
+		ret.ruleSelection = InputValueDefinitionsEnum.IF;
+		ret.ivIdx = iv;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InputValueDefinitionEnum {
+enum InputValueDefinitionEnum : ubyte {
 	TVD,
 	TD,
 	TV,
 	T,
 }
 
-class InputValueDefinition : Node {
+struct InputValueDefinition {
 @safe :
 
-	InputValueDefinitionEnum ruleSelection;
-	Type type;
-	DefaultValue df;
-	Directives dirs;
+	uint typeIdx;
+	uint dfIdx;
+	uint dirsIdx;
 	Token name;
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, DefaultValue df, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.type = type;
-		this.df = df;
-		this.dirs = dirs;
+	InputValueDefinitionEnum ruleSelection;
+
+	static InputValueDefinition ConstructTVD(Token name, uint type, uint df, uint dirs) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.TVD;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dfIdx = df;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.type = type;
-		this.dirs = dirs;
+	static InputValueDefinition ConstructTD(Token name, uint type, uint dirs) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.TD;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, DefaultValue df) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.type = type;
-		this.df = df;
+	static InputValueDefinition ConstructTV(Token name, uint type, uint df) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.TV;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dfIdx = df;
+		return ret;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.type = type;
+	static InputValueDefinition ConstructT(Token name, uint type) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.T;
+		ret.name = name;
+		ret.typeIdx = type;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InterfaceTypeDefinitionEnum {
+enum InterfaceTypeDefinitionEnum : ubyte {
 	NDF,
 	NF,
 }
 
-class InterfaceTypeDefinition : Node {
+struct InterfaceTypeDefinition {
 @safe :
 
-	InterfaceTypeDefinitionEnum ruleSelection;
-	FieldDefinitions fds;
-	Directives dirs;
+	uint fdsIdx;
+	uint dirsIdx;
 	Token name;
 
-	this(InterfaceTypeDefinitionEnum ruleSelection, Token name, Directives dirs, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
-		this.fds = fds;
+	InterfaceTypeDefinitionEnum ruleSelection;
+
+	static InterfaceTypeDefinition ConstructNDF(Token name, uint dirs, uint fds) {
+		InterfaceTypeDefinition ret;
+		ret.ruleSelection = InterfaceTypeDefinitionEnum.NDF;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	this(InterfaceTypeDefinitionEnum ruleSelection, Token name, FieldDefinitions fds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.fds = fds;
+	static InterfaceTypeDefinition ConstructNF(Token name, uint fds) {
+		InterfaceTypeDefinition ret;
+		ret.ruleSelection = InterfaceTypeDefinitionEnum.NF;
+		ret.name = name;
+		ret.fdsIdx = fds;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum UnionTypeDefinitionEnum {
+enum UnionTypeDefinitionEnum : ubyte {
 	NDU,
 	NU,
 }
 
-class UnionTypeDefinition : Node {
+struct UnionTypeDefinition {
 @safe :
 
-	UnionTypeDefinitionEnum ruleSelection;
-	UnionMembers um;
-	Directives dirs;
+	uint umIdx;
+	uint dirsIdx;
 	Token name;
 
-	this(UnionTypeDefinitionEnum ruleSelection, Token name, Directives dirs, UnionMembers um) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
-		this.um = um;
+	UnionTypeDefinitionEnum ruleSelection;
+
+	static UnionTypeDefinition ConstructNDU(Token name, uint dirs, uint um) {
+		UnionTypeDefinition ret;
+		ret.ruleSelection = UnionTypeDefinitionEnum.NDU;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		ret.umIdx = um;
+		return ret;
 	}
 
-	this(UnionTypeDefinitionEnum ruleSelection, Token name, UnionMembers um) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.um = um;
+	static UnionTypeDefinition ConstructNU(Token name, uint um) {
+		UnionTypeDefinition ret;
+		ret.ruleSelection = UnionTypeDefinitionEnum.NU;
+		ret.name = name;
+		ret.umIdx = um;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum UnionMembersEnum {
+enum UnionMembersEnum : ubyte {
 	S,
 	SPF,
 	SF,
 }
 
-class UnionMembers : Node {
+struct UnionMembers {
 @safe :
 
-	UnionMembersEnum ruleSelection;
-	UnionMembers follow;
+	uint followIdx;
 	Token name;
 
-	this(UnionMembersEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	UnionMembersEnum ruleSelection;
+
+	static UnionMembers ConstructS(Token name) {
+		UnionMembers ret;
+		ret.ruleSelection = UnionMembersEnum.S;
+		ret.name = name;
+		return ret;
 	}
 
-	this(UnionMembersEnum ruleSelection, Token name, UnionMembers follow) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.follow = follow;
+	static UnionMembers ConstructSPF(Token name, uint follow) {
+		UnionMembers ret;
+		ret.ruleSelection = UnionMembersEnum.SPF;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static UnionMembers ConstructSF(Token name, uint follow) {
+		UnionMembers ret;
+		ret.ruleSelection = UnionMembersEnum.SF;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum EnumTypeDefinitionEnum {
+enum EnumTypeDefinitionEnum : ubyte {
 	NDE,
 	NE,
 }
 
-class EnumTypeDefinition : Node {
+struct EnumTypeDefinition {
 @safe :
 
-	EnumTypeDefinitionEnum ruleSelection;
-	EnumValueDefinitions evds;
-	Directives dir;
+	uint evdsIdx;
+	uint dirIdx;
 	Token name;
 
-	this(EnumTypeDefinitionEnum ruleSelection, Token name, Directives dir, EnumValueDefinitions evds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dir = dir;
-		this.evds = evds;
+	EnumTypeDefinitionEnum ruleSelection;
+
+	static EnumTypeDefinition ConstructNDE(Token name, uint dir, uint evds) {
+		EnumTypeDefinition ret;
+		ret.ruleSelection = EnumTypeDefinitionEnum.NDE;
+		ret.name = name;
+		ret.dirIdx = dir;
+		ret.evdsIdx = evds;
+		return ret;
 	}
 
-	this(EnumTypeDefinitionEnum ruleSelection, Token name, EnumValueDefinitions evds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.evds = evds;
+	static EnumTypeDefinition ConstructNE(Token name, uint evds) {
+		EnumTypeDefinition ret;
+		ret.ruleSelection = EnumTypeDefinitionEnum.NE;
+		ret.name = name;
+		ret.evdsIdx = evds;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum EnumValueDefinitionsEnum {
+enum EnumValueDefinitionsEnum : ubyte {
 	D,
 	DCE,
 	DE,
 }
 
-class EnumValueDefinitions : Node {
+struct EnumValueDefinitions {
 @safe :
 
+	uint evdIdx;
+	uint followIdx;
+
 	EnumValueDefinitionsEnum ruleSelection;
-	EnumValueDefinition evd;
-	EnumValueDefinitions follow;
 
-	this(EnumValueDefinitionsEnum ruleSelection, EnumValueDefinition evd) {
-		this.ruleSelection = ruleSelection;
-		this.evd = evd;
+	static EnumValueDefinitions ConstructD(uint evd) {
+		EnumValueDefinitions ret;
+		ret.ruleSelection = EnumValueDefinitionsEnum.D;
+		ret.evdIdx = evd;
+		return ret;
 	}
 
-	this(EnumValueDefinitionsEnum ruleSelection, EnumValueDefinition evd, EnumValueDefinitions follow) {
-		this.ruleSelection = ruleSelection;
-		this.evd = evd;
-		this.follow = follow;
+	static EnumValueDefinitions ConstructDCE(uint evd, uint follow) {
+		EnumValueDefinitions ret;
+		ret.ruleSelection = EnumValueDefinitionsEnum.DCE;
+		ret.evdIdx = evd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static EnumValueDefinitions ConstructDE(uint evd, uint follow) {
+		EnumValueDefinitions ret;
+		ret.ruleSelection = EnumValueDefinitionsEnum.DE;
+		ret.evdIdx = evd;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum EnumValueDefinitionEnum {
+enum EnumValueDefinitionEnum : ubyte {
 	ED,
 	E,
 }
 
-class EnumValueDefinition : Node {
+struct EnumValueDefinition {
 @safe :
 
-	EnumValueDefinitionEnum ruleSelection;
-	Directives dirs;
+	uint dirsIdx;
 	Token name;
 
-	this(EnumValueDefinitionEnum ruleSelection, Token name, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
+	EnumValueDefinitionEnum ruleSelection;
+
+	static EnumValueDefinition ConstructED(Token name, uint dirs) {
+		EnumValueDefinition ret;
+		ret.ruleSelection = EnumValueDefinitionEnum.ED;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(EnumValueDefinitionEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static EnumValueDefinition ConstructE(Token name) {
+		EnumValueDefinition ret;
+		ret.ruleSelection = EnumValueDefinitionEnum.E;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InputTypeDefinitionEnum {
+enum InputTypeDefinitionEnum : ubyte {
 	NDE,
 	NE,
 }
 
-class InputTypeDefinition : Node {
+struct InputTypeDefinition {
 @safe :
 
-	InputTypeDefinitionEnum ruleSelection;
-	InputValueDefinitions ivds;
-	Directives dir;
+	uint ivdsIdx;
+	uint dirIdx;
 	Token name;
 
-	this(InputTypeDefinitionEnum ruleSelection, Token name, Directives dir, InputValueDefinitions ivds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dir = dir;
-		this.ivds = ivds;
+	InputTypeDefinitionEnum ruleSelection;
+
+	static InputTypeDefinition ConstructNDE(Token name, uint dir, uint ivds) {
+		InputTypeDefinition ret;
+		ret.ruleSelection = InputTypeDefinitionEnum.NDE;
+		ret.name = name;
+		ret.dirIdx = dir;
+		ret.ivdsIdx = ivds;
+		return ret;
 	}
 
-	this(InputTypeDefinitionEnum ruleSelection, Token name, InputValueDefinitions ivds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ivds = ivds;
+	static InputTypeDefinition ConstructNE(Token name, uint ivds) {
+		InputTypeDefinition ret;
+		ret.ruleSelection = InputTypeDefinitionEnum.NE;
+		ret.name = name;
+		ret.ivdsIdx = ivds;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum TypeExtensionDefinitionEnum {
+enum TypeExtensionDefinitionEnum : ubyte {
 	O,
 }
 
-class TypeExtensionDefinition : Node {
+struct TypeExtensionDefinition {
 @safe :
 
+	uint otdIdx;
+
 	TypeExtensionDefinitionEnum ruleSelection;
-	ObjectTypeDefinition otd;
 
-	this(TypeExtensionDefinitionEnum ruleSelection, ObjectTypeDefinition otd) {
-		this.ruleSelection = ruleSelection;
-		this.otd = otd;
+	static TypeExtensionDefinition ConstructO(uint otd) {
+		TypeExtensionDefinition ret;
+		ret.ruleSelection = TypeExtensionDefinitionEnum.O;
+		ret.otdIdx = otd;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DirectiveDefinitionEnum {
+enum DirectiveDefinitionEnum : ubyte {
 	AD,
 	D,
 }
 
-class DirectiveDefinition : Node {
+struct DirectiveDefinition {
 @safe :
 
-	DirectiveDefinitionEnum ruleSelection;
-	DirectiveLocations dl;
-	ArgumentsDefinition ad;
+	uint dlIdx;
+	uint adIdx;
 	Token name;
 
-	this(DirectiveDefinitionEnum ruleSelection, Token name, ArgumentsDefinition ad, DirectiveLocations dl) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ad = ad;
-		this.dl = dl;
+	DirectiveDefinitionEnum ruleSelection;
+
+	static DirectiveDefinition ConstructAD(Token name, uint ad, uint dl) {
+		DirectiveDefinition ret;
+		ret.ruleSelection = DirectiveDefinitionEnum.AD;
+		ret.name = name;
+		ret.adIdx = ad;
+		ret.dlIdx = dl;
+		return ret;
 	}
 
-	this(DirectiveDefinitionEnum ruleSelection, Token name, DirectiveLocations dl) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dl = dl;
+	static DirectiveDefinition ConstructD(Token name, uint dl) {
+		DirectiveDefinition ret;
+		ret.ruleSelection = DirectiveDefinitionEnum.D;
+		ret.name = name;
+		ret.dlIdx = dl;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DirectiveLocationsEnum {
+enum DirectiveLocationsEnum : ubyte {
 	N,
 	NPF,
 	NF,
 }
 
-class DirectiveLocations : Node {
+struct DirectiveLocations {
 @safe :
 
-	DirectiveLocationsEnum ruleSelection;
-	DirectiveLocations follow;
+	uint followIdx;
 	Token name;
 
-	this(DirectiveLocationsEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	DirectiveLocationsEnum ruleSelection;
+
+	static DirectiveLocations ConstructN(Token name) {
+		DirectiveLocations ret;
+		ret.ruleSelection = DirectiveLocationsEnum.N;
+		ret.name = name;
+		return ret;
 	}
 
-	this(DirectiveLocationsEnum ruleSelection, Token name, DirectiveLocations follow) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.follow = follow;
+	static DirectiveLocations ConstructNPF(Token name, uint follow) {
+		DirectiveLocations ret;
+		ret.ruleSelection = DirectiveLocationsEnum.NPF;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
+	static DirectiveLocations ConstructNF(Token name, uint follow) {
+		DirectiveLocations ret;
+		ret.ruleSelection = DirectiveLocationsEnum.NF;
+		ret.name = name;
+		ret.followIdx = follow;
+		return ret;
 	}
 
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum InputObjectTypeDefinitionEnum {
+enum InputObjectTypeDefinitionEnum : ubyte {
 	NDI,
 	NI,
 }
 
-class InputObjectTypeDefinition : Node {
+struct InputObjectTypeDefinition {
 @safe :
 
-	InputObjectTypeDefinitionEnum ruleSelection;
-	Directives dirs;
+	uint dirsIdx;
 	Token name;
 
-	this(InputObjectTypeDefinitionEnum ruleSelection, Token name, Directives dirs) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dirs = dirs;
+	InputObjectTypeDefinitionEnum ruleSelection;
+
+	static InputObjectTypeDefinition ConstructNDI(Token name, uint dirs) {
+		InputObjectTypeDefinition ret;
+		ret.ruleSelection = InputObjectTypeDefinitionEnum.NDI;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		return ret;
 	}
 
-	this(InputObjectTypeDefinitionEnum ruleSelection, Token name) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
+	static InputObjectTypeDefinition ConstructNI(Token name) {
+		InputObjectTypeDefinition ret;
+		ret.ruleSelection = InputObjectTypeDefinitionEnum.NI;
+		ret.name = name;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 
-enum DescriptionEnum {
+enum DescriptionEnum : ubyte {
 	S,
 }
 
-class Description : Node {
+struct Description {
 @safe :
 
-	DescriptionEnum ruleSelection;
 	Token tok;
 
-	this(DescriptionEnum ruleSelection, Token tok) {
-		this.ruleSelection = ruleSelection;
-		this.tok = tok;
+	DescriptionEnum ruleSelection;
+
+	static Description ConstructS(Token tok) {
+		Description ret;
+		ret.ruleSelection = DescriptionEnum.S;
+		ret.tok = tok;
+		return ret;
 	}
 
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
 }
 

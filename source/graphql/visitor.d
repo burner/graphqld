@@ -1,141 +1,142 @@
 module graphql.visitor;
 
 import graphql.ast;
+import graphql.parser;
 import graphql.tokenmodule;
 
-class Visitor : ConstVisitor {
+class Visitor {
 @safe :
 
-	alias accept = ConstVisitor.accept;
+	Parser* parser;
 
-	alias enter = ConstVisitor.enter;
+	this(Parser* parser) {
+		this.parser = parser;
+	}
 
-	alias exit = ConstVisitor.exit;
 
+	void enter(ref Document obj) {}
+	void exit(ref Document obj) {}
 
-	void enter(Document obj) {}
-	void exit(Document obj) {}
-
-	void accept(Document obj) {
+	void accept(ref Document obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DocumentEnum.Defi:
-				obj.defs.visit(this);
+				this.accept(this.parser.definitionss[obj.defsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Definitions obj) {}
-	void exit(Definitions obj) {}
+	void enter(ref Definitions obj) {}
+	void exit(ref Definitions obj) {}
 
-	void accept(Definitions obj) {
+	void accept(ref Definitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefinitionsEnum.Def:
-				obj.def.visit(this);
+				this.accept(this.parser.definitions[obj.defIdx]);
 				break;
 			case DefinitionsEnum.Defs:
-				obj.def.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.definitions[obj.defIdx]);
+				this.accept(this.parser.definitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Definition obj) {}
-	void exit(Definition obj) {}
+	void enter(ref Definition obj) {}
+	void exit(ref Definition obj) {}
 
-	void accept(Definition obj) {
+	void accept(ref Definition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefinitionEnum.O:
-				obj.op.visit(this);
+				this.accept(this.parser.operationDefinitions[obj.opIdx]);
 				break;
 			case DefinitionEnum.F:
-				obj.frag.visit(this);
+				this.accept(this.parser.fragmentDefinitions[obj.fragIdx]);
 				break;
 			case DefinitionEnum.T:
-				obj.type.visit(this);
+				this.accept(this.parser.typeSystemDefinitions[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(OperationDefinition obj) {}
-	void exit(OperationDefinition obj) {}
+	void enter(ref OperationDefinition obj) {}
+	void exit(ref OperationDefinition obj) {}
 
-	void accept(OperationDefinition obj) {
+	void accept(ref OperationDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationDefinitionEnum.SelSet:
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_VD:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_V:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.vd.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_D:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_VD:
-				obj.ot.visit(this);
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_V:
-				obj.ot.visit(this);
-				obj.vd.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_D:
-				obj.ot.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT:
-				obj.ot.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(SelectionSet obj) {}
-	void exit(SelectionSet obj) {}
+	void enter(ref SelectionSet obj) {}
+	void exit(ref SelectionSet obj) {}
 
-	void accept(SelectionSet obj) {
+	void accept(ref SelectionSet obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionSetEnum.SS:
-				obj.sel.visit(this);
+				this.accept(this.parser.selectionss[obj.selIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(OperationType obj) {}
-	void exit(OperationType obj) {}
+	void enter(ref OperationType obj) {}
+	void exit(ref OperationType obj) {}
 
-	void accept(OperationType obj) {
+	void accept(ref OperationType obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeEnum.Query:
@@ -151,55 +152,55 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(Selections obj) {}
-	void exit(Selections obj) {}
+	void enter(ref Selections obj) {}
+	void exit(ref Selections obj) {}
 
-	void accept(Selections obj) {
+	void accept(ref Selections obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionsEnum.Sel:
-				obj.sel.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
 				break;
 			case SelectionsEnum.Sels:
-				obj.sel.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
+				this.accept(this.parser.selectionss[obj.followIdx]);
 				break;
 			case SelectionsEnum.Selsc:
-				obj.sel.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
+				this.accept(this.parser.selectionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Selection obj) {}
-	void exit(Selection obj) {}
+	void enter(ref Selection obj) {}
+	void exit(ref Selection obj) {}
 
-	void accept(Selection obj) {
+	void accept(ref Selection obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionEnum.Field:
-				obj.field.visit(this);
+				this.accept(this.parser.fields[obj.fieldIdx]);
 				break;
 			case SelectionEnum.Spread:
-				obj.frag.visit(this);
+				this.accept(this.parser.fragmentSpreads[obj.fragIdx]);
 				break;
 			case SelectionEnum.IFrag:
-				obj.ifrag.visit(this);
+				this.accept(this.parser.inlineFragments[obj.ifragIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(FragmentSpread obj) {}
-	void exit(FragmentSpread obj) {}
+	void enter(ref FragmentSpread obj) {}
+	void exit(ref FragmentSpread obj) {}
 
-	void accept(FragmentSpread obj) {
+	void accept(ref FragmentSpread obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FragmentSpreadEnum.FD:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FragmentSpreadEnum.F:
 				obj.name.visit(this);
@@ -208,82 +209,82 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(InlineFragment obj) {}
-	void exit(InlineFragment obj) {}
+	void enter(ref InlineFragment obj) {}
+	void exit(ref InlineFragment obj) {}
 
-	void accept(InlineFragment obj) {
+	void accept(ref InlineFragment obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InlineFragmentEnum.TDS:
 				obj.tc.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.TS:
 				obj.tc.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.DS:
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.S:
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Field obj) {}
-	void exit(Field obj) {}
+	void enter(ref Field obj) {}
+	void exit(ref Field obj) {}
 
-	void accept(Field obj) {
+	void accept(ref Field obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldEnum.FADS:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FAS:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FAD:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FieldEnum.FDS:
-				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FS:
-				obj.name.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FD:
-				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FieldEnum.FA:
-				obj.name.visit(this);
-				obj.args.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
 				break;
 			case FieldEnum.F:
-				obj.name.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(FieldName obj) {}
-	void exit(FieldName obj) {}
+	void enter(ref FieldName obj) {}
+	void exit(ref FieldName obj) {}
 
-	void accept(FieldName obj) {
+	void accept(ref FieldName obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldNameEnum.A:
@@ -297,14 +298,14 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(Arguments obj) {}
-	void exit(Arguments obj) {}
+	void enter(ref Arguments obj) {}
+	void exit(ref Arguments obj) {}
 
-	void accept(Arguments obj) {
+	void accept(ref Arguments obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsEnum.List:
-				obj.arg.visit(this);
+				this.accept(this.parser.argumentLists[obj.argIdx]);
 				break;
 			case ArgumentsEnum.Empty:
 				break;
@@ -312,88 +313,88 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(ArgumentList obj) {}
-	void exit(ArgumentList obj) {}
+	void enter(ref ArgumentList obj) {}
+	void exit(ref ArgumentList obj) {}
 
-	void accept(ArgumentList obj) {
+	void accept(ref ArgumentList obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentListEnum.A:
-				obj.arg.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
 				break;
 			case ArgumentListEnum.ACS:
-				obj.arg.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
+				this.accept(this.parser.argumentLists[obj.followIdx]);
 				break;
 			case ArgumentListEnum.AS:
-				obj.arg.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
+				this.accept(this.parser.argumentLists[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Argument obj) {}
-	void exit(Argument obj) {}
+	void enter(ref Argument obj) {}
+	void exit(ref Argument obj) {}
 
-	void accept(Argument obj) {
+	void accept(ref Argument obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentEnum.Name:
 				obj.name.visit(this);
-				obj.vv.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.vvIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(FragmentDefinition obj) {}
-	void exit(FragmentDefinition obj) {}
+	void enter(ref FragmentDefinition obj) {}
+	void exit(ref FragmentDefinition obj) {}
 
-	void accept(FragmentDefinition obj) {
+	void accept(ref FragmentDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FragmentDefinitionEnum.FTDS:
 				obj.name.visit(this);
 				obj.tc.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FragmentDefinitionEnum.FTS:
 				obj.name.visit(this);
 				obj.tc.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Directives obj) {}
-	void exit(Directives obj) {}
+	void enter(ref Directives obj) {}
+	void exit(ref Directives obj) {}
 
-	void accept(Directives obj) {
+	void accept(ref Directives obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectivesEnum.Dir:
-				obj.dir.visit(this);
+				this.accept(this.parser.directives[obj.dirIdx]);
 				break;
 			case DirectivesEnum.Dirs:
-				obj.dir.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directives[obj.dirIdx]);
+				this.accept(this.parser.directivess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Directive obj) {}
-	void exit(Directive obj) {}
+	void enter(ref Directive obj) {}
+	void exit(ref Directive obj) {}
 
-	void accept(Directive obj) {
+	void accept(ref Directive obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveEnum.NArg:
 				obj.name.visit(this);
-				obj.arg.visit(this);
+				this.accept(this.parser.argumentss[obj.argIdx]);
 				break;
 			case DirectiveEnum.N:
 				obj.name.visit(this);
@@ -402,65 +403,65 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(VariableDefinitions obj) {}
-	void exit(VariableDefinitions obj) {}
+	void enter(ref VariableDefinitions obj) {}
+	void exit(ref VariableDefinitions obj) {}
 
-	void accept(VariableDefinitions obj) {
+	void accept(ref VariableDefinitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionsEnum.Empty:
 				break;
 			case VariableDefinitionsEnum.Vars:
-				obj.vars.visit(this);
+				this.accept(this.parser.variableDefinitionLists[obj.varsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(VariableDefinitionList obj) {}
-	void exit(VariableDefinitionList obj) {}
+	void enter(ref VariableDefinitionList obj) {}
+	void exit(ref VariableDefinitionList obj) {}
 
-	void accept(VariableDefinitionList obj) {
+	void accept(ref VariableDefinitionList obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionListEnum.V:
-				obj.var.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
 				break;
 			case VariableDefinitionListEnum.VCF:
-				obj.var.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
+				this.accept(this.parser.variableDefinitionLists[obj.followIdx]);
 				break;
 			case VariableDefinitionListEnum.VF:
-				obj.var.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
+				this.accept(this.parser.variableDefinitionLists[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(VariableDefinition obj) {}
-	void exit(VariableDefinition obj) {}
+	void enter(ref VariableDefinition obj) {}
+	void exit(ref VariableDefinition obj) {}
 
-	void accept(VariableDefinition obj) {
+	void accept(ref VariableDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionEnum.VarD:
-				obj.var.visit(this);
-				obj.type.visit(this);
-				obj.dvalue.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dvalueIdx]);
 				break;
 			case VariableDefinitionEnum.Var:
-				obj.var.visit(this);
-				obj.type.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Variable obj) {}
-	void exit(Variable obj) {}
+	void enter(ref Variable obj) {}
+	void exit(ref Variable obj) {}
 
-	void accept(Variable obj) {
+	void accept(ref Variable obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableEnum.Var:
@@ -470,39 +471,39 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(DefaultValue obj) {}
-	void exit(DefaultValue obj) {}
+	void enter(ref DefaultValue obj) {}
+	void exit(ref DefaultValue obj) {}
 
-	void accept(DefaultValue obj) {
+	void accept(ref DefaultValue obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefaultValueEnum.DV:
-				obj.value.visit(this);
+				this.accept(this.parser.values[obj.valueIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ValueOrVariable obj) {}
-	void exit(ValueOrVariable obj) {}
+	void enter(ref ValueOrVariable obj) {}
+	void exit(ref ValueOrVariable obj) {}
 
-	void accept(ValueOrVariable obj) {
+	void accept(ref ValueOrVariable obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValueOrVariableEnum.Val:
-				obj.val.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
 				break;
 			case ValueOrVariableEnum.Var:
-				obj.var.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Value obj) {}
-	void exit(Value obj) {}
+	void enter(ref Value obj) {}
+	void exit(ref Value obj) {}
 
-	void accept(Value obj) {
+	void accept(ref Value obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValueEnum.STR:
@@ -521,10 +522,10 @@ class Visitor : ConstVisitor {
 				obj.tok.visit(this);
 				break;
 			case ValueEnum.ARR:
-				obj.arr.visit(this);
+				this.accept(this.parser.arrays[obj.arrIdx]);
 				break;
 			case ValueEnum.O:
-				obj.obj.visit(this);
+				this.accept(this.parser.objectTypes[obj.objIdx]);
 				break;
 			case ValueEnum.E:
 				obj.tok.visit(this);
@@ -536,237 +537,237 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(Type obj) {}
-	void exit(Type obj) {}
+	void enter(ref Type obj) {}
+	void exit(ref Type obj) {}
 
-	void accept(Type obj) {
+	void accept(ref Type obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeEnum.TN:
 				obj.tname.visit(this);
 				break;
 			case TypeEnum.LN:
-				obj.list.visit(this);
+				this.accept(this.parser.listTypes[obj.listIdx]);
 				break;
 			case TypeEnum.T:
 				obj.tname.visit(this);
 				break;
 			case TypeEnum.L:
-				obj.list.visit(this);
+				this.accept(this.parser.listTypes[obj.listIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ListType obj) {}
-	void exit(ListType obj) {}
+	void enter(ref ListType obj) {}
+	void exit(ref ListType obj) {}
 
-	void accept(ListType obj) {
+	void accept(ref ListType obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ListTypeEnum.T:
-				obj.type.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Values obj) {}
-	void exit(Values obj) {}
+	void enter(ref Values obj) {}
+	void exit(ref Values obj) {}
 
-	void accept(Values obj) {
+	void accept(ref Values obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValuesEnum.Val:
-				obj.val.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
 				break;
 			case ValuesEnum.Vals:
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
+				this.accept(this.parser.valuess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(Array obj) {}
-	void exit(Array obj) {}
+	void enter(ref Array obj) {}
+	void exit(ref Array obj) {}
 
-	void accept(Array obj) {
+	void accept(ref Array obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArrayEnum.Empty:
 				break;
 			case ArrayEnum.Value:
-				obj.vals.visit(this);
+				this.accept(this.parser.valuess[obj.valsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ObjectValues obj) {}
-	void exit(ObjectValues obj) {}
+	void enter(ref ObjectValues obj) {}
+	void exit(ref ObjectValues obj) {}
 
-	void accept(ObjectValues obj) {
+	void accept(ref ObjectValues obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectValuesEnum.V:
 				obj.name.visit(this);
-				obj.val.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
 				break;
 			case ObjectValuesEnum.Vsc:
 				obj.name.visit(this);
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
+				this.accept(this.parser.objectValuess[obj.followIdx]);
 				break;
 			case ObjectValuesEnum.Vs:
 				obj.name.visit(this);
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
+				this.accept(this.parser.objectValuess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ObjectType obj) {}
-	void exit(ObjectType obj) {}
+	void enter(ref ObjectType obj) {}
+	void exit(ref ObjectType obj) {}
 
-	void accept(ObjectType obj) {
+	void accept(ref ObjectType obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectTypeEnum.Var:
-				obj.vals.visit(this);
+				this.accept(this.parser.objectValuess[obj.valsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(TypeSystemDefinition obj) {}
-	void exit(TypeSystemDefinition obj) {}
+	void enter(ref TypeSystemDefinition obj) {}
+	void exit(ref TypeSystemDefinition obj) {}
 
-	void accept(TypeSystemDefinition obj) {
+	void accept(ref TypeSystemDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeSystemDefinitionEnum.S:
-				obj.sch.visit(this);
+				this.accept(this.parser.schemaDefinitions[obj.schIdx]);
 				break;
 			case TypeSystemDefinitionEnum.T:
-				obj.td.visit(this);
+				this.accept(this.parser.typeDefinitions[obj.tdIdx]);
 				break;
 			case TypeSystemDefinitionEnum.TE:
-				obj.ted.visit(this);
+				this.accept(this.parser.typeExtensionDefinitions[obj.tedIdx]);
 				break;
 			case TypeSystemDefinitionEnum.D:
-				obj.dd.visit(this);
+				this.accept(this.parser.directiveDefinitions[obj.ddIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DS:
-				obj.des.visit(this);
-				obj.sch.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.schemaDefinitions[obj.schIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DT:
-				obj.des.visit(this);
-				obj.td.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.typeDefinitions[obj.tdIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DTE:
-				obj.des.visit(this);
-				obj.ted.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.typeExtensionDefinitions[obj.tedIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DD:
-				obj.des.visit(this);
-				obj.dd.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.directiveDefinitions[obj.ddIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(TypeDefinition obj) {}
-	void exit(TypeDefinition obj) {}
+	void enter(ref TypeDefinition obj) {}
+	void exit(ref TypeDefinition obj) {}
 
-	void accept(TypeDefinition obj) {
+	void accept(ref TypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeDefinitionEnum.S:
-				obj.std.visit(this);
+				this.accept(this.parser.scalarTypeDefinitions[obj.stdIdx]);
 				break;
 			case TypeDefinitionEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.objectTypeDefinitions[obj.otdIdx]);
 				break;
 			case TypeDefinitionEnum.I:
-				obj.itd.visit(this);
+				this.accept(this.parser.interfaceTypeDefinitions[obj.itdIdx]);
 				break;
 			case TypeDefinitionEnum.U:
-				obj.utd.visit(this);
+				this.accept(this.parser.unionTypeDefinitions[obj.utdIdx]);
 				break;
 			case TypeDefinitionEnum.E:
-				obj.etd.visit(this);
+				this.accept(this.parser.enumTypeDefinitions[obj.etdIdx]);
 				break;
 			case TypeDefinitionEnum.IO:
-				obj.iod.visit(this);
+				this.accept(this.parser.inputObjectTypeDefinitions[obj.iodIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(SchemaDefinition obj) {}
-	void exit(SchemaDefinition obj) {}
+	void enter(ref SchemaDefinition obj) {}
+	void exit(ref SchemaDefinition obj) {}
 
-	void accept(SchemaDefinition obj) {
+	void accept(ref SchemaDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SchemaDefinitionEnum.DO:
-				obj.dir.visit(this);
-				obj.otds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.otdsIdx]);
 				break;
 			case SchemaDefinitionEnum.O:
-				obj.otds.visit(this);
+				this.accept(this.parser.operationTypeDefinitionss[obj.otdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(OperationTypeDefinitions obj) {}
-	void exit(OperationTypeDefinitions obj) {}
+	void enter(ref OperationTypeDefinitions obj) {}
+	void exit(ref OperationTypeDefinitions obj) {}
 
-	void accept(OperationTypeDefinitions obj) {
+	void accept(ref OperationTypeDefinitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeDefinitionsEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
 				break;
 			case OperationTypeDefinitionsEnum.OCS:
-				obj.otd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.followIdx]);
 				break;
 			case OperationTypeDefinitionsEnum.OS:
-				obj.otd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(OperationTypeDefinition obj) {}
-	void exit(OperationTypeDefinition obj) {}
+	void enter(ref OperationTypeDefinition obj) {}
+	void exit(ref OperationTypeDefinition obj) {}
 
-	void accept(OperationTypeDefinition obj) {
+	void accept(ref OperationTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeDefinitionEnum.O:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.nt.visit(this);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ScalarTypeDefinition obj) {}
-	void exit(ScalarTypeDefinition obj) {}
+	void enter(ref ScalarTypeDefinition obj) {}
+	void exit(ref ScalarTypeDefinition obj) {}
 
-	void accept(ScalarTypeDefinition obj) {
+	void accept(ref ScalarTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ScalarTypeDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case ScalarTypeDefinitionEnum.S:
 				obj.name.visit(this);
@@ -775,128 +776,128 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(ObjectTypeDefinition obj) {}
-	void exit(ObjectTypeDefinition obj) {}
+	void enter(ref ObjectTypeDefinition obj) {}
+	void exit(ref ObjectTypeDefinition obj) {}
 
-	void accept(ObjectTypeDefinition obj) {
+	void accept(ref ObjectTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectTypeDefinitionEnum.ID:
 				obj.name.visit(this);
-				obj.ii.visit(this);
-				obj.dir.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.implementsInterfacess[obj.iiIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.I:
 				obj.name.visit(this);
-				obj.ii.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.implementsInterfacess[obj.iiIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.F:
 				obj.name.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(FieldDefinitions obj) {}
-	void exit(FieldDefinitions obj) {}
+	void enter(ref FieldDefinitions obj) {}
+	void exit(ref FieldDefinitions obj) {}
 
-	void accept(FieldDefinitions obj) {
+	void accept(ref FieldDefinitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldDefinitionsEnum.F:
-				obj.fd.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
 				break;
 			case FieldDefinitionsEnum.FC:
-				obj.fd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.followIdx]);
 				break;
 			case FieldDefinitionsEnum.FNC:
-				obj.fd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(FieldDefinition obj) {}
-	void exit(FieldDefinition obj) {}
+	void enter(ref FieldDefinition obj) {}
+	void exit(ref FieldDefinition obj) {}
 
-	void accept(FieldDefinition obj) {
+	void accept(ref FieldDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldDefinitionEnum.AD:
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.A:
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.T:
 				obj.name.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.DAD:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.DA:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.DD:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.DT:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ImplementsInterfaces obj) {}
-	void exit(ImplementsInterfaces obj) {}
+	void enter(ref ImplementsInterfaces obj) {}
+	void exit(ref ImplementsInterfaces obj) {}
 
-	void accept(ImplementsInterfaces obj) {
+	void accept(ref ImplementsInterfaces obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ImplementsInterfacesEnum.N:
-				obj.nts.visit(this);
+				this.accept(this.parser.namedTypess[obj.ntsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(NamedTypes obj) {}
-	void exit(NamedTypes obj) {}
+	void enter(ref NamedTypes obj) {}
+	void exit(ref NamedTypes obj) {}
 
-	void accept(NamedTypes obj) {
+	void accept(ref NamedTypes obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case NamedTypesEnum.N:
@@ -904,124 +905,124 @@ class Visitor : ConstVisitor {
 				break;
 			case NamedTypesEnum.NCS:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.namedTypess[obj.followIdx]);
 				break;
 			case NamedTypesEnum.NS:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.namedTypess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(ArgumentsDefinition obj) {}
-	void exit(ArgumentsDefinition obj) {}
+	void enter(ref ArgumentsDefinition obj) {}
+	void exit(ref ArgumentsDefinition obj) {}
 
-	void accept(ArgumentsDefinition obj) {
+	void accept(ref ArgumentsDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
 			case ArgumentsDefinitionEnum.DA:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(InputValueDefinitions obj) {}
-	void exit(InputValueDefinitions obj) {}
+	void enter(ref InputValueDefinitions obj) {}
+	void exit(ref InputValueDefinitions obj) {}
 
-	void accept(InputValueDefinitions obj) {
+	void accept(ref InputValueDefinitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputValueDefinitionsEnum.I:
-				obj.iv.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
 				break;
 			case InputValueDefinitionsEnum.ICF:
-				obj.iv.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.followIdx]);
 				break;
 			case InputValueDefinitionsEnum.IF:
-				obj.iv.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(InputValueDefinition obj) {}
-	void exit(InputValueDefinition obj) {}
+	void enter(ref InputValueDefinition obj) {}
+	void exit(ref InputValueDefinition obj) {}
 
-	void accept(InputValueDefinition obj) {
+	void accept(ref InputValueDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputValueDefinitionEnum.TVD:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.df.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputValueDefinitionEnum.TD:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputValueDefinitionEnum.TV:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.df.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
 				break;
 			case InputValueDefinitionEnum.T:
 				obj.name.visit(this);
-				obj.type.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(InterfaceTypeDefinition obj) {}
-	void exit(InterfaceTypeDefinition obj) {}
+	void enter(ref InterfaceTypeDefinition obj) {}
+	void exit(ref InterfaceTypeDefinition obj) {}
 
-	void accept(InterfaceTypeDefinition obj) {
+	void accept(ref InterfaceTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InterfaceTypeDefinitionEnum.NDF:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case InterfaceTypeDefinitionEnum.NF:
 				obj.name.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(UnionTypeDefinition obj) {}
-	void exit(UnionTypeDefinition obj) {}
+	void enter(ref UnionTypeDefinition obj) {}
+	void exit(ref UnionTypeDefinition obj) {}
 
-	void accept(UnionTypeDefinition obj) {
+	void accept(ref UnionTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case UnionTypeDefinitionEnum.NDU:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.um.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.unionMemberss[obj.umIdx]);
 				break;
 			case UnionTypeDefinitionEnum.NU:
 				obj.name.visit(this);
-				obj.um.visit(this);
+				this.accept(this.parser.unionMemberss[obj.umIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(UnionMembers obj) {}
-	void exit(UnionMembers obj) {}
+	void enter(ref UnionMembers obj) {}
+	void exit(ref UnionMembers obj) {}
 
-	void accept(UnionMembers obj) {
+	void accept(ref UnionMembers obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case UnionMembersEnum.S:
@@ -1029,65 +1030,65 @@ class Visitor : ConstVisitor {
 				break;
 			case UnionMembersEnum.SPF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.unionMemberss[obj.followIdx]);
 				break;
 			case UnionMembersEnum.SF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.unionMemberss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(EnumTypeDefinition obj) {}
-	void exit(EnumTypeDefinition obj) {}
+	void enter(ref EnumTypeDefinition obj) {}
+	void exit(ref EnumTypeDefinition obj) {}
 
-	void accept(EnumTypeDefinition obj) {
+	void accept(ref EnumTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumTypeDefinitionEnum.NDE:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.evds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.evdsIdx]);
 				break;
 			case EnumTypeDefinitionEnum.NE:
 				obj.name.visit(this);
-				obj.evds.visit(this);
+				this.accept(this.parser.enumValueDefinitionss[obj.evdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(EnumValueDefinitions obj) {}
-	void exit(EnumValueDefinitions obj) {}
+	void enter(ref EnumValueDefinitions obj) {}
+	void exit(ref EnumValueDefinitions obj) {}
 
-	void accept(EnumValueDefinitions obj) {
+	void accept(ref EnumValueDefinitions obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumValueDefinitionsEnum.D:
-				obj.evd.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
 				break;
 			case EnumValueDefinitionsEnum.DCE:
-				obj.evd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.followIdx]);
 				break;
 			case EnumValueDefinitionsEnum.DE:
-				obj.evd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(EnumValueDefinition obj) {}
-	void exit(EnumValueDefinition obj) {}
+	void enter(ref EnumValueDefinition obj) {}
+	void exit(ref EnumValueDefinition obj) {}
 
-	void accept(EnumValueDefinition obj) {
+	void accept(ref EnumValueDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumValueDefinitionEnum.ED:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case EnumValueDefinitionEnum.E:
 				obj.name.visit(this);
@@ -1096,61 +1097,61 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(InputTypeDefinition obj) {}
-	void exit(InputTypeDefinition obj) {}
+	void enter(ref InputTypeDefinition obj) {}
+	void exit(ref InputTypeDefinition obj) {}
 
-	void accept(InputTypeDefinition obj) {
+	void accept(ref InputTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputTypeDefinitionEnum.NDE:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.ivds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.ivdsIdx]);
 				break;
 			case InputTypeDefinitionEnum.NE:
 				obj.name.visit(this);
-				obj.ivds.visit(this);
+				this.accept(this.parser.inputValueDefinitionss[obj.ivdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(TypeExtensionDefinition obj) {}
-	void exit(TypeExtensionDefinition obj) {}
+	void enter(ref TypeExtensionDefinition obj) {}
+	void exit(ref TypeExtensionDefinition obj) {}
 
-	void accept(TypeExtensionDefinition obj) {
+	void accept(ref TypeExtensionDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeExtensionDefinitionEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.objectTypeDefinitions[obj.otdIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(DirectiveDefinition obj) {}
-	void exit(DirectiveDefinition obj) {}
+	void enter(ref DirectiveDefinition obj) {}
+	void exit(ref DirectiveDefinition obj) {}
 
-	void accept(DirectiveDefinition obj) {
+	void accept(ref DirectiveDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveDefinitionEnum.AD:
 				obj.name.visit(this);
-				obj.ad.visit(this);
-				obj.dl.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.adIdx]);
+				this.accept(this.parser.directiveLocationss[obj.dlIdx]);
 				break;
 			case DirectiveDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dl.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.dlIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(DirectiveLocations obj) {}
-	void exit(DirectiveLocations obj) {}
+	void enter(ref DirectiveLocations obj) {}
+	void exit(ref DirectiveLocations obj) {}
 
-	void accept(DirectiveLocations obj) {
+	void accept(ref DirectiveLocations obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveLocationsEnum.N:
@@ -1158,25 +1159,25 @@ class Visitor : ConstVisitor {
 				break;
 			case DirectiveLocationsEnum.NPF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.followIdx]);
 				break;
 			case DirectiveLocationsEnum.NF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(InputObjectTypeDefinition obj) {}
-	void exit(InputObjectTypeDefinition obj) {}
+	void enter(ref InputObjectTypeDefinition obj) {}
+	void exit(ref InputObjectTypeDefinition obj) {}
 
-	void accept(InputObjectTypeDefinition obj) {
+	void accept(ref InputObjectTypeDefinition obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputObjectTypeDefinitionEnum.NDI:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
@@ -1185,10 +1186,10 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(Description obj) {}
-	void exit(Description obj) {}
+	void enter(ref Description obj) {}
+	void exit(ref Description obj) {}
 
-	void accept(Description obj) {
+	void accept(ref Description obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DescriptionEnum.S:
@@ -1202,130 +1203,136 @@ class Visitor : ConstVisitor {
 class ConstVisitor {
 @safe :
 
+	Parser* parser;
 
-	void enter(const(Document) obj) {}
-	void exit(const(Document) obj) {}
+	this(Parser* parser) {
+		this.parser = parser;
+	}
 
-	void accept(const(Document) obj) {
+
+	void enter(ref const(Document) obj) {}
+	void exit(ref const(Document) obj) {}
+
+	void accept(ref const(Document) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DocumentEnum.Defi:
-				obj.defs.visit(this);
+				this.accept(this.parser.definitionss[obj.defsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Definitions) obj) {}
-	void exit(const(Definitions) obj) {}
+	void enter(ref const(Definitions) obj) {}
+	void exit(ref const(Definitions) obj) {}
 
-	void accept(const(Definitions) obj) {
+	void accept(ref const(Definitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefinitionsEnum.Def:
-				obj.def.visit(this);
+				this.accept(this.parser.definitions[obj.defIdx]);
 				break;
 			case DefinitionsEnum.Defs:
-				obj.def.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.definitions[obj.defIdx]);
+				this.accept(this.parser.definitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Definition) obj) {}
-	void exit(const(Definition) obj) {}
+	void enter(ref const(Definition) obj) {}
+	void exit(ref const(Definition) obj) {}
 
-	void accept(const(Definition) obj) {
+	void accept(ref const(Definition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefinitionEnum.O:
-				obj.op.visit(this);
+				this.accept(this.parser.operationDefinitions[obj.opIdx]);
 				break;
 			case DefinitionEnum.F:
-				obj.frag.visit(this);
+				this.accept(this.parser.fragmentDefinitions[obj.fragIdx]);
 				break;
 			case DefinitionEnum.T:
-				obj.type.visit(this);
+				this.accept(this.parser.typeSystemDefinitions[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(OperationDefinition) obj) {}
-	void exit(const(OperationDefinition) obj) {}
+	void enter(ref const(OperationDefinition) obj) {}
+	void exit(ref const(OperationDefinition) obj) {}
 
-	void accept(const(OperationDefinition) obj) {
+	void accept(ref const(OperationDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationDefinitionEnum.SelSet:
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_VD:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_V:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.vd.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N_D:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_N:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.name.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_VD:
-				obj.ot.visit(this);
-				obj.vd.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_V:
-				obj.ot.visit(this);
-				obj.vd.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.variableDefinitionss[obj.vdIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT_D:
-				obj.ot.visit(this);
-				obj.d.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.directivess[obj.dIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case OperationDefinitionEnum.OT:
-				obj.ot.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(SelectionSet) obj) {}
-	void exit(const(SelectionSet) obj) {}
+	void enter(ref const(SelectionSet) obj) {}
+	void exit(ref const(SelectionSet) obj) {}
 
-	void accept(const(SelectionSet) obj) {
+	void accept(ref const(SelectionSet) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionSetEnum.SS:
-				obj.sel.visit(this);
+				this.accept(this.parser.selectionss[obj.selIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(OperationType) obj) {}
-	void exit(const(OperationType) obj) {}
+	void enter(ref const(OperationType) obj) {}
+	void exit(ref const(OperationType) obj) {}
 
-	void accept(const(OperationType) obj) {
+	void accept(ref const(OperationType) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeEnum.Query:
@@ -1341,55 +1348,55 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(Selections) obj) {}
-	void exit(const(Selections) obj) {}
+	void enter(ref const(Selections) obj) {}
+	void exit(ref const(Selections) obj) {}
 
-	void accept(const(Selections) obj) {
+	void accept(ref const(Selections) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionsEnum.Sel:
-				obj.sel.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
 				break;
 			case SelectionsEnum.Sels:
-				obj.sel.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
+				this.accept(this.parser.selectionss[obj.followIdx]);
 				break;
 			case SelectionsEnum.Selsc:
-				obj.sel.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.selections[obj.selIdx]);
+				this.accept(this.parser.selectionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Selection) obj) {}
-	void exit(const(Selection) obj) {}
+	void enter(ref const(Selection) obj) {}
+	void exit(ref const(Selection) obj) {}
 
-	void accept(const(Selection) obj) {
+	void accept(ref const(Selection) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SelectionEnum.Field:
-				obj.field.visit(this);
+				this.accept(this.parser.fields[obj.fieldIdx]);
 				break;
 			case SelectionEnum.Spread:
-				obj.frag.visit(this);
+				this.accept(this.parser.fragmentSpreads[obj.fragIdx]);
 				break;
 			case SelectionEnum.IFrag:
-				obj.ifrag.visit(this);
+				this.accept(this.parser.inlineFragments[obj.ifragIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(FragmentSpread) obj) {}
-	void exit(const(FragmentSpread) obj) {}
+	void enter(ref const(FragmentSpread) obj) {}
+	void exit(ref const(FragmentSpread) obj) {}
 
-	void accept(const(FragmentSpread) obj) {
+	void accept(ref const(FragmentSpread) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FragmentSpreadEnum.FD:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FragmentSpreadEnum.F:
 				obj.name.visit(this);
@@ -1398,82 +1405,82 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(InlineFragment) obj) {}
-	void exit(const(InlineFragment) obj) {}
+	void enter(ref const(InlineFragment) obj) {}
+	void exit(ref const(InlineFragment) obj) {}
 
-	void accept(const(InlineFragment) obj) {
+	void accept(ref const(InlineFragment) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InlineFragmentEnum.TDS:
 				obj.tc.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.TS:
 				obj.tc.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.DS:
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case InlineFragmentEnum.S:
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Field) obj) {}
-	void exit(const(Field) obj) {}
+	void enter(ref const(Field) obj) {}
+	void exit(ref const(Field) obj) {}
 
-	void accept(const(Field) obj) {
+	void accept(ref const(Field) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldEnum.FADS:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FAS:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FAD:
-				obj.name.visit(this);
-				obj.args.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FieldEnum.FDS:
-				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FS:
-				obj.name.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FieldEnum.FD:
-				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case FieldEnum.FA:
-				obj.name.visit(this);
-				obj.args.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
+				this.accept(this.parser.argumentss[obj.argsIdx]);
 				break;
 			case FieldEnum.F:
-				obj.name.visit(this);
+				this.accept(this.parser.fieldNames[obj.nameIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(FieldName) obj) {}
-	void exit(const(FieldName) obj) {}
+	void enter(ref const(FieldName) obj) {}
+	void exit(ref const(FieldName) obj) {}
 
-	void accept(const(FieldName) obj) {
+	void accept(ref const(FieldName) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldNameEnum.A:
@@ -1487,14 +1494,14 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(Arguments) obj) {}
-	void exit(const(Arguments) obj) {}
+	void enter(ref const(Arguments) obj) {}
+	void exit(ref const(Arguments) obj) {}
 
-	void accept(const(Arguments) obj) {
+	void accept(ref const(Arguments) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsEnum.List:
-				obj.arg.visit(this);
+				this.accept(this.parser.argumentLists[obj.argIdx]);
 				break;
 			case ArgumentsEnum.Empty:
 				break;
@@ -1502,88 +1509,88 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(ArgumentList) obj) {}
-	void exit(const(ArgumentList) obj) {}
+	void enter(ref const(ArgumentList) obj) {}
+	void exit(ref const(ArgumentList) obj) {}
 
-	void accept(const(ArgumentList) obj) {
+	void accept(ref const(ArgumentList) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentListEnum.A:
-				obj.arg.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
 				break;
 			case ArgumentListEnum.ACS:
-				obj.arg.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
+				this.accept(this.parser.argumentLists[obj.followIdx]);
 				break;
 			case ArgumentListEnum.AS:
-				obj.arg.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.arguments[obj.argIdx]);
+				this.accept(this.parser.argumentLists[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Argument) obj) {}
-	void exit(const(Argument) obj) {}
+	void enter(ref const(Argument) obj) {}
+	void exit(ref const(Argument) obj) {}
 
-	void accept(const(Argument) obj) {
+	void accept(ref const(Argument) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentEnum.Name:
 				obj.name.visit(this);
-				obj.vv.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.vvIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(FragmentDefinition) obj) {}
-	void exit(const(FragmentDefinition) obj) {}
+	void enter(ref const(FragmentDefinition) obj) {}
+	void exit(ref const(FragmentDefinition) obj) {}
 
-	void accept(const(FragmentDefinition) obj) {
+	void accept(ref const(FragmentDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FragmentDefinitionEnum.FTDS:
 				obj.name.visit(this);
 				obj.tc.visit(this);
-				obj.dirs.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 			case FragmentDefinitionEnum.FTS:
 				obj.name.visit(this);
 				obj.tc.visit(this);
-				obj.ss.visit(this);
+				this.accept(this.parser.selectionSets[obj.ssIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Directives) obj) {}
-	void exit(const(Directives) obj) {}
+	void enter(ref const(Directives) obj) {}
+	void exit(ref const(Directives) obj) {}
 
-	void accept(const(Directives) obj) {
+	void accept(ref const(Directives) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectivesEnum.Dir:
-				obj.dir.visit(this);
+				this.accept(this.parser.directives[obj.dirIdx]);
 				break;
 			case DirectivesEnum.Dirs:
-				obj.dir.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directives[obj.dirIdx]);
+				this.accept(this.parser.directivess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Directive) obj) {}
-	void exit(const(Directive) obj) {}
+	void enter(ref const(Directive) obj) {}
+	void exit(ref const(Directive) obj) {}
 
-	void accept(const(Directive) obj) {
+	void accept(ref const(Directive) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveEnum.NArg:
 				obj.name.visit(this);
-				obj.arg.visit(this);
+				this.accept(this.parser.argumentss[obj.argIdx]);
 				break;
 			case DirectiveEnum.N:
 				obj.name.visit(this);
@@ -1592,65 +1599,65 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(VariableDefinitions) obj) {}
-	void exit(const(VariableDefinitions) obj) {}
+	void enter(ref const(VariableDefinitions) obj) {}
+	void exit(ref const(VariableDefinitions) obj) {}
 
-	void accept(const(VariableDefinitions) obj) {
+	void accept(ref const(VariableDefinitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionsEnum.Empty:
 				break;
 			case VariableDefinitionsEnum.Vars:
-				obj.vars.visit(this);
+				this.accept(this.parser.variableDefinitionLists[obj.varsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(VariableDefinitionList) obj) {}
-	void exit(const(VariableDefinitionList) obj) {}
+	void enter(ref const(VariableDefinitionList) obj) {}
+	void exit(ref const(VariableDefinitionList) obj) {}
 
-	void accept(const(VariableDefinitionList) obj) {
+	void accept(ref const(VariableDefinitionList) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionListEnum.V:
-				obj.var.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
 				break;
 			case VariableDefinitionListEnum.VCF:
-				obj.var.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
+				this.accept(this.parser.variableDefinitionLists[obj.followIdx]);
 				break;
 			case VariableDefinitionListEnum.VF:
-				obj.var.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.variableDefinitions[obj.varIdx]);
+				this.accept(this.parser.variableDefinitionLists[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(VariableDefinition) obj) {}
-	void exit(const(VariableDefinition) obj) {}
+	void enter(ref const(VariableDefinition) obj) {}
+	void exit(ref const(VariableDefinition) obj) {}
 
-	void accept(const(VariableDefinition) obj) {
+	void accept(ref const(VariableDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableDefinitionEnum.VarD:
-				obj.var.visit(this);
-				obj.type.visit(this);
-				obj.dvalue.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dvalueIdx]);
 				break;
 			case VariableDefinitionEnum.Var:
-				obj.var.visit(this);
-				obj.type.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Variable) obj) {}
-	void exit(const(Variable) obj) {}
+	void enter(ref const(Variable) obj) {}
+	void exit(ref const(Variable) obj) {}
 
-	void accept(const(Variable) obj) {
+	void accept(ref const(Variable) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case VariableEnum.Var:
@@ -1660,39 +1667,39 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(DefaultValue) obj) {}
-	void exit(const(DefaultValue) obj) {}
+	void enter(ref const(DefaultValue) obj) {}
+	void exit(ref const(DefaultValue) obj) {}
 
-	void accept(const(DefaultValue) obj) {
+	void accept(ref const(DefaultValue) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DefaultValueEnum.DV:
-				obj.value.visit(this);
+				this.accept(this.parser.values[obj.valueIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ValueOrVariable) obj) {}
-	void exit(const(ValueOrVariable) obj) {}
+	void enter(ref const(ValueOrVariable) obj) {}
+	void exit(ref const(ValueOrVariable) obj) {}
 
-	void accept(const(ValueOrVariable) obj) {
+	void accept(ref const(ValueOrVariable) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValueOrVariableEnum.Val:
-				obj.val.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
 				break;
 			case ValueOrVariableEnum.Var:
-				obj.var.visit(this);
+				this.accept(this.parser.variables[obj.varIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Value) obj) {}
-	void exit(const(Value) obj) {}
+	void enter(ref const(Value) obj) {}
+	void exit(ref const(Value) obj) {}
 
-	void accept(const(Value) obj) {
+	void accept(ref const(Value) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValueEnum.STR:
@@ -1711,10 +1718,10 @@ class ConstVisitor {
 				obj.tok.visit(this);
 				break;
 			case ValueEnum.ARR:
-				obj.arr.visit(this);
+				this.accept(this.parser.arrays[obj.arrIdx]);
 				break;
 			case ValueEnum.O:
-				obj.obj.visit(this);
+				this.accept(this.parser.objectTypes[obj.objIdx]);
 				break;
 			case ValueEnum.E:
 				obj.tok.visit(this);
@@ -1726,237 +1733,237 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(Type) obj) {}
-	void exit(const(Type) obj) {}
+	void enter(ref const(Type) obj) {}
+	void exit(ref const(Type) obj) {}
 
-	void accept(const(Type) obj) {
+	void accept(ref const(Type) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeEnum.TN:
 				obj.tname.visit(this);
 				break;
 			case TypeEnum.LN:
-				obj.list.visit(this);
+				this.accept(this.parser.listTypes[obj.listIdx]);
 				break;
 			case TypeEnum.T:
 				obj.tname.visit(this);
 				break;
 			case TypeEnum.L:
-				obj.list.visit(this);
+				this.accept(this.parser.listTypes[obj.listIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ListType) obj) {}
-	void exit(const(ListType) obj) {}
+	void enter(ref const(ListType) obj) {}
+	void exit(ref const(ListType) obj) {}
 
-	void accept(const(ListType) obj) {
+	void accept(ref const(ListType) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ListTypeEnum.T:
-				obj.type.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Values) obj) {}
-	void exit(const(Values) obj) {}
+	void enter(ref const(Values) obj) {}
+	void exit(ref const(Values) obj) {}
 
-	void accept(const(Values) obj) {
+	void accept(ref const(Values) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ValuesEnum.Val:
-				obj.val.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
 				break;
 			case ValuesEnum.Vals:
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.values[obj.valIdx]);
+				this.accept(this.parser.valuess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(Array) obj) {}
-	void exit(const(Array) obj) {}
+	void enter(ref const(Array) obj) {}
+	void exit(ref const(Array) obj) {}
 
-	void accept(const(Array) obj) {
+	void accept(ref const(Array) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArrayEnum.Empty:
 				break;
 			case ArrayEnum.Value:
-				obj.vals.visit(this);
+				this.accept(this.parser.valuess[obj.valsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ObjectValues) obj) {}
-	void exit(const(ObjectValues) obj) {}
+	void enter(ref const(ObjectValues) obj) {}
+	void exit(ref const(ObjectValues) obj) {}
 
-	void accept(const(ObjectValues) obj) {
+	void accept(ref const(ObjectValues) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectValuesEnum.V:
 				obj.name.visit(this);
-				obj.val.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
 				break;
 			case ObjectValuesEnum.Vsc:
 				obj.name.visit(this);
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
+				this.accept(this.parser.objectValuess[obj.followIdx]);
 				break;
 			case ObjectValuesEnum.Vs:
 				obj.name.visit(this);
-				obj.val.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.valueOrVariables[obj.valIdx]);
+				this.accept(this.parser.objectValuess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ObjectType) obj) {}
-	void exit(const(ObjectType) obj) {}
+	void enter(ref const(ObjectType) obj) {}
+	void exit(ref const(ObjectType) obj) {}
 
-	void accept(const(ObjectType) obj) {
+	void accept(ref const(ObjectType) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectTypeEnum.Var:
-				obj.vals.visit(this);
+				this.accept(this.parser.objectValuess[obj.valsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(TypeSystemDefinition) obj) {}
-	void exit(const(TypeSystemDefinition) obj) {}
+	void enter(ref const(TypeSystemDefinition) obj) {}
+	void exit(ref const(TypeSystemDefinition) obj) {}
 
-	void accept(const(TypeSystemDefinition) obj) {
+	void accept(ref const(TypeSystemDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeSystemDefinitionEnum.S:
-				obj.sch.visit(this);
+				this.accept(this.parser.schemaDefinitions[obj.schIdx]);
 				break;
 			case TypeSystemDefinitionEnum.T:
-				obj.td.visit(this);
+				this.accept(this.parser.typeDefinitions[obj.tdIdx]);
 				break;
 			case TypeSystemDefinitionEnum.TE:
-				obj.ted.visit(this);
+				this.accept(this.parser.typeExtensionDefinitions[obj.tedIdx]);
 				break;
 			case TypeSystemDefinitionEnum.D:
-				obj.dd.visit(this);
+				this.accept(this.parser.directiveDefinitions[obj.ddIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DS:
-				obj.des.visit(this);
-				obj.sch.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.schemaDefinitions[obj.schIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DT:
-				obj.des.visit(this);
-				obj.td.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.typeDefinitions[obj.tdIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DTE:
-				obj.des.visit(this);
-				obj.ted.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.typeExtensionDefinitions[obj.tedIdx]);
 				break;
 			case TypeSystemDefinitionEnum.DD:
-				obj.des.visit(this);
-				obj.dd.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				this.accept(this.parser.directiveDefinitions[obj.ddIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(TypeDefinition) obj) {}
-	void exit(const(TypeDefinition) obj) {}
+	void enter(ref const(TypeDefinition) obj) {}
+	void exit(ref const(TypeDefinition) obj) {}
 
-	void accept(const(TypeDefinition) obj) {
+	void accept(ref const(TypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeDefinitionEnum.S:
-				obj.std.visit(this);
+				this.accept(this.parser.scalarTypeDefinitions[obj.stdIdx]);
 				break;
 			case TypeDefinitionEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.objectTypeDefinitions[obj.otdIdx]);
 				break;
 			case TypeDefinitionEnum.I:
-				obj.itd.visit(this);
+				this.accept(this.parser.interfaceTypeDefinitions[obj.itdIdx]);
 				break;
 			case TypeDefinitionEnum.U:
-				obj.utd.visit(this);
+				this.accept(this.parser.unionTypeDefinitions[obj.utdIdx]);
 				break;
 			case TypeDefinitionEnum.E:
-				obj.etd.visit(this);
+				this.accept(this.parser.enumTypeDefinitions[obj.etdIdx]);
 				break;
 			case TypeDefinitionEnum.IO:
-				obj.iod.visit(this);
+				this.accept(this.parser.inputObjectTypeDefinitions[obj.iodIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(SchemaDefinition) obj) {}
-	void exit(const(SchemaDefinition) obj) {}
+	void enter(ref const(SchemaDefinition) obj) {}
+	void exit(ref const(SchemaDefinition) obj) {}
 
-	void accept(const(SchemaDefinition) obj) {
+	void accept(ref const(SchemaDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case SchemaDefinitionEnum.DO:
-				obj.dir.visit(this);
-				obj.otds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.otdsIdx]);
 				break;
 			case SchemaDefinitionEnum.O:
-				obj.otds.visit(this);
+				this.accept(this.parser.operationTypeDefinitionss[obj.otdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(OperationTypeDefinitions) obj) {}
-	void exit(const(OperationTypeDefinitions) obj) {}
+	void enter(ref const(OperationTypeDefinitions) obj) {}
+	void exit(ref const(OperationTypeDefinitions) obj) {}
 
-	void accept(const(OperationTypeDefinitions) obj) {
+	void accept(ref const(OperationTypeDefinitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeDefinitionsEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
 				break;
 			case OperationTypeDefinitionsEnum.OCS:
-				obj.otd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.followIdx]);
 				break;
 			case OperationTypeDefinitionsEnum.OS:
-				obj.otd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.operationTypeDefinitions[obj.otdIdx]);
+				this.accept(this.parser.operationTypeDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(OperationTypeDefinition) obj) {}
-	void exit(const(OperationTypeDefinition) obj) {}
+	void enter(ref const(OperationTypeDefinition) obj) {}
+	void exit(ref const(OperationTypeDefinition) obj) {}
 
-	void accept(const(OperationTypeDefinition) obj) {
+	void accept(ref const(OperationTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case OperationTypeDefinitionEnum.O:
-				obj.ot.visit(this);
+				this.accept(this.parser.operationTypes[obj.otIdx]);
 				obj.nt.visit(this);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ScalarTypeDefinition) obj) {}
-	void exit(const(ScalarTypeDefinition) obj) {}
+	void enter(ref const(ScalarTypeDefinition) obj) {}
+	void exit(ref const(ScalarTypeDefinition) obj) {}
 
-	void accept(const(ScalarTypeDefinition) obj) {
+	void accept(ref const(ScalarTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ScalarTypeDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case ScalarTypeDefinitionEnum.S:
 				obj.name.visit(this);
@@ -1965,128 +1972,128 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(ObjectTypeDefinition) obj) {}
-	void exit(const(ObjectTypeDefinition) obj) {}
+	void enter(ref const(ObjectTypeDefinition) obj) {}
+	void exit(ref const(ObjectTypeDefinition) obj) {}
 
-	void accept(const(ObjectTypeDefinition) obj) {
+	void accept(ref const(ObjectTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ObjectTypeDefinitionEnum.ID:
 				obj.name.visit(this);
-				obj.ii.visit(this);
-				obj.dir.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.implementsInterfacess[obj.iiIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.I:
 				obj.name.visit(this);
-				obj.ii.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.implementsInterfacess[obj.iiIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case ObjectTypeDefinitionEnum.F:
 				obj.name.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(FieldDefinitions) obj) {}
-	void exit(const(FieldDefinitions) obj) {}
+	void enter(ref const(FieldDefinitions) obj) {}
+	void exit(ref const(FieldDefinitions) obj) {}
 
-	void accept(const(FieldDefinitions) obj) {
+	void accept(ref const(FieldDefinitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldDefinitionsEnum.F:
-				obj.fd.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
 				break;
 			case FieldDefinitionsEnum.FC:
-				obj.fd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.followIdx]);
 				break;
 			case FieldDefinitionsEnum.FNC:
-				obj.fd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.fieldDefinitions[obj.fdIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(FieldDefinition) obj) {}
-	void exit(const(FieldDefinition) obj) {}
+	void enter(ref const(FieldDefinition) obj) {}
+	void exit(ref const(FieldDefinition) obj) {}
 
-	void accept(const(FieldDefinition) obj) {
+	void accept(ref const(FieldDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case FieldDefinitionEnum.AD:
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.A:
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.T:
 				obj.name.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.DAD:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.DA:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.arg.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.argIdx]);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 			case FieldDefinitionEnum.DD:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.typ.visit(this);
-				obj.dir.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
+				this.accept(this.parser.directivess[obj.dirIdx]);
 				break;
 			case FieldDefinitionEnum.DT:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
-				obj.typ.visit(this);
+				this.accept(this.parser.types[obj.typIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ImplementsInterfaces) obj) {}
-	void exit(const(ImplementsInterfaces) obj) {}
+	void enter(ref const(ImplementsInterfaces) obj) {}
+	void exit(ref const(ImplementsInterfaces) obj) {}
 
-	void accept(const(ImplementsInterfaces) obj) {
+	void accept(ref const(ImplementsInterfaces) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ImplementsInterfacesEnum.N:
-				obj.nts.visit(this);
+				this.accept(this.parser.namedTypess[obj.ntsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(NamedTypes) obj) {}
-	void exit(const(NamedTypes) obj) {}
+	void enter(ref const(NamedTypes) obj) {}
+	void exit(ref const(NamedTypes) obj) {}
 
-	void accept(const(NamedTypes) obj) {
+	void accept(ref const(NamedTypes) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case NamedTypesEnum.N:
@@ -2094,124 +2101,124 @@ class ConstVisitor {
 				break;
 			case NamedTypesEnum.NCS:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.namedTypess[obj.followIdx]);
 				break;
 			case NamedTypesEnum.NS:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.namedTypess[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(ArgumentsDefinition) obj) {}
-	void exit(const(ArgumentsDefinition) obj) {}
+	void enter(ref const(ArgumentsDefinition) obj) {}
+	void exit(ref const(ArgumentsDefinition) obj) {}
 
-	void accept(const(ArgumentsDefinition) obj) {
+	void accept(ref const(ArgumentsDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
 			case ArgumentsDefinitionEnum.DA:
-				obj.des.visit(this);
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(InputValueDefinitions) obj) {}
-	void exit(const(InputValueDefinitions) obj) {}
+	void enter(ref const(InputValueDefinitions) obj) {}
+	void exit(ref const(InputValueDefinitions) obj) {}
 
-	void accept(const(InputValueDefinitions) obj) {
+	void accept(ref const(InputValueDefinitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputValueDefinitionsEnum.I:
-				obj.iv.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
 				break;
 			case InputValueDefinitionsEnum.ICF:
-				obj.iv.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.followIdx]);
 				break;
 			case InputValueDefinitionsEnum.IF:
-				obj.iv.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.inputValueDefinitions[obj.ivIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(InputValueDefinition) obj) {}
-	void exit(const(InputValueDefinition) obj) {}
+	void enter(ref const(InputValueDefinition) obj) {}
+	void exit(ref const(InputValueDefinition) obj) {}
 
-	void accept(const(InputValueDefinition) obj) {
+	void accept(ref const(InputValueDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputValueDefinitionEnum.TVD:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.df.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputValueDefinitionEnum.TD:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputValueDefinitionEnum.TV:
 				obj.name.visit(this);
-				obj.type.visit(this);
-				obj.df.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
 				break;
 			case InputValueDefinitionEnum.T:
 				obj.name.visit(this);
-				obj.type.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(InterfaceTypeDefinition) obj) {}
-	void exit(const(InterfaceTypeDefinition) obj) {}
+	void enter(ref const(InterfaceTypeDefinition) obj) {}
+	void exit(ref const(InterfaceTypeDefinition) obj) {}
 
-	void accept(const(InterfaceTypeDefinition) obj) {
+	void accept(ref const(InterfaceTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InterfaceTypeDefinitionEnum.NDF:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 			case InterfaceTypeDefinitionEnum.NF:
 				obj.name.visit(this);
-				obj.fds.visit(this);
+				this.accept(this.parser.fieldDefinitionss[obj.fdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(UnionTypeDefinition) obj) {}
-	void exit(const(UnionTypeDefinition) obj) {}
+	void enter(ref const(UnionTypeDefinition) obj) {}
+	void exit(ref const(UnionTypeDefinition) obj) {}
 
-	void accept(const(UnionTypeDefinition) obj) {
+	void accept(ref const(UnionTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case UnionTypeDefinitionEnum.NDU:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
-				obj.um.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				this.accept(this.parser.unionMemberss[obj.umIdx]);
 				break;
 			case UnionTypeDefinitionEnum.NU:
 				obj.name.visit(this);
-				obj.um.visit(this);
+				this.accept(this.parser.unionMemberss[obj.umIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(UnionMembers) obj) {}
-	void exit(const(UnionMembers) obj) {}
+	void enter(ref const(UnionMembers) obj) {}
+	void exit(ref const(UnionMembers) obj) {}
 
-	void accept(const(UnionMembers) obj) {
+	void accept(ref const(UnionMembers) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case UnionMembersEnum.S:
@@ -2219,65 +2226,65 @@ class ConstVisitor {
 				break;
 			case UnionMembersEnum.SPF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.unionMemberss[obj.followIdx]);
 				break;
 			case UnionMembersEnum.SF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.unionMemberss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(EnumTypeDefinition) obj) {}
-	void exit(const(EnumTypeDefinition) obj) {}
+	void enter(ref const(EnumTypeDefinition) obj) {}
+	void exit(ref const(EnumTypeDefinition) obj) {}
 
-	void accept(const(EnumTypeDefinition) obj) {
+	void accept(ref const(EnumTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumTypeDefinitionEnum.NDE:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.evds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.evdsIdx]);
 				break;
 			case EnumTypeDefinitionEnum.NE:
 				obj.name.visit(this);
-				obj.evds.visit(this);
+				this.accept(this.parser.enumValueDefinitionss[obj.evdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(EnumValueDefinitions) obj) {}
-	void exit(const(EnumValueDefinitions) obj) {}
+	void enter(ref const(EnumValueDefinitions) obj) {}
+	void exit(ref const(EnumValueDefinitions) obj) {}
 
-	void accept(const(EnumValueDefinitions) obj) {
+	void accept(ref const(EnumValueDefinitions) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumValueDefinitionsEnum.D:
-				obj.evd.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
 				break;
 			case EnumValueDefinitionsEnum.DCE:
-				obj.evd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.followIdx]);
 				break;
 			case EnumValueDefinitionsEnum.DE:
-				obj.evd.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.enumValueDefinitions[obj.evdIdx]);
+				this.accept(this.parser.enumValueDefinitionss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(EnumValueDefinition) obj) {}
-	void exit(const(EnumValueDefinition) obj) {}
+	void enter(ref const(EnumValueDefinition) obj) {}
+	void exit(ref const(EnumValueDefinition) obj) {}
 
-	void accept(const(EnumValueDefinition) obj) {
+	void accept(ref const(EnumValueDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case EnumValueDefinitionEnum.ED:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case EnumValueDefinitionEnum.E:
 				obj.name.visit(this);
@@ -2286,61 +2293,61 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(InputTypeDefinition) obj) {}
-	void exit(const(InputTypeDefinition) obj) {}
+	void enter(ref const(InputTypeDefinition) obj) {}
+	void exit(ref const(InputTypeDefinition) obj) {}
 
-	void accept(const(InputTypeDefinition) obj) {
+	void accept(ref const(InputTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputTypeDefinitionEnum.NDE:
 				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.ivds.visit(this);
+				this.accept(this.parser.directivess[obj.dirIdx]);
+				this.accept(this.parser.inputValueDefinitionss[obj.ivdsIdx]);
 				break;
 			case InputTypeDefinitionEnum.NE:
 				obj.name.visit(this);
-				obj.ivds.visit(this);
+				this.accept(this.parser.inputValueDefinitionss[obj.ivdsIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(TypeExtensionDefinition) obj) {}
-	void exit(const(TypeExtensionDefinition) obj) {}
+	void enter(ref const(TypeExtensionDefinition) obj) {}
+	void exit(ref const(TypeExtensionDefinition) obj) {}
 
-	void accept(const(TypeExtensionDefinition) obj) {
+	void accept(ref const(TypeExtensionDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case TypeExtensionDefinitionEnum.O:
-				obj.otd.visit(this);
+				this.accept(this.parser.objectTypeDefinitions[obj.otdIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(DirectiveDefinition) obj) {}
-	void exit(const(DirectiveDefinition) obj) {}
+	void enter(ref const(DirectiveDefinition) obj) {}
+	void exit(ref const(DirectiveDefinition) obj) {}
 
-	void accept(const(DirectiveDefinition) obj) {
+	void accept(ref const(DirectiveDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveDefinitionEnum.AD:
 				obj.name.visit(this);
-				obj.ad.visit(this);
-				obj.dl.visit(this);
+				this.accept(this.parser.argumentsDefinitions[obj.adIdx]);
+				this.accept(this.parser.directiveLocationss[obj.dlIdx]);
 				break;
 			case DirectiveDefinitionEnum.D:
 				obj.name.visit(this);
-				obj.dl.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.dlIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(DirectiveLocations) obj) {}
-	void exit(const(DirectiveLocations) obj) {}
+	void enter(ref const(DirectiveLocations) obj) {}
+	void exit(ref const(DirectiveLocations) obj) {}
 
-	void accept(const(DirectiveLocations) obj) {
+	void accept(ref const(DirectiveLocations) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DirectiveLocationsEnum.N:
@@ -2348,25 +2355,25 @@ class ConstVisitor {
 				break;
 			case DirectiveLocationsEnum.NPF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.followIdx]);
 				break;
 			case DirectiveLocationsEnum.NF:
 				obj.name.visit(this);
-				obj.follow.visit(this);
+				this.accept(this.parser.directiveLocationss[obj.followIdx]);
 				break;
 		}
 		exit(obj);
 	}
 
-	void enter(const(InputObjectTypeDefinition) obj) {}
-	void exit(const(InputObjectTypeDefinition) obj) {}
+	void enter(ref const(InputObjectTypeDefinition) obj) {}
+	void exit(ref const(InputObjectTypeDefinition) obj) {}
 
-	void accept(const(InputObjectTypeDefinition) obj) {
+	void accept(ref const(InputObjectTypeDefinition) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case InputObjectTypeDefinitionEnum.NDI:
 				obj.name.visit(this);
-				obj.dirs.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
@@ -2375,10 +2382,10 @@ class ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(const(Description) obj) {}
-	void exit(const(Description) obj) {}
+	void enter(ref const(Description) obj) {}
+	void exit(ref const(Description) obj) {}
 
-	void accept(const(Description) obj) {
+	void accept(ref const(Description) obj) {
 		enter(obj);
 		final switch(obj.ruleSelection) {
 			case DescriptionEnum.S:

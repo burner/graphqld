@@ -1,5 +1,7 @@
 module graphql.graphql;
 
+__EOF__
+
 import std.array : array, front, empty;
 import std.stdio;
 version(LDC) {

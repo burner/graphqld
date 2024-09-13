@@ -7,6 +7,7 @@ import std.string : indexOf;
 import graphql.ast;
 import graphql.visitor;
 import graphql.tokenmodule;
+import graphql.parser;
 
 class CountVisitor : ConstVisitor {
 	alias accept = ConstVisitor.accept;
@@ -15,7 +16,8 @@ class CountVisitor : ConstVisitor {
 
 	mixin(genCountTables());
 
-	this() {
+	this(Parser* parser) {
+		super(parser);
 	}
 }
 
@@ -53,5 +55,6 @@ string genCountTables() {
 }
 
 unittest {
-	auto c = new ConstVisitor();
+	Parser p;
+	auto c = new ConstVisitor(&p);
 }
