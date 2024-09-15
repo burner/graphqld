@@ -139,6 +139,7 @@ ListType:
 Values:
     Val: [Value#val]
     Vals: [Value#val, comma, Values#follow]
+    ValsNoComma: [Value#val, Values#follow]
 
 Array:
     Empty: [lbrack, rbrack]
@@ -224,7 +225,7 @@ NamedTypes:
 
 ArgumentsDefinition:
     A: [lparen, InputValueDefinitions, rparen]
-    DA: [lparen, Description#des, InputValueDefinitions, rparen]
+    NA: [lparen, rparen]
 
 InputValueDefinitions:
     I: [InputValueDefinition#iv]
@@ -236,6 +237,10 @@ InputValueDefinition:
     TD: [name#name, colon, Type#type, Directives#dirs]
     TV: [name#name, colon, Type#type, DefaultValue#df]
     T: [name#name, colon, Type#type]
+    DTVD: [Description#des, name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
+    DTD: [Description#des, name#name, colon, Type#type, Directives#dirs]
+    DTV: [Description#des, name#name, colon, Type#type, DefaultValue#df]
+    DT: [Description#des, name#name, colon, Type#type]
 
 InterfaceTypeDefinition:
     NDF: [interface_, name#name, Directives#dirs, lcurly,
@@ -264,6 +269,8 @@ EnumValueDefinitions:
 EnumValueDefinition:
     ED: [name#name, Directives#dirs]
     E: [name#name]
+    DED: [Description#des, name#name, Directives#dirs]
+    DE: [Description#des, name#name]
 
 InputTypeDefinition:
     NDE: [input, name#name, Directives#dir, lcurly,

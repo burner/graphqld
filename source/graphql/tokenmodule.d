@@ -50,9 +50,9 @@ enum TokenType {
 
 struct Token {
 @safe:
-	size_t line;
-	size_t column;
 	string value;
+	uint line;
+	ushort column;
 
 	TokenType type;
 
@@ -62,8 +62,8 @@ struct Token {
 
 	this(TokenType type, size_t line, size_t column) {
 		this.type = type;
-		this.line = line;
-		this.column = column;
+		this.line = cast(uint)line;
+		this.column = cast(ushort)column;
 	}
 
 	this(TokenType type, string value) {
@@ -90,8 +90,7 @@ struct Token {
 
 	string toString() const {
 		import std.format : format;
-		return format("Token(%s,%s,%s,%s)", this.line, this.column, this.type,
+		return format("Token(line: %s, col: %s, type: '%s' , value: '%s')", this.line, this.column, this.type,
 				this.value);
 	}
 }
-

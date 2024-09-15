@@ -585,6 +585,10 @@ class Visitor {
 				this.accept(this.parser.values[obj.valIdx]);
 				this.accept(this.parser.valuess[obj.followIdx]);
 				break;
+			case ValuesEnum.ValsNoComma:
+				this.accept(this.parser.values[obj.valIdx]);
+				this.accept(this.parser.valuess[obj.followIdx]);
+				break;
 		}
 		exit(obj);
 	}
@@ -923,8 +927,7 @@ class Visitor {
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
-			case ArgumentsDefinitionEnum.DA:
-				this.accept(this.parser.descriptions[obj.desIdx]);
+			case ArgumentsDefinitionEnum.NA:
 				break;
 		}
 		exit(obj);
@@ -974,6 +977,30 @@ class Visitor {
 				this.accept(this.parser.defaultValues[obj.dfIdx]);
 				break;
 			case InputValueDefinitionEnum.T:
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				break;
+			case InputValueDefinitionEnum.DTVD:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case InputValueDefinitionEnum.DTD:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case InputValueDefinitionEnum.DTV:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				break;
+			case InputValueDefinitionEnum.DT:
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
 				this.accept(this.parser.types[obj.typeIdx]);
 				break;
@@ -1091,6 +1118,15 @@ class Visitor {
 				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case EnumValueDefinitionEnum.E:
+				obj.name.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DED:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case EnumValueDefinitionEnum.DE:
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
 				break;
 		}
@@ -1781,6 +1817,10 @@ class ConstVisitor {
 				this.accept(this.parser.values[obj.valIdx]);
 				this.accept(this.parser.valuess[obj.followIdx]);
 				break;
+			case ValuesEnum.ValsNoComma:
+				this.accept(this.parser.values[obj.valIdx]);
+				this.accept(this.parser.valuess[obj.followIdx]);
+				break;
 		}
 		exit(obj);
 	}
@@ -2119,8 +2159,7 @@ class ConstVisitor {
 		final switch(obj.ruleSelection) {
 			case ArgumentsDefinitionEnum.A:
 				break;
-			case ArgumentsDefinitionEnum.DA:
-				this.accept(this.parser.descriptions[obj.desIdx]);
+			case ArgumentsDefinitionEnum.NA:
 				break;
 		}
 		exit(obj);
@@ -2170,6 +2209,30 @@ class ConstVisitor {
 				this.accept(this.parser.defaultValues[obj.dfIdx]);
 				break;
 			case InputValueDefinitionEnum.T:
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				break;
+			case InputValueDefinitionEnum.DTVD:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case InputValueDefinitionEnum.DTD:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case InputValueDefinitionEnum.DTV:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.types[obj.typeIdx]);
+				this.accept(this.parser.defaultValues[obj.dfIdx]);
+				break;
+			case InputValueDefinitionEnum.DT:
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
 				this.accept(this.parser.types[obj.typeIdx]);
 				break;
@@ -2287,6 +2350,15 @@ class ConstVisitor {
 				this.accept(this.parser.directivess[obj.dirsIdx]);
 				break;
 			case EnumValueDefinitionEnum.E:
+				obj.name.visit(this);
+				break;
+			case EnumValueDefinitionEnum.DED:
+				this.accept(this.parser.descriptions[obj.desIdx]);
+				obj.name.visit(this);
+				this.accept(this.parser.directivess[obj.dirsIdx]);
+				break;
+			case EnumValueDefinitionEnum.DE:
+				this.accept(this.parser.descriptions[obj.desIdx]);
 				obj.name.visit(this);
 				break;
 		}

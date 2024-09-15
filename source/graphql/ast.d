@@ -1044,6 +1044,7 @@ struct ListType {
 enum ValuesEnum : ubyte {
 	Val,
 	Vals,
+	ValsNoComma,
 }
 
 struct Values {
@@ -1064,6 +1065,14 @@ struct Values {
 	static Values ConstructVals(uint val, uint follow) {
 		Values ret;
 		ret.ruleSelection = ValuesEnum.Vals;
+		ret.valIdx = val;
+		ret.followIdx = follow;
+		return ret;
+	}
+
+	static Values ConstructValsNoComma(uint val, uint follow) {
+		Values ret;
+		ret.ruleSelection = ValuesEnum.ValsNoComma;
 		ret.valIdx = val;
 		ret.followIdx = follow;
 		return ret;
@@ -1687,13 +1696,12 @@ struct NamedTypes {
 
 enum ArgumentsDefinitionEnum : ubyte {
 	A,
-	DA,
+	NA,
 }
 
 struct ArgumentsDefinition {
 @safe :
 
-	uint desIdx;
 
 	ArgumentsDefinitionEnum ruleSelection;
 
@@ -1704,10 +1712,10 @@ struct ArgumentsDefinition {
 		return ret;
 	}
 
-	static ArgumentsDefinition ConstructDA(uint des) {
+	static ArgumentsDefinition ConstructNA() {
 		ArgumentsDefinition ret;
-		ret.ruleSelection = ArgumentsDefinitionEnum.DA;
-		ret.desIdx = des;
+		ret.ruleSelection = ArgumentsDefinitionEnum.NA;
+
 		return ret;
 	}
 
@@ -1757,12 +1765,17 @@ enum InputValueDefinitionEnum : ubyte {
 	TD,
 	TV,
 	T,
+	DTVD,
+	DTD,
+	DTV,
+	DT,
 }
 
 struct InputValueDefinition {
 @safe :
 
 	uint typeIdx;
+	uint desIdx;
 	uint dfIdx;
 	uint dirsIdx;
 	Token name;
@@ -1800,6 +1813,46 @@ struct InputValueDefinition {
 	static InputValueDefinition ConstructT(Token name, uint type) {
 		InputValueDefinition ret;
 		ret.ruleSelection = InputValueDefinitionEnum.T;
+		ret.name = name;
+		ret.typeIdx = type;
+		return ret;
+	}
+
+	static InputValueDefinition ConstructDTVD(uint des, Token name, uint type, uint df, uint dirs) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.DTVD;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dfIdx = df;
+		ret.dirsIdx = dirs;
+		return ret;
+	}
+
+	static InputValueDefinition ConstructDTD(uint des, Token name, uint type, uint dirs) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.DTD;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dirsIdx = dirs;
+		return ret;
+	}
+
+	static InputValueDefinition ConstructDTV(uint des, Token name, uint type, uint df) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.DTV;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.typeIdx = type;
+		ret.dfIdx = df;
+		return ret;
+	}
+
+	static InputValueDefinition ConstructDT(uint des, Token name, uint type) {
+		InputValueDefinition ret;
+		ret.ruleSelection = InputValueDefinitionEnum.DT;
+		ret.desIdx = des;
 		ret.name = name;
 		ret.typeIdx = type;
 		return ret;
@@ -1987,11 +2040,14 @@ struct EnumValueDefinitions {
 enum EnumValueDefinitionEnum : ubyte {
 	ED,
 	E,
+	DED,
+	DE,
 }
 
 struct EnumValueDefinition {
 @safe :
 
+	uint desIdx;
 	uint dirsIdx;
 	Token name;
 
@@ -2008,6 +2064,23 @@ struct EnumValueDefinition {
 	static EnumValueDefinition ConstructE(Token name) {
 		EnumValueDefinition ret;
 		ret.ruleSelection = EnumValueDefinitionEnum.E;
+		ret.name = name;
+		return ret;
+	}
+
+	static EnumValueDefinition ConstructDED(uint des, Token name, uint dirs) {
+		EnumValueDefinition ret;
+		ret.ruleSelection = EnumValueDefinitionEnum.DED;
+		ret.desIdx = des;
+		ret.name = name;
+		ret.dirsIdx = dirs;
+		return ret;
+	}
+
+	static EnumValueDefinition ConstructDE(uint des, Token name) {
+		EnumValueDefinition ret;
+		ret.ruleSelection = EnumValueDefinitionEnum.DE;
+		ret.desIdx = des;
 		ret.name = name;
 		return ret;
 	}

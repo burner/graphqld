@@ -94,7 +94,6 @@ struct Parser {
 
 	uint parseDocumentImpl() {
 		string[] subRules;
-		subRules = ["Defi"];
 		if(this.firstDefinitions()) {
 			uint defs = this.parseDefinitions();
 
@@ -132,10 +131,8 @@ struct Parser {
 
 	uint parseDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["Def", "Defs"];
 		if(this.firstDefinition()) {
 			uint def = this.parseDefinition();
-			subRules = ["Defs"];
 			if(this.firstDefinitions()) {
 				uint follow = this.parseDefinitions();
 
@@ -179,7 +176,6 @@ struct Parser {
 
 	uint parseDefinitionImpl() {
 		string[] subRules;
-		subRules = ["O"];
 		if(this.firstOperationDefinition()) {
 			uint op = this.parseOperationDefinition();
 
@@ -230,7 +226,6 @@ struct Parser {
 
 	uint parseOperationDefinitionImpl() {
 		string[] subRules;
-		subRules = ["SelSet"];
 		if(this.firstSelectionSet()) {
 			uint ss = this.parseSelectionSet();
 
@@ -239,17 +234,13 @@ struct Parser {
 
 		} else if(this.firstOperationType()) {
 			uint ot = this.parseOperationType();
-			subRules = ["OT_N", "OT_N_D", "OT_N_V", "OT_N_VD"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["OT_N_V", "OT_N_VD"];
 				if(this.firstVariableDefinitions()) {
 					uint vd = this.parseVariableDefinitions();
-					subRules = ["OT_N_VD"];
 					if(this.firstDirectives()) {
 						uint d = this.parseDirectives();
-						subRules = ["OT_N_VD"];
 						if(this.firstSelectionSet()) {
 							uint ss = this.parseSelectionSet();
 
@@ -288,7 +279,6 @@ struct Parser {
 
 				} else if(this.firstDirectives()) {
 					uint d = this.parseDirectives();
-					subRules = ["OT_N_D"];
 					if(this.firstSelectionSet()) {
 						uint ss = this.parseSelectionSet();
 
@@ -327,10 +317,8 @@ struct Parser {
 
 			} else if(this.firstVariableDefinitions()) {
 				uint vd = this.parseVariableDefinitions();
-				subRules = ["OT_VD"];
 				if(this.firstDirectives()) {
 					uint d = this.parseDirectives();
-					subRules = ["OT_VD"];
 					if(this.firstSelectionSet()) {
 						uint ss = this.parseSelectionSet();
 
@@ -369,7 +357,6 @@ struct Parser {
 
 			} else if(this.firstDirectives()) {
 				uint d = this.parseDirectives();
-				subRules = ["OT_D"];
 				if(this.firstSelectionSet()) {
 					uint ss = this.parseSelectionSet();
 
@@ -437,13 +424,10 @@ struct Parser {
 
 	uint parseSelectionSetImpl() {
 		string[] subRules;
-		subRules = ["SS"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
-			subRules = ["SS"];
 			if(this.firstSelections()) {
 				uint sel = this.parseSelections();
-				subRules = ["SS"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
@@ -507,7 +491,6 @@ struct Parser {
 
 	uint parseOperationTypeImpl() {
 		string[] subRules;
-		subRules = ["Query"];
 		if(this.lex.front.type == TokenType.query) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
@@ -560,10 +543,8 @@ struct Parser {
 
 	uint parseSelectionsImpl() {
 		string[] subRules;
-		subRules = ["Sel", "Sels", "Selsc"];
 		if(this.firstSelection()) {
 			uint sel = this.parseSelection();
-			subRules = ["Sels"];
 			if(this.firstSelections()) {
 				uint follow = this.parseSelections();
 
@@ -572,7 +553,6 @@ struct Parser {
 
 			} else if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["Selsc"];
 				if(this.firstSelections()) {
 					uint follow = this.parseSelections();
 
@@ -627,7 +607,6 @@ struct Parser {
 
 	uint parseSelectionImpl() {
 		string[] subRules;
-		subRules = ["Field"];
 		if(this.firstField()) {
 			uint field = this.parseField();
 
@@ -636,7 +615,6 @@ struct Parser {
 
 		} else if(this.lex.front.type == TokenType.dots) {
 			this.lex.popFront();
-			subRules = ["Spread"];
 			if(this.firstFragmentSpread()) {
 				uint frag = this.parseFragmentSpread();
 
@@ -692,11 +670,9 @@ struct Parser {
 
 	uint parseFragmentSpreadImpl() {
 		string[] subRules;
-		subRules = ["F", "FD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["FD"];
 			if(this.firstDirectives()) {
 				uint dirs = this.parseDirectives();
 
@@ -740,17 +716,13 @@ struct Parser {
 
 	uint parseInlineFragmentImpl() {
 		string[] subRules;
-		subRules = ["TDS", "TS"];
 		if(this.lex.front.type == TokenType.on_) {
 			this.lex.popFront();
-			subRules = ["TDS", "TS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token tc = this.lex.front;
 				this.lex.popFront();
-				subRules = ["TDS"];
 				if(this.firstDirectives()) {
 					uint dirs = this.parseDirectives();
-					subRules = ["TDS"];
 					if(this.firstSelectionSet()) {
 						uint ss = this.parseSelectionSet();
 
@@ -801,7 +773,6 @@ struct Parser {
 
 		} else if(this.firstDirectives()) {
 			uint dirs = this.parseDirectives();
-			subRules = ["DS"];
 			if(this.firstSelectionSet()) {
 				uint ss = this.parseSelectionSet();
 
@@ -857,16 +828,12 @@ struct Parser {
 
 	uint parseFieldImpl() {
 		string[] subRules;
-		subRules = ["F", "FA", "FAD", "FADS", "FAS", "FD", "FDS", "FS"];
 		if(this.firstFieldName()) {
 			uint name = this.parseFieldName();
-			subRules = ["FA", "FAD", "FADS", "FAS"];
 			if(this.firstArguments()) {
 				uint args = this.parseArguments();
-				subRules = ["FAD", "FADS"];
 				if(this.firstDirectives()) {
 					uint dirs = this.parseDirectives();
-					subRules = ["FADS"];
 					if(this.firstSelectionSet()) {
 						uint ss = this.parseSelectionSet();
 
@@ -889,7 +856,6 @@ struct Parser {
 
 			} else if(this.firstDirectives()) {
 				uint dirs = this.parseDirectives();
-				subRules = ["FDS"];
 				if(this.firstSelectionSet()) {
 					uint ss = this.parseSelectionSet();
 
@@ -941,14 +907,11 @@ struct Parser {
 
 	uint parseFieldNameImpl() {
 		string[] subRules;
-		subRules = ["A", "N"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["A"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["A"];
 				if(this.lex.front.type == TokenType.name) {
 					Token aka = this.lex.front;
 					this.lex.popFront();
@@ -1003,13 +966,10 @@ struct Parser {
 
 	uint parseArgumentsImpl() {
 		string[] subRules;
-		subRules = ["Empty", "List"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
-			subRules = ["List"];
 			if(this.firstArgumentList()) {
 				uint arg = this.parseArgumentList();
-				subRules = ["List"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -1077,13 +1037,10 @@ struct Parser {
 
 	uint parseArgumentListImpl() {
 		string[] subRules;
-		subRules = ["A", "ACS", "AS"];
 		if(this.firstArgument()) {
 			uint arg = this.parseArgument();
-			subRules = ["ACS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["ACS"];
 				if(this.firstArgumentList()) {
 					uint follow = this.parseArgumentList();
 
@@ -1143,14 +1100,11 @@ struct Parser {
 
 	uint parseArgumentImpl() {
 		string[] subRules;
-		subRules = ["Name"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["Name"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["Name"];
 				if(this.firstValueOrVariable()) {
 					uint vv = this.parseValueOrVariable();
 
@@ -1212,24 +1166,18 @@ struct Parser {
 
 	uint parseFragmentDefinitionImpl() {
 		string[] subRules;
-		subRules = ["FTDS", "FTS"];
 		if(this.lex.front.type == TokenType.fragment) {
 			this.lex.popFront();
-			subRules = ["FTDS", "FTS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["FTDS", "FTS"];
 				if(this.lex.front.type == TokenType.on_) {
 					this.lex.popFront();
-					subRules = ["FTDS", "FTS"];
 					if(this.lex.front.type == TokenType.name) {
 						Token tc = this.lex.front;
 						this.lex.popFront();
-						subRules = ["FTDS"];
 						if(this.firstDirectives()) {
 							uint dirs = this.parseDirectives();
-							subRules = ["FTDS"];
 							if(this.firstSelectionSet()) {
 								uint ss = this.parseSelectionSet();
 
@@ -1333,10 +1281,8 @@ struct Parser {
 
 	uint parseDirectivesImpl() {
 		string[] subRules;
-		subRules = ["Dir", "Dirs"];
 		if(this.firstDirective()) {
 			uint dir = this.parseDirective();
-			subRules = ["Dirs"];
 			if(this.firstDirectives()) {
 				uint follow = this.parseDirectives();
 
@@ -1378,14 +1324,11 @@ struct Parser {
 
 	uint parseDirectiveImpl() {
 		string[] subRules;
-		subRules = ["N", "NArg"];
 		if(this.lex.front.type == TokenType.at) {
 			this.lex.popFront();
-			subRules = ["N", "NArg"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NArg"];
 				if(this.firstArguments()) {
 					uint arg = this.parseArguments();
 
@@ -1439,10 +1382,8 @@ struct Parser {
 
 	uint parseVariableDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["Empty", "Vars"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
-			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rparen) {
 				this.lex.popFront();
 
@@ -1451,7 +1392,6 @@ struct Parser {
 
 			} else if(this.firstVariableDefinitionList()) {
 				uint vars = this.parseVariableDefinitionList();
-				subRules = ["Vars"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -1513,13 +1453,10 @@ struct Parser {
 
 	uint parseVariableDefinitionListImpl() {
 		string[] subRules;
-		subRules = ["V", "VCF", "VF"];
 		if(this.firstVariableDefinition()) {
 			uint var = this.parseVariableDefinition();
-			subRules = ["VCF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["VCF"];
 				if(this.firstVariableDefinitionList()) {
 					uint follow = this.parseVariableDefinitionList();
 
@@ -1579,16 +1516,12 @@ struct Parser {
 
 	uint parseVariableDefinitionImpl() {
 		string[] subRules;
-		subRules = ["Var", "VarD"];
 		if(this.firstVariable()) {
 			uint var = this.parseVariable();
-			subRules = ["Var", "VarD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["Var", "VarD"];
 				if(this.firstType()) {
 					uint type = this.parseType();
-					subRules = ["VarD"];
 					if(this.firstDefaultValue()) {
 						uint dvalue = this.parseDefaultValue();
 
@@ -1654,10 +1587,8 @@ struct Parser {
 
 	uint parseVariableImpl() {
 		string[] subRules;
-		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.dollar) {
 			this.lex.popFront();
-			subRules = ["Var"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
@@ -1708,10 +1639,8 @@ struct Parser {
 
 	uint parseDefaultValueImpl() {
 		string[] subRules;
-		subRules = ["DV"];
 		if(this.lex.front.type == TokenType.equal) {
 			this.lex.popFront();
-			subRules = ["DV"];
 			if(this.firstValue()) {
 				uint value = this.parseValue();
 
@@ -1762,7 +1691,6 @@ struct Parser {
 
 	uint parseValueOrVariableImpl() {
 		string[] subRules;
-		subRules = ["Val"];
 		if(this.firstValue()) {
 			uint val = this.parseValue();
 
@@ -1814,7 +1742,6 @@ struct Parser {
 
 	uint parseValueImpl() {
 		string[] subRules;
-		subRules = ["STR"];
 		if(this.lex.front.type == TokenType.stringValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
@@ -1908,11 +1835,9 @@ struct Parser {
 
 	uint parseTypeImpl() {
 		string[] subRules;
-		subRules = ["T", "TN"];
 		if(this.lex.front.type == TokenType.name) {
 			Token tname = this.lex.front;
 			this.lex.popFront();
-			subRules = ["TN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
@@ -1925,7 +1850,6 @@ struct Parser {
 
 		} else if(this.firstListType()) {
 			uint list = this.parseListType();
-			subRules = ["LN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
@@ -1967,13 +1891,10 @@ struct Parser {
 
 	uint parseListTypeImpl() {
 		string[] subRules;
-		subRules = ["T"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
-			subRules = ["T"];
 			if(this.firstType()) {
 				uint type = this.parseType();
-				subRules = ["T"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
@@ -2035,13 +1956,10 @@ struct Parser {
 
 	uint parseValuesImpl() {
 		string[] subRules;
-		subRules = ["Val", "Vals"];
 		if(this.firstValue()) {
 			uint val = this.parseValue();
-			subRules = ["Vals"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["Vals"];
 				if(this.firstValues()) {
 					uint follow = this.parseValues();
 
@@ -2059,6 +1977,12 @@ struct Parser {
 					subRules,
 					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 				);
+
+			} else if(this.firstValues()) {
+				uint follow = this.parseValues();
+
+				this.valuess ~= Values.ConstructValsNoComma(val, follow);
+				return cast(uint)(this.valuess.length - 1);
 
 			}
 			this.valuess ~= Values.ConstructVal(val);
@@ -2095,10 +2019,8 @@ struct Parser {
 
 	uint parseArrayImpl() {
 		string[] subRules;
-		subRules = ["Empty", "Value"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
-			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rbrack) {
 				this.lex.popFront();
 
@@ -2107,7 +2029,6 @@ struct Parser {
 
 			} else if(this.firstValues()) {
 				uint vals = this.parseValues();
-				subRules = ["Value"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
@@ -2169,20 +2090,15 @@ struct Parser {
 
 	uint parseObjectValuesImpl() {
 		string[] subRules;
-		subRules = ["V", "Vs", "Vsc"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["V", "Vs", "Vsc"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["V", "Vs", "Vsc"];
 				if(this.firstValueOrVariable()) {
 					uint val = this.parseValueOrVariable();
-					subRules = ["Vsc"];
 					if(this.lex.front.type == TokenType.comma) {
 						this.lex.popFront();
-						subRules = ["Vsc"];
 						if(this.firstObjectValues()) {
 							uint follow = this.parseObjectValues();
 
@@ -2266,13 +2182,10 @@ struct Parser {
 
 	uint parseObjectTypeImpl() {
 		string[] subRules;
-		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
-			subRules = ["Var"];
 			if(this.firstObjectValues()) {
 				uint vals = this.parseObjectValues();
-				subRules = ["Var"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
@@ -2338,7 +2251,6 @@ struct Parser {
 
 	uint parseTypeSystemDefinitionImpl() {
 		string[] subRules;
-		subRules = ["S"];
 		if(this.firstSchemaDefinition()) {
 			uint sch = this.parseSchemaDefinition();
 
@@ -2365,7 +2277,6 @@ struct Parser {
 
 		} else if(this.firstDescription()) {
 			uint des = this.parseDescription();
-			subRules = ["DS"];
 			if(this.firstSchemaDefinition()) {
 				uint sch = this.parseSchemaDefinition();
 
@@ -2438,7 +2349,6 @@ struct Parser {
 
 	uint parseTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["S"];
 		if(this.firstScalarTypeDefinition()) {
 			uint std = this.parseScalarTypeDefinition();
 
@@ -2506,19 +2416,14 @@ struct Parser {
 
 	uint parseSchemaDefinitionImpl() {
 		string[] subRules;
-		subRules = ["DO", "O"];
 		if(this.lex.front.type == TokenType.schema) {
 			this.lex.popFront();
-			subRules = ["DO"];
 			if(this.firstDirectives()) {
 				uint dir = this.parseDirectives();
-				subRules = ["DO"];
 				if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["DO"];
 					if(this.firstOperationTypeDefinitions()) {
 						uint otds = this.parseOperationTypeDefinitions();
-						subRules = ["DO"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -2563,10 +2468,8 @@ struct Parser {
 
 			} else if(this.lex.front.type == TokenType.lcurly) {
 				this.lex.popFront();
-				subRules = ["O"];
 				if(this.firstOperationTypeDefinitions()) {
 					uint otds = this.parseOperationTypeDefinitions();
-					subRules = ["O"];
 					if(this.lex.front.type == TokenType.rcurly) {
 						this.lex.popFront();
 
@@ -2640,13 +2543,10 @@ struct Parser {
 
 	uint parseOperationTypeDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["O", "OCS", "OS"];
 		if(this.firstOperationTypeDefinition()) {
 			uint otd = this.parseOperationTypeDefinition();
-			subRules = ["OCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["OCS"];
 				if(this.firstOperationTypeDefinitions()) {
 					uint follow = this.parseOperationTypeDefinitions();
 
@@ -2706,13 +2606,10 @@ struct Parser {
 
 	uint parseOperationTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["O"];
 		if(this.firstOperationType()) {
 			uint ot = this.parseOperationType();
-			subRules = ["O"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["O"];
 				if(this.lex.front.type == TokenType.name) {
 					Token nt = this.lex.front;
 					this.lex.popFront();
@@ -2775,14 +2672,11 @@ struct Parser {
 
 	uint parseScalarTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["D", "S"];
 		if(this.lex.front.type == TokenType.scalar) {
 			this.lex.popFront();
-			subRules = ["D", "S"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["D"];
 				if(this.firstDirectives()) {
 					uint dir = this.parseDirectives();
 
@@ -2836,26 +2730,19 @@ struct Parser {
 
 	uint parseObjectTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["D", "F", "I", "ID"];
 		if(this.lex.front.type == TokenType.type) {
 			this.lex.popFront();
-			subRules = ["D", "F", "I", "ID"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["I", "ID"];
 				if(this.firstImplementsInterfaces()) {
 					uint ii = this.parseImplementsInterfaces();
-					subRules = ["ID"];
 					if(this.firstDirectives()) {
 						uint dir = this.parseDirectives();
-						subRules = ["ID"];
 						if(this.lex.front.type == TokenType.lcurly) {
 							this.lex.popFront();
-							subRules = ["ID"];
 							if(this.firstFieldDefinitions()) {
 								uint fds = this.parseFieldDefinitions();
-								subRules = ["ID"];
 								if(this.lex.front.type == TokenType.rcurly) {
 									this.lex.popFront();
 
@@ -2900,10 +2787,8 @@ struct Parser {
 
 					} else if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["I"];
 						if(this.firstFieldDefinitions()) {
 							uint fds = this.parseFieldDefinitions();
-							subRules = ["I"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -2948,13 +2833,10 @@ struct Parser {
 
 				} else if(this.firstDirectives()) {
 					uint dir = this.parseDirectives();
-					subRules = ["D"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["D"];
 						if(this.firstFieldDefinitions()) {
 							uint fds = this.parseFieldDefinitions();
-							subRules = ["D"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -2999,10 +2881,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["F"];
 					if(this.firstFieldDefinitions()) {
 						uint fds = this.parseFieldDefinitions();
-						subRules = ["F"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -3088,13 +2968,10 @@ struct Parser {
 
 	uint parseFieldDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["F", "FC", "FNC"];
 		if(this.firstFieldDefinition()) {
 			uint fd = this.parseFieldDefinition();
-			subRules = ["FC"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["FC"];
 				if(this.firstFieldDefinitions()) {
 					uint follow = this.parseFieldDefinitions();
 
@@ -3155,20 +3032,15 @@ struct Parser {
 
 	uint parseFieldDefinitionImpl() {
 		string[] subRules;
-		subRules = ["A", "AD", "D", "T"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["A", "AD"];
 			if(this.firstArgumentsDefinition()) {
 				uint arg = this.parseArgumentsDefinition();
-				subRules = ["A", "AD"];
 				if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
-					subRules = ["A", "AD"];
 					if(this.firstType()) {
 						uint typ = this.parseType();
-						subRules = ["AD"];
 						if(this.firstDirectives()) {
 							uint dir = this.parseDirectives();
 
@@ -3205,10 +3077,8 @@ struct Parser {
 
 			} else if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["D", "T"];
 				if(this.firstType()) {
 					uint typ = this.parseType();
-					subRules = ["D"];
 					if(this.firstDirectives()) {
 						uint dir = this.parseDirectives();
 
@@ -3245,20 +3115,15 @@ struct Parser {
 
 		} else if(this.firstDescription()) {
 			uint des = this.parseDescription();
-			subRules = ["DA", "DAD", "DD", "DT"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["DA", "DAD"];
 				if(this.firstArgumentsDefinition()) {
 					uint arg = this.parseArgumentsDefinition();
-					subRules = ["DA", "DAD"];
 					if(this.lex.front.type == TokenType.colon) {
 						this.lex.popFront();
-						subRules = ["DA", "DAD"];
 						if(this.firstType()) {
 							uint typ = this.parseType();
-							subRules = ["DAD"];
 							if(this.firstDirectives()) {
 								uint dir = this.parseDirectives();
 
@@ -3295,10 +3160,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
-					subRules = ["DD", "DT"];
 					if(this.firstType()) {
 						uint typ = this.parseType();
-						subRules = ["DD"];
 						if(this.firstDirectives()) {
 							uint dir = this.parseDirectives();
 
@@ -3376,10 +3239,8 @@ struct Parser {
 
 	uint parseImplementsInterfacesImpl() {
 		string[] subRules;
-		subRules = ["N"];
 		if(this.lex.front.type == TokenType.implements) {
 			this.lex.popFront();
-			subRules = ["N"];
 			if(this.firstNamedTypes()) {
 				uint nts = this.parseNamedTypes();
 
@@ -3429,14 +3290,11 @@ struct Parser {
 
 	uint parseNamedTypesImpl() {
 		string[] subRules;
-		subRules = ["N", "NCS", "NS"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["NCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["NCS"];
 				if(this.firstNamedTypes()) {
 					uint follow = this.parseNamedTypes();
 
@@ -3496,13 +3354,10 @@ struct Parser {
 
 	uint parseArgumentsDefinitionImpl() {
 		string[] subRules;
-		subRules = ["A", "DA"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
-			subRules = ["A"];
 			if(this.firstInputValueDefinitions()) {
 				this.parseInputValueDefinitions();
-				subRules = ["A"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
@@ -3521,41 +3376,11 @@ struct Parser {
 					["rparen"]
 				);
 
-			} else if(this.firstDescription()) {
-				uint des = this.parseDescription();
-				subRules = ["DA"];
-				if(this.firstInputValueDefinitions()) {
-					this.parseInputValueDefinitions();
-					subRules = ["DA"];
-					if(this.lex.front.type == TokenType.rparen) {
-						this.lex.popFront();
+			} else if(this.lex.front.type == TokenType.rparen) {
+				this.lex.popFront();
 
-						this.argumentsDefinitions ~= ArgumentsDefinition.ConstructDA(des);
-						return cast(uint)(this.argumentsDefinitions.length - 1);
-
-					}
-					auto app = appender!string();
-					formattedWrite(app, 
-						"In 'ArgumentsDefinition' found a '%s' while looking for", 
-						this.lex.front
-					);
-					throw new ParseException(app.data,
-						__FILE__, __LINE__,
-						subRules,
-						["rparen"]
-					);
-
-				}
-				auto app = appender!string();
-				formattedWrite(app, 
-					"In 'ArgumentsDefinition' found a '%s' while looking for", 
-					this.lex.front
-				);
-				throw new ParseException(app.data,
-					__FILE__, __LINE__,
-					subRules,
-					["name -> InputValueDefinition"]
-				);
+				this.argumentsDefinitions ~= ArgumentsDefinition.ConstructNA();
+				return cast(uint)(this.argumentsDefinitions.length - 1);
 
 			}
 			auto app = appender!string();
@@ -3566,7 +3391,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition","stringValue"]
+				["name -> InputValueDefinition","stringValue -> InputValueDefinition","rparen"]
 			);
 
 		}
@@ -3600,13 +3425,10 @@ struct Parser {
 
 	uint parseInputValueDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["I", "ICF", "IF"];
 		if(this.firstInputValueDefinition()) {
 			uint iv = this.parseInputValueDefinition();
-			subRules = ["ICF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["ICF"];
 				if(this.firstInputValueDefinitions()) {
 					uint follow = this.parseInputValueDefinitions();
 
@@ -3622,7 +3444,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> InputValueDefinition"]
+					["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
@@ -3644,13 +3466,14 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstInputValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	uint parseInputValueDefinition() {
@@ -3666,20 +3489,15 @@ struct Parser {
 
 	uint parseInputValueDefinitionImpl() {
 		string[] subRules;
-		subRules = ["T", "TD", "TV", "TVD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["T", "TD", "TV", "TVD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
-				subRules = ["T", "TD", "TV", "TVD"];
 				if(this.firstType()) {
 					uint type = this.parseType();
-					subRules = ["TV", "TVD"];
 					if(this.firstDefaultValue()) {
 						uint df = this.parseDefaultValue();
-						subRules = ["TVD"];
 						if(this.firstDirectives()) {
 							uint dirs = this.parseDirectives();
 
@@ -3724,6 +3542,73 @@ struct Parser {
 				["colon"]
 			);
 
+		} else if(this.firstDescription()) {
+			uint des = this.parseDescription();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.lex.front.type == TokenType.colon) {
+					this.lex.popFront();
+					if(this.firstType()) {
+						uint type = this.parseType();
+						if(this.firstDefaultValue()) {
+							uint df = this.parseDefaultValue();
+							if(this.firstDirectives()) {
+								uint dirs = this.parseDirectives();
+
+								this.inputValueDefinitions ~= InputValueDefinition.ConstructDTVD(des, name, type, df, dirs);
+								return cast(uint)(this.inputValueDefinitions.length - 1);
+
+							}
+							this.inputValueDefinitions ~= InputValueDefinition.ConstructDTV(des, name, type, df);
+							return cast(uint)(this.inputValueDefinitions.length - 1);
+
+						} else if(this.firstDirectives()) {
+							uint dirs = this.parseDirectives();
+
+							this.inputValueDefinitions ~= InputValueDefinition.ConstructDTD(des, name, type, dirs);
+							return cast(uint)(this.inputValueDefinitions.length - 1);
+
+						}
+						this.inputValueDefinitions ~= InputValueDefinition.ConstructDT(des, name, type);
+						return cast(uint)(this.inputValueDefinitions.length - 1);
+
+					}
+					auto app = appender!string();
+					formattedWrite(app, 
+						"In 'InputValueDefinition' found a '%s' while looking for", 
+						this.lex.front
+					);
+					throw new ParseException(app.data,
+						__FILE__, __LINE__,
+						subRules,
+						["lbrack -> ListType","name"]
+					);
+
+				}
+				auto app = appender!string();
+				formattedWrite(app, 
+					"In 'InputValueDefinition' found a '%s' while looking for", 
+					this.lex.front
+				);
+				throw new ParseException(app.data,
+					__FILE__, __LINE__,
+					subRules,
+					["colon"]
+				);
+
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'InputValueDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3733,7 +3618,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -3755,23 +3640,17 @@ struct Parser {
 
 	uint parseInterfaceTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["NDF", "NF"];
 		if(this.lex.front.type == TokenType.interface_) {
 			this.lex.popFront();
-			subRules = ["NDF", "NF"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NDF"];
 				if(this.firstDirectives()) {
 					uint dirs = this.parseDirectives();
-					subRules = ["NDF"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["NDF"];
 						if(this.firstFieldDefinitions()) {
 							uint fds = this.parseFieldDefinitions();
-							subRules = ["NDF"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -3816,10 +3695,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["NF"];
 					if(this.firstFieldDefinitions()) {
 						uint fds = this.parseFieldDefinitions();
-						subRules = ["NF"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -3905,20 +3782,15 @@ struct Parser {
 
 	uint parseUnionTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["NDU", "NU"];
 		if(this.lex.front.type == TokenType.union_) {
 			this.lex.popFront();
-			subRules = ["NDU", "NU"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NDU"];
 				if(this.firstDirectives()) {
 					uint dirs = this.parseDirectives();
-					subRules = ["NDU"];
 					if(this.lex.front.type == TokenType.equal) {
 						this.lex.popFront();
-						subRules = ["NDU"];
 						if(this.firstUnionMembers()) {
 							uint um = this.parseUnionMembers();
 
@@ -3951,7 +3823,6 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.equal) {
 					this.lex.popFront();
-					subRules = ["NU"];
 					if(this.firstUnionMembers()) {
 						uint um = this.parseUnionMembers();
 
@@ -4025,14 +3896,11 @@ struct Parser {
 
 	uint parseUnionMembersImpl() {
 		string[] subRules;
-		subRules = ["S", "SF", "SPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["SPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
-				subRules = ["SPF"];
 				if(this.firstUnionMembers()) {
 					uint follow = this.parseUnionMembers();
 
@@ -4092,23 +3960,17 @@ struct Parser {
 
 	uint parseEnumTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.enum_) {
 			this.lex.popFront();
-			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NDE"];
 				if(this.firstDirectives()) {
 					uint dir = this.parseDirectives();
-					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["NDE"];
 						if(this.firstEnumValueDefinitions()) {
 							uint evds = this.parseEnumValueDefinitions();
-							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -4136,7 +3998,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> EnumValueDefinition"]
+							["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 						);
 
 					}
@@ -4153,10 +4015,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["NE"];
 					if(this.firstEnumValueDefinitions()) {
 						uint evds = this.parseEnumValueDefinitions();
-						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -4184,7 +4044,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> EnumValueDefinition"]
+						["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 					);
 
 				}
@@ -4242,13 +4102,10 @@ struct Parser {
 
 	uint parseEnumValueDefinitionsImpl() {
 		string[] subRules;
-		subRules = ["D", "DCE", "DE"];
 		if(this.firstEnumValueDefinition()) {
 			uint evd = this.parseEnumValueDefinition();
-			subRules = ["DCE"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
-				subRules = ["DCE"];
 				if(this.firstEnumValueDefinitions()) {
 					uint follow = this.parseEnumValueDefinitions();
 
@@ -4264,7 +4121,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> EnumValueDefinition"]
+					["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
 				);
 
 			} else if(this.firstEnumValueDefinitions()) {
@@ -4286,13 +4143,14 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue -> Description"]
 		);
 
 	}
 
 	bool firstEnumValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.lex.front.type == TokenType.name
+			 || this.firstDescription();
 	}
 
 	uint parseEnumValueDefinition() {
@@ -4308,11 +4166,9 @@ struct Parser {
 
 	uint parseEnumValueDefinitionImpl() {
 		string[] subRules;
-		subRules = ["E", "ED"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["ED"];
 			if(this.firstDirectives()) {
 				uint dirs = this.parseDirectives();
 
@@ -4323,6 +4179,33 @@ struct Parser {
 			this.enumValueDefinitions ~= EnumValueDefinition.ConstructE(name);
 			return cast(uint)(this.enumValueDefinitions.length - 1);
 
+		} else if(this.firstDescription()) {
+			uint des = this.parseDescription();
+			if(this.lex.front.type == TokenType.name) {
+				Token name = this.lex.front;
+				this.lex.popFront();
+				if(this.firstDirectives()) {
+					uint dirs = this.parseDirectives();
+
+					this.enumValueDefinitions ~= EnumValueDefinition.ConstructDED(des, name, dirs);
+					return cast(uint)(this.enumValueDefinitions.length - 1);
+
+				}
+				this.enumValueDefinitions ~= EnumValueDefinition.ConstructDE(des, name);
+				return cast(uint)(this.enumValueDefinitions.length - 1);
+
+			}
+			auto app = appender!string();
+			formattedWrite(app, 
+				"In 'EnumValueDefinition' found a '%s' while looking for", 
+				this.lex.front
+			);
+			throw new ParseException(app.data,
+				__FILE__, __LINE__,
+				subRules,
+				["name"]
+			);
+
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -4332,7 +4215,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["name","stringValue"]
 		);
 
 	}
@@ -4354,23 +4237,17 @@ struct Parser {
 
 	uint parseInputTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
-			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NDE"];
 				if(this.firstDirectives()) {
 					uint dir = this.parseDirectives();
-					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["NDE"];
 						if(this.firstInputValueDefinitions()) {
 							uint ivds = this.parseInputValueDefinitions();
-							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -4398,7 +4275,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition"]
+							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 						);
 
 					}
@@ -4415,10 +4292,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["NE"];
 					if(this.firstInputValueDefinitions()) {
 						uint ivds = this.parseInputValueDefinitions();
-						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -4446,7 +4321,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition"]
+						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 					);
 
 				}
@@ -4504,10 +4379,8 @@ struct Parser {
 
 	uint parseTypeExtensionDefinitionImpl() {
 		string[] subRules;
-		subRules = ["O"];
 		if(this.lex.front.type == TokenType.extend) {
 			this.lex.popFront();
-			subRules = ["O"];
 			if(this.firstObjectTypeDefinition()) {
 				uint otd = this.parseObjectTypeDefinition();
 
@@ -4557,23 +4430,17 @@ struct Parser {
 
 	uint parseDirectiveDefinitionImpl() {
 		string[] subRules;
-		subRules = ["AD", "D"];
 		if(this.lex.front.type == TokenType.directive) {
 			this.lex.popFront();
-			subRules = ["AD", "D"];
 			if(this.lex.front.type == TokenType.at) {
 				this.lex.popFront();
-				subRules = ["AD", "D"];
 				if(this.lex.front.type == TokenType.name) {
 					Token name = this.lex.front;
 					this.lex.popFront();
-					subRules = ["AD"];
 					if(this.firstArgumentsDefinition()) {
 						uint ad = this.parseArgumentsDefinition();
-						subRules = ["AD"];
 						if(this.lex.front.type == TokenType.on_) {
 							this.lex.popFront();
-							subRules = ["AD"];
 							if(this.firstDirectiveLocations()) {
 								uint dl = this.parseDirectiveLocations();
 
@@ -4606,7 +4473,6 @@ struct Parser {
 
 					} else if(this.lex.front.type == TokenType.on_) {
 						this.lex.popFront();
-						subRules = ["D"];
 						if(this.firstDirectiveLocations()) {
 							uint dl = this.parseDirectiveLocations();
 
@@ -4692,14 +4558,11 @@ struct Parser {
 
 	uint parseDirectiveLocationsImpl() {
 		string[] subRules;
-		subRules = ["N", "NF", "NPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
-			subRules = ["NPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
-				subRules = ["NPF"];
 				if(this.firstDirectiveLocations()) {
 					uint follow = this.parseDirectiveLocations();
 
@@ -4759,23 +4622,17 @@ struct Parser {
 
 	uint parseInputObjectTypeDefinitionImpl() {
 		string[] subRules;
-		subRules = ["NDI", "NI"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
-			subRules = ["NDI", "NI"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
-				subRules = ["NDI"];
 				if(this.firstDirectives()) {
 					uint dirs = this.parseDirectives();
-					subRules = ["NDI"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
-						subRules = ["NDI"];
 						if(this.firstInputValueDefinitions()) {
 							this.parseInputValueDefinitions();
-							subRules = ["NDI"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
@@ -4803,7 +4660,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition"]
+							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 						);
 
 					}
@@ -4820,10 +4677,8 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
-					subRules = ["NI"];
 					if(this.firstInputValueDefinitions()) {
 						this.parseInputValueDefinitions();
-						subRules = ["NI"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
@@ -4851,7 +4706,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition"]
+						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
 					);
 
 				}
@@ -4909,7 +4764,6 @@ struct Parser {
 
 	uint parseDescriptionImpl() {
 		string[] subRules;
-		subRules = ["S"];
 		if(this.lex.front.type == TokenType.stringValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
