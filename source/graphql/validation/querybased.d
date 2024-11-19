@@ -1,7 +1,5 @@
 module graphql.validation.querybased;
 
-__EOF__
-
 import std.array : array, back, empty, popBack;
 import std.algorithm.searching : canFind;
 import std.algorithm.sorting : sort;

@@ -1,7 +1,5 @@
 module graphql.validation.schemabased;
 
-__EOF__
-
 import std.algorithm.iteration : map;
 import std.algorithm.searching : canFind, find, startsWith, endsWith;
 import std.array : array, back, empty, front, popBack;

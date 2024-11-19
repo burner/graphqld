@@ -1,7 +1,5 @@
 module graphql.builder;
 
-__EOF__
-
 version(LDC) {
 	import std.experimental.logger : logf;
 } else {

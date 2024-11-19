@@ -612,7 +612,6 @@ unittest {
 	assert(k["foo"].jsonTo!FooEn() == FooEn.b);
 }
 
-/+
 const(Document) lexAndParse(string s) {
 	import graphql.lexer;
 	import graphql.parser;
@@ -621,7 +620,6 @@ const(Document) lexAndParse(string s) {
 	const(Document) doc = p.parseDocument();
 	return doc;
 }
-+/
 
 struct StringTypeStrip {
 	string input;

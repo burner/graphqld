@@ -1,7 +1,5 @@
 module graphql.argumentextractor;
 
-__EOF__
-
 import std.array : back, empty, popBack;
 import std.conv : to;
 import std.format : format;

@@ -1,9 +1,7 @@
 module graphql.parser;
 
-import std.array : appender;
-import std.format : formattedWrite;
+import std.typecons : RefCounted, refCounted;
 import std.format : format;
-
 import graphql.ast;
 import graphql.tokenmodule;
 
@@ -14,63 +12,10 @@ import graphql.exception;
 struct Parser {
 @safe :
 
-	Document[] documents;
-	Definitions[] definitionss;
-	Definition[] definitions;
-	OperationDefinition[] operationDefinitions;
-	SelectionSet[] selectionSets;
-	OperationType[] operationTypes;
-	Selections[] selectionss;
-	Selection[] selections;
-	FragmentSpread[] fragmentSpreads;
-	InlineFragment[] inlineFragments;
-	Field[] fields;
-	FieldName[] fieldNames;
-	Arguments[] argumentss;
-	ArgumentList[] argumentLists;
-	Argument[] arguments;
-	FragmentDefinition[] fragmentDefinitions;
-	Directives[] directivess;
-	Directive[] directives;
-	VariableDefinitions[] variableDefinitionss;
-	VariableDefinitionList[] variableDefinitionLists;
-	VariableDefinition[] variableDefinitions;
-	Variable[] variables;
-	DefaultValue[] defaultValues;
-	ValueOrVariable[] valueOrVariables;
-	Value[] values;
-	Type[] types;
-	ListType[] listTypes;
-	Values[] valuess;
-	Array[] arrays;
-	ObjectValues[] objectValuess;
-	ObjectType[] objectTypes;
-	TypeSystemDefinition[] typeSystemDefinitions;
-	TypeDefinition[] typeDefinitions;
-	SchemaDefinition[] schemaDefinitions;
-	OperationTypeDefinitions[] operationTypeDefinitionss;
-	OperationTypeDefinition[] operationTypeDefinitions;
-	ScalarTypeDefinition[] scalarTypeDefinitions;
-	ObjectTypeDefinition[] objectTypeDefinitions;
-	FieldDefinitions[] fieldDefinitionss;
-	FieldDefinition[] fieldDefinitions;
-	ImplementsInterfaces[] implementsInterfacess;
-	NamedTypes[] namedTypess;
-	ArgumentsDefinition[] argumentsDefinitions;
-	InputValueDefinitions[] inputValueDefinitionss;
-	InputValueDefinition[] inputValueDefinitions;
-	InterfaceTypeDefinition[] interfaceTypeDefinitions;
-	UnionTypeDefinition[] unionTypeDefinitions;
-	UnionMembers[] unionMemberss;
-	EnumTypeDefinition[] enumTypeDefinitions;
-	EnumValueDefinitions[] enumValueDefinitionss;
-	EnumValueDefinition[] enumValueDefinitions;
-	InputTypeDefinition[] inputTypeDefinitions;
-	TypeExtensionDefinition[] typeExtensionDefinitions;
-	DirectiveDefinition[] directiveDefinitions;
-	DirectiveLocations[] directiveLocationss;
-	InputObjectTypeDefinition[] inputObjectTypeDefinitions;
-	Description[] descriptions;
+	import std.array : appender;
+
+	import std.format : formattedWrite;
+
 	Lexer lex;
 
 	this(Lexer lex) {
@@ -81,7 +26,7 @@ struct Parser {
 		return this.firstDefinitions();
 	}
 
-	uint parseDocument() {
+	Document parseDocument() {
 		try {
 			return this.parseDocumentImpl();
 		} catch(ParseException e) {
@@ -92,14 +37,15 @@ struct Parser {
 		}
 	}
 
-	uint parseDocumentImpl() {
+	Document parseDocumentImpl() {
 		string[] subRules;
+		subRules = ["Defi"];
 		if(this.firstDefinitions()) {
-			uint defs = this.parseDefinitions();
+			Definitions defs = this.parseDefinitions();
 
-			this.documents ~= Document.ConstructDefi(defs);
-			return cast(uint)(this.documents.length - 1);
-
+			return new Document(DocumentEnum.Defi
+				, defs
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -118,7 +64,7 @@ struct Parser {
 		return this.firstDefinition();
 	}
 
-	uint parseDefinitions() {
+	Definitions parseDefinitions() {
 		try {
 			return this.parseDefinitionsImpl();
 		} catch(ParseException e) {
@@ -129,20 +75,23 @@ struct Parser {
 		}
 	}
 
-	uint parseDefinitionsImpl() {
+	Definitions parseDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["Def", "Defs"];
 		if(this.firstDefinition()) {
-			uint def = this.parseDefinition();
+			Definition def = this.parseDefinition();
+			subRules = ["Defs"];
 			if(this.firstDefinitions()) {
-				uint follow = this.parseDefinitions();
+				Definitions follow = this.parseDefinitions();
 
-				this.definitionss ~= Definitions.ConstructDefs(def, follow);
-				return cast(uint)(this.definitionss.length - 1);
-
+				return new Definitions(DefinitionsEnum.Defs
+					, def
+					, follow
+				);
 			}
-			this.definitionss ~= Definitions.ConstructDef(def);
-			return cast(uint)(this.definitionss.length - 1);
-
+			return new Definitions(DefinitionsEnum.Def
+				, def
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -163,7 +112,7 @@ struct Parser {
 			 || this.firstTypeSystemDefinition();
 	}
 
-	uint parseDefinition() {
+	Definition parseDefinition() {
 		try {
 			return this.parseDefinitionImpl();
 		} catch(ParseException e) {
@@ -174,26 +123,27 @@ struct Parser {
 		}
 	}
 
-	uint parseDefinitionImpl() {
+	Definition parseDefinitionImpl() {
 		string[] subRules;
+		subRules = ["O"];
 		if(this.firstOperationDefinition()) {
-			uint op = this.parseOperationDefinition();
+			OperationDefinition op = this.parseOperationDefinition();
 
-			this.definitions ~= Definition.ConstructO(op);
-			return cast(uint)(this.definitions.length - 1);
-
+			return new Definition(DefinitionEnum.O
+				, op
+			);
 		} else if(this.firstFragmentDefinition()) {
-			uint frag = this.parseFragmentDefinition();
+			FragmentDefinition frag = this.parseFragmentDefinition();
 
-			this.definitions ~= Definition.ConstructF(frag);
-			return cast(uint)(this.definitions.length - 1);
-
+			return new Definition(DefinitionEnum.F
+				, frag
+			);
 		} else if(this.firstTypeSystemDefinition()) {
-			uint type = this.parseTypeSystemDefinition();
+			TypeSystemDefinition type = this.parseTypeSystemDefinition();
 
-			this.definitions ~= Definition.ConstructT(type);
-			return cast(uint)(this.definitions.length - 1);
-
+			return new Definition(DefinitionEnum.T
+				, type
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -213,7 +163,7 @@ struct Parser {
 			 || this.firstOperationType();
 	}
 
-	uint parseOperationDefinition() {
+	OperationDefinition parseOperationDefinition() {
 		try {
 			return this.parseOperationDefinitionImpl();
 		} catch(ParseException e) {
@@ -224,29 +174,38 @@ struct Parser {
 		}
 	}
 
-	uint parseOperationDefinitionImpl() {
+	OperationDefinition parseOperationDefinitionImpl() {
 		string[] subRules;
+		subRules = ["SelSet"];
 		if(this.firstSelectionSet()) {
-			uint ss = this.parseSelectionSet();
+			SelectionSet ss = this.parseSelectionSet();
 
-			this.operationDefinitions ~= OperationDefinition.ConstructSelSet(ss);
-			return cast(uint)(this.operationDefinitions.length - 1);
-
+			return new OperationDefinition(OperationDefinitionEnum.SelSet
+				, ss
+			);
 		} else if(this.firstOperationType()) {
-			uint ot = this.parseOperationType();
+			OperationType ot = this.parseOperationType();
+			subRules = ["OT_N", "OT_N_D", "OT_N_V", "OT_N_VD"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["OT_N_V", "OT_N_VD"];
 				if(this.firstVariableDefinitions()) {
-					uint vd = this.parseVariableDefinitions();
+					VariableDefinitions vd = this.parseVariableDefinitions();
+					subRules = ["OT_N_VD"];
 					if(this.firstDirectives()) {
-						uint d = this.parseDirectives();
+						Directives d = this.parseDirectives();
+						subRules = ["OT_N_VD"];
 						if(this.firstSelectionSet()) {
-							uint ss = this.parseSelectionSet();
+							SelectionSet ss = this.parseSelectionSet();
 
-							this.operationDefinitions ~= OperationDefinition.ConstructOT_N_VD(ot, name, vd, d, ss);
-							return cast(uint)(this.operationDefinitions.length - 1);
-
+							return new OperationDefinition(OperationDefinitionEnum.OT_N_VD
+								, ot
+								, name
+								, vd
+								, d
+								, ss
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -260,11 +219,14 @@ struct Parser {
 						);
 
 					} else if(this.firstSelectionSet()) {
-						uint ss = this.parseSelectionSet();
+						SelectionSet ss = this.parseSelectionSet();
 
-						this.operationDefinitions ~= OperationDefinition.ConstructOT_N_V(ot, name, vd, ss);
-						return cast(uint)(this.operationDefinitions.length - 1);
-
+						return new OperationDefinition(OperationDefinitionEnum.OT_N_V
+							, ot
+							, name
+							, vd
+							, ss
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -278,13 +240,17 @@ struct Parser {
 					);
 
 				} else if(this.firstDirectives()) {
-					uint d = this.parseDirectives();
+					Directives d = this.parseDirectives();
+					subRules = ["OT_N_D"];
 					if(this.firstSelectionSet()) {
-						uint ss = this.parseSelectionSet();
+						SelectionSet ss = this.parseSelectionSet();
 
-						this.operationDefinitions ~= OperationDefinition.ConstructOT_N_D(ot, name, d, ss);
-						return cast(uint)(this.operationDefinitions.length - 1);
-
+						return new OperationDefinition(OperationDefinitionEnum.OT_N_D
+							, ot
+							, name
+							, d
+							, ss
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -298,11 +264,13 @@ struct Parser {
 					);
 
 				} else if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.operationDefinitions ~= OperationDefinition.ConstructOT_N(ot, name, ss);
-					return cast(uint)(this.operationDefinitions.length - 1);
-
+					return new OperationDefinition(OperationDefinitionEnum.OT_N
+						, ot
+						, name
+						, ss
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -316,15 +284,20 @@ struct Parser {
 				);
 
 			} else if(this.firstVariableDefinitions()) {
-				uint vd = this.parseVariableDefinitions();
+				VariableDefinitions vd = this.parseVariableDefinitions();
+				subRules = ["OT_VD"];
 				if(this.firstDirectives()) {
-					uint d = this.parseDirectives();
+					Directives d = this.parseDirectives();
+					subRules = ["OT_VD"];
 					if(this.firstSelectionSet()) {
-						uint ss = this.parseSelectionSet();
+						SelectionSet ss = this.parseSelectionSet();
 
-						this.operationDefinitions ~= OperationDefinition.ConstructOT_VD(ot, vd, d, ss);
-						return cast(uint)(this.operationDefinitions.length - 1);
-
+						return new OperationDefinition(OperationDefinitionEnum.OT_VD
+							, ot
+							, vd
+							, d
+							, ss
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -338,11 +311,13 @@ struct Parser {
 					);
 
 				} else if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.operationDefinitions ~= OperationDefinition.ConstructOT_V(ot, vd, ss);
-					return cast(uint)(this.operationDefinitions.length - 1);
-
+					return new OperationDefinition(OperationDefinitionEnum.OT_V
+						, ot
+						, vd
+						, ss
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -356,13 +331,16 @@ struct Parser {
 				);
 
 			} else if(this.firstDirectives()) {
-				uint d = this.parseDirectives();
+				Directives d = this.parseDirectives();
+				subRules = ["OT_D"];
 				if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.operationDefinitions ~= OperationDefinition.ConstructOT_D(ot, d, ss);
-					return cast(uint)(this.operationDefinitions.length - 1);
-
+					return new OperationDefinition(OperationDefinitionEnum.OT_D
+						, ot
+						, d
+						, ss
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -376,11 +354,12 @@ struct Parser {
 				);
 
 			} else if(this.firstSelectionSet()) {
-				uint ss = this.parseSelectionSet();
+				SelectionSet ss = this.parseSelectionSet();
 
-				this.operationDefinitions ~= OperationDefinition.ConstructOT(ot, ss);
-				return cast(uint)(this.operationDefinitions.length - 1);
-
+				return new OperationDefinition(OperationDefinitionEnum.OT
+					, ot
+					, ss
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -411,7 +390,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lcurly;
 	}
 
-	uint parseSelectionSet() {
+	SelectionSet parseSelectionSet() {
 		try {
 			return this.parseSelectionSetImpl();
 		} catch(ParseException e) {
@@ -422,18 +401,21 @@ struct Parser {
 		}
 	}
 
-	uint parseSelectionSetImpl() {
+	SelectionSet parseSelectionSetImpl() {
 		string[] subRules;
+		subRules = ["SS"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
+			subRules = ["SS"];
 			if(this.firstSelections()) {
-				uint sel = this.parseSelections();
+				Selections sel = this.parseSelections();
+				subRules = ["SS"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
-					this.selectionSets ~= SelectionSet.ConstructSS(sel);
-					return cast(uint)(this.selectionSets.length - 1);
-
+					return new SelectionSet(SelectionSetEnum.SS
+						, sel
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -478,7 +460,7 @@ struct Parser {
 			 || this.lex.front.type == TokenType.subscription;
 	}
 
-	uint parseOperationType() {
+	OperationType parseOperationType() {
 		try {
 			return this.parseOperationTypeImpl();
 		} catch(ParseException e) {
@@ -489,29 +471,30 @@ struct Parser {
 		}
 	}
 
-	uint parseOperationTypeImpl() {
+	OperationType parseOperationTypeImpl() {
 		string[] subRules;
+		subRules = ["Query"];
 		if(this.lex.front.type == TokenType.query) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.operationTypes ~= OperationType.ConstructQuery(tok);
-			return cast(uint)(this.operationTypes.length - 1);
-
+			return new OperationType(OperationTypeEnum.Query
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.mutation) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.operationTypes ~= OperationType.ConstructMutation(tok);
-			return cast(uint)(this.operationTypes.length - 1);
-
+			return new OperationType(OperationTypeEnum.Mutation
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.subscription) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.operationTypes ~= OperationType.ConstructSub(tok);
-			return cast(uint)(this.operationTypes.length - 1);
-
+			return new OperationType(OperationTypeEnum.Sub
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -530,7 +513,7 @@ struct Parser {
 		return this.firstSelection();
 	}
 
-	uint parseSelections() {
+	Selections parseSelections() {
 		try {
 			return this.parseSelectionsImpl();
 		} catch(ParseException e) {
@@ -541,24 +524,29 @@ struct Parser {
 		}
 	}
 
-	uint parseSelectionsImpl() {
+	Selections parseSelectionsImpl() {
 		string[] subRules;
+		subRules = ["Sel", "Sels", "Selsc"];
 		if(this.firstSelection()) {
-			uint sel = this.parseSelection();
+			Selection sel = this.parseSelection();
+			subRules = ["Sels"];
 			if(this.firstSelections()) {
-				uint follow = this.parseSelections();
+				Selections follow = this.parseSelections();
 
-				this.selectionss ~= Selections.ConstructSels(sel, follow);
-				return cast(uint)(this.selectionss.length - 1);
-
+				return new Selections(SelectionsEnum.Sels
+					, sel
+					, follow
+				);
 			} else if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["Selsc"];
 				if(this.firstSelections()) {
-					uint follow = this.parseSelections();
+					Selections follow = this.parseSelections();
 
-					this.selectionss ~= Selections.ConstructSelsc(sel, follow);
-					return cast(uint)(this.selectionss.length - 1);
-
+					return new Selections(SelectionsEnum.Selsc
+						, sel
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -572,9 +560,9 @@ struct Parser {
 				);
 
 			}
-			this.selectionss ~= Selections.ConstructSel(sel);
-			return cast(uint)(this.selectionss.length - 1);
-
+			return new Selections(SelectionsEnum.Sel
+				, sel
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -594,7 +582,7 @@ struct Parser {
 			 || this.lex.front.type == TokenType.dots;
 	}
 
-	uint parseSelection() {
+	Selection parseSelection() {
 		try {
 			return this.parseSelectionImpl();
 		} catch(ParseException e) {
@@ -605,28 +593,30 @@ struct Parser {
 		}
 	}
 
-	uint parseSelectionImpl() {
+	Selection parseSelectionImpl() {
 		string[] subRules;
+		subRules = ["Field"];
 		if(this.firstField()) {
-			uint field = this.parseField();
+			Field field = this.parseField();
 
-			this.selections ~= Selection.ConstructField(field);
-			return cast(uint)(this.selections.length - 1);
-
+			return new Selection(SelectionEnum.Field
+				, field
+			);
 		} else if(this.lex.front.type == TokenType.dots) {
 			this.lex.popFront();
+			subRules = ["Spread"];
 			if(this.firstFragmentSpread()) {
-				uint frag = this.parseFragmentSpread();
+				FragmentSpread frag = this.parseFragmentSpread();
 
-				this.selections ~= Selection.ConstructSpread(frag);
-				return cast(uint)(this.selections.length - 1);
-
+				return new Selection(SelectionEnum.Spread
+					, frag
+				);
 			} else if(this.firstInlineFragment()) {
-				uint ifrag = this.parseInlineFragment();
+				InlineFragment ifrag = this.parseInlineFragment();
 
-				this.selections ~= Selection.ConstructIFrag(ifrag);
-				return cast(uint)(this.selections.length - 1);
-
+				return new Selection(SelectionEnum.IFrag
+					, ifrag
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -657,7 +647,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseFragmentSpread() {
+	FragmentSpread parseFragmentSpread() {
 		try {
 			return this.parseFragmentSpreadImpl();
 		} catch(ParseException e) {
@@ -668,21 +658,24 @@ struct Parser {
 		}
 	}
 
-	uint parseFragmentSpreadImpl() {
+	FragmentSpread parseFragmentSpreadImpl() {
 		string[] subRules;
+		subRules = ["F", "FD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["FD"];
 			if(this.firstDirectives()) {
-				uint dirs = this.parseDirectives();
+				Directives dirs = this.parseDirectives();
 
-				this.fragmentSpreads ~= FragmentSpread.ConstructFD(name, dirs);
-				return cast(uint)(this.fragmentSpreads.length - 1);
-
+				return new FragmentSpread(FragmentSpreadEnum.FD
+					, name
+					, dirs
+				);
 			}
-			this.fragmentSpreads ~= FragmentSpread.ConstructF(name);
-			return cast(uint)(this.fragmentSpreads.length - 1);
-
+			return new FragmentSpread(FragmentSpreadEnum.F
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -703,7 +696,7 @@ struct Parser {
 			 || this.firstSelectionSet();
 	}
 
-	uint parseInlineFragment() {
+	InlineFragment parseInlineFragment() {
 		try {
 			return this.parseInlineFragmentImpl();
 		} catch(ParseException e) {
@@ -714,21 +707,27 @@ struct Parser {
 		}
 	}
 
-	uint parseInlineFragmentImpl() {
+	InlineFragment parseInlineFragmentImpl() {
 		string[] subRules;
+		subRules = ["TDS", "TS"];
 		if(this.lex.front.type == TokenType.on_) {
 			this.lex.popFront();
+			subRules = ["TDS", "TS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token tc = this.lex.front;
 				this.lex.popFront();
+				subRules = ["TDS"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
+					subRules = ["TDS"];
 					if(this.firstSelectionSet()) {
-						uint ss = this.parseSelectionSet();
+						SelectionSet ss = this.parseSelectionSet();
 
-						this.inlineFragments ~= InlineFragment.ConstructTDS(tc, dirs, ss);
-						return cast(uint)(this.inlineFragments.length - 1);
-
+						return new InlineFragment(InlineFragmentEnum.TDS
+							, tc
+							, dirs
+							, ss
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -742,11 +741,12 @@ struct Parser {
 					);
 
 				} else if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.inlineFragments ~= InlineFragment.ConstructTS(tc, ss);
-					return cast(uint)(this.inlineFragments.length - 1);
-
+					return new InlineFragment(InlineFragmentEnum.TS
+						, tc
+						, ss
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -772,13 +772,15 @@ struct Parser {
 			);
 
 		} else if(this.firstDirectives()) {
-			uint dirs = this.parseDirectives();
+			Directives dirs = this.parseDirectives();
+			subRules = ["DS"];
 			if(this.firstSelectionSet()) {
-				uint ss = this.parseSelectionSet();
+				SelectionSet ss = this.parseSelectionSet();
 
-				this.inlineFragments ~= InlineFragment.ConstructDS(dirs, ss);
-				return cast(uint)(this.inlineFragments.length - 1);
-
+				return new InlineFragment(InlineFragmentEnum.DS
+					, dirs
+					, ss
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -792,11 +794,11 @@ struct Parser {
 			);
 
 		} else if(this.firstSelectionSet()) {
-			uint ss = this.parseSelectionSet();
+			SelectionSet ss = this.parseSelectionSet();
 
-			this.inlineFragments ~= InlineFragment.ConstructS(ss);
-			return cast(uint)(this.inlineFragments.length - 1);
-
+			return new InlineFragment(InlineFragmentEnum.S
+				, ss
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -815,7 +817,7 @@ struct Parser {
 		return this.firstFieldName();
 	}
 
-	uint parseField() {
+	Field parseField() {
 		try {
 			return this.parseFieldImpl();
 		} catch(ParseException e) {
@@ -826,56 +828,73 @@ struct Parser {
 		}
 	}
 
-	uint parseFieldImpl() {
+	Field parseFieldImpl() {
 		string[] subRules;
+		subRules = ["F", "FA", "FAD", "FADS", "FAS", "FD", "FDS", "FS"];
 		if(this.firstFieldName()) {
-			uint name = this.parseFieldName();
+			FieldName name = this.parseFieldName();
+			subRules = ["FA", "FAD", "FADS", "FAS"];
 			if(this.firstArguments()) {
-				uint args = this.parseArguments();
+				Arguments args = this.parseArguments();
+				subRules = ["FAD", "FADS"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
+					subRules = ["FADS"];
 					if(this.firstSelectionSet()) {
-						uint ss = this.parseSelectionSet();
+						SelectionSet ss = this.parseSelectionSet();
 
-						this.fields ~= Field.ConstructFADS(name, args, dirs, ss);
-						return cast(uint)(this.fields.length - 1);
-
+						return new Field(FieldEnum.FADS
+							, name
+							, args
+							, dirs
+							, ss
+						);
 					}
-					this.fields ~= Field.ConstructFAD(name, args, dirs);
-					return cast(uint)(this.fields.length - 1);
-
+					return new Field(FieldEnum.FAD
+						, name
+						, args
+						, dirs
+					);
 				} else if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.fields ~= Field.ConstructFAS(name, args, ss);
-					return cast(uint)(this.fields.length - 1);
-
+					return new Field(FieldEnum.FAS
+						, name
+						, args
+						, ss
+					);
 				}
-				this.fields ~= Field.ConstructFA(name, args);
-				return cast(uint)(this.fields.length - 1);
-
+				return new Field(FieldEnum.FA
+					, name
+					, args
+				);
 			} else if(this.firstDirectives()) {
-				uint dirs = this.parseDirectives();
+				Directives dirs = this.parseDirectives();
+				subRules = ["FDS"];
 				if(this.firstSelectionSet()) {
-					uint ss = this.parseSelectionSet();
+					SelectionSet ss = this.parseSelectionSet();
 
-					this.fields ~= Field.ConstructFDS(name, dirs, ss);
-					return cast(uint)(this.fields.length - 1);
-
+					return new Field(FieldEnum.FDS
+						, name
+						, dirs
+						, ss
+					);
 				}
-				this.fields ~= Field.ConstructFD(name, dirs);
-				return cast(uint)(this.fields.length - 1);
-
+				return new Field(FieldEnum.FD
+					, name
+					, dirs
+				);
 			} else if(this.firstSelectionSet()) {
-				uint ss = this.parseSelectionSet();
+				SelectionSet ss = this.parseSelectionSet();
 
-				this.fields ~= Field.ConstructFS(name, ss);
-				return cast(uint)(this.fields.length - 1);
-
+				return new Field(FieldEnum.FS
+					, name
+					, ss
+				);
 			}
-			this.fields ~= Field.ConstructF(name);
-			return cast(uint)(this.fields.length - 1);
-
+			return new Field(FieldEnum.F
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -894,7 +913,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseFieldName() {
+	FieldName parseFieldName() {
 		try {
 			return this.parseFieldNameImpl();
 		} catch(ParseException e) {
@@ -905,20 +924,24 @@ struct Parser {
 		}
 	}
 
-	uint parseFieldNameImpl() {
+	FieldName parseFieldNameImpl() {
 		string[] subRules;
+		subRules = ["A", "N"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["A"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["A"];
 				if(this.lex.front.type == TokenType.name) {
 					Token aka = this.lex.front;
 					this.lex.popFront();
 
-					this.fieldNames ~= FieldName.ConstructA(name, aka);
-					return cast(uint)(this.fieldNames.length - 1);
-
+					return new FieldName(FieldNameEnum.A
+						, name
+						, aka
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -932,9 +955,9 @@ struct Parser {
 				);
 
 			}
-			this.fieldNames ~= FieldName.ConstructN(name);
-			return cast(uint)(this.fieldNames.length - 1);
-
+			return new FieldName(FieldNameEnum.N
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -953,7 +976,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
-	uint parseArguments() {
+	Arguments parseArguments() {
 		try {
 			return this.parseArgumentsImpl();
 		} catch(ParseException e) {
@@ -964,18 +987,21 @@ struct Parser {
 		}
 	}
 
-	uint parseArgumentsImpl() {
+	Arguments parseArgumentsImpl() {
 		string[] subRules;
+		subRules = ["Empty", "List"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["List"];
 			if(this.firstArgumentList()) {
-				uint arg = this.parseArgumentList();
+				ArgumentList arg = this.parseArgumentList();
+				subRules = ["List"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
-					this.argumentss ~= Arguments.ConstructList(arg);
-					return cast(uint)(this.argumentss.length - 1);
-
+					return new Arguments(ArgumentsEnum.List
+						, arg
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -991,9 +1017,8 @@ struct Parser {
 			} else if(this.lex.front.type == TokenType.rparen) {
 				this.lex.popFront();
 
-				this.argumentss ~= Arguments.ConstructEmpty();
-				return cast(uint)(this.argumentss.length - 1);
-
+				return new Arguments(ArgumentsEnum.Empty
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -1024,7 +1049,7 @@ struct Parser {
 		return this.firstArgument();
 	}
 
-	uint parseArgumentList() {
+	ArgumentList parseArgumentList() {
 		try {
 			return this.parseArgumentListImpl();
 		} catch(ParseException e) {
@@ -1035,18 +1060,22 @@ struct Parser {
 		}
 	}
 
-	uint parseArgumentListImpl() {
+	ArgumentList parseArgumentListImpl() {
 		string[] subRules;
+		subRules = ["A", "ACS", "AS"];
 		if(this.firstArgument()) {
-			uint arg = this.parseArgument();
+			Argument arg = this.parseArgument();
+			subRules = ["ACS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["ACS"];
 				if(this.firstArgumentList()) {
-					uint follow = this.parseArgumentList();
+					ArgumentList follow = this.parseArgumentList();
 
-					this.argumentLists ~= ArgumentList.ConstructACS(arg, follow);
-					return cast(uint)(this.argumentLists.length - 1);
-
+					return new ArgumentList(ArgumentListEnum.ACS
+						, arg
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1060,15 +1089,16 @@ struct Parser {
 				);
 
 			} else if(this.firstArgumentList()) {
-				uint follow = this.parseArgumentList();
+				ArgumentList follow = this.parseArgumentList();
 
-				this.argumentLists ~= ArgumentList.ConstructAS(arg, follow);
-				return cast(uint)(this.argumentLists.length - 1);
-
+				return new ArgumentList(ArgumentListEnum.AS
+					, arg
+					, follow
+				);
 			}
-			this.argumentLists ~= ArgumentList.ConstructA(arg);
-			return cast(uint)(this.argumentLists.length - 1);
-
+			return new ArgumentList(ArgumentListEnum.A
+				, arg
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1087,7 +1117,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseArgument() {
+	Argument parseArgument() {
 		try {
 			return this.parseArgumentImpl();
 		} catch(ParseException e) {
@@ -1098,19 +1128,23 @@ struct Parser {
 		}
 	}
 
-	uint parseArgumentImpl() {
+	Argument parseArgumentImpl() {
 		string[] subRules;
+		subRules = ["Name"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["Name"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["Name"];
 				if(this.firstValueOrVariable()) {
-					uint vv = this.parseValueOrVariable();
+					ValueOrVariable vv = this.parseValueOrVariable();
 
-					this.arguments ~= Argument.ConstructName(name, vv);
-					return cast(uint)(this.arguments.length - 1);
-
+					return new Argument(ArgumentEnum.Name
+						, name
+						, vv
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1153,7 +1187,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.fragment;
 	}
 
-	uint parseFragmentDefinition() {
+	FragmentDefinition parseFragmentDefinition() {
 		try {
 			return this.parseFragmentDefinitionImpl();
 		} catch(ParseException e) {
@@ -1164,26 +1198,35 @@ struct Parser {
 		}
 	}
 
-	uint parseFragmentDefinitionImpl() {
+	FragmentDefinition parseFragmentDefinitionImpl() {
 		string[] subRules;
+		subRules = ["FTDS", "FTS"];
 		if(this.lex.front.type == TokenType.fragment) {
 			this.lex.popFront();
+			subRules = ["FTDS", "FTS"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["FTDS", "FTS"];
 				if(this.lex.front.type == TokenType.on_) {
 					this.lex.popFront();
+					subRules = ["FTDS", "FTS"];
 					if(this.lex.front.type == TokenType.name) {
 						Token tc = this.lex.front;
 						this.lex.popFront();
+						subRules = ["FTDS"];
 						if(this.firstDirectives()) {
-							uint dirs = this.parseDirectives();
+							Directives dirs = this.parseDirectives();
+							subRules = ["FTDS"];
 							if(this.firstSelectionSet()) {
-								uint ss = this.parseSelectionSet();
+								SelectionSet ss = this.parseSelectionSet();
 
-								this.fragmentDefinitions ~= FragmentDefinition.ConstructFTDS(name, tc, dirs, ss);
-								return cast(uint)(this.fragmentDefinitions.length - 1);
-
+								return new FragmentDefinition(FragmentDefinitionEnum.FTDS
+									, name
+									, tc
+									, dirs
+									, ss
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -1197,11 +1240,13 @@ struct Parser {
 							);
 
 						} else if(this.firstSelectionSet()) {
-							uint ss = this.parseSelectionSet();
+							SelectionSet ss = this.parseSelectionSet();
 
-							this.fragmentDefinitions ~= FragmentDefinition.ConstructFTS(name, tc, ss);
-							return cast(uint)(this.fragmentDefinitions.length - 1);
-
+							return new FragmentDefinition(FragmentDefinitionEnum.FTS
+								, name
+								, tc
+								, ss
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -1268,7 +1313,7 @@ struct Parser {
 		return this.firstDirective();
 	}
 
-	uint parseDirectives() {
+	Directives parseDirectives() {
 		try {
 			return this.parseDirectivesImpl();
 		} catch(ParseException e) {
@@ -1279,20 +1324,23 @@ struct Parser {
 		}
 	}
 
-	uint parseDirectivesImpl() {
+	Directives parseDirectivesImpl() {
 		string[] subRules;
+		subRules = ["Dir", "Dirs"];
 		if(this.firstDirective()) {
-			uint dir = this.parseDirective();
+			Directive dir = this.parseDirective();
+			subRules = ["Dirs"];
 			if(this.firstDirectives()) {
-				uint follow = this.parseDirectives();
+				Directives follow = this.parseDirectives();
 
-				this.directivess ~= Directives.ConstructDirs(dir, follow);
-				return cast(uint)(this.directivess.length - 1);
-
+				return new Directives(DirectivesEnum.Dirs
+					, dir
+					, follow
+				);
 			}
-			this.directivess ~= Directives.ConstructDir(dir);
-			return cast(uint)(this.directivess.length - 1);
-
+			return new Directives(DirectivesEnum.Dir
+				, dir
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1311,7 +1359,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.at;
 	}
 
-	uint parseDirective() {
+	Directive parseDirective() {
 		try {
 			return this.parseDirectiveImpl();
 		} catch(ParseException e) {
@@ -1322,23 +1370,27 @@ struct Parser {
 		}
 	}
 
-	uint parseDirectiveImpl() {
+	Directive parseDirectiveImpl() {
 		string[] subRules;
+		subRules = ["N", "NArg"];
 		if(this.lex.front.type == TokenType.at) {
 			this.lex.popFront();
+			subRules = ["N", "NArg"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NArg"];
 				if(this.firstArguments()) {
-					uint arg = this.parseArguments();
+					Arguments arg = this.parseArguments();
 
-					this.directives ~= Directive.ConstructNArg(name, arg);
-					return cast(uint)(this.directives.length - 1);
-
+					return new Directive(DirectiveEnum.NArg
+						, name
+						, arg
+					);
 				}
-				this.directives ~= Directive.ConstructN(name);
-				return cast(uint)(this.directives.length - 1);
-
+				return new Directive(DirectiveEnum.N
+					, name
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -1369,7 +1421,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
-	uint parseVariableDefinitions() {
+	VariableDefinitions parseVariableDefinitions() {
 		try {
 			return this.parseVariableDefinitionsImpl();
 		} catch(ParseException e) {
@@ -1380,24 +1432,26 @@ struct Parser {
 		}
 	}
 
-	uint parseVariableDefinitionsImpl() {
+	VariableDefinitions parseVariableDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["Empty", "Vars"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rparen) {
 				this.lex.popFront();
 
-				this.variableDefinitionss ~= VariableDefinitions.ConstructEmpty();
-				return cast(uint)(this.variableDefinitionss.length - 1);
-
+				return new VariableDefinitions(VariableDefinitionsEnum.Empty
+				);
 			} else if(this.firstVariableDefinitionList()) {
-				uint vars = this.parseVariableDefinitionList();
+				VariableDefinitionList vars = this.parseVariableDefinitionList();
+				subRules = ["Vars"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
-					this.variableDefinitionss ~= VariableDefinitions.ConstructVars(vars);
-					return cast(uint)(this.variableDefinitionss.length - 1);
-
+					return new VariableDefinitions(VariableDefinitionsEnum.Vars
+						, vars
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1440,7 +1494,7 @@ struct Parser {
 		return this.firstVariableDefinition();
 	}
 
-	uint parseVariableDefinitionList() {
+	VariableDefinitionList parseVariableDefinitionList() {
 		try {
 			return this.parseVariableDefinitionListImpl();
 		} catch(ParseException e) {
@@ -1451,18 +1505,22 @@ struct Parser {
 		}
 	}
 
-	uint parseVariableDefinitionListImpl() {
+	VariableDefinitionList parseVariableDefinitionListImpl() {
 		string[] subRules;
+		subRules = ["V", "VCF", "VF"];
 		if(this.firstVariableDefinition()) {
-			uint var = this.parseVariableDefinition();
+			VariableDefinition var = this.parseVariableDefinition();
+			subRules = ["VCF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["VCF"];
 				if(this.firstVariableDefinitionList()) {
-					uint follow = this.parseVariableDefinitionList();
+					VariableDefinitionList follow = this.parseVariableDefinitionList();
 
-					this.variableDefinitionLists ~= VariableDefinitionList.ConstructVCF(var, follow);
-					return cast(uint)(this.variableDefinitionLists.length - 1);
-
+					return new VariableDefinitionList(VariableDefinitionListEnum.VCF
+						, var
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1476,15 +1534,16 @@ struct Parser {
 				);
 
 			} else if(this.firstVariableDefinitionList()) {
-				uint follow = this.parseVariableDefinitionList();
+				VariableDefinitionList follow = this.parseVariableDefinitionList();
 
-				this.variableDefinitionLists ~= VariableDefinitionList.ConstructVF(var, follow);
-				return cast(uint)(this.variableDefinitionLists.length - 1);
-
+				return new VariableDefinitionList(VariableDefinitionListEnum.VF
+					, var
+					, follow
+				);
 			}
-			this.variableDefinitionLists ~= VariableDefinitionList.ConstructV(var);
-			return cast(uint)(this.variableDefinitionLists.length - 1);
-
+			return new VariableDefinitionList(VariableDefinitionListEnum.V
+				, var
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1503,7 +1562,7 @@ struct Parser {
 		return this.firstVariable();
 	}
 
-	uint parseVariableDefinition() {
+	VariableDefinition parseVariableDefinition() {
 		try {
 			return this.parseVariableDefinitionImpl();
 		} catch(ParseException e) {
@@ -1514,24 +1573,31 @@ struct Parser {
 		}
 	}
 
-	uint parseVariableDefinitionImpl() {
+	VariableDefinition parseVariableDefinitionImpl() {
 		string[] subRules;
+		subRules = ["Var", "VarD"];
 		if(this.firstVariable()) {
-			uint var = this.parseVariable();
+			Variable var = this.parseVariable();
+			subRules = ["Var", "VarD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["Var", "VarD"];
 				if(this.firstType()) {
-					uint type = this.parseType();
+					Type type = this.parseType();
+					subRules = ["VarD"];
 					if(this.firstDefaultValue()) {
-						uint dvalue = this.parseDefaultValue();
+						DefaultValue dvalue = this.parseDefaultValue();
 
-						this.variableDefinitions ~= VariableDefinition.ConstructVarD(var, type, dvalue);
-						return cast(uint)(this.variableDefinitions.length - 1);
-
+						return new VariableDefinition(VariableDefinitionEnum.VarD
+							, var
+							, type
+							, dvalue
+						);
 					}
-					this.variableDefinitions ~= VariableDefinition.ConstructVar(var, type);
-					return cast(uint)(this.variableDefinitions.length - 1);
-
+					return new VariableDefinition(VariableDefinitionEnum.Var
+						, var
+						, type
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1574,7 +1640,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.dollar;
 	}
 
-	uint parseVariable() {
+	Variable parseVariable() {
 		try {
 			return this.parseVariableImpl();
 		} catch(ParseException e) {
@@ -1585,17 +1651,19 @@ struct Parser {
 		}
 	}
 
-	uint parseVariableImpl() {
+	Variable parseVariableImpl() {
 		string[] subRules;
+		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.dollar) {
 			this.lex.popFront();
+			subRules = ["Var"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
 
-				this.variables ~= Variable.ConstructVar(name);
-				return cast(uint)(this.variables.length - 1);
-
+				return new Variable(VariableEnum.Var
+					, name
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -1626,7 +1694,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.equal;
 	}
 
-	uint parseDefaultValue() {
+	DefaultValue parseDefaultValue() {
 		try {
 			return this.parseDefaultValueImpl();
 		} catch(ParseException e) {
@@ -1637,16 +1705,18 @@ struct Parser {
 		}
 	}
 
-	uint parseDefaultValueImpl() {
+	DefaultValue parseDefaultValueImpl() {
 		string[] subRules;
+		subRules = ["DV"];
 		if(this.lex.front.type == TokenType.equal) {
 			this.lex.popFront();
+			subRules = ["DV"];
 			if(this.firstValue()) {
-				uint value = this.parseValue();
+				Value value = this.parseValue();
 
-				this.defaultValues ~= DefaultValue.ConstructDV(value);
-				return cast(uint)(this.defaultValues.length - 1);
-
+				return new DefaultValue(DefaultValueEnum.DV
+					, value
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -1678,7 +1748,7 @@ struct Parser {
 			 || this.firstVariable();
 	}
 
-	uint parseValueOrVariable() {
+	ValueOrVariable parseValueOrVariable() {
 		try {
 			return this.parseValueOrVariableImpl();
 		} catch(ParseException e) {
@@ -1689,20 +1759,21 @@ struct Parser {
 		}
 	}
 
-	uint parseValueOrVariableImpl() {
+	ValueOrVariable parseValueOrVariableImpl() {
 		string[] subRules;
+		subRules = ["Val"];
 		if(this.firstValue()) {
-			uint val = this.parseValue();
+			Value val = this.parseValue();
 
-			this.valueOrVariables ~= ValueOrVariable.ConstructVal(val);
-			return cast(uint)(this.valueOrVariables.length - 1);
-
+			return new ValueOrVariable(ValueOrVariableEnum.Val
+				, val
+			);
 		} else if(this.firstVariable()) {
-			uint var = this.parseVariable();
+			Variable var = this.parseVariable();
 
-			this.valueOrVariables ~= ValueOrVariable.ConstructVar(var);
-			return cast(uint)(this.valueOrVariables.length - 1);
-
+			return new ValueOrVariable(ValueOrVariableEnum.Var
+				, var
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1729,7 +1800,7 @@ struct Parser {
 			 || this.lex.front.type == TokenType.null_;
 	}
 
-	uint parseValue() {
+	Value parseValue() {
 		try {
 			return this.parseValueImpl();
 		} catch(ParseException e) {
@@ -1740,69 +1811,70 @@ struct Parser {
 		}
 	}
 
-	uint parseValueImpl() {
+	Value parseValueImpl() {
 		string[] subRules;
+		subRules = ["STR"];
 		if(this.lex.front.type == TokenType.stringValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructSTR(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.STR
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.intValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructINT(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.INT
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.floatValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructFLOAT(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.FLOAT
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.true_) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructT(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.T
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.false_) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructF(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.F
+				, tok
+			);
 		} else if(this.firstArray()) {
-			uint arr = this.parseArray();
+			Array arr = this.parseArray();
 
-			this.values ~= Value.ConstructARR(arr);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.ARR
+				, arr
+			);
 		} else if(this.firstObjectType()) {
-			uint obj = this.parseObjectType();
+			ObjectType obj = this.parseObjectType();
 
-			this.values ~= Value.ConstructO(obj);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.O
+				, obj
+			);
 		} else if(this.lex.front.type == TokenType.name) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructE(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.E
+				, tok
+			);
 		} else if(this.lex.front.type == TokenType.null_) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.values ~= Value.ConstructN(tok);
-			return cast(uint)(this.values.length - 1);
-
+			return new Value(ValueEnum.N
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1822,7 +1894,7 @@ struct Parser {
 			 || this.firstListType();
 	}
 
-	uint parseType() {
+	Type parseType() {
 		try {
 			return this.parseTypeImpl();
 		} catch(ParseException e) {
@@ -1833,33 +1905,36 @@ struct Parser {
 		}
 	}
 
-	uint parseTypeImpl() {
+	Type parseTypeImpl() {
 		string[] subRules;
+		subRules = ["T", "TN"];
 		if(this.lex.front.type == TokenType.name) {
 			Token tname = this.lex.front;
 			this.lex.popFront();
+			subRules = ["TN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
-				this.types ~= Type.ConstructTN(tname);
-				return cast(uint)(this.types.length - 1);
-
+				return new Type(TypeEnum.TN
+					, tname
+				);
 			}
-			this.types ~= Type.ConstructT(tname);
-			return cast(uint)(this.types.length - 1);
-
+			return new Type(TypeEnum.T
+				, tname
+			);
 		} else if(this.firstListType()) {
-			uint list = this.parseListType();
+			ListType list = this.parseListType();
+			subRules = ["LN"];
 			if(this.lex.front.type == TokenType.exclamation) {
 				this.lex.popFront();
 
-				this.types ~= Type.ConstructLN(list);
-				return cast(uint)(this.types.length - 1);
-
+				return new Type(TypeEnum.LN
+					, list
+				);
 			}
-			this.types ~= Type.ConstructL(list);
-			return cast(uint)(this.types.length - 1);
-
+			return new Type(TypeEnum.L
+				, list
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -1878,7 +1953,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lbrack;
 	}
 
-	uint parseListType() {
+	ListType parseListType() {
 		try {
 			return this.parseListTypeImpl();
 		} catch(ParseException e) {
@@ -1889,18 +1964,21 @@ struct Parser {
 		}
 	}
 
-	uint parseListTypeImpl() {
+	ListType parseListTypeImpl() {
 		string[] subRules;
+		subRules = ["T"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
+			subRules = ["T"];
 			if(this.firstType()) {
-				uint type = this.parseType();
+				Type type = this.parseType();
+				subRules = ["T"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
-					this.listTypes ~= ListType.ConstructT(type);
-					return cast(uint)(this.listTypes.length - 1);
-
+					return new ListType(ListTypeEnum.T
+						, type
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1943,7 +2021,7 @@ struct Parser {
 		return this.firstValue();
 	}
 
-	uint parseValues() {
+	Values parseValues() {
 		try {
 			return this.parseValuesImpl();
 		} catch(ParseException e) {
@@ -1954,18 +2032,22 @@ struct Parser {
 		}
 	}
 
-	uint parseValuesImpl() {
+	Values parseValuesImpl() {
 		string[] subRules;
+		subRules = ["Val", "Vals", "ValsNoComma"];
 		if(this.firstValue()) {
-			uint val = this.parseValue();
+			Value val = this.parseValue();
+			subRules = ["Vals"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["Vals"];
 				if(this.firstValues()) {
-					uint follow = this.parseValues();
+					Values follow = this.parseValues();
 
-					this.valuess ~= Values.ConstructVals(val, follow);
-					return cast(uint)(this.valuess.length - 1);
-
+					return new Values(ValuesEnum.Vals
+						, val
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -1979,15 +2061,16 @@ struct Parser {
 				);
 
 			} else if(this.firstValues()) {
-				uint follow = this.parseValues();
+				Values follow = this.parseValues();
 
-				this.valuess ~= Values.ConstructValsNoComma(val, follow);
-				return cast(uint)(this.valuess.length - 1);
-
+				return new Values(ValuesEnum.ValsNoComma
+					, val
+					, follow
+				);
 			}
-			this.valuess ~= Values.ConstructVal(val);
-			return cast(uint)(this.valuess.length - 1);
-
+			return new Values(ValuesEnum.Val
+				, val
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -2006,7 +2089,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lbrack;
 	}
 
-	uint parseArray() {
+	Array parseArray() {
 		try {
 			return this.parseArrayImpl();
 		} catch(ParseException e) {
@@ -2017,24 +2100,26 @@ struct Parser {
 		}
 	}
 
-	uint parseArrayImpl() {
+	Array parseArrayImpl() {
 		string[] subRules;
+		subRules = ["Empty", "Value"];
 		if(this.lex.front.type == TokenType.lbrack) {
 			this.lex.popFront();
+			subRules = ["Empty"];
 			if(this.lex.front.type == TokenType.rbrack) {
 				this.lex.popFront();
 
-				this.arrays ~= Array.ConstructEmpty();
-				return cast(uint)(this.arrays.length - 1);
-
+				return new Array(ArrayEnum.Empty
+				);
 			} else if(this.firstValues()) {
-				uint vals = this.parseValues();
+				Values vals = this.parseValues();
+				subRules = ["Value"];
 				if(this.lex.front.type == TokenType.rbrack) {
 					this.lex.popFront();
 
-					this.arrays ~= Array.ConstructValue(vals);
-					return cast(uint)(this.arrays.length - 1);
-
+					return new Array(ArrayEnum.Value
+						, vals
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2077,7 +2162,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseObjectValues() {
+	ObjectValues parseObjectValues() {
 		try {
 			return this.parseObjectValuesImpl();
 		} catch(ParseException e) {
@@ -2088,23 +2173,30 @@ struct Parser {
 		}
 	}
 
-	uint parseObjectValuesImpl() {
+	ObjectValues parseObjectValuesImpl() {
 		string[] subRules;
+		subRules = ["V", "Vs", "Vsc"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["V", "Vs", "Vsc"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["V", "Vs", "Vsc"];
 				if(this.firstValueOrVariable()) {
-					uint val = this.parseValueOrVariable();
+					ValueOrVariable val = this.parseValueOrVariable();
+					subRules = ["Vsc"];
 					if(this.lex.front.type == TokenType.comma) {
 						this.lex.popFront();
+						subRules = ["Vsc"];
 						if(this.firstObjectValues()) {
-							uint follow = this.parseObjectValues();
+							ObjectValues follow = this.parseObjectValues();
 
-							this.objectValuess ~= ObjectValues.ConstructVsc(name, val, follow);
-							return cast(uint)(this.objectValuess.length - 1);
-
+							return new ObjectValues(ObjectValuesEnum.Vsc
+								, name
+								, val
+								, follow
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -2118,15 +2210,18 @@ struct Parser {
 						);
 
 					} else if(this.firstObjectValues()) {
-						uint follow = this.parseObjectValues();
+						ObjectValues follow = this.parseObjectValues();
 
-						this.objectValuess ~= ObjectValues.ConstructVs(name, val, follow);
-						return cast(uint)(this.objectValuess.length - 1);
-
+						return new ObjectValues(ObjectValuesEnum.Vs
+							, name
+							, val
+							, follow
+						);
 					}
-					this.objectValuess ~= ObjectValues.ConstructV(name, val);
-					return cast(uint)(this.objectValuess.length - 1);
-
+					return new ObjectValues(ObjectValuesEnum.V
+						, name
+						, val
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2169,7 +2264,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lcurly;
 	}
 
-	uint parseObjectType() {
+	ObjectType parseObjectType() {
 		try {
 			return this.parseObjectTypeImpl();
 		} catch(ParseException e) {
@@ -2180,18 +2275,21 @@ struct Parser {
 		}
 	}
 
-	uint parseObjectTypeImpl() {
+	ObjectType parseObjectTypeImpl() {
 		string[] subRules;
+		subRules = ["Var"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
+			subRules = ["Var"];
 			if(this.firstObjectValues()) {
-				uint vals = this.parseObjectValues();
+				ObjectValues vals = this.parseObjectValues();
+				subRules = ["Var"];
 				if(this.lex.front.type == TokenType.rcurly) {
 					this.lex.popFront();
 
-					this.objectTypes ~= ObjectType.ConstructVar(vals);
-					return cast(uint)(this.objectTypes.length - 1);
-
+					return new ObjectType(ObjectTypeEnum.Var
+						, vals
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2238,7 +2336,7 @@ struct Parser {
 			 || this.firstDescription();
 	}
 
-	uint parseTypeSystemDefinition() {
+	TypeSystemDefinition parseTypeSystemDefinition() {
 		try {
 			return this.parseTypeSystemDefinitionImpl();
 		} catch(ParseException e) {
@@ -2249,58 +2347,64 @@ struct Parser {
 		}
 	}
 
-	uint parseTypeSystemDefinitionImpl() {
+	TypeSystemDefinition parseTypeSystemDefinitionImpl() {
 		string[] subRules;
+		subRules = ["S"];
 		if(this.firstSchemaDefinition()) {
-			uint sch = this.parseSchemaDefinition();
+			SchemaDefinition sch = this.parseSchemaDefinition();
 
-			this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructS(sch);
-			return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+			return new TypeSystemDefinition(TypeSystemDefinitionEnum.S
+				, sch
+			);
 		} else if(this.firstTypeDefinition()) {
-			uint td = this.parseTypeDefinition();
+			TypeDefinition td = this.parseTypeDefinition();
 
-			this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructT(td);
-			return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+			return new TypeSystemDefinition(TypeSystemDefinitionEnum.T
+				, td
+			);
 		} else if(this.firstTypeExtensionDefinition()) {
-			uint ted = this.parseTypeExtensionDefinition();
+			TypeExtensionDefinition ted = this.parseTypeExtensionDefinition();
 
-			this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructTE(ted);
-			return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+			return new TypeSystemDefinition(TypeSystemDefinitionEnum.TE
+				, ted
+			);
 		} else if(this.firstDirectiveDefinition()) {
-			uint dd = this.parseDirectiveDefinition();
+			DirectiveDefinition dd = this.parseDirectiveDefinition();
 
-			this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructD(dd);
-			return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+			return new TypeSystemDefinition(TypeSystemDefinitionEnum.D
+				, dd
+			);
 		} else if(this.firstDescription()) {
-			uint des = this.parseDescription();
+			Description des = this.parseDescription();
+			subRules = ["DS"];
 			if(this.firstSchemaDefinition()) {
-				uint sch = this.parseSchemaDefinition();
+				SchemaDefinition sch = this.parseSchemaDefinition();
 
-				this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructDS(des, sch);
-				return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DS
+					, des
+					, sch
+				);
 			} else if(this.firstTypeDefinition()) {
-				uint td = this.parseTypeDefinition();
+				TypeDefinition td = this.parseTypeDefinition();
 
-				this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructDT(des, td);
-				return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DT
+					, des
+					, td
+				);
 			} else if(this.firstTypeExtensionDefinition()) {
-				uint ted = this.parseTypeExtensionDefinition();
+				TypeExtensionDefinition ted = this.parseTypeExtensionDefinition();
 
-				this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructDTE(des, ted);
-				return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DTE
+					, des
+					, ted
+				);
 			} else if(this.firstDirectiveDefinition()) {
-				uint dd = this.parseDirectiveDefinition();
+				DirectiveDefinition dd = this.parseDirectiveDefinition();
 
-				this.typeSystemDefinitions ~= TypeSystemDefinition.ConstructDD(des, dd);
-				return cast(uint)(this.typeSystemDefinitions.length - 1);
-
+				return new TypeSystemDefinition(TypeSystemDefinitionEnum.DD
+					, des
+					, dd
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -2336,7 +2440,7 @@ struct Parser {
 			 || this.firstInputObjectTypeDefinition();
 	}
 
-	uint parseTypeDefinition() {
+	TypeDefinition parseTypeDefinition() {
 		try {
 			return this.parseTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -2347,44 +2451,45 @@ struct Parser {
 		}
 	}
 
-	uint parseTypeDefinitionImpl() {
+	TypeDefinition parseTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["S"];
 		if(this.firstScalarTypeDefinition()) {
-			uint std = this.parseScalarTypeDefinition();
+			ScalarTypeDefinition std = this.parseScalarTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructS(std);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.S
+				, std
+			);
 		} else if(this.firstObjectTypeDefinition()) {
-			uint otd = this.parseObjectTypeDefinition();
+			ObjectTypeDefinition otd = this.parseObjectTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructO(otd);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.O
+				, otd
+			);
 		} else if(this.firstInterfaceTypeDefinition()) {
-			uint itd = this.parseInterfaceTypeDefinition();
+			InterfaceTypeDefinition itd = this.parseInterfaceTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructI(itd);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.I
+				, itd
+			);
 		} else if(this.firstUnionTypeDefinition()) {
-			uint utd = this.parseUnionTypeDefinition();
+			UnionTypeDefinition utd = this.parseUnionTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructU(utd);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.U
+				, utd
+			);
 		} else if(this.firstEnumTypeDefinition()) {
-			uint etd = this.parseEnumTypeDefinition();
+			EnumTypeDefinition etd = this.parseEnumTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructE(etd);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.E
+				, etd
+			);
 		} else if(this.firstInputObjectTypeDefinition()) {
-			uint iod = this.parseInputObjectTypeDefinition();
+			InputObjectTypeDefinition iod = this.parseInputObjectTypeDefinition();
 
-			this.typeDefinitions ~= TypeDefinition.ConstructIO(iod);
-			return cast(uint)(this.typeDefinitions.length - 1);
-
+			return new TypeDefinition(TypeDefinitionEnum.IO
+				, iod
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -2403,7 +2508,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.schema;
 	}
 
-	uint parseSchemaDefinition() {
+	SchemaDefinition parseSchemaDefinition() {
 		try {
 			return this.parseSchemaDefinitionImpl();
 		} catch(ParseException e) {
@@ -2414,22 +2519,28 @@ struct Parser {
 		}
 	}
 
-	uint parseSchemaDefinitionImpl() {
+	SchemaDefinition parseSchemaDefinitionImpl() {
 		string[] subRules;
+		subRules = ["DO", "O"];
 		if(this.lex.front.type == TokenType.schema) {
 			this.lex.popFront();
+			subRules = ["DO"];
 			if(this.firstDirectives()) {
-				uint dir = this.parseDirectives();
+				Directives dir = this.parseDirectives();
+				subRules = ["DO"];
 				if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["DO"];
 					if(this.firstOperationTypeDefinitions()) {
-						uint otds = this.parseOperationTypeDefinitions();
+						OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+						subRules = ["DO"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.schemaDefinitions ~= SchemaDefinition.ConstructDO(dir, otds);
-							return cast(uint)(this.schemaDefinitions.length - 1);
-
+							return new SchemaDefinition(SchemaDefinitionEnum.DO
+								, dir
+								, otds
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -2468,14 +2579,16 @@ struct Parser {
 
 			} else if(this.lex.front.type == TokenType.lcurly) {
 				this.lex.popFront();
+				subRules = ["O"];
 				if(this.firstOperationTypeDefinitions()) {
-					uint otds = this.parseOperationTypeDefinitions();
+					OperationTypeDefinitions otds = this.parseOperationTypeDefinitions();
+					subRules = ["O"];
 					if(this.lex.front.type == TokenType.rcurly) {
 						this.lex.popFront();
 
-						this.schemaDefinitions ~= SchemaDefinition.ConstructO(otds);
-						return cast(uint)(this.schemaDefinitions.length - 1);
-
+						return new SchemaDefinition(SchemaDefinitionEnum.O
+							, otds
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -2530,7 +2643,7 @@ struct Parser {
 		return this.firstOperationTypeDefinition();
 	}
 
-	uint parseOperationTypeDefinitions() {
+	OperationTypeDefinitions parseOperationTypeDefinitions() {
 		try {
 			return this.parseOperationTypeDefinitionsImpl();
 		} catch(ParseException e) {
@@ -2541,18 +2654,22 @@ struct Parser {
 		}
 	}
 
-	uint parseOperationTypeDefinitionsImpl() {
+	OperationTypeDefinitions parseOperationTypeDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["O", "OCS", "OS"];
 		if(this.firstOperationTypeDefinition()) {
-			uint otd = this.parseOperationTypeDefinition();
+			OperationTypeDefinition otd = this.parseOperationTypeDefinition();
+			subRules = ["OCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["OCS"];
 				if(this.firstOperationTypeDefinitions()) {
-					uint follow = this.parseOperationTypeDefinitions();
+					OperationTypeDefinitions follow = this.parseOperationTypeDefinitions();
 
-					this.operationTypeDefinitionss ~= OperationTypeDefinitions.ConstructOCS(otd, follow);
-					return cast(uint)(this.operationTypeDefinitionss.length - 1);
-
+					return new OperationTypeDefinitions(OperationTypeDefinitionsEnum.OCS
+						, otd
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2566,15 +2683,16 @@ struct Parser {
 				);
 
 			} else if(this.firstOperationTypeDefinitions()) {
-				uint follow = this.parseOperationTypeDefinitions();
+				OperationTypeDefinitions follow = this.parseOperationTypeDefinitions();
 
-				this.operationTypeDefinitionss ~= OperationTypeDefinitions.ConstructOS(otd, follow);
-				return cast(uint)(this.operationTypeDefinitionss.length - 1);
-
+				return new OperationTypeDefinitions(OperationTypeDefinitionsEnum.OS
+					, otd
+					, follow
+				);
 			}
-			this.operationTypeDefinitionss ~= OperationTypeDefinitions.ConstructO(otd);
-			return cast(uint)(this.operationTypeDefinitionss.length - 1);
-
+			return new OperationTypeDefinitions(OperationTypeDefinitionsEnum.O
+				, otd
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -2593,7 +2711,7 @@ struct Parser {
 		return this.firstOperationType();
 	}
 
-	uint parseOperationTypeDefinition() {
+	OperationTypeDefinition parseOperationTypeDefinition() {
 		try {
 			return this.parseOperationTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -2604,19 +2722,23 @@ struct Parser {
 		}
 	}
 
-	uint parseOperationTypeDefinitionImpl() {
+	OperationTypeDefinition parseOperationTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["O"];
 		if(this.firstOperationType()) {
-			uint ot = this.parseOperationType();
+			OperationType ot = this.parseOperationType();
+			subRules = ["O"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["O"];
 				if(this.lex.front.type == TokenType.name) {
 					Token nt = this.lex.front;
 					this.lex.popFront();
 
-					this.operationTypeDefinitions ~= OperationTypeDefinition.ConstructO(ot, nt);
-					return cast(uint)(this.operationTypeDefinitions.length - 1);
-
+					return new OperationTypeDefinition(OperationTypeDefinitionEnum.O
+						, ot
+						, nt
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2659,7 +2781,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.scalar;
 	}
 
-	uint parseScalarTypeDefinition() {
+	ScalarTypeDefinition parseScalarTypeDefinition() {
 		try {
 			return this.parseScalarTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -2670,23 +2792,27 @@ struct Parser {
 		}
 	}
 
-	uint parseScalarTypeDefinitionImpl() {
+	ScalarTypeDefinition parseScalarTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["D", "S"];
 		if(this.lex.front.type == TokenType.scalar) {
 			this.lex.popFront();
+			subRules = ["D", "S"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["D"];
 				if(this.firstDirectives()) {
-					uint dir = this.parseDirectives();
+					Directives dir = this.parseDirectives();
 
-					this.scalarTypeDefinitions ~= ScalarTypeDefinition.ConstructD(name, dir);
-					return cast(uint)(this.scalarTypeDefinitions.length - 1);
-
+					return new ScalarTypeDefinition(ScalarTypeDefinitionEnum.D
+						, name
+						, dir
+					);
 				}
-				this.scalarTypeDefinitions ~= ScalarTypeDefinition.ConstructS(name);
-				return cast(uint)(this.scalarTypeDefinitions.length - 1);
-
+				return new ScalarTypeDefinition(ScalarTypeDefinitionEnum.S
+					, name
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -2717,7 +2843,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.type;
 	}
 
-	uint parseObjectTypeDefinition() {
+	ObjectTypeDefinition parseObjectTypeDefinition() {
 		try {
 			return this.parseObjectTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -2728,27 +2854,37 @@ struct Parser {
 		}
 	}
 
-	uint parseObjectTypeDefinitionImpl() {
+	ObjectTypeDefinition parseObjectTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["D", "F", "I", "ID"];
 		if(this.lex.front.type == TokenType.type) {
 			this.lex.popFront();
+			subRules = ["D", "F", "I", "ID"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["I", "ID"];
 				if(this.firstImplementsInterfaces()) {
-					uint ii = this.parseImplementsInterfaces();
+					ImplementsInterfaces ii = this.parseImplementsInterfaces();
+					subRules = ["ID"];
 					if(this.firstDirectives()) {
-						uint dir = this.parseDirectives();
+						Directives dir = this.parseDirectives();
+						subRules = ["ID"];
 						if(this.lex.front.type == TokenType.lcurly) {
 							this.lex.popFront();
+							subRules = ["ID"];
 							if(this.firstFieldDefinitions()) {
-								uint fds = this.parseFieldDefinitions();
+								FieldDefinitions fds = this.parseFieldDefinitions();
+								subRules = ["ID"];
 								if(this.lex.front.type == TokenType.rcurly) {
 									this.lex.popFront();
 
-									this.objectTypeDefinitions ~= ObjectTypeDefinition.ConstructID(name, ii, dir, fds);
-									return cast(uint)(this.objectTypeDefinitions.length - 1);
-
+									return new ObjectTypeDefinition(ObjectTypeDefinitionEnum.ID
+										, name
+										, ii
+										, dir
+										, fds
+									);
 								}
 								auto app = appender!string();
 								formattedWrite(app, 
@@ -2787,14 +2923,18 @@ struct Parser {
 
 					} else if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["I"];
 						if(this.firstFieldDefinitions()) {
-							uint fds = this.parseFieldDefinitions();
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["I"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.objectTypeDefinitions ~= ObjectTypeDefinition.ConstructI(name, ii, fds);
-								return cast(uint)(this.objectTypeDefinitions.length - 1);
-
+								return new ObjectTypeDefinition(ObjectTypeDefinitionEnum.I
+									, name
+									, ii
+									, fds
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -2832,17 +2972,22 @@ struct Parser {
 					);
 
 				} else if(this.firstDirectives()) {
-					uint dir = this.parseDirectives();
+					Directives dir = this.parseDirectives();
+					subRules = ["D"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["D"];
 						if(this.firstFieldDefinitions()) {
-							uint fds = this.parseFieldDefinitions();
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["D"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.objectTypeDefinitions ~= ObjectTypeDefinition.ConstructD(name, dir, fds);
-								return cast(uint)(this.objectTypeDefinitions.length - 1);
-
+								return new ObjectTypeDefinition(ObjectTypeDefinitionEnum.D
+									, name
+									, dir
+									, fds
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -2881,14 +3026,17 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["F"];
 					if(this.firstFieldDefinitions()) {
-						uint fds = this.parseFieldDefinitions();
+						FieldDefinitions fds = this.parseFieldDefinitions();
+						subRules = ["F"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.objectTypeDefinitions ~= ObjectTypeDefinition.ConstructF(name, fds);
-							return cast(uint)(this.objectTypeDefinitions.length - 1);
-
+							return new ObjectTypeDefinition(ObjectTypeDefinitionEnum.F
+								, name
+								, fds
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -2955,7 +3103,7 @@ struct Parser {
 		return this.firstFieldDefinition();
 	}
 
-	uint parseFieldDefinitions() {
+	FieldDefinitions parseFieldDefinitions() {
 		try {
 			return this.parseFieldDefinitionsImpl();
 		} catch(ParseException e) {
@@ -2966,18 +3114,22 @@ struct Parser {
 		}
 	}
 
-	uint parseFieldDefinitionsImpl() {
+	FieldDefinitions parseFieldDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["F", "FC", "FNC"];
 		if(this.firstFieldDefinition()) {
-			uint fd = this.parseFieldDefinition();
+			FieldDefinition fd = this.parseFieldDefinition();
+			subRules = ["FC"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["FC"];
 				if(this.firstFieldDefinitions()) {
-					uint follow = this.parseFieldDefinitions();
+					FieldDefinitions follow = this.parseFieldDefinitions();
 
-					this.fieldDefinitionss ~= FieldDefinitions.ConstructFC(fd, follow);
-					return cast(uint)(this.fieldDefinitionss.length - 1);
-
+					return new FieldDefinitions(FieldDefinitionsEnum.FC
+						, fd
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -2991,15 +3143,16 @@ struct Parser {
 				);
 
 			} else if(this.firstFieldDefinitions()) {
-				uint follow = this.parseFieldDefinitions();
+				FieldDefinitions follow = this.parseFieldDefinitions();
 
-				this.fieldDefinitionss ~= FieldDefinitions.ConstructFNC(fd, follow);
-				return cast(uint)(this.fieldDefinitionss.length - 1);
-
+				return new FieldDefinitions(FieldDefinitionsEnum.FNC
+					, fd
+					, follow
+				);
 			}
-			this.fieldDefinitionss ~= FieldDefinitions.ConstructF(fd);
-			return cast(uint)(this.fieldDefinitionss.length - 1);
-
+			return new FieldDefinitions(FieldDefinitionsEnum.F
+				, fd
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3019,7 +3172,7 @@ struct Parser {
 			 || this.firstDescription();
 	}
 
-	uint parseFieldDefinition() {
+	FieldDefinition parseFieldDefinition() {
 		try {
 			return this.parseFieldDefinitionImpl();
 		} catch(ParseException e) {
@@ -3030,27 +3183,37 @@ struct Parser {
 		}
 	}
 
-	uint parseFieldDefinitionImpl() {
+	FieldDefinition parseFieldDefinitionImpl() {
 		string[] subRules;
+		subRules = ["A", "AD", "D", "T"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["A", "AD"];
 			if(this.firstArgumentsDefinition()) {
-				uint arg = this.parseArgumentsDefinition();
+				ArgumentsDefinition arg = this.parseArgumentsDefinition();
+				subRules = ["A", "AD"];
 				if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
+					subRules = ["A", "AD"];
 					if(this.firstType()) {
-						uint typ = this.parseType();
+						Type typ = this.parseType();
+						subRules = ["AD"];
 						if(this.firstDirectives()) {
-							uint dir = this.parseDirectives();
+							Directives dir = this.parseDirectives();
 
-							this.fieldDefinitions ~= FieldDefinition.ConstructAD(name, arg, typ, dir);
-							return cast(uint)(this.fieldDefinitions.length - 1);
-
+							return new FieldDefinition(FieldDefinitionEnum.AD
+								, name
+								, arg
+								, typ
+								, dir
+							);
 						}
-						this.fieldDefinitions ~= FieldDefinition.ConstructA(name, arg, typ);
-						return cast(uint)(this.fieldDefinitions.length - 1);
-
+						return new FieldDefinition(FieldDefinitionEnum.A
+							, name
+							, arg
+							, typ
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -3077,18 +3240,23 @@ struct Parser {
 
 			} else if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["D", "T"];
 				if(this.firstType()) {
-					uint typ = this.parseType();
+					Type typ = this.parseType();
+					subRules = ["D"];
 					if(this.firstDirectives()) {
-						uint dir = this.parseDirectives();
+						Directives dir = this.parseDirectives();
 
-						this.fieldDefinitions ~= FieldDefinition.ConstructD(name, typ, dir);
-						return cast(uint)(this.fieldDefinitions.length - 1);
-
+						return new FieldDefinition(FieldDefinitionEnum.D
+							, name
+							, typ
+							, dir
+						);
 					}
-					this.fieldDefinitions ~= FieldDefinition.ConstructT(name, typ);
-					return cast(uint)(this.fieldDefinitions.length - 1);
-
+					return new FieldDefinition(FieldDefinitionEnum.T
+						, name
+						, typ
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3114,26 +3282,38 @@ struct Parser {
 			);
 
 		} else if(this.firstDescription()) {
-			uint des = this.parseDescription();
+			Description des = this.parseDescription();
+			subRules = ["DA", "DAD", "DD", "DT"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["DA", "DAD"];
 				if(this.firstArgumentsDefinition()) {
-					uint arg = this.parseArgumentsDefinition();
+					ArgumentsDefinition arg = this.parseArgumentsDefinition();
+					subRules = ["DA", "DAD"];
 					if(this.lex.front.type == TokenType.colon) {
 						this.lex.popFront();
+						subRules = ["DA", "DAD"];
 						if(this.firstType()) {
-							uint typ = this.parseType();
+							Type typ = this.parseType();
+							subRules = ["DAD"];
 							if(this.firstDirectives()) {
-								uint dir = this.parseDirectives();
+								Directives dir = this.parseDirectives();
 
-								this.fieldDefinitions ~= FieldDefinition.ConstructDAD(des, name, arg, typ, dir);
-								return cast(uint)(this.fieldDefinitions.length - 1);
-
+								return new FieldDefinition(FieldDefinitionEnum.DAD
+									, des
+									, name
+									, arg
+									, typ
+									, dir
+								);
 							}
-							this.fieldDefinitions ~= FieldDefinition.ConstructDA(des, name, arg, typ);
-							return cast(uint)(this.fieldDefinitions.length - 1);
-
+							return new FieldDefinition(FieldDefinitionEnum.DA
+								, des
+								, name
+								, arg
+								, typ
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -3160,18 +3340,25 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
+					subRules = ["DD", "DT"];
 					if(this.firstType()) {
-						uint typ = this.parseType();
+						Type typ = this.parseType();
+						subRules = ["DD"];
 						if(this.firstDirectives()) {
-							uint dir = this.parseDirectives();
+							Directives dir = this.parseDirectives();
 
-							this.fieldDefinitions ~= FieldDefinition.ConstructDD(des, name, typ, dir);
-							return cast(uint)(this.fieldDefinitions.length - 1);
-
+							return new FieldDefinition(FieldDefinitionEnum.DD
+								, des
+								, name
+								, typ
+								, dir
+							);
 						}
-						this.fieldDefinitions ~= FieldDefinition.ConstructDT(des, name, typ);
-						return cast(uint)(this.fieldDefinitions.length - 1);
-
+						return new FieldDefinition(FieldDefinitionEnum.DT
+							, des
+							, name
+							, typ
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -3226,7 +3413,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.implements;
 	}
 
-	uint parseImplementsInterfaces() {
+	ImplementsInterfaces parseImplementsInterfaces() {
 		try {
 			return this.parseImplementsInterfacesImpl();
 		} catch(ParseException e) {
@@ -3237,16 +3424,18 @@ struct Parser {
 		}
 	}
 
-	uint parseImplementsInterfacesImpl() {
+	ImplementsInterfaces parseImplementsInterfacesImpl() {
 		string[] subRules;
+		subRules = ["N"];
 		if(this.lex.front.type == TokenType.implements) {
 			this.lex.popFront();
+			subRules = ["N"];
 			if(this.firstNamedTypes()) {
-				uint nts = this.parseNamedTypes();
+				NamedTypes nts = this.parseNamedTypes();
 
-				this.implementsInterfacess ~= ImplementsInterfaces.ConstructN(nts);
-				return cast(uint)(this.implementsInterfacess.length - 1);
-
+				return new ImplementsInterfaces(ImplementsInterfacesEnum.N
+					, nts
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -3277,7 +3466,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseNamedTypes() {
+	NamedTypes parseNamedTypes() {
 		try {
 			return this.parseNamedTypesImpl();
 		} catch(ParseException e) {
@@ -3288,19 +3477,23 @@ struct Parser {
 		}
 	}
 
-	uint parseNamedTypesImpl() {
+	NamedTypes parseNamedTypesImpl() {
 		string[] subRules;
+		subRules = ["N", "NCS", "NS"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["NCS"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["NCS"];
 				if(this.firstNamedTypes()) {
-					uint follow = this.parseNamedTypes();
+					NamedTypes follow = this.parseNamedTypes();
 
-					this.namedTypess ~= NamedTypes.ConstructNCS(name, follow);
-					return cast(uint)(this.namedTypess.length - 1);
-
+					return new NamedTypes(NamedTypesEnum.NCS
+						, name
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3314,15 +3507,16 @@ struct Parser {
 				);
 
 			} else if(this.firstNamedTypes()) {
-				uint follow = this.parseNamedTypes();
+				NamedTypes follow = this.parseNamedTypes();
 
-				this.namedTypess ~= NamedTypes.ConstructNS(name, follow);
-				return cast(uint)(this.namedTypess.length - 1);
-
+				return new NamedTypes(NamedTypesEnum.NS
+					, name
+					, follow
+				);
 			}
-			this.namedTypess ~= NamedTypes.ConstructN(name);
-			return cast(uint)(this.namedTypess.length - 1);
-
+			return new NamedTypes(NamedTypesEnum.N
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3341,7 +3535,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.lparen;
 	}
 
-	uint parseArgumentsDefinition() {
+	ArgumentsDefinition parseArgumentsDefinition() {
 		try {
 			return this.parseArgumentsDefinitionImpl();
 		} catch(ParseException e) {
@@ -3352,18 +3546,20 @@ struct Parser {
 		}
 	}
 
-	uint parseArgumentsDefinitionImpl() {
+	ArgumentsDefinition parseArgumentsDefinitionImpl() {
 		string[] subRules;
+		subRules = ["A", "NA"];
 		if(this.lex.front.type == TokenType.lparen) {
 			this.lex.popFront();
+			subRules = ["A"];
 			if(this.firstInputValueDefinitions()) {
 				this.parseInputValueDefinitions();
+				subRules = ["A"];
 				if(this.lex.front.type == TokenType.rparen) {
 					this.lex.popFront();
 
-					this.argumentsDefinitions ~= ArgumentsDefinition.ConstructA();
-					return cast(uint)(this.argumentsDefinitions.length - 1);
-
+					return new ArgumentsDefinition(ArgumentsDefinitionEnum.A
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3379,9 +3575,8 @@ struct Parser {
 			} else if(this.lex.front.type == TokenType.rparen) {
 				this.lex.popFront();
 
-				this.argumentsDefinitions ~= ArgumentsDefinition.ConstructNA();
-				return cast(uint)(this.argumentsDefinitions.length - 1);
-
+				return new ArgumentsDefinition(ArgumentsDefinitionEnum.NA
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -3412,7 +3607,7 @@ struct Parser {
 		return this.firstInputValueDefinition();
 	}
 
-	uint parseInputValueDefinitions() {
+	InputValueDefinitions parseInputValueDefinitions() {
 		try {
 			return this.parseInputValueDefinitionsImpl();
 		} catch(ParseException e) {
@@ -3423,18 +3618,22 @@ struct Parser {
 		}
 	}
 
-	uint parseInputValueDefinitionsImpl() {
+	InputValueDefinitions parseInputValueDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["I", "ICF", "IF"];
 		if(this.firstInputValueDefinition()) {
-			uint iv = this.parseInputValueDefinition();
+			InputValueDefinition iv = this.parseInputValueDefinition();
+			subRules = ["ICF"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["ICF"];
 				if(this.firstInputValueDefinitions()) {
-					uint follow = this.parseInputValueDefinitions();
+					InputValueDefinitions follow = this.parseInputValueDefinitions();
 
-					this.inputValueDefinitionss ~= InputValueDefinitions.ConstructICF(iv, follow);
-					return cast(uint)(this.inputValueDefinitionss.length - 1);
-
+					return new InputValueDefinitions(InputValueDefinitionsEnum.ICF
+						, iv
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3448,15 +3647,16 @@ struct Parser {
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
-				uint follow = this.parseInputValueDefinitions();
+				InputValueDefinitions follow = this.parseInputValueDefinitions();
 
-				this.inputValueDefinitionss ~= InputValueDefinitions.ConstructIF(iv, follow);
-				return cast(uint)(this.inputValueDefinitionss.length - 1);
-
+				return new InputValueDefinitions(InputValueDefinitionsEnum.IF
+					, iv
+					, follow
+				);
 			}
-			this.inputValueDefinitionss ~= InputValueDefinitions.ConstructI(iv);
-			return cast(uint)(this.inputValueDefinitionss.length - 1);
-
+			return new InputValueDefinitions(InputValueDefinitionsEnum.I
+				, iv
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3476,7 +3676,7 @@ struct Parser {
 			 || this.firstDescription();
 	}
 
-	uint parseInputValueDefinition() {
+	InputValueDefinition parseInputValueDefinition() {
 		try {
 			return this.parseInputValueDefinitionImpl();
 		} catch(ParseException e) {
@@ -3487,37 +3687,50 @@ struct Parser {
 		}
 	}
 
-	uint parseInputValueDefinitionImpl() {
+	InputValueDefinition parseInputValueDefinitionImpl() {
 		string[] subRules;
+		subRules = ["T", "TD", "TV", "TVD"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["T", "TD", "TV", "TVD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
+				subRules = ["T", "TD", "TV", "TVD"];
 				if(this.firstType()) {
-					uint type = this.parseType();
+					Type type = this.parseType();
+					subRules = ["TV", "TVD"];
 					if(this.firstDefaultValue()) {
-						uint df = this.parseDefaultValue();
+						DefaultValue df = this.parseDefaultValue();
+						subRules = ["TVD"];
 						if(this.firstDirectives()) {
-							uint dirs = this.parseDirectives();
+							Directives dirs = this.parseDirectives();
 
-							this.inputValueDefinitions ~= InputValueDefinition.ConstructTVD(name, type, df, dirs);
-							return cast(uint)(this.inputValueDefinitions.length - 1);
-
+							return new InputValueDefinition(InputValueDefinitionEnum.TVD
+								, name
+								, type
+								, df
+								, dirs
+							);
 						}
-						this.inputValueDefinitions ~= InputValueDefinition.ConstructTV(name, type, df);
-						return cast(uint)(this.inputValueDefinitions.length - 1);
-
+						return new InputValueDefinition(InputValueDefinitionEnum.TV
+							, name
+							, type
+							, df
+						);
 					} else if(this.firstDirectives()) {
-						uint dirs = this.parseDirectives();
+						Directives dirs = this.parseDirectives();
 
-						this.inputValueDefinitions ~= InputValueDefinition.ConstructTD(name, type, dirs);
-						return cast(uint)(this.inputValueDefinitions.length - 1);
-
+						return new InputValueDefinition(InputValueDefinitionEnum.TD
+							, name
+							, type
+							, dirs
+						);
 					}
-					this.inputValueDefinitions ~= InputValueDefinition.ConstructT(name, type);
-					return cast(uint)(this.inputValueDefinitions.length - 1);
-
+					return new InputValueDefinition(InputValueDefinitionEnum.T
+						, name
+						, type
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3543,36 +3756,53 @@ struct Parser {
 			);
 
 		} else if(this.firstDescription()) {
-			uint des = this.parseDescription();
+			Description des = this.parseDescription();
+			subRules = ["DT", "DTD", "DTV", "DTVD"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["DT", "DTD", "DTV", "DTVD"];
 				if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
+					subRules = ["DT", "DTD", "DTV", "DTVD"];
 					if(this.firstType()) {
-						uint type = this.parseType();
+						Type type = this.parseType();
+						subRules = ["DTV", "DTVD"];
 						if(this.firstDefaultValue()) {
-							uint df = this.parseDefaultValue();
+							DefaultValue df = this.parseDefaultValue();
+							subRules = ["DTVD"];
 							if(this.firstDirectives()) {
-								uint dirs = this.parseDirectives();
+								Directives dirs = this.parseDirectives();
 
-								this.inputValueDefinitions ~= InputValueDefinition.ConstructDTVD(des, name, type, df, dirs);
-								return cast(uint)(this.inputValueDefinitions.length - 1);
-
+								return new InputValueDefinition(InputValueDefinitionEnum.DTVD
+									, des
+									, name
+									, type
+									, df
+									, dirs
+								);
 							}
-							this.inputValueDefinitions ~= InputValueDefinition.ConstructDTV(des, name, type, df);
-							return cast(uint)(this.inputValueDefinitions.length - 1);
-
+							return new InputValueDefinition(InputValueDefinitionEnum.DTV
+								, des
+								, name
+								, type
+								, df
+							);
 						} else if(this.firstDirectives()) {
-							uint dirs = this.parseDirectives();
+							Directives dirs = this.parseDirectives();
 
-							this.inputValueDefinitions ~= InputValueDefinition.ConstructDTD(des, name, type, dirs);
-							return cast(uint)(this.inputValueDefinitions.length - 1);
-
+							return new InputValueDefinition(InputValueDefinitionEnum.DTD
+								, des
+								, name
+								, type
+								, dirs
+							);
 						}
-						this.inputValueDefinitions ~= InputValueDefinition.ConstructDT(des, name, type);
-						return cast(uint)(this.inputValueDefinitions.length - 1);
-
+						return new InputValueDefinition(InputValueDefinitionEnum.DT
+							, des
+							, name
+							, type
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -3627,7 +3857,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.interface_;
 	}
 
-	uint parseInterfaceTypeDefinition() {
+	InterfaceTypeDefinition parseInterfaceTypeDefinition() {
 		try {
 			return this.parseInterfaceTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -3638,25 +3868,33 @@ struct Parser {
 		}
 	}
 
-	uint parseInterfaceTypeDefinitionImpl() {
+	InterfaceTypeDefinition parseInterfaceTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["NDF", "NF"];
 		if(this.lex.front.type == TokenType.interface_) {
 			this.lex.popFront();
+			subRules = ["NDF", "NF"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDF"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
+					subRules = ["NDF"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDF"];
 						if(this.firstFieldDefinitions()) {
-							uint fds = this.parseFieldDefinitions();
+							FieldDefinitions fds = this.parseFieldDefinitions();
+							subRules = ["NDF"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.interfaceTypeDefinitions ~= InterfaceTypeDefinition.ConstructNDF(name, dirs, fds);
-								return cast(uint)(this.interfaceTypeDefinitions.length - 1);
-
+								return new InterfaceTypeDefinition(InterfaceTypeDefinitionEnum.NDF
+									, name
+									, dirs
+									, fds
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -3695,14 +3933,17 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NF"];
 					if(this.firstFieldDefinitions()) {
-						uint fds = this.parseFieldDefinitions();
+						FieldDefinitions fds = this.parseFieldDefinitions();
+						subRules = ["NF"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.interfaceTypeDefinitions ~= InterfaceTypeDefinition.ConstructNF(name, fds);
-							return cast(uint)(this.interfaceTypeDefinitions.length - 1);
-
+							return new InterfaceTypeDefinition(InterfaceTypeDefinitionEnum.NF
+								, name
+								, fds
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -3769,7 +4010,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.union_;
 	}
 
-	uint parseUnionTypeDefinition() {
+	UnionTypeDefinition parseUnionTypeDefinition() {
 		try {
 			return this.parseUnionTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -3780,23 +4021,30 @@ struct Parser {
 		}
 	}
 
-	uint parseUnionTypeDefinitionImpl() {
+	UnionTypeDefinition parseUnionTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["NDU", "NU"];
 		if(this.lex.front.type == TokenType.union_) {
 			this.lex.popFront();
+			subRules = ["NDU", "NU"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDU"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
+					subRules = ["NDU"];
 					if(this.lex.front.type == TokenType.equal) {
 						this.lex.popFront();
+						subRules = ["NDU"];
 						if(this.firstUnionMembers()) {
-							uint um = this.parseUnionMembers();
+							UnionMembers um = this.parseUnionMembers();
 
-							this.unionTypeDefinitions ~= UnionTypeDefinition.ConstructNDU(name, dirs, um);
-							return cast(uint)(this.unionTypeDefinitions.length - 1);
-
+							return new UnionTypeDefinition(UnionTypeDefinitionEnum.NDU
+								, name
+								, dirs
+								, um
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -3823,12 +4071,14 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.equal) {
 					this.lex.popFront();
+					subRules = ["NU"];
 					if(this.firstUnionMembers()) {
-						uint um = this.parseUnionMembers();
+						UnionMembers um = this.parseUnionMembers();
 
-						this.unionTypeDefinitions ~= UnionTypeDefinition.ConstructNU(name, um);
-						return cast(uint)(this.unionTypeDefinitions.length - 1);
-
+						return new UnionTypeDefinition(UnionTypeDefinitionEnum.NU
+							, name
+							, um
+						);
 					}
 					auto app = appender!string();
 					formattedWrite(app, 
@@ -3883,7 +4133,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseUnionMembers() {
+	UnionMembers parseUnionMembers() {
 		try {
 			return this.parseUnionMembersImpl();
 		} catch(ParseException e) {
@@ -3894,19 +4144,23 @@ struct Parser {
 		}
 	}
 
-	uint parseUnionMembersImpl() {
+	UnionMembers parseUnionMembersImpl() {
 		string[] subRules;
+		subRules = ["S", "SF", "SPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["SPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
+				subRules = ["SPF"];
 				if(this.firstUnionMembers()) {
-					uint follow = this.parseUnionMembers();
+					UnionMembers follow = this.parseUnionMembers();
 
-					this.unionMemberss ~= UnionMembers.ConstructSPF(name, follow);
-					return cast(uint)(this.unionMemberss.length - 1);
-
+					return new UnionMembers(UnionMembersEnum.SPF
+						, name
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -3920,15 +4174,16 @@ struct Parser {
 				);
 
 			} else if(this.firstUnionMembers()) {
-				uint follow = this.parseUnionMembers();
+				UnionMembers follow = this.parseUnionMembers();
 
-				this.unionMemberss ~= UnionMembers.ConstructSF(name, follow);
-				return cast(uint)(this.unionMemberss.length - 1);
-
+				return new UnionMembers(UnionMembersEnum.SF
+					, name
+					, follow
+				);
 			}
-			this.unionMemberss ~= UnionMembers.ConstructS(name);
-			return cast(uint)(this.unionMemberss.length - 1);
-
+			return new UnionMembers(UnionMembersEnum.S
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -3947,7 +4202,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.enum_;
 	}
 
-	uint parseEnumTypeDefinition() {
+	EnumTypeDefinition parseEnumTypeDefinition() {
 		try {
 			return this.parseEnumTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -3958,25 +4213,33 @@ struct Parser {
 		}
 	}
 
-	uint parseEnumTypeDefinitionImpl() {
+	EnumTypeDefinition parseEnumTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.enum_) {
 			this.lex.popFront();
+			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDE"];
 				if(this.firstDirectives()) {
-					uint dir = this.parseDirectives();
+					Directives dir = this.parseDirectives();
+					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDE"];
 						if(this.firstEnumValueDefinitions()) {
-							uint evds = this.parseEnumValueDefinitions();
+							EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.enumTypeDefinitions ~= EnumTypeDefinition.ConstructNDE(name, dir, evds);
-								return cast(uint)(this.enumTypeDefinitions.length - 1);
-
+								return new EnumTypeDefinition(EnumTypeDefinitionEnum.NDE
+									, name
+									, dir
+									, evds
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -4015,14 +4278,17 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NE"];
 					if(this.firstEnumValueDefinitions()) {
-						uint evds = this.parseEnumValueDefinitions();
+						EnumValueDefinitions evds = this.parseEnumValueDefinitions();
+						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.enumTypeDefinitions ~= EnumTypeDefinition.ConstructNE(name, evds);
-							return cast(uint)(this.enumTypeDefinitions.length - 1);
-
+							return new EnumTypeDefinition(EnumTypeDefinitionEnum.NE
+								, name
+								, evds
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -4089,7 +4355,7 @@ struct Parser {
 		return this.firstEnumValueDefinition();
 	}
 
-	uint parseEnumValueDefinitions() {
+	EnumValueDefinitions parseEnumValueDefinitions() {
 		try {
 			return this.parseEnumValueDefinitionsImpl();
 		} catch(ParseException e) {
@@ -4100,18 +4366,22 @@ struct Parser {
 		}
 	}
 
-	uint parseEnumValueDefinitionsImpl() {
+	EnumValueDefinitions parseEnumValueDefinitionsImpl() {
 		string[] subRules;
+		subRules = ["D", "DCE", "DE"];
 		if(this.firstEnumValueDefinition()) {
-			uint evd = this.parseEnumValueDefinition();
+			EnumValueDefinition evd = this.parseEnumValueDefinition();
+			subRules = ["DCE"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
+				subRules = ["DCE"];
 				if(this.firstEnumValueDefinitions()) {
-					uint follow = this.parseEnumValueDefinitions();
+					EnumValueDefinitions follow = this.parseEnumValueDefinitions();
 
-					this.enumValueDefinitionss ~= EnumValueDefinitions.ConstructDCE(evd, follow);
-					return cast(uint)(this.enumValueDefinitionss.length - 1);
-
+					return new EnumValueDefinitions(EnumValueDefinitionsEnum.DCE
+						, evd
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -4125,15 +4395,16 @@ struct Parser {
 				);
 
 			} else if(this.firstEnumValueDefinitions()) {
-				uint follow = this.parseEnumValueDefinitions();
+				EnumValueDefinitions follow = this.parseEnumValueDefinitions();
 
-				this.enumValueDefinitionss ~= EnumValueDefinitions.ConstructDE(evd, follow);
-				return cast(uint)(this.enumValueDefinitionss.length - 1);
-
+				return new EnumValueDefinitions(EnumValueDefinitionsEnum.DE
+					, evd
+					, follow
+				);
 			}
-			this.enumValueDefinitionss ~= EnumValueDefinitions.ConstructD(evd);
-			return cast(uint)(this.enumValueDefinitionss.length - 1);
-
+			return new EnumValueDefinitions(EnumValueDefinitionsEnum.D
+				, evd
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -4153,7 +4424,7 @@ struct Parser {
 			 || this.firstDescription();
 	}
 
-	uint parseEnumValueDefinition() {
+	EnumValueDefinition parseEnumValueDefinition() {
 		try {
 			return this.parseEnumValueDefinitionImpl();
 		} catch(ParseException e) {
@@ -4164,36 +4435,44 @@ struct Parser {
 		}
 	}
 
-	uint parseEnumValueDefinitionImpl() {
+	EnumValueDefinition parseEnumValueDefinitionImpl() {
 		string[] subRules;
+		subRules = ["E", "ED"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["ED"];
 			if(this.firstDirectives()) {
-				uint dirs = this.parseDirectives();
+				Directives dirs = this.parseDirectives();
 
-				this.enumValueDefinitions ~= EnumValueDefinition.ConstructED(name, dirs);
-				return cast(uint)(this.enumValueDefinitions.length - 1);
-
+				return new EnumValueDefinition(EnumValueDefinitionEnum.ED
+					, name
+					, dirs
+				);
 			}
-			this.enumValueDefinitions ~= EnumValueDefinition.ConstructE(name);
-			return cast(uint)(this.enumValueDefinitions.length - 1);
-
+			return new EnumValueDefinition(EnumValueDefinitionEnum.E
+				, name
+			);
 		} else if(this.firstDescription()) {
-			uint des = this.parseDescription();
+			Description des = this.parseDescription();
+			subRules = ["DE", "DED"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["DED"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
 
-					this.enumValueDefinitions ~= EnumValueDefinition.ConstructDED(des, name, dirs);
-					return cast(uint)(this.enumValueDefinitions.length - 1);
-
+					return new EnumValueDefinition(EnumValueDefinitionEnum.DED
+						, des
+						, name
+						, dirs
+					);
 				}
-				this.enumValueDefinitions ~= EnumValueDefinition.ConstructDE(des, name);
-				return cast(uint)(this.enumValueDefinitions.length - 1);
-
+				return new EnumValueDefinition(EnumValueDefinitionEnum.DE
+					, des
+					, name
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -4224,7 +4503,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.input;
 	}
 
-	uint parseInputTypeDefinition() {
+	InputTypeDefinition parseInputTypeDefinition() {
 		try {
 			return this.parseInputTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -4235,25 +4514,33 @@ struct Parser {
 		}
 	}
 
-	uint parseInputTypeDefinitionImpl() {
+	InputTypeDefinition parseInputTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["NDE", "NE"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
+			subRules = ["NDE", "NE"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDE"];
 				if(this.firstDirectives()) {
-					uint dir = this.parseDirectives();
+					Directives dir = this.parseDirectives();
+					subRules = ["NDE"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDE"];
 						if(this.firstInputValueDefinitions()) {
-							uint ivds = this.parseInputValueDefinitions();
+							InputValueDefinitions ivds = this.parseInputValueDefinitions();
+							subRules = ["NDE"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.inputTypeDefinitions ~= InputTypeDefinition.ConstructNDE(name, dir, ivds);
-								return cast(uint)(this.inputTypeDefinitions.length - 1);
-
+								return new InputTypeDefinition(InputTypeDefinitionEnum.NDE
+									, name
+									, dir
+									, ivds
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -4292,14 +4579,17 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NE"];
 					if(this.firstInputValueDefinitions()) {
-						uint ivds = this.parseInputValueDefinitions();
+						InputValueDefinitions ivds = this.parseInputValueDefinitions();
+						subRules = ["NE"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.inputTypeDefinitions ~= InputTypeDefinition.ConstructNE(name, ivds);
-							return cast(uint)(this.inputTypeDefinitions.length - 1);
-
+							return new InputTypeDefinition(InputTypeDefinitionEnum.NE
+								, name
+								, ivds
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -4366,7 +4656,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.extend;
 	}
 
-	uint parseTypeExtensionDefinition() {
+	TypeExtensionDefinition parseTypeExtensionDefinition() {
 		try {
 			return this.parseTypeExtensionDefinitionImpl();
 		} catch(ParseException e) {
@@ -4377,16 +4667,18 @@ struct Parser {
 		}
 	}
 
-	uint parseTypeExtensionDefinitionImpl() {
+	TypeExtensionDefinition parseTypeExtensionDefinitionImpl() {
 		string[] subRules;
+		subRules = ["O"];
 		if(this.lex.front.type == TokenType.extend) {
 			this.lex.popFront();
+			subRules = ["O"];
 			if(this.firstObjectTypeDefinition()) {
-				uint otd = this.parseObjectTypeDefinition();
+				ObjectTypeDefinition otd = this.parseObjectTypeDefinition();
 
-				this.typeExtensionDefinitions ~= TypeExtensionDefinition.ConstructO(otd);
-				return cast(uint)(this.typeExtensionDefinitions.length - 1);
-
+				return new TypeExtensionDefinition(TypeExtensionDefinitionEnum.O
+					, otd
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -4417,7 +4709,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.directive;
 	}
 
-	uint parseDirectiveDefinition() {
+	DirectiveDefinition parseDirectiveDefinition() {
 		try {
 			return this.parseDirectiveDefinitionImpl();
 		} catch(ParseException e) {
@@ -4428,25 +4720,33 @@ struct Parser {
 		}
 	}
 
-	uint parseDirectiveDefinitionImpl() {
+	DirectiveDefinition parseDirectiveDefinitionImpl() {
 		string[] subRules;
+		subRules = ["AD", "D"];
 		if(this.lex.front.type == TokenType.directive) {
 			this.lex.popFront();
+			subRules = ["AD", "D"];
 			if(this.lex.front.type == TokenType.at) {
 				this.lex.popFront();
+				subRules = ["AD", "D"];
 				if(this.lex.front.type == TokenType.name) {
 					Token name = this.lex.front;
 					this.lex.popFront();
+					subRules = ["AD"];
 					if(this.firstArgumentsDefinition()) {
-						uint ad = this.parseArgumentsDefinition();
+						ArgumentsDefinition ad = this.parseArgumentsDefinition();
+						subRules = ["AD"];
 						if(this.lex.front.type == TokenType.on_) {
 							this.lex.popFront();
+							subRules = ["AD"];
 							if(this.firstDirectiveLocations()) {
-								uint dl = this.parseDirectiveLocations();
+								DirectiveLocations dl = this.parseDirectiveLocations();
 
-								this.directiveDefinitions ~= DirectiveDefinition.ConstructAD(name, ad, dl);
-								return cast(uint)(this.directiveDefinitions.length - 1);
-
+								return new DirectiveDefinition(DirectiveDefinitionEnum.AD
+									, name
+									, ad
+									, dl
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -4473,12 +4773,14 @@ struct Parser {
 
 					} else if(this.lex.front.type == TokenType.on_) {
 						this.lex.popFront();
+						subRules = ["D"];
 						if(this.firstDirectiveLocations()) {
-							uint dl = this.parseDirectiveLocations();
+							DirectiveLocations dl = this.parseDirectiveLocations();
 
-							this.directiveDefinitions ~= DirectiveDefinition.ConstructD(name, dl);
-							return cast(uint)(this.directiveDefinitions.length - 1);
-
+							return new DirectiveDefinition(DirectiveDefinitionEnum.D
+								, name
+								, dl
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -4545,7 +4847,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.name;
 	}
 
-	uint parseDirectiveLocations() {
+	DirectiveLocations parseDirectiveLocations() {
 		try {
 			return this.parseDirectiveLocationsImpl();
 		} catch(ParseException e) {
@@ -4556,19 +4858,23 @@ struct Parser {
 		}
 	}
 
-	uint parseDirectiveLocationsImpl() {
+	DirectiveLocations parseDirectiveLocationsImpl() {
 		string[] subRules;
+		subRules = ["N", "NF", "NPF"];
 		if(this.lex.front.type == TokenType.name) {
 			Token name = this.lex.front;
 			this.lex.popFront();
+			subRules = ["NPF"];
 			if(this.lex.front.type == TokenType.pipe) {
 				this.lex.popFront();
+				subRules = ["NPF"];
 				if(this.firstDirectiveLocations()) {
-					uint follow = this.parseDirectiveLocations();
+					DirectiveLocations follow = this.parseDirectiveLocations();
 
-					this.directiveLocationss ~= DirectiveLocations.ConstructNPF(name, follow);
-					return cast(uint)(this.directiveLocationss.length - 1);
-
+					return new DirectiveLocations(DirectiveLocationsEnum.NPF
+						, name
+						, follow
+					);
 				}
 				auto app = appender!string();
 				formattedWrite(app, 
@@ -4582,15 +4888,16 @@ struct Parser {
 				);
 
 			} else if(this.firstDirectiveLocations()) {
-				uint follow = this.parseDirectiveLocations();
+				DirectiveLocations follow = this.parseDirectiveLocations();
 
-				this.directiveLocationss ~= DirectiveLocations.ConstructNF(name, follow);
-				return cast(uint)(this.directiveLocationss.length - 1);
-
+				return new DirectiveLocations(DirectiveLocationsEnum.NF
+					, name
+					, follow
+				);
 			}
-			this.directiveLocationss ~= DirectiveLocations.ConstructN(name);
-			return cast(uint)(this.directiveLocationss.length - 1);
-
+			return new DirectiveLocations(DirectiveLocationsEnum.N
+				, name
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 
@@ -4609,7 +4916,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.input;
 	}
 
-	uint parseInputObjectTypeDefinition() {
+	InputObjectTypeDefinition parseInputObjectTypeDefinition() {
 		try {
 			return this.parseInputObjectTypeDefinitionImpl();
 		} catch(ParseException e) {
@@ -4620,25 +4927,32 @@ struct Parser {
 		}
 	}
 
-	uint parseInputObjectTypeDefinitionImpl() {
+	InputObjectTypeDefinition parseInputObjectTypeDefinitionImpl() {
 		string[] subRules;
+		subRules = ["NDI", "NI"];
 		if(this.lex.front.type == TokenType.input) {
 			this.lex.popFront();
+			subRules = ["NDI", "NI"];
 			if(this.lex.front.type == TokenType.name) {
 				Token name = this.lex.front;
 				this.lex.popFront();
+				subRules = ["NDI"];
 				if(this.firstDirectives()) {
-					uint dirs = this.parseDirectives();
+					Directives dirs = this.parseDirectives();
+					subRules = ["NDI"];
 					if(this.lex.front.type == TokenType.lcurly) {
 						this.lex.popFront();
+						subRules = ["NDI"];
 						if(this.firstInputValueDefinitions()) {
 							this.parseInputValueDefinitions();
+							subRules = ["NDI"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
 
-								this.inputObjectTypeDefinitions ~= InputObjectTypeDefinition.ConstructNDI(name, dirs);
-								return cast(uint)(this.inputObjectTypeDefinitions.length - 1);
-
+								return new InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NDI
+									, name
+									, dirs
+								);
 							}
 							auto app = appender!string();
 							formattedWrite(app, 
@@ -4677,14 +4991,16 @@ struct Parser {
 
 				} else if(this.lex.front.type == TokenType.lcurly) {
 					this.lex.popFront();
+					subRules = ["NI"];
 					if(this.firstInputValueDefinitions()) {
 						this.parseInputValueDefinitions();
+						subRules = ["NI"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
-							this.inputObjectTypeDefinitions ~= InputObjectTypeDefinition.ConstructNI(name);
-							return cast(uint)(this.inputObjectTypeDefinitions.length - 1);
-
+							return new InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NI
+								, name
+							);
 						}
 						auto app = appender!string();
 						formattedWrite(app, 
@@ -4751,7 +5067,7 @@ struct Parser {
 		return this.lex.front.type == TokenType.stringValue;
 	}
 
-	uint parseDescription() {
+	Description parseDescription() {
 		try {
 			return this.parseDescriptionImpl();
 		} catch(ParseException e) {
@@ -4762,15 +5078,16 @@ struct Parser {
 		}
 	}
 
-	uint parseDescriptionImpl() {
+	Description parseDescriptionImpl() {
 		string[] subRules;
+		subRules = ["S"];
 		if(this.lex.front.type == TokenType.stringValue) {
 			Token tok = this.lex.front;
 			this.lex.popFront();
 
-			this.descriptions ~= Description.ConstructS(tok);
-			return cast(uint)(this.descriptions.length - 1);
-
+			return new Description(DescriptionEnum.S
+				, tok
+			);
 		}
 		auto app = appender!string();
 		formattedWrite(app, 

@@ -5,8 +5,6 @@ import graphql.ast;
 import graphql.visitor;
 import graphql.tokenmodule;
 
-__EOF__
-
 class TreeVisitor : ConstVisitor {
 @safe :
 

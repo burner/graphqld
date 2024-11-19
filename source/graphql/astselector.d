@@ -13,7 +13,6 @@ this module allows to do that.
 
 @safe:
 
-/+
 const(T) astSelect(T,S)(const(S) input, string path) {
 	auto astsel = new AstSelector(path);
 	static if(is(S == Document)) {
@@ -374,4 +373,3 @@ mutation a {
 		assert(bar is null || bar !is foo);
 	}
 }
-+/

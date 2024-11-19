@@ -1,7 +1,5 @@
 module graphql.starwars.validation;
 
-__EOF__
-
 import std.typecons : Nullable, nullable;
 import std.format : format;
 import std.exception;

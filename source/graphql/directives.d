@@ -1,7 +1,5 @@
 module graphql.directives;
 
-__EOF__
-
 import std.format : format;
 
 import vibe.data.json;
