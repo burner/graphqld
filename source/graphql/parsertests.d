@@ -490,6 +490,28 @@ input ApproveDeploymentsInput {
 }
 `);
 
+	tests ~= TestCase(34, QueryParser.no, `
+type TestType {
+  input: String!
+  type: String!
+  query: String!
+}
+
+input TestInput {
+  input: String!
+  type: String!
+  query: String!
+}
+`);
+
+	tests ~= TestCase(35, QueryParser.yes, `
+query {
+  input
+  type
+  query
+}
+`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str, test.qp);
 		auto p = Parser(l);

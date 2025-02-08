@@ -109,7 +109,7 @@ class AstSelector : ConstVisitor {
 			this.popStack(shouldPop);
 		}
 
-		shouldPop = this.takeName(obj.name.name.value, obj);
+		shouldPop = this.takeName(obj.name.name.tok.value, obj);
 
 		if(shouldPop) {
 			if(obj.args !is null) {
@@ -193,7 +193,7 @@ query foo {
 	auto d = lexAndParse(s);
 	auto a = d.astSelect!Field("foo.a");
 	assert(a !is null);
-	assert(a.name.name.value == "a");
+	assert(a.name.name.tok.value == "a");
 }
 
 unittest {
@@ -254,7 +254,7 @@ mutation a {
 	auto d = lexAndParse(s);
 	auto foo = d.astSelect!Field("foo.a.b");
 	assert(foo !is null);
-	assert(foo.name.name.value == "b");
+	assert(foo.name.name.tok.value == "b");
 }
 
 unittest {

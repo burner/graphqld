@@ -323,7 +323,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 					)
 				: Json.emptyObject();
 
-			const string name = field.f.name.name.value;
+			const string name = field.f.name.name.tok.value;
 			ret.insertPayload(name, rslt);
 		}
 		return ret;
@@ -333,7 +333,7 @@ class GraphQLD(T, QContext = DefaultContext) {
 			Json objectValue, Json variables, Document doc, ref Con context,
 			ref ExecutionContext ec)
 	{
-		ec.path ~= PathElement(field.f.name.name.value);
+		ec.path ~= PathElement(field.f.name.name.tok.value);
 		scope(exit) {
 			ec.path.popBack();
 		}

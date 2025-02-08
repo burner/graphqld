@@ -65,8 +65,29 @@ Field:
     F: [FieldName#name]
 
 FieldName:
-    A: [name#name, colon, name#aka]
-    N: [name#name]
+    A: [Identifier#name, colon, name#aka]
+    N: [Identifier#name]
+
+Identifier:
+    I: [name#tok]
+    "Mutation": [mutation#tok]
+    "Subscription": [subscription#tok]
+    "Scalar": [scalar#tok]
+    "Schema": [schema#tok]
+    "On": [on_#tok]
+    "Directive": [directive#tok]
+    "Enum": [enum_#tok]
+    "Extend": [extend#tok]
+    "Input": [input#tok]
+    "Interface": [interface_#tok]
+    "Implements": [implements#tok]
+    "False": [false_#tok]
+    "Fragment": [fragment#tok]
+    "Query": [query#tok]
+    "True": [true_#tok]
+    "Type": [type#tok]
+    "Null": [null_#tok]
+    "Union": [union_#tok]
 
 Arguments:
     List: [lparen, ArgumentList#arg, rparen]
@@ -204,16 +225,16 @@ FieldDefinitions:
     FNC: [FieldDefinition#fd, FieldDefinitions#follow]
 
 FieldDefinition:
-    AD: [name#name, ArgumentsDefinition#arg, colon, Type#typ,
+    AD: [Identifier#name, ArgumentsDefinition#arg, colon, Type#typ,
         Directives#dir]
-    A: [name#name, ArgumentsDefinition#arg, colon, Type#typ]
-    D: [name#name, colon, Type#typ, Directives#dir]
-    T: [name#name, colon, Type#typ]
-    DAD: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ,
+    A: [Identifier#name, ArgumentsDefinition#arg, colon, Type#typ]
+    D: [Identifier#name, colon, Type#typ, Directives#dir]
+    T: [Identifier#name, colon, Type#typ]
+    DAD: [Description#des, Identifier#name, ArgumentsDefinition#arg, colon, Type#typ,
         Directives#dir]
-    DA: [Description#des, name#name, ArgumentsDefinition#arg, colon, Type#typ]
-    DD: [Description#des, name#name, colon, Type#typ, Directives#dir]
-    DT: [Description#des, name#name, colon, Type#typ]
+    DA: [Description#des, Identifier#name, ArgumentsDefinition#arg, colon, Type#typ]
+    DD: [Description#des, Identifier#name, colon, Type#typ, Directives#dir]
+    DT: [Description#des, Identifier#name, colon, Type#typ]
 
 ImplementsInterfaces:
     N: [implements, NamedTypes#nts]
@@ -233,14 +254,14 @@ InputValueDefinitions:
     IF: [InputValueDefinition#iv, InputValueDefinitions#follow]
 
 InputValueDefinition:
-    TVD: [name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
-    TD: [name#name, colon, Type#type, Directives#dirs]
-    TV: [name#name, colon, Type#type, DefaultValue#df]
-    T: [name#name, colon, Type#type]
-    DTVD: [Description#des, name#name, colon, Type#type, DefaultValue#df, Directives#dirs]
-    DTD: [Description#des, name#name, colon, Type#type, Directives#dirs]
-    DTV: [Description#des, name#name, colon, Type#type, DefaultValue#df]
-    DT: [Description#des, name#name, colon, Type#type]
+    TVD: [Identifier#name, colon, Type#type, DefaultValue#df, Directives#dirs]
+    TD: [Identifier#name, colon, Type#type, Directives#dirs]
+    TV: [Identifier#name, colon, Type#type, DefaultValue#df]
+    T: [Identifier#name, colon, Type#type]
+    DTVD: [Description#des, Identifier#name, colon, Type#type, DefaultValue#df, Directives#dirs]
+    DTD: [Description#des, Identifier#name, colon, Type#type, Directives#dirs]
+    DTV: [Description#des, Identifier#name, colon, Type#type, DefaultValue#df]
+    DT: [Description#des, Identifier#name, colon, Type#type]
 
 InterfaceTypeDefinition:
     NDF: [interface_, name#name, Directives#dirs, lcurly,

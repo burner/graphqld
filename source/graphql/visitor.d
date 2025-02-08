@@ -297,6 +297,73 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
+	void enter(Identifier obj) {}
+	void exit(Identifier obj) {}
+
+	void accept(Identifier obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case IdentifierEnum.I:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Mutation:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Subscription:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Scalar:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Schema:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.On:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Directive:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Enum:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Extend:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Input:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Interface:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Implements:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.False:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Fragment:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Query:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.True:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Type:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Null:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Union:
+				obj.tok.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
 	void enter(Arguments obj) {}
 	void exit(Arguments obj) {}
 
@@ -1518,6 +1585,73 @@ class ConstVisitor {
 				break;
 			case FieldNameEnum.N:
 				obj.name.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
+	void enter(const(Identifier) obj) {}
+	void exit(const(Identifier) obj) {}
+
+	void accept(const(Identifier) obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case IdentifierEnum.I:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Mutation:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Subscription:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Scalar:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Schema:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.On:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Directive:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Enum:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Extend:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Input:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Interface:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Implements:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.False:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Fragment:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Query:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.True:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Type:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Null:
+				obj.tok.visit(this);
+				break;
+			case IdentifierEnum.Union:
+				obj.tok.visit(this);
 				break;
 		}
 		exit(obj);
