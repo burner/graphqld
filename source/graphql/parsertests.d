@@ -508,6 +508,23 @@ input ApproveDeploymentsInput {
 }
 
 unittest {
+	enum ok = {
+		auto l = Lexer(`
+mutation updateUser($userId: String! $name: String!) {
+	updateUser(id: $userId name: $name) {
+		name
+	}
+}
+`, QueryParser.yes);
+		auto p = Parser(l);
+		auto d = p.parseDocument();
+		assert(p.lex.empty, format("%s", p.lex.getRestOfInput()));
+		return true;
+	}();
+	static assert(ok);
+}
+
+unittest {
 	import std.file : readText;
 	auto l = Lexer(readText("starwarsschemaparsetest.graphql"), QueryParser.no);
 	auto p = Parser(l);
