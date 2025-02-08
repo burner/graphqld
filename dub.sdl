@@ -1,10 +1,91 @@
 name "graphqld"
 authors "Robert burner Schadek"
-dependency "fixedsizearray" version=">=1.3.0"
-dependency "vibe-d" version=">=0.9.0"
-dependency "nullablestore" version=">=2.1.0"
 dflags "-d"
 dflags-ldc "-d" "-wi"
 description "A library to handle the GraphQL Protocol"
 copyright "Copyright © 2019, Robert burner Schadek"
 license "LGPL3"
+
+# Sub-packages
+
+subPackage {
+    name "lexer"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/constants.d" \
+        "source/graphql/tokenmodule.d" \
+        "source/graphql/lexer.d"
+}
+
+subPackage {
+    name "exception"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/exception.d"
+}
+
+subPackage {
+    name "parser"
+    dependency "graphqld:lexer" version="*"
+    dependency "graphqld:exception" version="*"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/ast.d" \
+        "source/graphql/parser.d" \
+        "source/graphql/parsertests.d" \
+        "source/graphql/visitor.d" \
+        "source/graphql/treevisitor.d"
+}
+
+subPackage {
+    name "uda"
+    dependency "vibe-d:data" version=">=0.9.0"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/uda.d"
+}
+
+subPackage {
+    name "server"
+    dependency "vibe-d" version=">=0.9.0"
+    dependency "nullablestore" version=">=2.1.0"
+    dependency "fixedsizearray" version=">=1.3.0"
+    dependency "graphqld:exception" version="*"
+    dependency "graphqld:parser" version="*"
+    dependency "graphqld:uda" version="*"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/argumentextractor.d" \
+        "source/graphql/argumentextractortests.d" \
+        "source/graphql/astselector.d" \
+        "source/graphql/builder.d" \
+        "source/graphql/directives.d" \
+        "source/graphql/helper.d" \
+        "source/graphql/schema/directives.d" \
+        "source/graphql/schema/helper.d" \
+        "source/graphql/schema/introspectiontypes.d" \
+        "source/graphql/schema/package.d" \
+        "source/graphql/schema/resolver.d" \
+        "source/graphql/schema/toschemafile.d" \
+        "source/graphql/schema/typeconversions.d" \
+        "source/graphql/schema/types.d" \
+        "source/graphql/testschema.d" \
+        "source/graphql/traits.d" \
+        "source/graphql/validation/exception.d" \
+        "source/graphql/validation/querybased.d" \
+        "source/graphql/validation/schemabased.d" \
+        "source/graphql/graphql.d"
+}
+
+# Main package
+
+dependency "graphqld:server" version="*"
+sourcePaths  # no globbing
+sourceFiles \
+    "source/graphql/starwars/data.d" \
+    "source/graphql/starwars/schema.d" \
+    "source/graphql/starwars/types.d" \
+    "source/graphql/starwars/introspection.d" \
+    "source/graphql/starwars/query.d" \
+    "source/graphql/starwars/validation.d" \
+    "source/graphql/package.d"

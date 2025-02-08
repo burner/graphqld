@@ -5,7 +5,7 @@ __dummy.html
 *.obj
 *.a
 *.lib
-graphqld-test-library
+*-test-library
 *.exe
 __test__*__
 *.lst
