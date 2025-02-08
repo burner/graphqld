@@ -251,7 +251,7 @@ class SchemaValidator(Schema) : Visitor {
 				(this.schemaStack.back.type.typeKind == TypeKind.SCALAR
 				|| this.schemaStack.back.type.typeKind == TypeKind.ENUM),
 				format("Leaf field '%s' is not a SCALAR nor ENUM but '%s'. Stack %s. Back %s"
-					, f.name.name.value
+					, f.name.name.tok.value
 					, this.schemaStack.back.type.typeKind
 					, this.schemaStack.map!(it => format("%s.%s", it.name, it.fieldName))
 					, this.schemaStack.back.type
@@ -261,7 +261,7 @@ class SchemaValidator(Schema) : Visitor {
 
 	override void enter(const(FieldName) fn) {
 		import std.array : empty;
-		string n = fn.aka.value.empty ? fn.name.value : fn.aka.value;
+		string n = fn.aka.value.empty ? fn.name.tok.value : fn.aka.value;
 		this.addToTypeStack(n);
 	}
 
@@ -928,4 +928,3 @@ subscription sub {
 
 	test!SingleRootField(str);
 }
-

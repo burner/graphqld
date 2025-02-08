@@ -437,7 +437,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["dots -> Selection","name -> Selection"]
+				["directive -> Selection","dots -> Selection","enum_ -> Selection","extend -> Selection","false_ -> Selection","fragment -> Selection","implements -> Selection","input -> Selection","interface_ -> Selection","mutation -> Selection","name -> Selection","null_ -> Selection","on_ -> Selection","query -> Selection","scalar -> Selection","schema -> Selection","subscription -> Selection","true_ -> Selection","type -> Selection","union_ -> Selection"]
 			);
 
 		}
@@ -556,7 +556,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["dots -> Selection","name -> Selection"]
+					["directive -> Selection","dots -> Selection","enum_ -> Selection","extend -> Selection","false_ -> Selection","fragment -> Selection","implements -> Selection","input -> Selection","interface_ -> Selection","mutation -> Selection","name -> Selection","null_ -> Selection","on_ -> Selection","query -> Selection","scalar -> Selection","schema -> Selection","subscription -> Selection","true_ -> Selection","type -> Selection","union_ -> Selection"]
 				);
 
 			}
@@ -572,7 +572,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["dots","name -> Field"]
+			["directive -> Field","dots","enum_ -> Field","extend -> Field","false_ -> Field","fragment -> Field","implements -> Field","input -> Field","interface_ -> Field","mutation -> Field","name -> Field","null_ -> Field","on_ -> Field","query -> Field","scalar -> Field","schema -> Field","subscription -> Field","true_ -> Field","type -> Field","union_ -> Field"]
 		);
 
 	}
@@ -638,7 +638,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name -> FieldName","dots"]
+			["directive -> FieldName","enum_ -> FieldName","extend -> FieldName","false_ -> FieldName","fragment -> FieldName","implements -> FieldName","input -> FieldName","interface_ -> FieldName","mutation -> FieldName","name -> FieldName","null_ -> FieldName","on_ -> FieldName","query -> FieldName","scalar -> FieldName","schema -> FieldName","subscription -> FieldName","true_ -> FieldName","type -> FieldName","union_ -> FieldName","dots"]
 		);
 
 	}
@@ -904,13 +904,13 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["directive -> Identifier","enum_ -> Identifier","extend -> Identifier","false_ -> Identifier","fragment -> Identifier","implements -> Identifier","input -> Identifier","interface_ -> Identifier","mutation -> Identifier","name -> Identifier","null_ -> Identifier","on_ -> Identifier","query -> Identifier","scalar -> Identifier","schema -> Identifier","subscription -> Identifier","true_ -> Identifier","type -> Identifier","union_ -> Identifier"]
 		);
 
 	}
 
 	bool firstFieldName() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name;
+		return this.firstIdentifier();
 	}
 
 	FieldName parseFieldName() {
@@ -927,9 +927,8 @@ struct Parser {
 	FieldName parseFieldNameImpl() {
 		string[] subRules;
 		subRules = ["A", "N"];
-		if(this.lex.front.type == TokenType.name) {
-			Token name = this.lex.front;
-			this.lex.popFront();
+		if(this.firstIdentifier()) {
+			Identifier name = this.parseIdentifier();
 			subRules = ["A"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
@@ -967,7 +966,190 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name"]
+			["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_"]
+		);
+
+	}
+
+	bool firstIdentifier() const pure @nogc @safe {
+		return this.lex.front.type == TokenType.name
+			 || this.lex.front.type == TokenType.mutation
+			 || this.lex.front.type == TokenType.subscription
+			 || this.lex.front.type == TokenType.scalar
+			 || this.lex.front.type == TokenType.schema
+			 || this.lex.front.type == TokenType.on_
+			 || this.lex.front.type == TokenType.directive
+			 || this.lex.front.type == TokenType.enum_
+			 || this.lex.front.type == TokenType.extend
+			 || this.lex.front.type == TokenType.input
+			 || this.lex.front.type == TokenType.interface_
+			 || this.lex.front.type == TokenType.implements
+			 || this.lex.front.type == TokenType.false_
+			 || this.lex.front.type == TokenType.fragment
+			 || this.lex.front.type == TokenType.query
+			 || this.lex.front.type == TokenType.true_
+			 || this.lex.front.type == TokenType.type
+			 || this.lex.front.type == TokenType.null_
+			 || this.lex.front.type == TokenType.union_;
+	}
+
+	Identifier parseIdentifier() {
+		try {
+			return this.parseIdentifierImpl();
+		} catch(ParseException e) {
+			throw new ParseException(
+				"While parsing a Identifier an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	Identifier parseIdentifierImpl() {
+		string[] subRules;
+		subRules = ["I"];
+		if(this.lex.front.type == TokenType.name) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.I
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.mutation) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Mutation
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.subscription) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Subscription
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.scalar) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Scalar
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.schema) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Schema
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.on_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.On
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.directive) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Directive
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.enum_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Enum
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.extend) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Extend
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.input) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Input
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.interface_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Interface
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.implements) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Implements
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.false_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.False
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.fragment) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Fragment
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.query) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Query
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.true_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.True
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.type) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Type
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.null_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Null
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.union_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new Identifier(IdentifierEnum.Union
+				, tok
+			);
+		}
+		auto app = appender!string();
+		formattedWrite(app, 
+			"In 'Identifier' found a '%s' while looking for", 
+			this.lex.front
+		);
+		throw new ParseException(app.data,
+			__FILE__, __LINE__,
+			subRules,
+			["name","mutation","subscription","scalar","schema","on_","directive","enum_","extend","input","interface_","implements","false_","fragment","query","true_","type","null_","union_"]
 		);
 
 	}
@@ -2906,7 +3088,7 @@ struct Parser {
 							throw new ParseException(app.data,
 								__FILE__, __LINE__,
 								subRules,
-								["name -> FieldDefinition","stringValue -> FieldDefinition"]
+								["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 							);
 
 						}
@@ -2956,7 +3138,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition","stringValue -> FieldDefinition"]
+							["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 						);
 
 					}
@@ -3009,7 +3191,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition","stringValue -> FieldDefinition"]
+							["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 						);
 
 					}
@@ -3058,7 +3240,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition","stringValue -> FieldDefinition"]
+						["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 					);
 
 				}
@@ -3139,7 +3321,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> FieldDefinition","stringValue -> FieldDefinition"]
+					["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 				);
 
 			} else if(this.firstFieldDefinitions()) {
@@ -3162,13 +3344,13 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue -> Description"]
+			["directive -> Identifier","enum_ -> Identifier","extend -> Identifier","false_ -> Identifier","fragment -> Identifier","implements -> Identifier","input -> Identifier","interface_ -> Identifier","mutation -> Identifier","name -> Identifier","null_ -> Identifier","on_ -> Identifier","query -> Identifier","scalar -> Identifier","schema -> Identifier","stringValue -> Description","subscription -> Identifier","true_ -> Identifier","type -> Identifier","union_ -> Identifier"]
 		);
 
 	}
 
 	bool firstFieldDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name
+		return this.firstIdentifier()
 			 || this.firstDescription();
 	}
 
@@ -3186,9 +3368,8 @@ struct Parser {
 	FieldDefinition parseFieldDefinitionImpl() {
 		string[] subRules;
 		subRules = ["A", "AD", "D", "T"];
-		if(this.lex.front.type == TokenType.name) {
-			Token name = this.lex.front;
-			this.lex.popFront();
+		if(this.firstIdentifier()) {
+			Identifier name = this.parseIdentifier();
 			subRules = ["A", "AD"];
 			if(this.firstArgumentsDefinition()) {
 				ArgumentsDefinition arg = this.parseArgumentsDefinition();
@@ -3284,9 +3465,8 @@ struct Parser {
 		} else if(this.firstDescription()) {
 			Description des = this.parseDescription();
 			subRules = ["DA", "DAD", "DD", "DT"];
-			if(this.lex.front.type == TokenType.name) {
-				Token name = this.lex.front;
-				this.lex.popFront();
+			if(this.firstIdentifier()) {
+				Identifier name = this.parseIdentifier();
 				subRules = ["DA", "DAD"];
 				if(this.firstArgumentsDefinition()) {
 					ArgumentsDefinition arg = this.parseArgumentsDefinition();
@@ -3392,7 +3572,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name"]
+				["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_"]
 			);
 
 		}
@@ -3404,7 +3584,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue"]
+			["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_","stringValue"]
 		);
 
 	}
@@ -3586,7 +3766,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name -> InputValueDefinition","stringValue -> InputValueDefinition","rparen"]
+				["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition","rparen"]
 			);
 
 		}
@@ -3643,7 +3823,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
+					["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition"]
 				);
 
 			} else if(this.firstInputValueDefinitions()) {
@@ -3666,13 +3846,13 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue -> Description"]
+			["directive -> Identifier","enum_ -> Identifier","extend -> Identifier","false_ -> Identifier","fragment -> Identifier","implements -> Identifier","input -> Identifier","interface_ -> Identifier","mutation -> Identifier","name -> Identifier","null_ -> Identifier","on_ -> Identifier","query -> Identifier","scalar -> Identifier","schema -> Identifier","stringValue -> Description","subscription -> Identifier","true_ -> Identifier","type -> Identifier","union_ -> Identifier"]
 		);
 
 	}
 
 	bool firstInputValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name
+		return this.firstIdentifier()
 			 || this.firstDescription();
 	}
 
@@ -3690,9 +3870,8 @@ struct Parser {
 	InputValueDefinition parseInputValueDefinitionImpl() {
 		string[] subRules;
 		subRules = ["T", "TD", "TV", "TVD"];
-		if(this.lex.front.type == TokenType.name) {
-			Token name = this.lex.front;
-			this.lex.popFront();
+		if(this.firstIdentifier()) {
+			Identifier name = this.parseIdentifier();
 			subRules = ["T", "TD", "TV", "TVD"];
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
@@ -3758,9 +3937,8 @@ struct Parser {
 		} else if(this.firstDescription()) {
 			Description des = this.parseDescription();
 			subRules = ["DT", "DTD", "DTV", "DTVD"];
-			if(this.lex.front.type == TokenType.name) {
-				Token name = this.lex.front;
-				this.lex.popFront();
+			if(this.firstIdentifier()) {
+				Identifier name = this.parseIdentifier();
 				subRules = ["DT", "DTD", "DTV", "DTVD"];
 				if(this.lex.front.type == TokenType.colon) {
 					this.lex.popFront();
@@ -3836,7 +4014,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name"]
+				["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_"]
 			);
 
 		}
@@ -3848,7 +4026,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue"]
+			["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_","stringValue"]
 		);
 
 	}
@@ -3916,7 +4094,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> FieldDefinition","stringValue -> FieldDefinition"]
+							["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 						);
 
 					}
@@ -3965,7 +4143,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> FieldDefinition","stringValue -> FieldDefinition"]
+						["directive -> FieldDefinition","enum_ -> FieldDefinition","extend -> FieldDefinition","false_ -> FieldDefinition","fragment -> FieldDefinition","implements -> FieldDefinition","input -> FieldDefinition","interface_ -> FieldDefinition","mutation -> FieldDefinition","name -> FieldDefinition","null_ -> FieldDefinition","on_ -> FieldDefinition","query -> FieldDefinition","scalar -> FieldDefinition","schema -> FieldDefinition","stringValue -> FieldDefinition","subscription -> FieldDefinition","true_ -> FieldDefinition","type -> FieldDefinition","union_ -> FieldDefinition"]
 					);
 
 				}
@@ -4562,7 +4740,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
+							["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition"]
 						);
 
 					}
@@ -4611,7 +4789,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
+						["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition"]
 					);
 
 				}
@@ -4974,7 +5152,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
+							["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition"]
 						);
 
 					}
@@ -5022,7 +5200,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> InputValueDefinition","stringValue -> InputValueDefinition"]
+						["directive -> InputValueDefinition","enum_ -> InputValueDefinition","extend -> InputValueDefinition","false_ -> InputValueDefinition","fragment -> InputValueDefinition","implements -> InputValueDefinition","input -> InputValueDefinition","interface_ -> InputValueDefinition","mutation -> InputValueDefinition","name -> InputValueDefinition","null_ -> InputValueDefinition","on_ -> InputValueDefinition","query -> InputValueDefinition","scalar -> InputValueDefinition","schema -> InputValueDefinition","stringValue -> InputValueDefinition","subscription -> InputValueDefinition","true_ -> InputValueDefinition","type -> InputValueDefinition","union_ -> InputValueDefinition"]
 					);
 
 				}
