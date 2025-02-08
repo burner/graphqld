@@ -1,0 +1,226 @@
+/// A CTFE-friendly representation of (a subset of)
+/// GraphQL documents (schemas and queries).
+module graphql.client.document;
+
+// This is an internal module.
+package(graphql):
+
+import ast = graphql.ast;
+
+/*
+  Q: Why mirror the AST type hierarchy, isn't it redundant?
+  A: 1. By restricting the representation to a certain subset of the D type system,
+        we can allow the representation to be used in more ways (e.g. as "enum"
+		instead of "static const").
+	 2. Dealing with the AST is a little verbose in some situations (e.g.
+	    VariableDefinition.var.name.value), doing this as a separate step
+		allows us to avoid pushing this complexity into the code generating D types.
+	 3. We can cull parts of the document that are not relevant to D code generation.
+     4. By walking the AST ahead of time, we can do some work only once instead of
+	    per query template instantiation (`schema.query!"..."`).
+	 5. In case parsing the schema at compile-time becomes too expensive,
+	    in the future we could add support to dumping the parsed representation
+		of the GraphQL schema to .d files (which would be useful as the GraphQL
+		schema usually changes much rarer than the queries when building clients).
+ */
+
+struct Type
+{
+	// Only one may be set:
+	Type* list;
+	Type* nullable;
+	string name;
+
+	this(ast.Type t)
+	{
+		final switch (t.ruleSelection)
+		{
+			case ast.TypeEnum.TN:
+				name = t.tname.value;
+				break;
+			case ast.TypeEnum.LN:
+				list = new Type;
+				list.name = t.list.type.tname.value;
+				break;
+			case ast.TypeEnum.T:
+				nullable = new Type;
+				nullable.name = t.tname.value;
+				break;
+			case ast.TypeEnum.L:
+				nullable = new Type;
+				nullable.list = new Type(t.list.type);
+				break;
+		}
+	}
+}
+
+struct FieldDefinition
+{
+	string name;
+	Type type;
+
+	this(ast.FieldDefinition fd)
+	{
+		if (auto des = fd.des)
+		{ /* TODO handle description */ }
+		if (auto arg = fd.arg)
+		{ /* TODO handle arguments */ }
+		if (auto dir = fd.dir)
+		{ /* TODO handle directives */ }
+
+		this.name = fd.name.tok.value;
+		this.type = Type(fd.typ);
+	}
+}
+
+struct ObjectTypeDefinition
+{
+	string name;
+	FieldDefinition[] fields;
+
+	this(ast.ObjectTypeDefinition otd)
+	{
+		this.name = otd.name.value;
+		for (auto fds = otd.fds; fds !is null; fds = fds.follow)
+			if (auto fd = fds.fd)
+				this.fields ~= FieldDefinition(fd);
+	}
+}
+
+alias OperationType = ast.OperationTypeEnum;
+
+struct OperationTypeDefinition
+{
+	OperationType type;
+	string name;
+
+	this(ast.OperationTypeDefinition otd)
+	{
+		this.type = otd.ot.ruleSelection;
+		this.name = otd.nt.value;
+	}
+
+	this(OperationType type, string name)
+	{
+		this.type = type;
+		this.name = name;
+	}
+}
+
+struct SchemaDefinition
+{
+	OperationTypeDefinition[] operationTypes;
+
+	this(ast.SchemaDefinition sch)
+	{
+		for (auto otds = sch.otds; otds !is null; otds = otds.follow)
+			if (otds.otd)
+				this.operationTypes ~= OperationTypeDefinition(otds.otd);
+	}
+
+	this(OperationTypeDefinition[] operationTypes)
+	{
+		this.operationTypes = operationTypes;
+	}
+}
+
+struct SchemaDocument
+{
+	SchemaDefinition schema;
+	ObjectTypeDefinition[] objectTypes;
+
+	this(ast.Document d)
+	{
+		for (auto defs = d.defs; defs !is null; defs = defs.follow)
+			if (auto def = defs.def)
+				if (auto type = def.type)
+				{
+					if (auto sch = type.sch)
+					{
+						assert(schema is SchemaDefinition.init,
+							"Multiple schema definitions in document");
+						this.schema = SchemaDefinition(sch);
+					}
+
+					if (auto td = type.td)
+					{
+						if (auto otd = td.otd)
+							this.objectTypes ~= ObjectTypeDefinition(otd);
+					}
+				}
+
+		if (this.schema is SchemaDefinition.init)
+		{
+			// Populate with the default
+			this.schema = SchemaDefinition([
+				OperationTypeDefinition(OperationType.Query, "Query"),
+				OperationTypeDefinition(OperationType.Mutation, "Mutation"),
+				OperationTypeDefinition(OperationType.Sub, "Subscription"),
+			]);
+		}
+	}
+}
+
+struct Field
+{
+	string name;
+	Field[] selections;
+
+	this(ast.Field f)
+	{
+		this.name = f.name.name.tok.value;
+		if (auto ss = f.ss)
+			for (auto sels = ss.sel; sels !is null; sels = sels.follow)
+				if (auto sel = sels.sel)
+					if (auto field = sel.field)
+						this.selections ~= Field(field);
+	}
+}
+
+struct VariableDefinition
+{
+	string name;
+	Type type;
+
+	this(ast.VariableDefinition vd)
+	{
+		this.name = vd.var.name.value;
+		this.type = Type(vd.type);
+	}
+}
+
+struct OperationDefinition
+{
+	OperationType type;
+	string name;
+	VariableDefinition[] variables;
+	Field[] selections;
+
+	this(ast.OperationDefinition od)
+	{
+		this.type = od.ot.ruleSelection;
+		this.name = od.name.value;
+		if (auto vd = od.vd)
+			for (auto vars = vd.vars; vars !is null; vars = vars.follow)
+				if (auto var = vars.var)
+					this.variables ~= VariableDefinition(var);
+		if (auto ss = od.ss)
+			for (auto sels = ss.sel; sels !is null; sels = sels.follow)
+				if (auto sel = sels.sel)
+					if (auto field = sel.field)
+						this.selections ~= Field(field);
+	}
+}
+
+struct QueryDocument
+{
+	this(ast.Document d)
+	{
+		for (auto defs = d.defs; defs !is null; defs = defs.follow)
+			if (auto def = defs.def)
+				if (auto op = def.op)
+					operations ~= OperationDefinition(op);
+	}
+
+	OperationDefinition[] operations;
+}
