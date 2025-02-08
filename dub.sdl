@@ -77,9 +77,20 @@ subPackage {
         "source/graphql/graphql.d"
 }
 
+subPackage {
+    name "client"
+    dependency "graphqld:parser" version="*"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/client/codegen.d" \
+        "source/graphql/client/document.d" \
+        "source/graphql/client/query.d"
+}
+
 # Main package
 
 dependency "graphqld:server" version="*"
+dependency "graphqld:client" version="*"
 sourcePaths  # no globbing
 sourceFiles \
     "source/graphql/starwars/data.d" \
