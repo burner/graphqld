@@ -3,6 +3,10 @@ docs.json
 __dummy.html
 *.o
 *.obj
+*.a
+*.lib
+graphqld-test-library
+*.exe
 __test__*__
 *.lst
 *.swp
