@@ -105,7 +105,7 @@ fragment fooo on Hero {
 
 	auto f = findFragment(d, "fooo", ["Hero"]);
 	assert(f !is null);
-	assert(f.sel.field.name.name.value == "name");
+	assert(f.sel.field.name.name.tok.value == "name");
 
 	f = findFragment(d, "fooo", ["Villian"]);
 	assert(f is null);
@@ -119,8 +119,8 @@ struct FieldRangeItem {
 	Document doc;
 
 	@property string name() {
-		return f.name.name.value;
-		//return f.name.aka.value.empty ? f.name.name.value : f.name.aka.value;
+		return f.name.name.tok.value;
+		//return f.name.aka.value.empty ? f.name.name.tok.value : f.name.aka.value;
 	}
 
 	@property string aka() {

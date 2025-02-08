@@ -578,17 +578,67 @@ class FieldName : Node {
 
 	FieldNameEnum ruleSelection;
 	Token aka;
-	Token name;
+	Identifier name;
 
-	this(FieldNameEnum ruleSelection, Token name, Token aka) {
+	this(FieldNameEnum ruleSelection, Identifier name, Token aka) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.aka = aka;
 	}
 
-	this(FieldNameEnum ruleSelection, Token name) {
+	this(FieldNameEnum ruleSelection, Identifier name) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
+	}
+
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
+
+	void visit(ConstVisitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(ConstVisitor vis) const {
+		vis.accept(this);
+	}
+}
+
+enum IdentifierEnum {
+	I,
+	Mutation,
+	Subscription,
+	Scalar,
+	Schema,
+	On,
+	Directive,
+	Enum,
+	Extend,
+	Input,
+	Interface,
+	Implements,
+	False,
+	Fragment,
+	Query,
+	True,
+	Type,
+	Null,
+	Union,
+}
+
+class Identifier : Node {
+@safe :
+
+	IdentifierEnum ruleSelection;
+	Token tok;
+
+	this(IdentifierEnum ruleSelection, Token tok) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
 	}
 
 	void visit(Visitor vis) {
@@ -1774,9 +1824,9 @@ class FieldDefinition : Node {
 	ArgumentsDefinition arg;
 	Type typ;
 	Directives dir;
-	Token name;
+	Identifier name;
 
-	this(FieldDefinitionEnum ruleSelection, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
+	this(FieldDefinitionEnum ruleSelection, Identifier name, ArgumentsDefinition arg, Type typ, Directives dir) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.arg = arg;
@@ -1784,27 +1834,27 @@ class FieldDefinition : Node {
 		this.dir = dir;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, ArgumentsDefinition arg, Type typ) {
+	this(FieldDefinitionEnum ruleSelection, Identifier name, ArgumentsDefinition arg, Type typ) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.arg = arg;
 		this.typ = typ;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, Type typ, Directives dir) {
+	this(FieldDefinitionEnum ruleSelection, Identifier name, Type typ, Directives dir) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.typ = typ;
 		this.dir = dir;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Token name, Type typ) {
+	this(FieldDefinitionEnum ruleSelection, Identifier name, Type typ) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.typ = typ;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ, Directives dir) {
+	this(FieldDefinitionEnum ruleSelection, Description des, Identifier name, ArgumentsDefinition arg, Type typ, Directives dir) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -1813,7 +1863,7 @@ class FieldDefinition : Node {
 		this.dir = dir;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, ArgumentsDefinition arg, Type typ) {
+	this(FieldDefinitionEnum ruleSelection, Description des, Identifier name, ArgumentsDefinition arg, Type typ) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -1821,7 +1871,7 @@ class FieldDefinition : Node {
 		this.typ = typ;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ, Directives dir) {
+	this(FieldDefinitionEnum ruleSelection, Description des, Identifier name, Type typ, Directives dir) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -1829,7 +1879,7 @@ class FieldDefinition : Node {
 		this.dir = dir;
 	}
 
-	this(FieldDefinitionEnum ruleSelection, Description des, Token name, Type typ) {
+	this(FieldDefinitionEnum ruleSelection, Description des, Identifier name, Type typ) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -2017,9 +2067,9 @@ class InputValueDefinition : Node {
 	Description des;
 	DefaultValue df;
 	Directives dirs;
-	Token name;
+	Identifier name;
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, DefaultValue df, Directives dirs) {
+	this(InputValueDefinitionEnum ruleSelection, Identifier name, Type type, DefaultValue df, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.type = type;
@@ -2027,27 +2077,27 @@ class InputValueDefinition : Node {
 		this.dirs = dirs;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, Directives dirs) {
+	this(InputValueDefinitionEnum ruleSelection, Identifier name, Type type, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.type = type;
 		this.dirs = dirs;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type, DefaultValue df) {
+	this(InputValueDefinitionEnum ruleSelection, Identifier name, Type type, DefaultValue df) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.type = type;
 		this.df = df;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Token name, Type type) {
+	this(InputValueDefinitionEnum ruleSelection, Identifier name, Type type) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.type = type;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Description des, Token name, Type type, DefaultValue df, Directives dirs) {
+	this(InputValueDefinitionEnum ruleSelection, Description des, Identifier name, Type type, DefaultValue df, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -2056,7 +2106,7 @@ class InputValueDefinition : Node {
 		this.dirs = dirs;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Description des, Token name, Type type, Directives dirs) {
+	this(InputValueDefinitionEnum ruleSelection, Description des, Identifier name, Type type, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -2064,7 +2114,7 @@ class InputValueDefinition : Node {
 		this.dirs = dirs;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Description des, Token name, Type type, DefaultValue df) {
+	this(InputValueDefinitionEnum ruleSelection, Description des, Identifier name, Type type, DefaultValue df) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
@@ -2072,7 +2122,7 @@ class InputValueDefinition : Node {
 		this.df = df;
 	}
 
-	this(InputValueDefinitionEnum ruleSelection, Description des, Token name, Type type) {
+	this(InputValueDefinitionEnum ruleSelection, Description des, Identifier name, Type type) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;

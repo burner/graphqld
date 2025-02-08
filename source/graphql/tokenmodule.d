@@ -26,7 +26,7 @@ enum TokenType {
 	subscription,
 	fragment,
 	on_,
-	alias_,
+	// alias_,
 	true_,
 	false_,
 	null_,
@@ -35,18 +35,64 @@ enum TokenType {
 	union_,
 	type,
 	typename,
-	skip,
-	include_,
+	// skip,
+	// include_,
 	input,
 	scalar,
 	schema,
-	schema__,
+	// schema__,
 	directive,
 	enum_,
 	interface_,
 	implements,
 	extend,
 }
+
+static immutable string[cast(TokenType)(TokenType.max + 1)] tokenStrings = [
+	null,
+	"!",
+	"$",
+	"(",
+	")",
+	"...",
+	":",
+	"=",
+	"@",
+	"[",
+	"]",
+	"{",
+	"}",
+	"|",
+	null,
+	null,
+	null,
+	null,
+	"query",
+	"mutation",
+	"subscription",
+	"fragment",
+	"on",
+	// "alias",
+	"true",
+	"false",
+	"null",
+	null,
+	",",
+	"union",
+	"type",
+	"__typename",
+	// "skip",
+	// "include",
+	"input",
+	"scalar",
+	"schema",
+	// "__schema",
+	"directive",
+	"enum",
+	"interface",
+	"implements",
+	"extend",
+];
 
 struct Token {
 @safe:
@@ -58,10 +104,11 @@ struct Token {
 
 	this(TokenType type) {
 		this.type = type;
+		this.value = tokenStrings[type];
 	}
 
 	this(TokenType type, size_t line, size_t column) {
-		this.type = type;
+		this(type);
 		this.line = cast(uint)line;
 		this.column = cast(ushort)column;
 	}

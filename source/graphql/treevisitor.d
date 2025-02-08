@@ -120,6 +120,14 @@ class TreeVisitor : ConstVisitor {
 		--this.depth;
 	}
 
+	override void accept(const(Identifier) obj) {
+		this.genIndent();
+		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
+		++this.depth;
+		super.accept(obj);
+		--this.depth;
+	}
+
 	override void accept(const(Arguments) obj) {
 		this.genIndent();
 		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
