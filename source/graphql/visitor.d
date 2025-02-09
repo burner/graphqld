@@ -1261,9 +1261,11 @@ class Visitor : ConstVisitor {
 			case InputObjectTypeDefinitionEnum.NDI:
 				obj.name.visit(this);
 				obj.dirs.visit(this);
+				obj.ivds.visit(this);
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
+				obj.ivds.visit(this);
 				break;
 		}
 		exit(obj);
@@ -2535,9 +2537,11 @@ class ConstVisitor {
 			case InputObjectTypeDefinitionEnum.NDI:
 				obj.name.visit(this);
 				obj.dirs.visit(this);
+				obj.ivds.visit(this);
 				break;
 			case InputObjectTypeDefinitionEnum.NI:
 				obj.name.visit(this);
+				obj.ivds.visit(this);
 				break;
 		}
 		exit(obj);
