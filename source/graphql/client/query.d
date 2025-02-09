@@ -2,7 +2,7 @@
 module graphql.client.query;
 
 import graphql.client.document;
-import graphql.client.codegen : toD;
+import graphql.client.codegen : toD, CodeGenerationSettings;
 import graphql.lexer;
 import graphql.parser;
 
@@ -32,7 +32,11 @@ struct GraphQLQuery(GraphQLSchema, alias document_)
 {
 	alias document = document_;
 
-	mixin(toD(document, GraphQLSchema.document, q{GraphQLSchema.}));
+	mixin({
+		CodeGenerationSettings settings;
+		settings.schemaRefExpr = q{GraphQLSchema.};
+		return toD(document, GraphQLSchema.document, settings);
+	}());
 }
 
 /// Parses a GraphQL schema at compile-time, returning a

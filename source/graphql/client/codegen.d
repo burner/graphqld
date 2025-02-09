@@ -6,19 +6,24 @@ package(graphql):
 
 import graphql.client.document;
 
+struct CodeGenerationSettings
+{
+	/// A prefix used to qualify referenced type definitions.
+	string schemaRefExpr;
+}
+
 /// Convert a field type to D.
 string toD(
 	ref const Type type,
-	/// A prefix used to qualify referenced type definitions.
-	string schemaRefExpr,
+	ref const CodeGenerationSettings settings,
 )
 {
 	if (type.list)
-		return toD(type.list[0], schemaRefExpr) ~ "[]";
+		return toD(type.list[0], settings) ~ "[]";
 	else if (type.nullable)
-		return "Nullable!(" ~ toD(type.nullable[0], schemaRefExpr) ~ ")";
+		return "_graphqld_typecons.Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
 	else if (type.name)
-		return schemaRefExpr ~ "Schema." ~ type.name;
+		return settings.schemaRefExpr ~ "Schema." ~ type.name;
 	else
 		assert(false, "Uninitialized type");
 }
@@ -79,8 +84,7 @@ private string toD(
 	string typeName,
 	/// The schema document (used to resolve types).
 	ref const SchemaDocument schema,
-	/// A prefix used to qualify referenced type definitions.
-	string schemaRefExpr,
+	ref const CodeGenerationSettings settings,
 )
 in(typeName !is null, "No typeName provided")
 {
@@ -126,7 +130,7 @@ in(typeName !is null, "No typeName provided")
 
 			auto selectionTypeName = "_" ~ field.name ~ "_Type";
 			s ~= "\tstruct " ~ selectionTypeName ~ " {\n";
-			s ~= toD(field.selections, baseType.name, schema, schemaRefExpr);
+			s ~= toD(field.selections, baseType.name, schema, settings);
 			s ~= "\t}\n";
 
 			dType = selectionTypeName;
@@ -134,7 +138,7 @@ in(typeName !is null, "No typeName provided")
 				dType = wrapper(dType);
 		}
 		else
-			dType = toD(*type, schemaRefExpr);
+			dType = toD(*type, settings);
 
 		string dName = field.name;
 		foreach (keyword; keywords)
@@ -156,8 +160,7 @@ private string toD(
 	ref const OperationDefinition operation,
 	/// The schema document (used to resolve types).
 	ref const SchemaDocument schema,
-	/// A prefix used to qualify referenced type definitions.
-	string schemaRefExpr,
+	ref const CodeGenerationSettings settings,
 )
 {
 	string s;
@@ -170,18 +173,13 @@ private string toD(
 		assert(false, "Operation type not found in schema");
 	}();
 
-	s ~= toD(
-		operation.selections,
-		typeName,
-		schema,
-		schemaRefExpr,
-	);
+	s ~= toD(operation.selections, typeName, schema, settings);
 
 	s ~= "}\n";
 
 	s ~= "struct Variables {\n";
 	foreach (variable; operation.variables)
-		s ~= "\t" ~ toD(variable.type, schemaRefExpr) ~ " " ~ variable.name ~ ";\n";
+		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ";\n";
 	s ~= "}\n";
 
 	return s;
@@ -192,8 +190,7 @@ string toD(
 	ref const QueryDocument query,
 	/// The schema document (used to resolve types).
 	ref const SchemaDocument schema,
-	/// A prefix used to qualify referenced type definitions.
-	string schemaRefExpr,
+	ref const CodeGenerationSettings settings,
 )
 {
 	assert(query.operations.length != 0,
@@ -205,7 +202,7 @@ string toD(
 	{
 		// Single operation
 		auto operation = query.operations[0];
-		s ~= toD(operation, schema, schemaRefExpr);
+		s ~= toD(operation, schema, settings);
 	}
 	else
 	{
