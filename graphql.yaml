@@ -293,11 +293,6 @@ EnumValueDefinition:
     DED: [Description#des, name#name, Directives#dirs]
     DE: [Description#des, name#name]
 
-InputTypeDefinition:
-    NDE: [input, name#name, Directives#dir, lcurly,
-        InputValueDefinitions#ivds, rcurly]
-    NE: [input, name#name, lcurly, InputValueDefinitions#ivds, rcurly]
-
 TypeExtensionDefinition:
     O: [extend, ObjectTypeDefinition#otd]
 

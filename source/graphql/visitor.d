@@ -1199,25 +1199,6 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
-	void enter(InputTypeDefinition obj) {}
-	void exit(InputTypeDefinition obj) {}
-
-	void accept(InputTypeDefinition obj) {
-		enter(obj);
-		final switch(obj.ruleSelection) {
-			case InputTypeDefinitionEnum.NDE:
-				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.ivds.visit(this);
-				break;
-			case InputTypeDefinitionEnum.NE:
-				obj.name.visit(this);
-				obj.ivds.visit(this);
-				break;
-		}
-		exit(obj);
-	}
-
 	void enter(TypeExtensionDefinition obj) {}
 	void exit(TypeExtensionDefinition obj) {}
 
@@ -2487,25 +2468,6 @@ class ConstVisitor {
 			case EnumValueDefinitionEnum.DE:
 				obj.des.visit(this);
 				obj.name.visit(this);
-				break;
-		}
-		exit(obj);
-	}
-
-	void enter(const(InputTypeDefinition) obj) {}
-	void exit(const(InputTypeDefinition) obj) {}
-
-	void accept(const(InputTypeDefinition) obj) {
-		enter(obj);
-		final switch(obj.ruleSelection) {
-			case InputTypeDefinitionEnum.NDE:
-				obj.name.visit(this);
-				obj.dir.visit(this);
-				obj.ivds.visit(this);
-				break;
-			case InputTypeDefinitionEnum.NE:
-				obj.name.visit(this);
-				obj.ivds.visit(this);
 				break;
 		}
 		exit(obj);

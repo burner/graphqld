@@ -2413,49 +2413,6 @@ class EnumValueDefinition : Node {
 	}
 }
 
-enum InputTypeDefinitionEnum {
-	NDE,
-	NE,
-}
-
-class InputTypeDefinition : Node {
-@safe :
-
-	InputTypeDefinitionEnum ruleSelection;
-	InputValueDefinitions ivds;
-	Directives dir;
-	Token name;
-
-	this(InputTypeDefinitionEnum ruleSelection, Token name, Directives dir, InputValueDefinitions ivds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.dir = dir;
-		this.ivds = ivds;
-	}
-
-	this(InputTypeDefinitionEnum ruleSelection, Token name, InputValueDefinitions ivds) {
-		this.ruleSelection = ruleSelection;
-		this.name = name;
-		this.ivds = ivds;
-	}
-
-	void visit(Visitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(Visitor vis) const {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) {
-		vis.accept(this);
-	}
-
-	void visit(ConstVisitor vis) const {
-		vis.accept(this);
-	}
-}
-
 enum TypeExtensionDefinitionEnum {
 	O,
 }
