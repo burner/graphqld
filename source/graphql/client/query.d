@@ -6,11 +6,16 @@ import graphql.client.codegen : toD, CodeGenerationSettings;
 import graphql.lexer;
 import graphql.parser;
 
+struct GraphQLSettings
+{
+}
+
 /// Represents a parsed GraphQL schema, an object which can serve
 /// as a base for building GraphQL queries.
-struct GraphQLSchema(alias document_)
+struct GraphQLSchema(alias document_, GraphQLSettings settings_)
 {
 	alias document = document_;
+	alias settings = settings_;
 
 	mixin(toD(document));
 
@@ -41,7 +46,10 @@ struct GraphQLQuery(GraphQLSchema, alias document_)
 
 /// Parses a GraphQL schema at compile-time, returning a
 /// compile-time-accessible representation of the schema.
-auto graphqlSchema(string schemaText)()
+auto graphqlSchema(
+	string schemaText,
+	GraphQLSettings settings = GraphQLSettings()
+)()
 {
 	static const document = {
 		auto l = Lexer(schemaText, QueryParser.no);
@@ -50,7 +58,7 @@ auto graphqlSchema(string schemaText)()
 
 		return SchemaDocument(d);
 	}();
-    return GraphQLSchema!document();
+    return GraphQLSchema!(document, settings)();
 }
 
 // Basic ReturnType test
