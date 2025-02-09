@@ -101,6 +101,7 @@ in(typeName !is null, "No typeName provided")
 			assert(false, "Field not found in type: " ~ field.name);
 		}();
 
+		string dType;
 		if (field.selections)
 		{
 			// Generate a custom type with just the selection fields.
@@ -128,13 +129,23 @@ in(typeName !is null, "No typeName provided")
 			s ~= toD(field.selections, baseType.name, schema, schemaRefExpr);
 			s ~= "\t}\n";
 
-			string dType = selectionTypeName;
+			dType = selectionTypeName;
 			foreach_reverse (wrapper; wrappers)
 				dType = wrapper(dType);
-			s ~= "\t" ~ dType ~ " " ~ field.name ~ ";\n";
 		}
 		else
-			s ~= "\t" ~ toD(*type, schemaRefExpr) ~ " " ~ field.name ~ ";\n";
+			dType = toD(*type, schemaRefExpr);
+
+		string dName = field.name;
+		foreach (keyword; keywords)
+			if (dName == keyword)
+			{
+				// TODO: add an UDA to instruct serialization libraries to use the correct name
+				dName ~= "_";
+				break;
+			}
+
+		s ~= "\t" ~ dType ~ " " ~ dName ~ ";\n";
 	}
 	return s;
 }
@@ -204,3 +215,138 @@ string toD(
 
 	return s;
 }
+
+/// https://dlang.org/spec/lex.html#keywords
+private immutable string[] keywords = [
+  "abstract",
+  "alias",
+  "align",
+  "asm",
+  "assert",
+  "auto",
+
+  "body",
+  "bool",
+  "break",
+  "byte",
+
+  "case",
+  "cast",
+  "catch",
+  "cdouble",
+  "cent",
+  "cfloat",
+  "char",
+  "class",
+  "const",
+  "continue",
+  "creal",
+
+  "dchar",
+  "debug",
+  "default",
+  "delegate",
+  "delete",
+  "deprecated",
+  "do",
+  "double",
+
+  "else",
+  "enum",
+  "export",
+  "extern",
+
+  "false",
+  "final",
+  "finally",
+  "float",
+  "for",
+  "foreach",
+  "foreach_reverse",
+  "function",
+
+  "goto",
+
+  "idouble",
+  "if",
+  "ifloat",
+  "immutable",
+  "import",
+  "in",
+  "inout",
+  "int",
+  "interface",
+  "invariant",
+  "ireal",
+  "is",
+
+  "lazy",
+  "long",
+
+  "macro",
+  "mixin",
+  "module",
+
+  "new",
+  "nothrow",
+  "null",
+
+  "out",
+  "override",
+
+  "package",
+  "pragma",
+  "private",
+  "protected",
+  "public",
+  "pure",
+
+  "real",
+  "ref",
+  "return",
+
+  "scope",
+  "shared",
+  "short",
+  "static",
+  "struct",
+  "super",
+  "switch",
+  "synchronized",
+
+  "template",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "typeid",
+  "typeof",
+
+  "ubyte",
+  "ucent",
+  "uint",
+  "ulong",
+  "union",
+  "unittest",
+  "ushort",
+
+  "version",
+  "void",
+
+  "wchar",
+  "while",
+  "with",
+
+  "__FILE__",
+  "__FILE_FULL_PATH__",
+  "__FUNCTION__",
+  "__LINE__",
+  "__MODULE__",
+  "__PRETTY_FUNCTION__",
+
+  "__gshared",
+  "__parameters",
+  "__rvalue",
+  "__traits",
+  "__vector",
+];
