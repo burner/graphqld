@@ -46,6 +46,7 @@ string toD(ref const SchemaDocument document)
 		alias Int = int;
 		alias Float = double;
 		alias String = string;
+		alias Boolean = bool;
 
 		alias ID = string;
 	};
