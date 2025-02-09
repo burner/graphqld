@@ -6,8 +6,11 @@ import graphql.client.codegen : toD, CodeGenerationSettings;
 import graphql.lexer;
 import graphql.parser;
 
+public import graphql.client.codegen : JSONLibrary;
+
 struct GraphQLSettings
 {
+	JSONLibrary jsonLibrary;
 }
 
 /// Represents a parsed GraphQL schema, an object which can serve
@@ -39,6 +42,7 @@ struct GraphQLQuery(GraphQLSchema, alias document_)
 
 	mixin({
 		CodeGenerationSettings settings;
+		settings.jsonLibrary = GraphQLSchema.settings.jsonLibrary;
 		settings.schemaRefExpr = q{GraphQLSchema.};
 		return toD(document, GraphQLSchema.document, settings);
 	}());
