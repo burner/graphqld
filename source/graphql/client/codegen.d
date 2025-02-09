@@ -6,10 +6,21 @@ package(graphql):
 
 import graphql.client.document;
 
+/// Controls the UDAs in generated code.
+enum JSONLibrary
+{
+	none,
+	vibe_json,
+	ae_utils_json,
+}
+
 struct CodeGenerationSettings
 {
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr;
+
+	/// Controls the UDAs in generated code.
+	JSONLibrary jsonLibrary;
 }
 
 /// Convert a field type to D.
@@ -144,7 +155,17 @@ in(typeName !is null, "No typeName provided")
 		foreach (keyword; keywords)
 			if (dName == keyword)
 			{
-				// TODO: add an UDA to instruct serialization libraries to use the correct name
+				final switch (settings.jsonLibrary)
+				{
+					case JSONLibrary.none:
+						break;
+					case JSONLibrary.vibe_json:
+						s ~= "\t@(_graphqld_json.name(`" ~ dName ~ "`))\n";
+						break;
+					case JSONLibrary.ae_utils_json:
+						s ~= "\t@(@(_graphqld_json.JSONName(`" ~ dName ~ "`))\n";
+						break;
+				}
 				dName ~= "_";
 				break;
 			}
@@ -197,6 +218,18 @@ string toD(
 		"GraphQL query document must contain at least one operation");
 
 	string s = "private import _graphqld_typecons = std.typecons;\n\n";
+
+	final switch (settings.jsonLibrary)
+	{
+		case JSONLibrary.none:
+			break;
+		case JSONLibrary.vibe_json:
+			s ~= "private import _graphqld_json = vibe.json;\n\n";
+			break;
+		case JSONLibrary.ae_utils_json:
+			s ~= "private import _graphqld_json = ae.utils.json;\n\n";
+			break;
+	}
 
 	if (query.operations.length == 1 && query.operations[0].name is null)
 	{
