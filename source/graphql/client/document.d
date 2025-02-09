@@ -88,6 +88,16 @@ struct ObjectTypeDefinition
 	}
 }
 
+struct ScalarTypeDefinition
+{
+	string name;
+
+	this(ast.ScalarTypeDefinition std)
+	{
+		this.name = std.name.value;
+	}
+}
+
 alias OperationType = ast.OperationTypeEnum;
 
 struct OperationTypeDefinition
@@ -129,6 +139,7 @@ struct SchemaDocument
 {
 	SchemaDefinition schema;
 	ObjectTypeDefinition[] objectTypes;
+	ScalarTypeDefinition[] scalarTypes;
 
 	this(ast.Document d)
 	{
@@ -147,6 +158,8 @@ struct SchemaDocument
 					{
 						if (auto otd = td.otd)
 							this.objectTypes ~= ObjectTypeDefinition(otd);
+						if (auto std = td.std)
+							this.scalarTypes ~= ScalarTypeDefinition(std);
 					}
 				}
 
