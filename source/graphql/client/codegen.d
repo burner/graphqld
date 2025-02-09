@@ -116,7 +116,7 @@ in(typeName !is null, "No typeName provided")
 				if (baseType.nullable)
 				{
 					baseType = baseType.nullable.ptr;
-					wrappers ~= s => "Nullable!(" ~ s ~ ")";
+					wrappers ~= s => "_graphqld_typecons.Nullable!(" ~ s ~ ")";
 				}
 				else if (baseType.list)
 				{
@@ -196,7 +196,7 @@ string toD(
 	assert(query.operations.length != 0,
 		"GraphQL query document must contain at least one operation");
 
-	string s = "private import std.typecons : Nullable;\n\n";
+	string s = "private import _graphqld_typecons = std.typecons;\n\n";
 
 	if (query.operations.length == 1 && query.operations[0].name is null)
 	{
