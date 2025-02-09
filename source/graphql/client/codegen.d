@@ -54,6 +54,12 @@ string toD(ref const SchemaDocument document)
 	// foreach (type; document.objectTypes)
 	// 	s ~= toD(type);
 
+	foreach (ref type; document.scalarTypes)
+	{
+		// TODO: allow customizing serialization / D type?
+		s ~= "alias " ~ type.name ~ " = string;\n";
+	}
+
 	s ~= "}\n";
 	return s;
 }
