@@ -49,6 +49,7 @@ auto graphqlSchema(string schemaText)()
     return GraphQLSchema!document();
 }
 
+// Basic ReturnType test
 unittest
 {
 	static immutable schema = graphqlSchema!`
@@ -66,6 +67,7 @@ unittest
 	static assert(is(typeof(query.ReturnType.hello) == string));
 }
 
+// Variables test
 unittest
 {
 	static immutable schema = graphqlSchema!`
@@ -98,6 +100,68 @@ unittest
 	static assert(is(typeof(updateUser.Variables.name) == string));
 	static assert(is(typeof(updateUser.ReturnType.updateUser.name) == string));
 }
+
+
+// Test arrays and (non-)nullables
+unittest
+{
+	import std.typecons : Nullable;
+
+	static immutable schema = graphqlSchema!`
+		type Foo {
+			i: Int!
+		}
+
+		type Query {
+			v: Int!
+			vn: Int
+			va: [Int!]!
+			vna: [Int]!
+			van: [Int!]
+			vnan: [Int]
+
+			s: Foo!
+			sn: Foo
+			sa: [Foo!]!
+			sna: [Foo]!
+			san: [Foo!]
+			snan: [Foo]
+		}
+	`;
+
+	immutable query = schema.query!`
+		query {
+			v
+			vn
+			va
+			vna
+			van
+			vnan
+
+			s { i }
+			sn { i }
+			sa { i }
+			sna { i }
+			san { i }
+			snan { i }
+		}
+	`;
+
+	static assert(is(typeof(query.ReturnType.v) == int));
+	static assert(is(typeof(query.ReturnType.vn.get()) == int));
+	static assert(is(typeof(query.ReturnType.va[0]) == int));
+	static assert(is(typeof(query.ReturnType.vna[0].get()) == int));
+	static assert(is(typeof(query.ReturnType.van.get()[0]) == int));
+	static assert(is(typeof(query.ReturnType.vnan.get()[0].get()) == int));
+
+	static assert(is(typeof(query.ReturnType.s.i) == int));
+	static assert(is(typeof(query.ReturnType.sn.get().i) == int));
+	static assert(is(typeof(query.ReturnType.sa[0].i) == int));
+	static assert(is(typeof(query.ReturnType.sna[0].get().i) == int));
+	static assert(is(typeof(query.ReturnType.san.get()[0].i) == int));
+	static assert(is(typeof(query.ReturnType.snan.get()[0].get().i) == int));
+}
+
 
 // unittest
 // {
