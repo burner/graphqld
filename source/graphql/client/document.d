@@ -98,6 +98,30 @@ struct ScalarTypeDefinition
 	}
 }
 
+struct EnumValueDefinition
+{
+	string name;
+
+	this(ast.EnumValueDefinition evd)
+	{
+		this.name = evd.name.value;
+	}
+}
+
+struct EnumTypeDefinition
+{
+	string name;
+	EnumValueDefinition[] values;
+
+	this(ast.EnumTypeDefinition etd)
+	{
+		this.name = etd.name.value;
+		for (auto evds = etd.evds; evds !is null; evds = evds.follow)
+			if (auto evd = evds.evd)
+				this.values ~= EnumValueDefinition(evd);
+	}
+}
+
 alias OperationType = ast.OperationTypeEnum;
 
 struct OperationTypeDefinition
@@ -140,6 +164,7 @@ struct SchemaDocument
 	SchemaDefinition schema;
 	ObjectTypeDefinition[] objectTypes;
 	ScalarTypeDefinition[] scalarTypes;
+	EnumTypeDefinition[] enumTypes;
 
 	this(ast.Document d)
 	{
@@ -160,6 +185,8 @@ struct SchemaDocument
 							this.objectTypes ~= ObjectTypeDefinition(otd);
 						if (auto std = td.std)
 							this.scalarTypes ~= ScalarTypeDefinition(std);
+						if (auto etd = td.etd)
+							this.enumTypes ~= EnumTypeDefinition(etd);
 					}
 				}
 
