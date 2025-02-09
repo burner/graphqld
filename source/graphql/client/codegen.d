@@ -60,6 +60,14 @@ string toD(ref const SchemaDocument document)
 		s ~= "alias " ~ type.name ~ " = string;\n";
 	}
 
+	foreach (ref type; document.enumTypes)
+	{
+		s ~= "enum " ~ type.name ~ " {\n";
+		foreach (ref value; type.values)
+			s ~= "\t" ~ value.name ~ ",\n";
+		s ~= "}\n";
+	}
+
 	s ~= "}\n";
 	return s;
 }
