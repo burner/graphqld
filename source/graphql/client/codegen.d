@@ -14,9 +14,9 @@ string toD(
 )
 {
 	if (type.list)
-		return toD(*type.list, schemaRefExpr) ~ "[]";
+		return toD(type.list[0], schemaRefExpr) ~ "[]";
 	else if (type.nullable)
-		return "Nullable!(" ~ toD(*type.nullable, schemaRefExpr) ~ ")";
+		return "Nullable!(" ~ toD(type.nullable[0], schemaRefExpr) ~ ")";
 	else if (type.name)
 		return schemaRefExpr ~ "Schema." ~ type.name;
 	else
@@ -67,6 +67,7 @@ private string toD(
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr,
 )
+in(typeName !is null, "No typeName provided")
 {
 	auto typeFields = {
 		foreach (ref objectType; schema.objectTypes)
@@ -76,20 +77,36 @@ private string toD(
 	}();
 
 	string s;
-	foreach (field; selections)
+	foreach (ref field; selections)
 	{
 		auto type = {
 			foreach (ref typeField; typeFields)
 				if (typeField.name == field.name)
-					return typeField.type;
+					return &typeField.type;
 			assert(false, "Field not found in type: " ~ field.name);
 		}();
 
 		if (field.selections)
 		{
-			const(Type)* baseType = &type;
-			if (baseType.nullable)
-				baseType = baseType.nullable;
+			// Generate a custom type with just the selection fields.
+			// Be sure to keep any nullability / listness of the field type.
+			const(Type)* baseType = type;
+			string function(string)[] wrappers;
+			while (true)
+				if (baseType.nullable)
+				{
+					baseType = baseType.nullable.ptr;
+					wrappers ~= s => "Nullable!(" ~ s ~ ")";
+				}
+				else if (baseType.list)
+				{
+					baseType = baseType.list.ptr;
+					wrappers ~= s => s ~ "[]";
+				}
+				else if (baseType.name)
+					break;
+				else
+					assert(false);
 
 			auto selectionTypeName = "_" ~ field.name ~ "_Type";
 			s ~= "\tstruct " ~ selectionTypeName ~ " {\n";
@@ -97,12 +114,12 @@ private string toD(
 			s ~= "\t}\n";
 
 			string dType = selectionTypeName;
-			if (type.nullable)
-				dType = "Nullable!" ~ dType;
+			foreach_reverse (wrapper; wrappers)
+				dType = wrapper(dType);
 			s ~= "\t" ~ dType ~ " " ~ field.name ~ ";\n";
 		}
 		else
-			s ~= "\t" ~ toD(type, schemaRefExpr) ~ " " ~ field.name ~ ";\n";
+			s ~= "\t" ~ toD(*type, schemaRefExpr) ~ " " ~ field.name ~ ";\n";
 	}
 	return s;
 }
@@ -156,15 +173,19 @@ string toD(
 	assert(query.operations.length != 0,
 		"GraphQL query document must contain at least one operation");
 
+	string s = "private import std.typecons : Nullable;\n\n";
+
 	if (query.operations.length == 1 && query.operations[0].name is null)
 	{
 		// Single operation
 		auto operation = query.operations[0];
-		return toD(operation, schema, schemaRefExpr);
+		s ~= toD(operation, schema, schemaRefExpr);
 	}
 	else
 	{
 		assert(false,
 			"GraphQL query documents with multiple operations are not supported yet");
 	}
+
+	return s;
 }

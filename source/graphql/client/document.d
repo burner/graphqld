@@ -26,10 +26,12 @@ import ast = graphql.ast;
 
 struct Type
 {
-	// Only one may be set:
-	Type* list;
-	Type* nullable;
+	// Only one (of name / list / nullable) may be set:
 	string name;
+	// We use a 0-or-1-element dynamic array instead of a pointer,
+	// because struct pointers are not very CTFE-friendly
+	Type[] list;
+	Type[] nullable;
 
 	this(ast.Type t)
 	{
@@ -39,16 +41,15 @@ struct Type
 				name = t.tname.value;
 				break;
 			case ast.TypeEnum.LN:
-				list = new Type;
-				list.name = t.list.type.tname.value;
+				list = [Type(t.list.type)];
 				break;
 			case ast.TypeEnum.T:
-				nullable = new Type;
-				nullable.name = t.tname.value;
+				nullable.length = 1;
+				nullable[0].name = t.tname.value;
 				break;
 			case ast.TypeEnum.L:
-				nullable = new Type;
-				nullable.list = new Type(t.list.type);
+				nullable.length = 1;
+				nullable[0].list = [Type(t.list.type)];
 				break;
 		}
 	}
