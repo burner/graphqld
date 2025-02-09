@@ -308,8 +308,8 @@ DirectiveLocations:
 
 InputObjectTypeDefinition:
     NDI: [input, name#name, Directives#dirs, lcurly,
-        InputValueDefinitions, rcurly]
-    NI: [input, name#name, lcurly, InputValueDefinitions, rcurly]
+        InputValueDefinitions#ivds, rcurly]
+    NI: [input, name#name, lcurly, InputValueDefinitions#ivds, rcurly]
 
 Description:
     S: [stringValue#tok]

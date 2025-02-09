@@ -4969,7 +4969,7 @@ struct Parser {
 						this.lex.popFront();
 						subRules = ["NDI"];
 						if(this.firstInputValueDefinitions()) {
-							this.parseInputValueDefinitions();
+							InputValueDefinitions ivds = this.parseInputValueDefinitions();
 							subRules = ["NDI"];
 							if(this.lex.front.type == TokenType.rcurly) {
 								this.lex.popFront();
@@ -4977,6 +4977,7 @@ struct Parser {
 								return new InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NDI
 									, name
 									, dirs
+									, ivds
 								);
 							}
 							auto app = appender!string();
@@ -5018,13 +5019,14 @@ struct Parser {
 					this.lex.popFront();
 					subRules = ["NI"];
 					if(this.firstInputValueDefinitions()) {
-						this.parseInputValueDefinitions();
+						InputValueDefinitions ivds = this.parseInputValueDefinitions();
 						subRules = ["NI"];
 						if(this.lex.front.type == TokenType.rcurly) {
 							this.lex.popFront();
 
 							return new InputObjectTypeDefinition(InputObjectTypeDefinitionEnum.NI
 								, name
+								, ivds
 							);
 						}
 						auto app = appender!string();

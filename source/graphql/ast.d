@@ -2538,18 +2538,21 @@ class InputObjectTypeDefinition : Node {
 @safe :
 
 	InputObjectTypeDefinitionEnum ruleSelection;
+	InputValueDefinitions ivds;
 	Directives dirs;
 	Token name;
 
-	this(InputObjectTypeDefinitionEnum ruleSelection, Token name, Directives dirs) {
+	this(InputObjectTypeDefinitionEnum ruleSelection, Token name, Directives dirs, InputValueDefinitions ivds) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.dirs = dirs;
+		this.ivds = ivds;
 	}
 
-	this(InputObjectTypeDefinitionEnum ruleSelection, Token name) {
+	this(InputObjectTypeDefinitionEnum ruleSelection, Token name, InputValueDefinitions ivds) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
+		this.ivds = ivds;
 	}
 
 	void visit(Visitor vis) {
