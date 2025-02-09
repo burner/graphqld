@@ -440,14 +440,6 @@ class TreeVisitor : ConstVisitor {
 		--this.depth;
 	}
 
-	override void accept(const(InputTypeDefinition) obj) {
-		this.genIndent();
-		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
-		++this.depth;
-		super.accept(obj);
-		--this.depth;
-	}
-
 	override void accept(const(TypeExtensionDefinition) obj) {
 		this.genIndent();
 		writeln(Unqual!(typeof(obj)).stringof,":", obj.ruleSelection);
