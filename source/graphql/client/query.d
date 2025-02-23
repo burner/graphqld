@@ -51,7 +51,7 @@ struct GraphQLQuery(GraphQLSchema, alias document_)
 /// Parses a GraphQL schema at compile-time, returning a
 /// compile-time-accessible representation of the schema.
 auto graphqlSchema(
-	string schemaText,
+	alias/*string*/ schemaText,
 	GraphQLSettings settings = GraphQLSettings()
 )()
 {
