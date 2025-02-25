@@ -85,7 +85,8 @@ private string toD(
 
 	if (settings.serializationLibraries.vibe_data_json)
 	{
-		s ~= "_graphqld_vibe_data_json.Json toJson() const {\n";
+		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
+		s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 		foreach (ref value; type.values)
 			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
