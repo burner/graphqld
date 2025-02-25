@@ -29,23 +29,23 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_)
 
 	mixin(code);
 
-	auto query(string queryText)() const
+	template query(string queryText_)
 	{
-		static const document = {
-			auto l = Lexer(queryText, QueryParser.yes);
-			auto p = Parser(l);
-			auto d = p.parseDocument();
-
-			return QueryDocument(d);
-		}();
-
-		return GraphQLQuery!(typeof(this), document).init;
+		static immutable queryText = queryText_;
+		enum query = GraphQLQuery!(typeof(this), queryText).init;
 	}
 }
 
-struct GraphQLQuery(GraphQLSchema, alias document_)
+struct GraphQLQuery(GraphQLSchema, alias queryText_)
 {
-	alias document = document_;
+	alias queryText = queryText_;
+	static const document = {
+		auto l = Lexer(queryText, QueryParser.yes);
+		auto p = Parser(l);
+		auto d = p.parseDocument();
+
+		return QueryDocument(d);
+	}();
 
 	mixin({
 		CodeGenerationSettings settings;
