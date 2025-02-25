@@ -6,12 +6,11 @@ package(graphql):
 
 import graphql.client.document;
 
-/// Controls the UDAs in generated code.
-enum JSONLibrary
+/// Controls the UDAs and JSON serialization in generated code.
+struct SerializationLibraries
 {
-	none,
-	vibe_json,
-	ae_utils_json,
+	bool vibe_data_json;  /// `vibe.data.json` support
+	bool ae_utils_json;  /// `ae.utils.json` support
 }
 
 struct CodeGenerationSettings
@@ -19,8 +18,8 @@ struct CodeGenerationSettings
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr;
 
-	/// Controls the UDAs in generated code.
-	JSONLibrary jsonLibrary;
+	/// Controls the UDAs and JSON serialization in generated code.
+	SerializationLibraries serializationLibraries;
 }
 
 /// Convert a field type to D.
@@ -151,26 +150,7 @@ in(typeName !is null, "No typeName provided")
 		else
 			dType = toD(*type, settings);
 
-		string dName = field.name;
-		foreach (keyword; keywords)
-			if (dName == keyword)
-			{
-				final switch (settings.jsonLibrary)
-				{
-					case JSONLibrary.none:
-						break;
-					case JSONLibrary.vibe_json:
-						s ~= "\t@(_graphqld_json.name(`" ~ dName ~ "`))\n";
-						break;
-					case JSONLibrary.ae_utils_json:
-						s ~= "\t@(@(_graphqld_json.JSONName(`" ~ dName ~ "`))\n";
-						break;
-				}
-				dName ~= "_";
-				break;
-			}
-
-		s ~= "\t" ~ dType ~ " " ~ dName ~ ";\n";
+		s ~= toDField(field.name, dType, settings);
 	}
 	return s;
 }
@@ -217,19 +197,8 @@ string toD(
 	assert(query.operations.length != 0,
 		"GraphQL query document must contain at least one operation");
 
-	string s = "private import _graphqld_typecons = std.typecons;\n\n";
-
-	final switch (settings.jsonLibrary)
-	{
-		case JSONLibrary.none:
-			break;
-		case JSONLibrary.vibe_json:
-			s ~= "private import _graphqld_json = vibe.json;\n\n";
-			break;
-		case JSONLibrary.ae_utils_json:
-			s ~= "private import _graphqld_json = ae.utils.json;\n\n";
-			break;
-	}
+	string s;
+	s ~= getImports(settings);
 
 	if (query.operations.length == 1 && query.operations[0].name is null)
 	{
@@ -244,6 +213,49 @@ string toD(
 	}
 
 	return s;
+}
+
+private string getImports(CodeGenerationSettings settings)
+{
+	string s;
+	s ~= "private import _graphqld_typecons = std.typecons;\n\n";
+
+	if (settings.serializationLibraries.vibe_data_json)
+		s ~= "private import _graphqld_vibe_data_json = vibe.data.json;\n\n";
+	if (settings.serializationLibraries.ae_utils_json)
+		s ~= "private import _graphqld_ae_utils_json = ae.utils.json;\n\n";
+
+	return s;
+}
+
+/// Generate a D variable / field declaration,
+/// taking care to ensure that the name is a valid D identifier.
+private string toDField(
+	string name,
+	string dType,
+	ref const CodeGenerationSettings settings,
+)
+{
+	string s;
+	string dName = toDIdentifier(name);
+	if (dName != name)
+	{
+		if (settings.serializationLibraries.vibe_data_json)
+			s ~= "\t@(_graphqld_vibe_data_json.name(`" ~ name ~ "`))\n";
+		if (settings.serializationLibraries.ae_utils_json)
+			s ~= "\t@(_graphqld_ae_utils_json.JSONName(`" ~ name ~ "`))\n";
+	}
+
+	s ~= "\t" ~ dType ~ " " ~ dName ~ ";\n";
+	return s;
+}
+
+private string toDIdentifier(string name)
+{
+	foreach (keyword; keywords)
+		if (name == keyword)
+			return name ~ "_";
+	return name;
 }
 
 /// https://dlang.org/spec/lex.html#keywords
