@@ -88,6 +88,32 @@ struct ObjectTypeDefinition
 	}
 }
 
+struct InputValueDefinition
+{
+	string name;
+	Type type;
+
+	this(ast.InputValueDefinition ivd)
+	{
+		this.name = ivd.name.tok.value;
+		this.type = Type(ivd.type);
+	}
+}
+
+struct InputObjectTypeDefinition
+{
+	string name;
+	InputValueDefinition[] values;
+
+	this(ast.InputObjectTypeDefinition otd)
+	{
+		this.name = otd.name.value;
+		for (auto ivds = otd.ivds; ivds !is null; ivds = ivds.follow)
+			if (auto iv = ivds.iv)
+				this.values ~= InputValueDefinition(iv);
+	}
+}
+
 struct ScalarTypeDefinition
 {
 	string name;
@@ -165,6 +191,7 @@ struct SchemaDocument
 	ObjectTypeDefinition[] objectTypes;
 	ScalarTypeDefinition[] scalarTypes;
 	EnumTypeDefinition[] enumTypes;
+	InputObjectTypeDefinition[] inputTypes;
 
 	this(ast.Document d)
 	{
@@ -187,6 +214,8 @@ struct SchemaDocument
 							this.scalarTypes ~= ScalarTypeDefinition(std);
 						if (auto etd = td.etd)
 							this.enumTypes ~= EnumTypeDefinition(etd);
+						if (auto iod = td.iod)
+							this.inputTypes ~= InputObjectTypeDefinition(iod);
 					}
 				}
 
