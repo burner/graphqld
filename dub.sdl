@@ -87,6 +87,16 @@ subPackage {
         "source/graphql/client/query.d"
 }
 
+subPackage {
+    name "client-vibe"
+    dependency "vibe-d:http" version=">=0.9.0"
+    dependency "vibe-d:data" version=">=0.9.0"
+    dependency "graphqld:client" version="*"
+    sourcePaths  # no globbing
+    sourceFiles \
+        "source/graphql/client/vibe.d"
+}
+
 # Main package
 
 dependency "graphqld:server" version="*"
