@@ -39,7 +39,7 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_)
 			return QueryDocument(d);
 		}();
 
-		return GraphQLQuery!(typeof(this), document)();
+		return GraphQLQuery!(typeof(this), document).init;
 	}
 }
 
@@ -115,13 +115,14 @@ unittest
 
 	// We want to be able to write something like:
 	//
-	// updateUser(id: "1", name: "John Doe")
-	//     .perform()  // network library (Vibe.d etc.) wrapper
+	// auto client = new VibeHttpGraphQLClient("http://.../graphql");
+	// client.call(updateUser(id: "1", name: "John Doe"))
 	//     .updateUser.name
 	//     .writefln!"Name changed to %s";
 
-	static assert(is(typeof(updateUser.Variables.name) == string));
-	static assert(is(typeof(updateUser.ReturnType.updateUser.name) == string));
+	auto op = updateUser(id: "1", name: "John Doe");
+	static assert(is(typeof(op.variables.name) == string));
+	static assert(is(typeof(op.Query.ReturnType.updateUser.name) == string));
 }
 
 
