@@ -90,6 +90,7 @@ unittest {
 		type User {
 			id: ID!
 			name: String!
+			age: Int!
 		}
 
 		type Mutation {
@@ -116,6 +117,7 @@ unittest {
 	auto op = updateUser(id: "1", name: "John Doe");
 	static assert(is(typeof(op.variables.name) == string));
 	static assert(is(typeof(op.Query.ReturnType.updateUser.name) == string));
+	static assert(!is(typeof(op.Query.ReturnType.updateUser.age)));
 }
 
 
