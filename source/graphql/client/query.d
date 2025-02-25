@@ -8,15 +8,13 @@ import graphql.parser;
 
 public import graphql.client.codegen : SerializationLibraries;
 
-struct GraphQLSettings
-{
+struct GraphQLSettings {
 	SerializationLibraries serializationLibraries;
 }
 
 /// Represents a parsed GraphQL schema, an object which can serve
 /// as a base for building GraphQL queries.
-struct GraphQLSchema(alias document_, GraphQLSettings settings_)
-{
+struct GraphQLSchema(alias document_, GraphQLSettings settings_) {
 	alias document = document_;
 	alias settings = settings_;
 
@@ -29,15 +27,13 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_)
 
 	mixin(code);
 
-	template query(string queryText_)
-	{
+	template query(string queryText_) {
 		static immutable queryText = queryText_;
 		enum query = GraphQLQuery!(typeof(this), queryText).init;
 	}
 }
 
-struct GraphQLQuery(GraphQLSchema, alias queryText_)
-{
+struct GraphQLQuery(GraphQLSchema, alias queryText_) {
 	alias queryText = queryText_;
 	static const document = {
 		auto l = Lexer(queryText, QueryParser.yes);
@@ -60,8 +56,7 @@ struct GraphQLQuery(GraphQLSchema, alias queryText_)
 auto graphqlSchema(
 	alias/*string*/ schemaText,
 	GraphQLSettings settings = GraphQLSettings()
-)()
-{
+)() {
 	static const document = {
 		auto l = Lexer(schemaText, QueryParser.no);
 		auto p = Parser(l);
@@ -73,8 +68,7 @@ auto graphqlSchema(
 }
 
 // Basic ReturnType test
-unittest
-{
+unittest {
 	static immutable schema = graphqlSchema!`
 		type Query {
 			hello: String!
@@ -91,8 +85,7 @@ unittest
 }
 
 // Variables test
-unittest
-{
+unittest {
 	static immutable schema = graphqlSchema!`
 		type User {
 			id: ID!
@@ -127,8 +120,7 @@ unittest
 
 
 // Test arrays and (non-)nullables
-unittest
-{
+unittest {
 	import std.typecons : Nullable;
 
 	static immutable schema = graphqlSchema!`
