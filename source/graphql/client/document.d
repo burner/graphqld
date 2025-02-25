@@ -24,8 +24,7 @@ import ast = graphql.ast;
 		schema usually changes much rarer than the queries when building clients).
  */
 
-struct Type
-{
+struct Type {
 	// Only one (of name / list / nullable) may be set:
 	string name;
 	// We use a 0-or-1-element dynamic array instead of a pointer,
@@ -33,10 +32,8 @@ struct Type
 	Type[] list;
 	Type[] nullable;
 
-	this(ast.Type t)
-	{
-		final switch (t.ruleSelection)
-		{
+	this(ast.Type t) {
+		final switch (t.ruleSelection) {
 			case ast.TypeEnum.TN:
 				name = t.tname.value;
 				break;
@@ -55,172 +52,157 @@ struct Type
 	}
 }
 
-struct FieldDefinition
-{
+struct FieldDefinition {
 	string name;
 	Type type;
 
-	this(ast.FieldDefinition fd)
-	{
-		if (auto des = fd.des)
-		{ /* TODO handle description */ }
-		if (auto arg = fd.arg)
-		{ /* TODO handle arguments */ }
-		if (auto dir = fd.dir)
-		{ /* TODO handle directives */ }
+	this(ast.FieldDefinition fd) {
+		if (auto des = fd.des) { /* TODO handle description */ }
+		if (auto arg = fd.arg) { /* TODO handle arguments */ }
+		if (auto dir = fd.dir) { /* TODO handle directives */ }
 
 		this.name = fd.name.tok.value;
 		this.type = Type(fd.typ);
 	}
 }
 
-struct ObjectTypeDefinition
-{
+struct ObjectTypeDefinition {
 	string name;
 	FieldDefinition[] fields;
 
-	this(ast.ObjectTypeDefinition otd)
-	{
+	this(ast.ObjectTypeDefinition otd) {
 		this.name = otd.name.value;
-		for (auto fds = otd.fds; fds !is null; fds = fds.follow)
-			if (auto fd = fds.fd)
+		for (auto fds = otd.fds; fds !is null; fds = fds.follow) {
+			if (auto fd = fds.fd) {
 				this.fields ~= FieldDefinition(fd);
+			}
+		}
 	}
 }
 
-struct InputValueDefinition
-{
+struct InputValueDefinition {
 	string name;
 	Type type;
 
-	this(ast.InputValueDefinition ivd)
-	{
+	this(ast.InputValueDefinition ivd) {
 		this.name = ivd.name.tok.value;
 		this.type = Type(ivd.type);
 	}
 }
 
-struct InputObjectTypeDefinition
-{
+struct InputObjectTypeDefinition {
 	string name;
 	InputValueDefinition[] values;
 
-	this(ast.InputObjectTypeDefinition otd)
-	{
+	this(ast.InputObjectTypeDefinition otd) {
 		this.name = otd.name.value;
-		for (auto ivds = otd.ivds; ivds !is null; ivds = ivds.follow)
-			if (auto iv = ivds.iv)
+		for (auto ivds = otd.ivds; ivds !is null; ivds = ivds.follow) {
+			if (auto iv = ivds.iv) {
 				this.values ~= InputValueDefinition(iv);
+			}
+		}
 	}
 }
 
-struct ScalarTypeDefinition
-{
+struct ScalarTypeDefinition {
 	string name;
 
-	this(ast.ScalarTypeDefinition std)
-	{
+	this(ast.ScalarTypeDefinition std) {
 		this.name = std.name.value;
 	}
 }
 
-struct EnumValueDefinition
-{
+struct EnumValueDefinition {
 	string name;
 
-	this(ast.EnumValueDefinition evd)
-	{
+	this(ast.EnumValueDefinition evd) {
 		this.name = evd.name.value;
 	}
 }
 
-struct EnumTypeDefinition
-{
+struct EnumTypeDefinition {
 	string name;
 	EnumValueDefinition[] values;
 
-	this(ast.EnumTypeDefinition etd)
-	{
+	this(ast.EnumTypeDefinition etd) {
 		this.name = etd.name.value;
-		for (auto evds = etd.evds; evds !is null; evds = evds.follow)
-			if (auto evd = evds.evd)
+		for (auto evds = etd.evds; evds !is null; evds = evds.follow) {
+			if (auto evd = evds.evd) {
 				this.values ~= EnumValueDefinition(evd);
+			}
+		}
 	}
 }
 
 alias OperationType = ast.OperationTypeEnum;
 
-struct OperationTypeDefinition
-{
+struct OperationTypeDefinition {
 	OperationType type;
 	string name;
 
-	this(ast.OperationTypeDefinition otd)
-	{
+	this(ast.OperationTypeDefinition otd) {
 		this.type = otd.ot.ruleSelection;
 		this.name = otd.nt.value;
 	}
 
-	this(OperationType type, string name)
-	{
+	this(OperationType type, string name) {
 		this.type = type;
 		this.name = name;
 	}
 }
 
-struct SchemaDefinition
-{
+struct SchemaDefinition {
 	OperationTypeDefinition[] operationTypes;
 
-	this(ast.SchemaDefinition sch)
-	{
-		for (auto otds = sch.otds; otds !is null; otds = otds.follow)
-			if (otds.otd)
+	this(ast.SchemaDefinition sch) {
+		for (auto otds = sch.otds; otds !is null; otds = otds.follow) {
+			if (otds.otd) {
 				this.operationTypes ~= OperationTypeDefinition(otds.otd);
+			}
+		}
 	}
 
-	this(OperationTypeDefinition[] operationTypes)
-	{
+	this(OperationTypeDefinition[] operationTypes) {
 		this.operationTypes = operationTypes;
 	}
 }
 
-struct SchemaDocument
-{
+struct SchemaDocument {
 	SchemaDefinition schema;
 	ObjectTypeDefinition[] objectTypes;
 	ScalarTypeDefinition[] scalarTypes;
 	EnumTypeDefinition[] enumTypes;
 	InputObjectTypeDefinition[] inputTypes;
 
-	this(ast.Document d)
-	{
-		for (auto defs = d.defs; defs !is null; defs = defs.follow)
-			if (auto def = defs.def)
-				if (auto type = def.type)
-				{
-					if (auto sch = type.sch)
-					{
+	this(ast.Document d) {
+		for (auto defs = d.defs; defs !is null; defs = defs.follow) {
+			if (auto def = defs.def) {
+				if (auto type = def.type) {
+					if (auto sch = type.sch) {
 						assert(schema is SchemaDefinition.init,
 							"Multiple schema definitions in document");
 						this.schema = SchemaDefinition(sch);
 					}
 
-					if (auto td = type.td)
-					{
-						if (auto otd = td.otd)
+					if (auto td = type.td) {
+						if (auto otd = td.otd) {
 							this.objectTypes ~= ObjectTypeDefinition(otd);
-						if (auto std = td.std)
+						}
+						if (auto std = td.std) {
 							this.scalarTypes ~= ScalarTypeDefinition(std);
-						if (auto etd = td.etd)
+						}
+						if (auto etd = td.etd) {
 							this.enumTypes ~= EnumTypeDefinition(etd);
-						if (auto iod = td.iod)
+						}
+						if (auto iod = td.iod) {
 							this.inputTypes ~= InputObjectTypeDefinition(iod);
+						}
 					}
 				}
+			}
+		}
 
-		if (this.schema is SchemaDefinition.init)
-		{
+		if (this.schema is SchemaDefinition.init) {
 			// Populate with the default
 			this.schema = SchemaDefinition([
 				OperationTypeDefinition(OperationType.Query, "Query"),
@@ -231,65 +213,71 @@ struct SchemaDocument
 	}
 }
 
-struct Field
-{
+struct Field {
 	string name;
 	Field[] selections;
 
-	this(ast.Field f)
-	{
+	this(ast.Field f) {
 		this.name = f.name.name.tok.value;
-		if (auto ss = f.ss)
-			for (auto sels = ss.sel; sels !is null; sels = sels.follow)
-				if (auto sel = sels.sel)
-					if (auto field = sel.field)
+		if (auto ss = f.ss) {
+			for (auto sels = ss.sel; sels !is null; sels = sels.follow) {
+				if (auto sel = sels.sel) {
+					if (auto field = sel.field) {
 						this.selections ~= Field(field);
+					}
+				}
+			}
+		}
 	}
 }
 
-struct VariableDefinition
-{
+struct VariableDefinition {
 	string name;
 	Type type;
 
-	this(ast.VariableDefinition vd)
-	{
+	this(ast.VariableDefinition vd) {
 		this.name = vd.var.name.value;
 		this.type = Type(vd.type);
 	}
 }
 
-struct OperationDefinition
-{
+struct OperationDefinition {
 	OperationType type;
 	string name;
 	VariableDefinition[] variables;
 	Field[] selections;
 
-	this(ast.OperationDefinition od)
-	{
+	this(ast.OperationDefinition od) {
 		this.type = od.ot.ruleSelection;
 		this.name = od.name.value;
-		if (auto vd = od.vd)
-			for (auto vars = vd.vars; vars !is null; vars = vars.follow)
-				if (auto var = vars.var)
+		if (auto vd = od.vd) {
+			for (auto vars = vd.vars; vars !is null; vars = vars.follow) {
+				if (auto var = vars.var) {
 					this.variables ~= VariableDefinition(var);
-		if (auto ss = od.ss)
-			for (auto sels = ss.sel; sels !is null; sels = sels.follow)
-				if (auto sel = sels.sel)
-					if (auto field = sel.field)
+				}
+			}
+		}
+		if (auto ss = od.ss) {
+			for (auto sels = ss.sel; sels !is null; sels = sels.follow) {
+				if (auto sel = sels.sel) {
+					if (auto field = sel.field) {
 						this.selections ~= Field(field);
+					}
+				}
+			}
+		}
 	}
 }
 
-struct QueryDocument
-{
-	this(ast.Document d)
-	{
-		for (auto defs = d.defs; defs !is null; defs = defs.follow)
-			if (auto def = defs.def)
-				if (auto op = def.op)
+struct QueryDocument {
+	this(ast.Document d) {
+		for (auto defs = d.defs; defs !is null; defs = defs.follow) {
+			if (auto def = defs.def) {
+				if (auto op = def.op) {
 					operations ~= OperationDefinition(op);
+				}
+			}
+		}
 	}
 
 	OperationDefinition[] operations;

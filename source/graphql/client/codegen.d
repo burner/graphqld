@@ -7,14 +7,12 @@ package(graphql):
 import graphql.client.document;
 
 /// Controls the UDAs and JSON serialization in generated code.
-struct SerializationLibraries
-{
+struct SerializationLibraries {
 	bool vibe_data_json;  /// `vibe.data.json` support
 	bool ae_utils_json;  /// `ae.utils.json` support
 }
 
-struct CodeGenerationSettings
-{
+struct CodeGenerationSettings {
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr;
 
@@ -26,24 +24,23 @@ struct CodeGenerationSettings
 string toD(
 	ref const Type type,
 	ref const CodeGenerationSettings settings,
-)
-{
-	if (type.list)
+) {
+	if (type.list) {
 		return toD(type.list[0], settings) ~ "[]";
-	else if (type.nullable)
+	} else if (type.nullable) {
 		return "_graphqld_typecons.Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
-	else if (type.name)
+	} else if (type.name) {
 		return settings.schemaRefExpr ~ "Schema." ~ type.name;
-	else
+	} else {
 		assert(false, "Uninitialized type");
+	}
 }
 
 /// Convert an input object type definition to a D struct.
 private string toD(
 	ref const InputObjectTypeDefinition type,
 	ref const CodeGenerationSettings settings,
-)
-{
+) {
 	/*
 	  Input objects are a little different from regular objects.
 	  - One key aspect is that the presence or absence of a value is significant,
@@ -57,8 +54,7 @@ private string toD(
 
 	string s;
 	s ~= "final static class " ~ type.name ~ " {\n";
-	foreach (ref value; type.values)
-	{
+	foreach (ref value; type.values) {
 		auto dType = "_graphqld_typecons.Nullable!(" ~ toD(value.type, settings) ~ ")";
 		s ~= toDField(value.name, dType, settings);
 	}
@@ -68,8 +64,7 @@ private string toD(
 	s ~= "static foreach (i; 0 .. args.length / 2) {{\n";
 	s ~= "alias name = args[i * 2];\n";
 	s ~= "alias value = args[i * 2 + 1];\n";
-	foreach (ref value; type.values)
-	{
+	foreach (ref value; type.values) {
 		s ~=
 			"if (name == `" ~ value.name ~ "`) {\n" ~
 			"  static if (is(typeof({ this." ~ toDIdentifier(value.name) ~ " = value; })))\n" ~
@@ -83,25 +78,25 @@ private string toD(
 	s ~= "}}\n";
 	s ~= "}\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json)
-	{
+	if (settings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
 		s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
-		foreach (ref value; type.values)
+		foreach (ref value; type.values) {
 			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
 				"json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(this." ~ toDIdentifier(value.name) ~ ".get);\n";
+		}
 		s ~= "return json;\n";
 		s ~= "}\n";
 		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json)
-	{
+	if (settings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
 		s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
-		foreach (ref value; type.values)
+		foreach (ref value; type.values) {
 			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
 				"json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this." ~ toDIdentifier(value.name) ~ ".get));\n";
+		}
 		s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
 		s ~= "}\n";
 	}
@@ -114,8 +109,7 @@ private string toD(
 string toD(
 	ref const SchemaDocument document,
 	ref const CodeGenerationSettings settings,
-)
-{
+) {
 	string s;
 	s ~= getImports(settings);
 
@@ -131,22 +125,22 @@ string toD(
 		alias ID = string;
 	};
 
-	foreach (ref type; document.scalarTypes)
-	{
+	foreach (ref type; document.scalarTypes) {
 		// TODO: allow customizing serialization / D type?
 		s ~= "alias " ~ type.name ~ " = string;\n";
 	}
 
-	foreach (ref type; document.enumTypes)
-	{
+	foreach (ref type; document.enumTypes) {
 		s ~= "enum " ~ type.name ~ " {\n";
-		foreach (ref value; type.values)
+		foreach (ref value; type.values) {
 			s ~= "\t" ~ value.name ~ ",\n";
+		}
 		s ~= "}\n";
 	}
 
-	foreach (type; document.inputTypes)
+	foreach (type; document.inputTypes) {
 		s ~= toD(type, settings);
+	}
 
 	s ~= "}\n";
 	return s;
@@ -161,47 +155,46 @@ private string toD(
 	ref const SchemaDocument schema,
 	ref const CodeGenerationSettings settings,
 )
-in(typeName !is null, "No typeName provided")
-{
+in(typeName !is null, "No typeName provided") {
 	auto typeFields = {
-		foreach (ref objectType; schema.objectTypes)
-			if (objectType.name == typeName)
+		foreach (ref objectType; schema.objectTypes) {
+			if (objectType.name == typeName) {
 				return objectType.fields;
+			}
+		}
 		assert(false, "Object type not found in schema: " ~ typeName);
 	}();
 
 	string s;
-	foreach (ref field; selections)
-	{
+	foreach (ref field; selections) {
 		auto type = {
-			foreach (ref typeField; typeFields)
-				if (typeField.name == field.name)
+			foreach (ref typeField; typeFields) {
+				if (typeField.name == field.name) {
 					return &typeField.type;
+				}
+			}
 			assert(false, "Field not found in type: " ~ field.name);
 		}();
 
 		string dType;
-		if (field.selections)
-		{
+		if (field.selections) {
 			// Generate a custom type with just the selection fields.
 			// Be sure to keep any nullability / listness of the field type.
 			const(Type)* baseType = type;
 			string function(string)[] wrappers;
-			while (true)
-				if (baseType.nullable)
-				{
+			while (true) {
+				if (baseType.nullable) {
 					baseType = baseType.nullable.ptr;
 					wrappers ~= s => "_graphqld_typecons.Nullable!(" ~ s ~ ")";
-				}
-				else if (baseType.list)
-				{
+				} else if (baseType.list) {
 					baseType = baseType.list.ptr;
 					wrappers ~= s => s ~ "[]";
-				}
-				else if (baseType.name)
+				} else if (baseType.name) {
 					break;
-				else
+				} else {
 					assert(false);
+				}
+			}
 
 			auto selectionTypeName = "_" ~ field.name ~ "_Type";
 			s ~= "\tstruct " ~ selectionTypeName ~ " {\n";
@@ -209,11 +202,12 @@ in(typeName !is null, "No typeName provided")
 			s ~= "\t}\n";
 
 			dType = selectionTypeName;
-			foreach_reverse (wrapper; wrappers)
+			foreach_reverse (wrapper; wrappers) {
 				dType = wrapper(dType);
-		}
-		else
+			}
+		} else {
 			dType = toD(*type, settings);
+		}
 
 		s ~= toDField(field.name, dType, settings);
 	}
@@ -227,15 +221,16 @@ private string toD(
 	/// The schema document (used to resolve types).
 	ref const SchemaDocument schema,
 	ref const CodeGenerationSettings settings,
-)
-{
+) {
 	string s;
 	s ~= "struct ReturnType {\n";
 
 	string typeName = {
-		foreach (ref operationType; schema.schema.operationTypes)
-			if (operationType.type == operation.type)
+		foreach (ref operationType; schema.schema.operationTypes) {
+			if (operationType.type == operation.type) {
 				return operationType.name;
+			}
+		}
 		assert(false, "Operation type not found in schema");
 	}();
 
@@ -244,8 +239,9 @@ private string toD(
 	s ~= "}\n";
 
 	s ~= "struct Variables {\n";
-	foreach (variable; operation.variables)
+	foreach (variable; operation.variables) {
 		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ";\n";
+	}
 	s ~= "}\n";
 
 	s ~= "struct QueryInstance {\n";
@@ -254,12 +250,14 @@ private string toD(
 	s ~= "}\n";
 
 	s ~= "QueryInstance opCall(\n";
-	foreach (variable; operation.variables)
+	foreach (variable; operation.variables) {
 		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ",\n";
+	}
 	s ~= ") const {";
 	s ~= "QueryInstance _graphqld_instance;";
-	foreach (variable; operation.variables)
+	foreach (variable; operation.variables) {
 		s ~= "\t_graphqld_instance.variables." ~ variable.name ~ " = " ~ variable.name ~ ";\n";
+	}
 	s ~= "\treturn _graphqld_instance;";
 	s ~= "}";
 
@@ -272,22 +270,18 @@ string toD(
 	/// The schema document (used to resolve types).
 	ref const SchemaDocument schema,
 	ref const CodeGenerationSettings settings,
-)
-{
+) {
 	assert(query.operations.length != 0,
 		"GraphQL query document must contain at least one operation");
 
 	string s;
 	s ~= getImports(settings);
 
-	if (query.operations.length == 1 && query.operations[0].name is null)
-	{
+	if (query.operations.length == 1 && query.operations[0].name is null) {
 		// Single operation
 		auto operation = query.operations[0];
 		s ~= toD(operation, schema, settings);
-	}
-	else
-	{
+	} else {
 		assert(false,
 			"GraphQL query documents with multiple operations are not supported yet");
 	}
@@ -295,15 +289,16 @@ string toD(
 	return s;
 }
 
-private string getImports(CodeGenerationSettings settings)
-{
+private string getImports(CodeGenerationSettings settings) {
 	string s;
 	s ~= "private import _graphqld_typecons = std.typecons;\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json)
+	if (settings.serializationLibraries.vibe_data_json) {
 		s ~= "private import _graphqld_vibe_data_json = vibe.data.json;\n\n";
-	if (settings.serializationLibraries.ae_utils_json)
+	}
+	if (settings.serializationLibraries.ae_utils_json) {
 		s ~= "private import _graphqld_ae_utils_json = ae.utils.json;\n\n";
+	}
 
 	return s;
 }
@@ -314,27 +309,28 @@ private string toDField(
 	string name,
 	string dType,
 	ref const CodeGenerationSettings settings,
-)
-{
+) {
 	string s;
 	string dName = toDIdentifier(name);
-	if (dName != name)
-	{
-		if (settings.serializationLibraries.vibe_data_json)
+	if (dName != name) {
+		if (settings.serializationLibraries.vibe_data_json) {
 			s ~= "\t@(_graphqld_vibe_data_json.name(`" ~ name ~ "`))\n";
-		if (settings.serializationLibraries.ae_utils_json)
+		}
+		if (settings.serializationLibraries.ae_utils_json) {
 			s ~= "\t@(_graphqld_ae_utils_json.JSONName(`" ~ name ~ "`))\n";
+		}
 	}
 
 	s ~= "\t" ~ dType ~ " " ~ dName ~ ";\n";
 	return s;
 }
 
-private string toDIdentifier(string name)
-{
-	foreach (keyword; keywords)
-		if (name == keyword)
+private string toDIdentifier(string name) {
+	foreach (keyword; keywords) {
+		if (name == keyword) {
 			return name ~ "_";
+		}
+	}
 	return name;
 }
 
