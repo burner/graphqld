@@ -38,22 +38,86 @@ string toD(
 		assert(false, "Uninitialized type");
 }
 
-// /// Convert an object type definition to a D struct.
-// private string toD(ref const ObjectTypeDefinition type)
-// {
-// 	string s;
-// 	s ~= "struct " ~ type.name ~ " {\n";
-// 	foreach (field; type.fields)
-// 		s ~= "\t" ~ toD(field.type, "") ~ " " ~ field.name ~ ";\n";
-// 	s ~= "}\n";
-// 	return s;
-// }
+/// Convert an input object type definition to a D struct.
+private string toD(
+	ref const InputObjectTypeDefinition type,
+	ref const CodeGenerationSettings settings,
+)
+{
+	/*
+	  Input objects are a little different from regular objects.
+	  - One key aspect is that the presence or absence of a value is significant,
+	    and a "null" value is distinct from an absent value.
+	  - We also want to allow easy building of input objects
+	    while allowing the client code to specify
+	    only the keys it knows (or cares) about.
+      - One must also be aware that input objects can recurse arbitrarily deep,
+        unlike query return value types.
+	*/
+
+	string s;
+	s ~= "final static class " ~ type.name ~ " {\n";
+	foreach (ref value; type.values)
+	{
+		auto dType = "_graphqld_typecons.Nullable!(" ~ toD(value.type, settings) ~ ")";
+		s ~= toDField(value.name, dType, settings);
+	}
+
+	s ~= "\n\n";
+	s ~= "this(Args...)(Args args) if (Args.length % 2 == 0) {\n";
+	s ~= "static foreach (i; 0 .. args.length / 2) {{\n";
+	s ~= "alias name = args[i * 2];\n";
+	s ~= "alias value = args[i * 2 + 1];\n";
+	foreach (ref value; type.values)
+	{
+		s ~=
+			"if (name == `" ~ value.name ~ "`) {\n" ~
+			"  static if (is(typeof({ this." ~ toDIdentifier(value.name) ~ " = value; })))\n" ~
+			"    this." ~ toDIdentifier(value.name) ~ " = value;\n" ~
+			"  else\n" ~
+			"    assert(false, `Cannot convert ` ~ typeof(value).stringof ~ ` to ` ~ " ~
+			"typeof(this." ~ toDIdentifier(value.name) ~ ".get()).stringof ~ ` for field ` ~ name);\n" ~
+			"} else ";
+	}
+	s ~= "assert(false, `Unknown field name: ` ~ name);\n";
+	s ~= "}}\n";
+	s ~= "}\n\n";
+
+	if (settings.serializationLibraries.vibe_data_json)
+	{
+		s ~= "_graphqld_vibe_data_json.Json toJson() const {\n";
+		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
+		foreach (ref value; type.values)
+			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
+				"json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(this." ~ toDIdentifier(value.name) ~ ".get);\n";
+		s ~= "return json;\n";
+		s ~= "}\n";
+		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
+	}
+	if (settings.serializationLibraries.ae_utils_json)
+	{
+		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+		s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
+		foreach (ref value; type.values)
+			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
+				"json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this." ~ toDIdentifier(value.name) ~ ".get));\n";
+		s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
+		s ~= "}\n";
+	}
+	s ~= "}\n\n\n";
+	return s;
+}
 
 /// Convert a schema document to D,
 /// producing types and definitions used by query document parsing.
-string toD(ref const SchemaDocument document)
+string toD(
+	ref const SchemaDocument document,
+	ref const CodeGenerationSettings settings,
+)
 {
 	string s;
+	s ~= getImports(settings);
+
 	s ~= "struct Schema {\n";
 
 	// Add standard definitions
@@ -65,9 +129,6 @@ string toD(ref const SchemaDocument document)
 
 		alias ID = string;
 	};
-
-	// foreach (type; document.objectTypes)
-	// 	s ~= toD(type);
 
 	foreach (ref type; document.scalarTypes)
 	{
@@ -82,6 +143,9 @@ string toD(ref const SchemaDocument document)
 			s ~= "\t" ~ value.name ~ ",\n";
 		s ~= "}\n";
 	}
+
+	foreach (type; document.inputTypes)
+		s ~= toD(type, settings);
 
 	s ~= "}\n";
 	return s;

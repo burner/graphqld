@@ -20,7 +20,14 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_)
 	alias document = document_;
 	alias settings = settings_;
 
-	mixin(toD(document));
+	enum code = {
+		CodeGenerationSettings settings;
+		settings.serializationLibraries = this.settings.serializationLibraries;
+		settings.schemaRefExpr = q{};
+		return toD(document, settings);
+	}();
+
+	mixin(code);
 
 	auto query(string queryText)() const
 	{
