@@ -248,6 +248,21 @@ private string toD(
 		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ";\n";
 	s ~= "}\n";
 
+	s ~= "struct QueryInstance {\n";
+	s ~= "alias Query = __traits(parent, typeof(this));\n";
+	s ~= "Variables variables;\n";
+	s ~= "}\n";
+
+	s ~= "QueryInstance opCall(\n";
+	foreach (variable; operation.variables)
+		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ",\n";
+	s ~= ") const {";
+	s ~= "QueryInstance _graphqld_instance;";
+	foreach (variable; operation.variables)
+		s ~= "\t_graphqld_instance.variables." ~ variable.name ~ " = " ~ variable.name ~ ";\n";
+	s ~= "\treturn _graphqld_instance;";
+	s ~= "}";
+
 	return s;
 }
 
