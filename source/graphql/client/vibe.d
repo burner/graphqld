@@ -5,6 +5,8 @@ import vibe.data.json;
 import vibe.http.client;
 import vibe.stream.operations : readAllUTF8;
 
+@safe:
+
 final class VibeHttpGraphQLClient {
 	string url;
 	string[string] headers;
