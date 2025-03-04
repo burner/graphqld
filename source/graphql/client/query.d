@@ -230,7 +230,7 @@ unittest {
 	`;
 
 	static assert(is(typeof(schema.Schema.S.init.str) == string));
-	static assert(is(typeof(schema.Schema.S.init.next.get()) == schema.Schema.S));
+	static assert(is(typeof(schema.Schema.S.init.next) == schema.Schema.S));
 }
 
 // Test schema type construction
@@ -248,7 +248,7 @@ unittest {
 		str: "first",
 		next: new schema.Schema.S(
 			str: "second"
-		).nullable
+		)
 	);
 }
 
