@@ -232,3 +232,22 @@ unittest {
 	static assert(is(typeof(schema.Schema.S.init.str) == string));
 	static assert(is(typeof(schema.Schema.S.init.next.get()) == schema.Schema.S));
 }
+
+// Test schema type construction
+unittest {
+	import std.typecons : nullable;
+
+	static immutable schema = graphqlSchema!`
+        type S {
+			str: String!
+            next: S
+        }
+	`;
+
+	auto s = new schema.Schema.S(
+		str: "first",
+		next: new schema.Schema.S(
+			str: "second"
+		).nullable
+	);
+}
