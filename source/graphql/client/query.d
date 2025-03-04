@@ -219,3 +219,16 @@ unittest {
 	static assert(is(typeof(query.ReturnType.__typename) == string));
 	static assert(is(typeof(query.ReturnType.s.__typename) == string));
 }
+
+// Test schema type generation
+unittest {
+	static immutable schema = graphqlSchema!`
+        type S {
+			str: String!
+            next: S
+        }
+	`;
+
+	static assert(is(typeof(schema.Schema.S.init.str) == string));
+	static assert(is(typeof(schema.Schema.S.init.next.get()) == schema.Schema.S));
+}
