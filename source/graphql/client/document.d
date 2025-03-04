@@ -248,7 +248,7 @@ struct OperationDefinition {
 	Field[] selections;
 
 	this(ast.OperationDefinition od) {
-		this.type = od.ot.ruleSelection;
+		this.type = od.ot ? od.ot.ruleSelection : OperationType.Query;
 		this.name = od.name.value;
 		if (auto vd = od.vd) {
 			for (auto vars = vd.vars; vars !is null; vars = vars.follow) {
