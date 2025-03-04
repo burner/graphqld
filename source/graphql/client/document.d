@@ -66,8 +66,23 @@ struct FieldDefinition {
 	}
 }
 
+struct InterfaceTypeDefinition {
+	string name;
+	FieldDefinition[] fields;
+
+	this(ast.InterfaceTypeDefinition itd) {
+		this.name = itd.name.value;
+		for (auto fds = itd.fds; fds !is null; fds = fds.follow) {
+			if (auto fd = fds.fd) {
+				this.fields ~= FieldDefinition(fd);
+			}
+		}
+	}
+}
+
 struct ObjectTypeDefinition {
 	string name;
+	string[] implementsInterfaces;
 	FieldDefinition[] fields;
 
 	this(ast.ObjectTypeDefinition otd) {
@@ -75,6 +90,11 @@ struct ObjectTypeDefinition {
 		for (auto fds = otd.fds; fds !is null; fds = fds.follow) {
 			if (auto fd = fds.fd) {
 				this.fields ~= FieldDefinition(fd);
+			}
+		}
+		if (auto ii = otd.ii) {
+			for (auto nts = ii.nts; nts !is null; nts = nts.follow) {
+				this.implementsInterfaces ~= nts.name.value;
 			}
 		}
 	}
@@ -170,6 +190,7 @@ struct SchemaDefinition {
 struct SchemaDocument {
 	SchemaDefinition schema;
 	ObjectTypeDefinition[] objectTypes;
+	InterfaceTypeDefinition[] interfaceTypes;
 	ScalarTypeDefinition[] scalarTypes;
 	EnumTypeDefinition[] enumTypes;
 	InputObjectTypeDefinition[] inputTypes;
@@ -187,6 +208,9 @@ struct SchemaDocument {
 					if (auto td = type.td) {
 						if (auto otd = td.otd) {
 							this.objectTypes ~= ObjectTypeDefinition(otd);
+						}
+						if (auto itd = td.itd) {
+							this.interfaceTypes ~= InterfaceTypeDefinition(itd);
 						}
 						if (auto std = td.std) {
 							this.scalarTypes ~= ScalarTypeDefinition(std);
