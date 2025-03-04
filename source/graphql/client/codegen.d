@@ -4,6 +4,8 @@ module graphql.client.codegen;
 // This is an internal module.
 package(graphql):
 
+import std.array : join;
+
 import graphql.client.document;
 
 /// Controls the UDAs and JSON serialization in generated code.
@@ -42,7 +44,11 @@ private string toD(
 	ref const CodeGenerationSettings settings,
 ) {
 	string s;
-	s ~= "final static class " ~ type.name ~ " {\n";
+	s ~= "final static class " ~ type.name ~ (
+		type.implementsInterfaces.length
+			? " : " ~ type.implementsInterfaces.join(", ")
+			: ""
+	) ~ " {\n";
 	foreach (ref field; type.fields) {
 		auto dType = toD(field.type, settings);
 		s ~= toDField(field.name, dType, settings);
@@ -59,6 +65,38 @@ private string toD(
 		s ~= "\t" ~ "this." ~ dName ~ " = " ~ dName ~ ";\n";
 	}
 	s ~= "}\n";
+
+	if (type.implementsInterfaces.length) {
+		// Implement interfaces' JSON shim.
+		// Call serializeToJson to perform standard serialization of all fields.
+		// By marking this method protected, we avoid infinite recursion.
+		if (settings.serializationLibraries.vibe_data_json) {
+			s ~= "protected override _graphqld_vibe_data_json.Json toJson() const { return _graphqld_vibe_data_json.serializeToJson(this); }\n";
+		}
+		if (settings.serializationLibraries.ae_utils_json) {
+			s ~= "protected override _graphqld_ae_utils_json.JSONFragment toJSON() const { return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this)); }\n";
+		}
+	}
+
+	s ~= "}\n\n";
+	return s;
+}
+
+/// Convert an interface type definition to a D struct.
+private string toD(
+	ref const InterfaceTypeDefinition type,
+	ref const CodeGenerationSettings settings,
+) {
+	string s;
+	s ~= "static interface " ~ type.name ~ " {\n";
+	// Do not emit the fields, just the interface, and JSON serialisation shim
+	if (settings.serializationLibraries.vibe_data_json) {
+		s ~= "_graphqld_vibe_data_json.Json toJson() const @safe;\n";
+		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
+	}
+	if (settings.serializationLibraries.ae_utils_json) {
+		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const;\n";
+	}
 	s ~= "}\n\n";
 	return s;
 }
@@ -176,6 +214,10 @@ string toD(
 		s ~= toD(type, settings);
 	}
 
+	foreach (type; document.interfaceTypes) {
+		s ~= toD(type, settings);
+	}
+
 	s ~= "}\n";
 	return s;
 }
@@ -200,6 +242,9 @@ in(typeName !is null, "No typeName provided") {
 	}();
 
 	string s;
+
+	s ~= "alias __SchemaType = " ~ settings.schemaRefExpr ~ "Schema." ~ typeName ~ ";\n";
+
 	foreach (ref field; selections) {
 		switch (field.name) {
 			case "__typename":

@@ -251,3 +251,28 @@ unittest {
 		).nullable
 	);
 }
+
+// Test types with interfaces
+unittest {
+	static immutable schema = graphqlSchema!`
+		interface Node {
+			nodeId: ID!
+		}
+        type SomeNode implements Node {
+			nodeId: ID!
+        }
+        type Query {
+			someNode: SomeNode!
+        }
+	`;
+
+	static assert(is(typeof(schema.Schema.SomeNode.init.nodeId) == string));
+
+	immutable query = schema.query!`{
+        someNode {
+            nodeId
+        }
+    }`;
+
+	static assert(is(typeof(query.ReturnType.someNode.nodeId) == string));
+}
