@@ -36,6 +36,21 @@ string toD(
 	}
 }
 
+/// Convert an object type definition to a D struct.
+private string toD(
+	ref const ObjectTypeDefinition type,
+	ref const CodeGenerationSettings settings,
+) {
+	string s;
+	s ~= "final static class " ~ type.name ~ " {\n";
+	foreach (ref field; type.fields) {
+		auto dType = toD(field.type, settings);
+		s ~= toDField(field.name, dType, settings);
+	}
+	s ~= "}\n\n";
+	return s;
+}
+
 /// Convert an input object type definition to a D struct.
 private string toD(
 	ref const InputObjectTypeDefinition type,
@@ -139,6 +154,13 @@ string toD(
 	}
 
 	foreach (type; document.inputTypes) {
+		s ~= toD(type, settings);
+	}
+
+	// Generate types for schema object types as well.
+	// These won't be used directly by most client code,
+	// but can be used for some client/server interoperability scenarios.
+	foreach (type; document.objectTypes) {
 		s ~= toD(type, settings);
 	}
 
