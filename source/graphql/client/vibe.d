@@ -5,6 +5,8 @@ import vibe.data.json;
 import vibe.http.client;
 import vibe.stream.operations : readAllUTF8;
 
+import graphql.client.query : isQueryInstance;
+
 @safe:
 
 final class VibeHttpGraphQLClient {
@@ -58,7 +60,8 @@ final class VibeHttpGraphQLClient {
 		}
 	}
 
-	QueryInstance.Query.ReturnType call(QueryInstance)(QueryInstance queryInstance) {
+	QueryInstance.Query.ReturnType call(QueryInstance)(QueryInstance queryInstance)
+	if (isQueryInstance!QueryInstance) {
 		struct Response {
 			@optional QueryInstance.Query.ReturnType data;
 			@optional Error[] errors;
