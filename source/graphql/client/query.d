@@ -196,3 +196,26 @@ unittest {
 	static assert(is(typeof(query.ReturnType.i) == int));
 	static assert(isQueryInstance!(typeof(query())));
 }
+
+// Test __typename
+unittest {
+	static immutable schema = graphqlSchema!`
+        type S {
+            i: Int
+        }
+
+		type Query {
+            s: S!
+		}
+	`;
+
+	immutable query = schema.query!`{
+        __typename
+        s {
+            __typename
+        }
+    }`;
+
+	static assert(is(typeof(query.ReturnType.__typename) == string));
+	static assert(is(typeof(query.ReturnType.s.__typename) == string));
+}

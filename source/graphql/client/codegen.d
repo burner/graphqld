@@ -167,6 +167,13 @@ in(typeName !is null, "No typeName provided") {
 
 	string s;
 	foreach (ref field; selections) {
+		switch (field.name) {
+			case "__typename":
+				s ~= toDField(field.name, q{string}, settings);
+				continue;
+			default:
+		}
+
 		auto type = {
 			foreach (ref typeField; typeFields) {
 				if (typeField.name == field.name) {
