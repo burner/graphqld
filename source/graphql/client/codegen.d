@@ -47,6 +47,18 @@ private string toD(
 		auto dType = toD(field.type, settings);
 		s ~= toDField(field.name, dType, settings);
 	}
+	s ~= "this(\n";
+	foreach (ref field; type.fields) {
+		auto dType = toD(field.type, settings);
+		auto dName = toDIdentifier(field.name);
+		s ~= "\t" ~ dType ~ " " ~ dName ~ " = " ~ dType ~ ".init,\n";
+	}
+	s ~= ") {\n";
+	foreach  (ref field; type.fields) {
+		auto dName = toDIdentifier(field.name);
+		s ~= "\t" ~ "this." ~ dName ~ " = " ~ dName ~ ";\n";
+	}
+	s ~= "}\n";
 	s ~= "}\n\n";
 	return s;
 }
