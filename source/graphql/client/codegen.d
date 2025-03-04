@@ -23,14 +23,14 @@ struct CodeGenerationSettings {
 }
 
 /// Convert a field type to D.
-string toD(
+private string toD(
 	ref const Type type,
 	ref const CodeGenerationSettings settings,
 ) {
 	if (type.list) {
 		return toD(type.list[0], settings) ~ "[]";
 	} else if (type.nullable) {
-		return "_graphqld_typecons.Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
+		return settings.schemaRefExpr ~ "Schema._graphqld_Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
 	} else if (type.name) {
 		return settings.schemaRefExpr ~ "Schema." ~ type.name;
 	} else {
@@ -188,6 +188,17 @@ string toD(
 		alias Boolean = bool;
 
 		alias ID = string;
+
+		// Avoid redundant nullability for reference types +
+		// work around https://github.com/dlang/phobos/issues/10661
+		template _graphqld_Nullable(T) {
+			static if (is(T == class)) {
+				// Already nullable - no need for extra nullability
+				alias _graphqld_Nullable = T;
+			} else {
+				alias _graphqld_Nullable = _graphqld_typecons.Nullable!T;
+			}
+		}
 	};
 
 	foreach (ref type; document.scalarTypes) {
