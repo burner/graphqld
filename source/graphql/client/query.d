@@ -51,6 +51,9 @@ struct GraphQLQuery(GraphQLSchema, alias queryText_) {
 	}());
 }
 
+enum isQueryInstance(T) =
+	is(T.Query == GraphQLQuery!(GraphQLSchema, queryText), GraphQLSchema, string queryText);
+
 /// Parses a GraphQL schema at compile-time, returning a
 /// compile-time-accessible representation of the schema.
 auto graphqlSchema(
@@ -191,4 +194,5 @@ unittest {
 	immutable query = schema.query!`{ i }`;
 
 	static assert(is(typeof(query.ReturnType.i) == int));
+	static assert(isQueryInstance!(typeof(query())));
 }
