@@ -180,8 +180,15 @@ unittest {
 	static assert(is(typeof(query.ReturnType.snan.get()[0].get().i) == int));
 }
 
+// Test implicit operation type
+unittest {
+	static immutable schema = graphqlSchema!`
+		type Query {
+			i: Int!
+		}
+	`;
 
-// unittest
-// {
-// 	static immutable schema = graphqlSchema!(import("schema.graphql"));
-// }
+	immutable query = schema.query!`{ i }`;
+
+	static assert(is(typeof(query.ReturnType.i) == int));
+}
