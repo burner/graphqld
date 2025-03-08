@@ -18,7 +18,7 @@ final class VibeHttpGraphQLClient {
 		this.headers = headers;
 	}
 
-	private Json callImpl(string query, Json variables) {
+	private Json callImpl(string query, Json variables, string[string] requestHeaders) {
 		Json body = Json.emptyObject;
 		body["query"] = query;
 		body["variables"] = variables;
@@ -28,7 +28,10 @@ final class VibeHttpGraphQLClient {
 			(scope req) {
 				req.method = HTTPMethod.POST;
 				req.headers["Content-Type"] = "application/json";
-				foreach (key, value; headers) {
+				foreach (key, value; this.headers) {
+					req.headers[key] = value;
+				}
+				foreach (key, value; requestHeaders) {
 					req.headers[key] = value;
 				}
 
@@ -60,8 +63,10 @@ final class VibeHttpGraphQLClient {
 		}
 	}
 
-	QueryInstance.Query.ReturnType call(QueryInstance)(QueryInstance queryInstance)
-	if (isQueryInstance!QueryInstance) {
+	QueryInstance.Query.ReturnType call(QueryInstance)(
+		QueryInstance queryInstance,
+		string[string] headers = null,
+	) if (isQueryInstance!QueryInstance) {
 		struct Response {
 			@optional QueryInstance.Query.ReturnType data;
 			@optional Error[] errors;
@@ -69,7 +74,8 @@ final class VibeHttpGraphQLClient {
 
 		auto response = callImpl(
 			queryInstance.Query.queryText,
-			queryInstance.variables.serializeToJson()
+			queryInstance.variables.serializeToJson(),
+			headers
 		).deserializeJson!Response;
 
 		if (response.errors.length > 0) {
