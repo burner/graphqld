@@ -145,7 +145,8 @@ private string toD(
 
 	if (settings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
-		s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+		// Note: we emit a template function to avoid circular resolution errors
+		s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 		foreach (ref value; type.values) {
 			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
@@ -153,7 +154,15 @@ private string toD(
 		}
 		s ~= "return json;\n";
 		s ~= "}\n";
-		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
+		s ~= "static typeof(this) fromJson()(_graphqld_vibe_data_json.Json json) @safe {\n";
+		s ~= "auto instance = new typeof(this);\n";
+		foreach (ref value; type.values) {
+			s ~= "if (`" ~ value.name ~ "` in json)" ~
+				"instance." ~ toDIdentifier(value.name) ~ " = " ~
+				"_graphqld_vibe_data_json.deserializeJson!(" ~ toD(value.type, settings) ~ ")(json[`" ~ value.name ~ "`]);\n";
+		}
+		s ~= "return instance;\n";
+		s ~= "}\n";
 	}
 	if (settings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
