@@ -6,11 +6,7 @@ import graphql.client.codegen : toD, CodeGenerationSettings;
 import graphql.lexer;
 import graphql.parser;
 
-public import graphql.client.codegen : SerializationLibraries;
-
-struct GraphQLSettings {
-	SerializationLibraries serializationLibraries;
-}
+public import graphql.client.codegen : GraphQLSettings, SerializationLibraries;
 
 /// Represents a parsed GraphQL schema, an object which can serve
 /// as a base for building GraphQL queries.
@@ -20,7 +16,7 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_) {
 
 	enum code = {
 		CodeGenerationSettings settings;
-		settings.serializationLibraries = this.settings.serializationLibraries;
+		settings.graphqlSettings = this.settings;
 		settings.schemaRefExpr = q{};
 		return toD(document, settings);
 	}();
@@ -45,7 +41,7 @@ struct GraphQLQuery(GraphQLSchema, alias queryText_) {
 
 	mixin({
 		CodeGenerationSettings settings;
-		settings.serializationLibraries = GraphQLSchema.settings.serializationLibraries;
+		settings.graphqlSettings = GraphQLSchema.settings;
 		settings.schemaRefExpr = q{GraphQLSchema.};
 		return toD(document, GraphQLSchema.document, settings);
 	}());
