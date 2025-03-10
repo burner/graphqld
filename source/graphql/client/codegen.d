@@ -36,7 +36,7 @@ private string toD(
 	if (type.list) {
 		return toD(type.list[0], settings) ~ "[]";
 	} else if (type.nullable) {
-		return settings.schemaRefExpr ~ "Schema._graphqld_Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
+		return settings.schemaRefExpr ~ "_graphqld_Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
 	} else if (type.name) {
 		return settings.schemaRefExpr ~ "Schema." ~ type.name;
 	} else {
@@ -193,17 +193,8 @@ string toD(
 	string s;
 	s ~= getImports(settings);
 
-	s ~= "struct Schema {\n";
-
-	// Add standard definitions
+	// Add helpers
 	s ~= q{
-		alias Int = int;
-		alias Float = double;
-		alias String = string;
-		alias Boolean = bool;
-
-		alias ID = string;
-
 		// Avoid redundant nullability for reference types +
 		// work around https://github.com/dlang/phobos/issues/10661
 		template _graphqld_Nullable(T) {
@@ -214,6 +205,18 @@ string toD(
 				alias _graphqld_Nullable = _graphqld_typecons.Nullable!T;
 			}
 		}
+	};
+
+	s ~= "struct Schema {\n";
+
+	// Add standard definitions
+	s ~= q{
+		alias Int = int;
+		alias Float = double;
+		alias String = string;
+		alias Boolean = bool;
+
+		alias ID = string;
 	};
 
 	foreach (ref type; document.scalarTypes) {
