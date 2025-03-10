@@ -1,6 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
+		"ae": "0.0.3598",
 		"diet-ng": "1.8.2",
 		"eventcore": "0.9.35",
 		"exceptionhandling": "1.0.0",

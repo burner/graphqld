@@ -112,6 +112,18 @@
 			]
 		},
 		{
+			"name": "client-test-serialization",
+			"dependencies": {
+				"graphqld:client": "*",
+				"vibe-d:data": ">=0.9.0",
+				"ae": "==0.0.3598"
+			},
+			"sourcePaths": [],
+			"sourceFiles": [
+				"source/graphql/client/test_serialization.d"
+			]
+		},
+		{
 			"name": "client-vibe",
 			"dependencies": {
 				"graphqld:client": "*",
