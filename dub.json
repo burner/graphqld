@@ -1,18 +1,19 @@
 {
+	"name": "graphqld",
+	"description": "A library to handle the GraphQL Protocol",
 	"authors": [
 		"Robert burner Schadek"
 	],
 	"copyright": "Copyright © 2019, Robert burner Schadek",
+	"license": "LGPL3",
 	"dependencies": {
 		"graphqld:client": "*",
 		"graphqld:server": "*"
 	},
-	"description": "A library to handle the GraphQL Protocol",
 	"dflags": [
 		"-d"
 	],
-	"license": "LGPL3",
-	"name": "graphqld",
+	"sourcePaths": [],
 	"sourceFiles": [
 		"source/graphql/starwars/data.d",
 		"source/graphql/starwars/schema.d",
@@ -22,50 +23,50 @@
 		"source/graphql/starwars/validation.d",
 		"source/graphql/package.d"
 	],
-	"sourcePaths": [],
 	"subPackages": [
 		{
 			"name": "lexer",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/constants.d",
 				"source/graphql/tokenmodule.d",
 				"source/graphql/lexer.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
 			"name": "exception",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/exception.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
+			"name": "parser",
 			"dependencies": {
 				"graphqld:exception": "*",
 				"graphqld:lexer": "*"
 			},
-			"name": "parser",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/ast.d",
 				"source/graphql/parser.d",
 				"source/graphql/parsertests.d",
 				"source/graphql/visitor.d",
 				"source/graphql/treevisitor.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
+			"name": "uda",
 			"dependencies": {
 				"vibe-d:data": ">=0.9.0"
 			},
-			"name": "uda",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/uda.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
+			"name": "server",
 			"dependencies": {
 				"fixedsizearray": ">=1.3.0",
 				"graphqld:exception": "*",
@@ -74,7 +75,7 @@
 				"nullablestore": ">=2.1.0",
 				"vibe-d": ">=0.9.0"
 			},
-			"name": "server",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/argumentextractor.d",
 				"source/graphql/argumentextractortests.d",
@@ -96,32 +97,31 @@
 				"source/graphql/validation/querybased.d",
 				"source/graphql/validation/schemabased.d",
 				"source/graphql/graphql.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
+			"name": "client",
 			"dependencies": {
 				"graphqld:parser": "*"
 			},
-			"name": "client",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/client/codegen.d",
 				"source/graphql/client/document.d",
 				"source/graphql/client/query.d"
-			],
-			"sourcePaths": []
+			]
 		},
 		{
+			"name": "client-vibe",
 			"dependencies": {
 				"graphqld:client": "*",
 				"vibe-d:data": ">=0.9.0",
 				"vibe-d:http": ">=0.9.0"
 			},
-			"name": "client-vibe",
+			"sourcePaths": [],
 			"sourceFiles": [
 				"source/graphql/client/vibe.d"
-			],
-			"sourcePaths": []
+			]
 		}
 	]
 }
