@@ -14,12 +14,18 @@ struct SerializationLibraries {
 	bool ae_utils_json;  /// `ae.utils.json` support
 }
 
+/// GraphQL code generation settings.
+struct GraphQLSettings {
+	/// Which serialization libraries to generate code for.
+	SerializationLibraries serializationLibraries;
+}
+
 struct CodeGenerationSettings {
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr;
 
-	/// Controls the UDAs and JSON serialization in generated code.
-	SerializationLibraries serializationLibraries;
+	/// User-supplied settings.
+	GraphQLSettings graphqlSettings;
 }
 
 /// Convert a field type to D.
@@ -70,10 +76,10 @@ private string toD(
 		// Implement interfaces' JSON shim.
 		// Call serializeToJson to perform standard serialization of all fields.
 		// By marking this method protected, we avoid infinite recursion.
-		if (settings.serializationLibraries.vibe_data_json) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 			s ~= "protected override _graphqld_vibe_data_json.Json toJson() const { return _graphqld_vibe_data_json.serializeToJson(this); }\n";
 		}
-		if (settings.serializationLibraries.ae_utils_json) {
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 			s ~= "protected override _graphqld_ae_utils_json.JSONFragment toJSON() const { return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this)); }\n";
 		}
 	}
@@ -90,11 +96,11 @@ private string toD(
 	string s;
 	s ~= "static interface " ~ type.name ~ " {\n";
 	// Do not emit the fields, just the interface, and JSON serialisation shim
-	if (settings.serializationLibraries.vibe_data_json) {
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		s ~= "_graphqld_vibe_data_json.Json toJson() const @safe;\n";
 		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const;\n";
 	}
 	s ~= "}\n\n";
@@ -143,7 +149,7 @@ private string toD(
 	s ~= "}}\n";
 	s ~= "}\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json) {
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
 		// Note: we emit a template function to avoid circular resolution errors
 		s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
@@ -164,7 +170,7 @@ private string toD(
 		s ~= "return instance;\n";
 		s ~= "}\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
 		s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
 		foreach (ref value; type.values) {
@@ -395,14 +401,14 @@ string toD(
 	return s;
 }
 
-private string getImports(CodeGenerationSettings settings) {
+private string getImports(ref const CodeGenerationSettings settings) {
 	string s;
 	s ~= "private import _graphqld_typecons = std.typecons;\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json) {
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		s ~= "private import _graphqld_vibe_data_json = vibe.data.json;\n\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "private import _graphqld_ae_utils_json = ae.utils.json;\n\n";
 	}
 
@@ -419,10 +425,10 @@ private string toDField(
 	string s;
 	string dName = toDIdentifier(name);
 	if (dName != name) {
-		if (settings.serializationLibraries.vibe_data_json) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 			s ~= "\t@(_graphqld_vibe_data_json.name(`" ~ name ~ "`))\n";
 		}
-		if (settings.serializationLibraries.ae_utils_json) {
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 			s ~= "\t@(_graphqld_ae_utils_json.JSONName(`" ~ name ~ "`))\n";
 		}
 	}
