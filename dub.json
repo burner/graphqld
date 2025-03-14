@@ -108,6 +108,7 @@
 			"sourceFiles": [
 				"source/graphql/client/codegen.d",
 				"source/graphql/client/document.d",
+				"source/graphql/client/helpers.d",
 				"source/graphql/client/query.d"
 			]
 		},

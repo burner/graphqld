@@ -61,7 +61,7 @@ private string toD(
 	if (type.list) {
 		return toD(type.list[0], settings) ~ "[]";
 	} else if (type.nullable) {
-		return settings.schemaRefExpr ~ "_graphqld_Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
+		return "_graphqld_helpers.NullableIfNeeded!(" ~ toD(type.nullable[0], settings) ~ ")";
 	} else if (type.name) {
 		return settings.schemaRefExpr ~ "Schema." ~ type.name;
 	} else {
@@ -167,10 +167,10 @@ private string transformScalar(
 	string wrap(ref const Type type) {
 		if (type.list) {
 			auto next = wrap(type.list[0]);
-			return "_graphqld_map!(" ~ next ~ ")";
+			return "_graphqld_helpers.map!(" ~ next ~ ")";
 		} else if (type.nullable) {
 			auto next = wrap(type.nullable[0]);
-			return "_graphqld_map!(" ~ next ~ ")";
+			return "_graphqld_helpers.map!(" ~ next ~ ")";
 		} else if (type.name) {
 			auto customScalar = settings.graphqlSettings.customScalars[type.name];
 			return customScalar.transformations[direction];
@@ -276,41 +276,6 @@ string toD(
 ) {
 	string s;
 	s ~= getImports(settings);
-
-	// Add helpers
-	s ~= q{
-		// Avoid redundant nullability for reference types +
-		// work around https://github.com/dlang/phobos/issues/10661
-		template _graphqld_Nullable(T) {
-			static if (is(T == class)) {
-				// Already nullable - no need for extra nullability
-				alias _graphqld_Nullable = T;
-			} else {
-				alias _graphqld_Nullable = _graphqld_typecons.Nullable!T;
-			}
-		}
-
-		// Helpers for pre/post-converting custom scalars.
-		template _graphqld_map(alias pred)
-		{
-			auto _graphqld_map(T)(ref Nullable!T value) {
-				alias U = typeof({ T v = void; return pred(v); }());
-				if (value.isNull)
-					return _graphqld_typecons.Nullable!U();
-				else
-					return _graphqld_typecons.nullable(pred(value.get()));
-			}
-
-			auto _graphqld_map(T)(ref T[] value) {
-				alias U = typeof({ T v = void; return pred(v); }());
-				auto result = new U[value.length];
-				foreach (i, ref v; value) {
-					result[i] = pred(v);
-				}
-				return result;
-			}
-		}
-	};
 
 	s ~= "struct Schema {\n";
 
@@ -561,6 +526,7 @@ string toD(
 
 private string getImports(ref const CodeGenerationSettings settings) {
 	string s;
+	s ~= "private import _graphqld_helpers = graphql.client.helpers;\n\n";
 	s ~= "private import _graphqld_typecons = std.typecons;\n\n";
 
 	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
