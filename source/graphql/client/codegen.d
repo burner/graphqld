@@ -704,3 +704,59 @@ private immutable string[] keywords = [
   "__traits",
   "__vector",
 ];
+
+string toDLiteral(T)(ref const T value) {
+	static if (is(T == enum)) {
+		string s = __traits(identifier, T) ~ ".";
+		static foreach (member; __traits(allMembers, T)) {
+			if (__traits(getMember, T, member) == value) {
+				return s ~ member;
+			}
+		}
+		throw new Exception("Enum member not found");
+	} else static if (is(T == string)) {
+		string s = `"`;
+		foreach (c; value) {
+			if (c == '"' || c == '\\') {
+				s ~= '\\';
+			}
+			s ~= c;
+		}
+		return s ~ `"`;
+	} else static if (is(T == bool)) {
+		return value ? "true" : "false";
+	} else static if (is(T == struct)) {
+		string s = __traits(identifier, T) ~ "(";
+		foreach (ref const field; value.tupleof) {
+			s ~= toDLiteral(field) ~ ",";
+		}
+		s ~= ")";
+		return s;
+	} else static if (is(T == U[], U)) {
+		string s = "[";
+		foreach (ref const item; value) {
+			s ~= toDLiteral(item) ~ ",";
+		}
+		s ~= "]";
+		return s;
+	} else static if (is(T == U[n], U, size_t n)) {
+		string s = "[";
+		foreach (ref const item; value) {
+			s ~= toDLiteral(item) ~ ",";
+		}
+		s ~= "]";
+		return s;
+	} else static if (is(T == V[K], K, V)) {
+		if (value.length == 0) {
+			return "null";
+		}
+		string s = "[";
+		foreach (ref const k, ref const v; value) {
+			s ~= toDLiteral(k) ~ ":"~ toDLiteral(v);
+		}
+		s ~= "]";
+		return s;
+	} else {
+		static assert(false, "Unsupported type for toDLiteral: " ~ T.stringof);
+	}
+}
