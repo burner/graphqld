@@ -2,7 +2,7 @@
 module graphql.client.query;
 
 import graphql.client.document;
-import graphql.client.codegen : toD, CodeGenerationSettings;
+import graphql.client.codegen : toD, CodeGenerationSettings, toDLiteral;
 import graphql.lexer;
 import graphql.parser;
 
@@ -15,9 +15,10 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_) {
 	alias settings = settings_;
 
 	enum code = {
-		CodeGenerationSettings settings;
-		settings.graphqlSettings = this.settings;
-		settings.schemaRefExpr = q{};
+		const CodeGenerationSettings settings = {
+			graphqlSettings: this.settings,
+			schemaRefExpr: q{},
+		};
 		return toD(document, settings);
 	}();
 
@@ -40,9 +41,10 @@ struct GraphQLQuery(GraphQLSchema, alias queryText_) {
 	}();
 
 	mixin({
-		CodeGenerationSettings settings;
-		settings.graphqlSettings = GraphQLSchema.settings;
-		settings.schemaRefExpr = q{GraphQLSchema.};
+		const CodeGenerationSettings settings = {
+			graphqlSettings: GraphQLSchema.settings,
+			schemaRefExpr: q{GraphQLSchema.},
+		};
 		return toD(document, GraphQLSchema.document, settings);
 	}());
 }
@@ -271,4 +273,55 @@ unittest {
     }`;
 
 	static assert(is(typeof(query.ReturnType.someNode.nodeId) == string));
+}
+
+/// Parses `schemaText` as a GraphQL schema, and returns a string containing
+/// D code for the parsed schema.  The resulting code should be pasted into
+/// a struct definition.
+string toDStruct(string schemaText, GraphQLSettings settings = GraphQLSettings()) {
+	const document = {
+		auto l = Lexer(schemaText, QueryParser.no);
+		auto p = Parser(l);
+		auto d = p.parseDocument();
+
+		return SchemaDocument(d);
+	}();
+
+	CodeGenerationSettings codeGenSettings;
+	codeGenSettings.graphqlSettings = settings;
+	codeGenSettings.schemaRefExpr = q{};
+
+	return "
+		private import graphql.client.query;
+		private import graphql.client.document;
+
+		static const document = " ~ document.toDLiteral() ~ ";
+		static const GraphQLSettings settings = " ~ settings.toDLiteral() ~ ";
+
+		" ~ toD(document, codeGenSettings) ~ "
+
+		template query(string queryText_) {
+			static immutable queryText = queryText_;
+			enum query = GraphQLQuery!(typeof(this), queryText).init;
+		}
+	";
+}
+
+// Test ahead-of-time code generation
+unittest {
+	enum code = toDStruct(`
+		type Query {
+			hello: String!
+		}
+	`);
+
+	static struct schema { mixin(code); }
+
+	immutable query = schema.query!`
+		query {
+			hello
+		}
+	`;
+
+	static assert(is(typeof(query.ReturnType.hello) == string));
 }
