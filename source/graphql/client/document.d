@@ -50,6 +50,7 @@ struct Type {
 				break;
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct FieldDefinition {
@@ -64,6 +65,7 @@ struct FieldDefinition {
 		this.name = fd.name.tok.value;
 		this.type = Type(fd.typ);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InterfaceTypeDefinition {
@@ -78,6 +80,7 @@ struct InterfaceTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct ObjectTypeDefinition {
@@ -98,6 +101,7 @@ struct ObjectTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InputValueDefinition {
@@ -108,6 +112,7 @@ struct InputValueDefinition {
 		this.name = ivd.name.tok.value;
 		this.type = Type(ivd.type);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InputObjectTypeDefinition {
@@ -122,6 +127,7 @@ struct InputObjectTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct ScalarTypeDefinition {
@@ -130,6 +136,7 @@ struct ScalarTypeDefinition {
 	this(ast.ScalarTypeDefinition std) {
 		this.name = std.name.value;
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct EnumValueDefinition {
@@ -138,6 +145,7 @@ struct EnumValueDefinition {
 	this(ast.EnumValueDefinition evd) {
 		this.name = evd.name.value;
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct EnumTypeDefinition {
@@ -152,6 +160,7 @@ struct EnumTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 alias OperationType = ast.OperationTypeEnum;
@@ -164,11 +173,7 @@ struct OperationTypeDefinition {
 		this.type = otd.ot.ruleSelection;
 		this.name = otd.nt.value;
 	}
-
-	this(OperationType type, string name) {
-		this.type = type;
-		this.name = name;
-	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct SchemaDefinition {
@@ -181,10 +186,7 @@ struct SchemaDefinition {
 			}
 		}
 	}
-
-	this(OperationTypeDefinition[] operationTypes) {
-		this.operationTypes = operationTypes;
-	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct SchemaDocument {
@@ -235,6 +237,7 @@ struct SchemaDocument {
 			]);
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct Field {
@@ -253,6 +256,7 @@ struct Field {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct VariableDefinition {
@@ -263,6 +267,7 @@ struct VariableDefinition {
 		this.name = vd.var.name.value;
 		this.type = Type(vd.type);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct OperationDefinition {
@@ -291,9 +296,12 @@ struct OperationDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct QueryDocument {
+	OperationDefinition[] operations;
+
 	this(ast.Document d) {
 		for (auto defs = d.defs; defs !is null; defs = defs.follow) {
 			if (auto def = defs.def) {
@@ -303,6 +311,5 @@ struct QueryDocument {
 			}
 		}
 	}
-
-	OperationDefinition[] operations;
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
