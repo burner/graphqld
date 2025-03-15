@@ -2,9 +2,6 @@
 /// GraphQL documents (schemas and queries).
 module graphql.client.document;
 
-// This is an internal module.
-package(graphql):
-
 import ast = graphql.ast;
 
 /*
