@@ -163,10 +163,10 @@ struct EnumTypeDefinition {
 	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
-alias OperationType = ast.OperationTypeEnum;
+alias OperationTypeEnum = ast.OperationTypeEnum;
 
 struct OperationTypeDefinition {
-	OperationType type;
+	OperationTypeEnum type;
 	string name;
 
 	this(ast.OperationTypeDefinition otd) {
@@ -231,9 +231,9 @@ struct SchemaDocument {
 		if (this.schema is SchemaDefinition.init) {
 			// Populate with the default
 			this.schema = SchemaDefinition([
-				OperationTypeDefinition(OperationType.Query, "Query"),
-				OperationTypeDefinition(OperationType.Mutation, "Mutation"),
-				OperationTypeDefinition(OperationType.Sub, "Subscription"),
+				OperationTypeDefinition(OperationTypeEnum.Query, "Query"),
+				OperationTypeDefinition(OperationTypeEnum.Mutation, "Mutation"),
+				OperationTypeDefinition(OperationTypeEnum.Sub, "Subscription"),
 			]);
 		}
 	}
@@ -271,13 +271,13 @@ struct VariableDefinition {
 }
 
 struct OperationDefinition {
-	OperationType type;
+	OperationTypeEnum type;
 	string name;
 	VariableDefinition[] variables;
 	Field[] selections;
 
 	this(ast.OperationDefinition od) {
-		this.type = od.ot ? od.ot.ruleSelection : OperationType.Query;
+		this.type = od.ot ? od.ot.ruleSelection : OperationTypeEnum.Query;
 		this.name = od.name.value;
 		if (auto vd = od.vd) {
 			for (auto vars = vd.vars; vars !is null; vars = vars.follow) {
