@@ -270,7 +270,12 @@ private string toD(
 	string s;
 	s ~= "final static class " ~ type.name ~ " {\n";
 	foreach (ref value; type.values) {
-		auto dType = "_graphqld_typecons.Nullable!(" ~ toD(value.type, settings) ~ ")";
+		// If the input object field type is nullable, then we need two layers of Nullable:
+		// one to represent the absence or presence of the field, and one to represent
+		// whether the value itself is null or not.
+		auto dType = toD(value.type, settings);
+		if (value.type.nullable)
+			dType = "_graphqld_typecons.Nullable!(" ~ dType ~ ")";
 		s ~= toDField(value.name, dType, settings);
 	}
 
@@ -299,10 +304,12 @@ private string toD(
 		s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 		foreach (ref value; type.values) {
-			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
-				"json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+			bool nullable = !!value.type.nullable;
+			if (nullable)
+				s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) ";
+			s ~= "json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
 				transformScalar(value.type, GraphQLSettings.ScalarTransformation.Direction.serialization, settings) ~
-				"(this." ~ toDIdentifier(value.name) ~ ".get)" ~
+				"(this." ~ toDIdentifier(value.name) ~ (nullable ? ".get" : "") ~ ")" ~
 				");\n";
 		}
 		s ~= "return json;\n";
@@ -324,10 +331,12 @@ private string toD(
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
 		s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
 		foreach (ref value; type.values) {
-			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
-				"json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+			bool nullable = !!value.type.nullable;
+			if (nullable)
+				s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) ";
+			s ~= "json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
 				transformScalar(value.type, GraphQLSettings.ScalarTransformation.Direction.serialization, settings) ~
-				"(this." ~ toDIdentifier(value.name) ~ ".get)" ~
+				"(this." ~ toDIdentifier(value.name) ~ (nullable ? ".get" : "") ~ ")" ~
 				"));\n";
 		}
 		s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
