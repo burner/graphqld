@@ -96,13 +96,13 @@ unittest {
 
 // Custom scalars test
 unittest {
-	static immutable GraphQLSettings.ScalarTransformation dateScalarDefinition = {
-		dType: q{.imported!"std.datetime.date".Date},
+	static immutable GraphQLSettings.ScalarTransformation scalarDefinition = {
+		dType: q{ubyte[]},
 		transformations: [
 			GraphQLSettings.ScalarTransformation.Direction.serialization:
-				q{(x => x.toISOExtString())},
+				q{.imported!"std.base64".Base64.encode},
 			GraphQLSettings.ScalarTransformation.Direction.deserialization:
-				q{.imported!"std.datetime.date".Date.fromISOExtString},
+				q{.imported!"std.base64".Base64.decode},
 		]
 	};
 	static immutable GraphQLSettings settings = {
@@ -111,19 +111,23 @@ unittest {
 			ae_utils_json: true,
 		},
 		customScalars: [
-			"Date": dateScalarDefinition,
+			"Data": scalarDefinition,
 		],
 	};
 
 	static immutable schema = graphqlSchema!(`
-		scalar Date
+		scalar Data
 
-		type Test {
-			d: Date!
+		interface ITest {
+			d: Data!
+		}
+
+		type Test implements ITest {
+			d: Data!
 		}
 
 		input TestInput {
-			d: Date!
+			d: Data!
 		}
 
 		type Query {
@@ -139,8 +143,6 @@ unittest {
 		}
 	`;
 
-	import std.datetime.date : Date;
-
 	void test(
 		alias serialize,
 		alias deserialize,
@@ -149,37 +151,37 @@ unittest {
 		// Input types and variables
 		{
 			auto q = query(new schema.Schema.TestInput(
-				q{d}, Date(2020, 01, 01),
+				q{d}, cast(ubyte[])x"01 02 03 04",
 			));
-			assert(serialize(q.variables) == `{"input":{"d":"2020-01-01"}}`);
+			assert(serialize(q.variables) == `{"input":{"d":"AQIDBA=="}}`);
 		}
 		static if (testExtras) {{
-			auto v = deserialize!(query.Variables)(`{"input":{"d":"2020-01-01"}}`);
-			assert(v.input.d == Date(2020, 01, 01));
+			auto v = deserialize!(query.Variables)(`{"input":{"d":"AQIDBA=="}}`);
+			assert(v.input.d == x"01 02 03 04");
 		}}
 
 		// Return types
 		{
 			query.ReturnType r = {
 				field: {
-					d: Date(2020, 01, 01)
+					d: [0x01, 0x02, 0x03, 0x04]
 				}
 			};
-			assert(serialize(r) == `{"field":{"d":"2020-01-01"}}`);
+			assert(serialize(r) == `{"field":{"d":"AQIDBA=="}}`);
 		}
 		static if (testExtras) {{
-			auto v = deserialize!(query.ReturnType)(`{"field":{"d":"2020-01-01"}}`);
-			assert(v.field.d == Date(2020, 01, 01));
+			auto v = deserialize!(query.ReturnType)(`{"field":{"d":"AQIDBA=="}}`);
+			assert(v.field.d == [0x01, 0x02, 0x03, 0x04]);
 		}}
 
 		// Object types
 		static if (testExtras) {{
-			auto t = new schema.Schema.Test(d: Date(2020, 01, 01));
-			assert(serialize(t) == `{"d":"2020-01-01"}`);
+			auto t = new schema.Schema.Test(d: [0x01, 0x02, 0x03, 0x04]);
+			assert(serialize(t) == `{"d":"AQIDBA=="}`);
 		}}
 		static if (testExtras) {{
-			auto v = deserialize!(schema.Schema.Test)(`{"d":"2020-01-01"}`);
-			assert(v.d == Date(2020, 01, 01));
+			auto v = deserialize!(schema.Schema.Test)(`{"d":"AQIDBA=="}`);
+			assert(v.d == [0x01, 0x02, 0x03, 0x04]);
 		}}
 	}
 
