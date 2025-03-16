@@ -1,21 +1,14 @@
 /// D code generation.
 module graphql.client.codegen;
 
-// This is an internal module.
-package(graphql):
-
-import std.array : join;
-
-import graphql.client.document;
-
 /// Controls the UDAs and JSON serialization in generated code.
-struct SerializationLibraries {
+public struct SerializationLibraries {
 	bool vibe_data_json;  /// `vibe.data.json` support
 	bool ae_utils_json;  /// `ae.utils.json` support
 }
 
 /// GraphQL code generation settings.
-struct GraphQLSettings {
+public struct GraphQLSettings {
 	/// Which serialization libraries to generate code for.
 	SerializationLibraries serializationLibraries;
 
@@ -44,6 +37,13 @@ struct GraphQLSettings {
 	}
 	ScalarTransformation[string] customScalars; /// ditto
 }
+
+// Implementation follows.
+package(graphql):
+
+import std.array : join;
+
+import graphql.client.document;
 
 struct CodeGenerationSettings {
 	/// A prefix used to qualify referenced type definitions.
@@ -705,9 +705,18 @@ private immutable string[] keywords = [
   "__vector",
 ];
 
+private template fullyQualifiedName(alias x) {
+	enum identifier = __traits(identifier, x);
+	static if (!__traits(compiles, __traits(parent, x))) {
+		enum fullyQualifiedName = identifier;
+	} else {
+		enum fullyQualifiedName = fullyQualifiedName!(__traits(parent, x)) ~ "." ~ identifier;
+	}
+}
+
 string toDLiteral(T)(ref const T value) {
 	static if (is(T == enum)) {
-		string s = __traits(identifier, T) ~ ".";
+		string s = fullyQualifiedName!T ~ ".";
 		static foreach (member; __traits(allMembers, T)) {
 			if (__traits(getMember, T, member) == value) {
 				return s ~ member;
@@ -726,7 +735,7 @@ string toDLiteral(T)(ref const T value) {
 	} else static if (is(T == bool)) {
 		return value ? "true" : "false";
 	} else static if (is(T == struct)) {
-		string s = __traits(identifier, T) ~ "(";
+		string s = fullyQualifiedName!T ~ "(";
 		foreach (ref const field; value.tupleof) {
 			s ~= toDLiteral(field) ~ ",";
 		}
