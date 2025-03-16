@@ -292,17 +292,19 @@ string toDStruct(string schemaText, GraphQLSettings settings = GraphQLSettings()
 	codeGenSettings.schemaRefExpr = q{};
 
 	return "
-		private import graphql.client.query;
-		private import graphql.client.document;
+		private static import graphql.ast;
+		private static import graphql.client.codegen;
+		private static import graphql.client.document;
+		private static import graphql.client.query;
 
 		static const document = " ~ document.toDLiteral() ~ ";
-		static const GraphQLSettings settings = " ~ settings.toDLiteral() ~ ";
+		static const settings = " ~ settings.toDLiteral() ~ ";
 
 		" ~ toD(document, codeGenSettings) ~ "
 
 		template query(string queryText_) {
 			static immutable queryText = queryText_;
-			enum query = GraphQLQuery!(typeof(this), queryText).init;
+			enum query = graphql.client.query.GraphQLQuery!(typeof(this), queryText).init;
 		}
 	";
 }
@@ -324,4 +326,35 @@ unittest {
 	`;
 
 	static assert(is(typeof(query.ReturnType.hello) == string));
+}
+
+// Test settings serialisation
+unittest {
+	enum code = toDStruct(`
+        scalar Date
+		type Query {
+			today: Date!
+		}
+	`, GraphQLSettings(
+		customScalars: [
+			"Date": GraphQLSettings.ScalarTransformation(
+				dType: q{.imported!q{std.datetime.date}.Date},
+				transformations: [
+					q{.imported!q{std.datetime.date}.Date.fromISOExtString},
+					q{(x => x.toISOExtString())},
+				],
+			),
+		],
+	));
+
+	static import std.datetime.date;
+	static struct schema { mixin(code); }
+
+	immutable query = schema.query!`
+		query {
+			today
+		}
+	`;
+
+	static assert(is(typeof(query.ReturnType.today) == std.datetime.date.Date));
 }
