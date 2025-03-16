@@ -19,6 +19,7 @@ unittest {
 
 		input TestInput {
 			i: Int!
+			absent: Int
 		}
 
 		type Query {
