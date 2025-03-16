@@ -25,7 +25,7 @@ unittest {
 // Helpers for pre/post-converting custom scalars.
 template map(alias pred) {
 	import std.typecons : Nullable; // https://github.com/dlang/dmd/issues/21008
-	auto map(T)(ref Nullable!T value) {
+	auto map(T)(ref inout Nullable!T value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		if (value.isNull)
 			return std.typecons.Nullable!U();
@@ -33,7 +33,7 @@ template map(alias pred) {
 			return std.typecons.nullable(pred(value.get()));
 	}
 
-	auto map(T)(ref T[] value) {
+	auto map(T)(ref inout T[] value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		auto result = new U[value.length];
 		foreach (i, ref v; value) {
@@ -51,4 +51,16 @@ unittest {
 
 	auto ai = [1];
 	assert(map!(x => x + 1)(ai) == [2]);
+}
+
+unittest {
+	import std.typecons : Nullable, nullable;
+	import std.datetime.date : Date;
+	import core.time : days;
+
+	Nullable!Date nd = Date(2020, 01, 01);
+	assert(map!(x => x + days(1))(nd) == Date(2020, 01, 02).nullable);
+
+	const Nullable!Date cnd = Date(2020, 01, 01);
+	assert(map!(x => x + days(1))(cnd) == Date(2020, 01, 02).nullable);
 }
