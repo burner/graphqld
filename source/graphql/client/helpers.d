@@ -14,9 +14,17 @@ template NullableIfNeeded(T) {
 	}
 }
 
+unittest {
+	struct S {}
+	class C {}
+	static assert(is(NullableIfNeeded!int == std.typecons.Nullable!int));
+	static assert(is(NullableIfNeeded!S == std.typecons.Nullable!S));
+	static assert(is(NullableIfNeeded!C == C));
+}
+
 // Helpers for pre/post-converting custom scalars.
-template map(alias pred)
-{
+template map(alias pred) {
+	import std.typecons : Nullable; // https://github.com/dlang/dmd/issues/21008
 	auto map(T)(ref Nullable!T value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		if (value.isNull)
@@ -33,4 +41,14 @@ template map(alias pred)
 		}
 		return result;
 	}
+}
+
+unittest {
+	import std.typecons : nullable;
+
+	auto ni = 1.nullable;
+	assert(map!(x => x + 1)(ni) == 2.nullable);
+
+	auto ai = [1];
+	assert(map!(x => x + 1)(ai) == [2]);
 }
