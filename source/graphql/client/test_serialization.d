@@ -19,6 +19,7 @@ unittest {
 
 		input TestInput {
 			i: Int!
+			ni: Int
 			absent: Int
 		}
 
@@ -46,8 +47,9 @@ unittest {
 			assert(serialize(q.variables) == `{"input":{"i":42}}`);
 		}
 		static if (testExtras) {{
-			auto v = deserialize!(query.Variables)(`{"input":{"i":42}}`);
+			auto v = deserialize!(query.Variables)(`{"input":{"i":42,"ni":43}}`);
 			assert(v.input.i == 42);
+			assert(v.input.ni.get.get == 43);
 		}}
 
 		// Return types
