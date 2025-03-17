@@ -806,21 +806,21 @@ string toDLiteral(T)(ref const T value) {
 	} else static if (is(T == struct)) {
 		string s = fullyQualifiedName!T ~ "(";
 		foreach (ref const field; value.tupleof) {
-			s ~= toDLiteral(field) ~ ",";
+			s ~= toDLiteral(field) ~ ",\n";
 		}
 		s ~= ")";
 		return s;
 	} else static if (is(T == U[], U)) {
-		string s = "[";
+		string s = "[\n";
 		foreach (ref const item; value) {
-			s ~= toDLiteral(item) ~ ",";
+			s ~= toDLiteral(item) ~ ",\n";
 		}
 		s ~= "]";
 		return s;
 	} else static if (is(T == U[n], U, size_t n)) {
-		string s = "[";
+		string s = "[\n";
 		foreach (ref const item; value) {
-			s ~= toDLiteral(item) ~ ",";
+			s ~= toDLiteral(item) ~ ",\n";
 		}
 		s ~= "]";
 		return s;
@@ -828,9 +828,9 @@ string toDLiteral(T)(ref const T value) {
 		if (value.length == 0) {
 			return "null";
 		}
-		string s = "[";
+		string s = "[\n";
 		foreach (ref const k, ref const v; value) {
-			s ~= toDLiteral(k) ~ ":"~ toDLiteral(v);
+			s ~= toDLiteral(k) ~ ":" ~ toDLiteral(v) ~ ",\n";
 		}
 		s ~= "]";
 		return s;
