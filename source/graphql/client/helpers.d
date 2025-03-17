@@ -25,7 +25,7 @@ unittest {
 // Helpers for pre/post-converting custom scalars.
 template map(alias pred) {
 	import std.typecons : Nullable; // https://github.com/dlang/dmd/issues/21008
-	auto map(T)(ref inout Nullable!T value) {
+	auto map(T)(inout Nullable!T value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		if (value.isNull)
 			return std.typecons.Nullable!U();
@@ -33,7 +33,7 @@ template map(alias pred) {
 			return std.typecons.nullable(pred(value.get()));
 	}
 
-	auto map(T)(ref inout T[] value) {
+	auto map(T)(inout T[] value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		auto result = new U[value.length];
 		foreach (i, ref v; value) {
