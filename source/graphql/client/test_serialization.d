@@ -43,7 +43,7 @@ unittest {
 	)() {
 		// Input types and variables
 		{
-			auto q = query(new schema.Schema.TestInput(q{i}, 42));
+			auto q = query(new schema.Schema.TestInput().i(42));
 			assert(serialize(q.variables) == `{"input":{"i":42}}`);
 		}
 		static if (testExtras) {{
@@ -152,9 +152,9 @@ unittest {
 	)() {
 		// Input types and variables
 		{
-			auto q = query(new schema.Schema.TestInput(
-				q{d}, cast(ubyte[])x"01 02 03 04",
-			));
+			auto q = query(new schema.Schema.TestInput()
+				.d(cast(ubyte[])x"01 02 03 04"),
+			);
 			assert(serialize(q.variables) == `{"input":{"d":"AQIDBA=="}}`);
 		}
 		static if (testExtras) {{
