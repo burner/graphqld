@@ -130,6 +130,7 @@ unittest {
 
 		input TestInput {
 			d: Data!
+			nd: Data
 		}
 
 		type Query {

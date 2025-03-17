@@ -237,9 +237,9 @@ private string toDSerializableType(
 	ref const CodeGenerationSettings settings,
 ) {
 	if (type.list) {
-		return toD(type.list[0], settings) ~ "[]";
+		return toDSerializableType(type.list[0], settings) ~ "[]";
 	} else if (type.nullable) {
-		return "_graphqld_helpers.NullableIfNeeded!(" ~ toD(type.nullable[0], settings) ~ ")";
+		return "_graphqld_helpers.NullableIfNeeded!(" ~ toDSerializableType(type.nullable[0], settings) ~ ")";
 	} else if (type.name) {
 		if (auto customScalar = type.name in settings.graphqlSettings.customScalars) {
 			return customScalar.serializableType;
