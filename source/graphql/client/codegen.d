@@ -269,34 +269,26 @@ private string toD(
 
 	string s;
 	s ~= "final static class " ~ type.name ~ " {\n";
+	enum fieldPrefix = "f_";
 	foreach (ref value; type.values) {
 		// If the input object field type is nullable, then we need two layers of Nullable:
 		// one to represent the absence or presence of the field, and one to represent
 		// whether the value itself is null or not.
 		auto dType = toD(value.type, settings);
+		auto fieldType = dType;
 		if (value.type.nullable)
-			dType = "_graphqld_typecons.Nullable!(" ~ dType ~ ")";
-		s ~= toDField(value.name, dType, settings);
-	}
+			fieldType = "_graphqld_typecons.Nullable!(" ~ fieldType ~ ")";
+		s ~= "\t" ~ fieldType ~ " " ~ fieldPrefix ~ value.name ~ ";\n";
 
-	s ~= "\n\n";
-	s ~= "this(Args...)(Args args) if (Args.length % 2 == 0) {\n";
-	s ~= "static foreach (i; 0 .. args.length / 2) {{\n";
-	s ~= "alias name = args[i * 2];\n";
-	s ~= "alias value = args[i * 2 + 1];\n";
-	foreach (ref value; type.values) {
-		s ~=
-			"if (name == `" ~ value.name ~ "`) {\n" ~
-			"  static if (is(typeof({ this." ~ toDIdentifier(value.name) ~ " = value; })))\n" ~
-			"    this." ~ toDIdentifier(value.name) ~ " = value;\n" ~
-			"  else\n" ~
-			"    assert(false, `Cannot convert ` ~ typeof(value).stringof ~ ` to ` ~ " ~
-			"typeof(this." ~ toDIdentifier(value.name) ~ ".get()).stringof ~ ` for field ` ~ name);\n" ~
-			"} else ";
+		// Generate getter for field access
+		s ~= "ref " ~ toDIdentifier(value.name) ~ "() inout { return this." ~ fieldPrefix ~ value.name ~ "; }\n";
+
+		// Generate setter for builder-like construction
+		s ~= "typeof(this) " ~ toDIdentifier(value.name) ~ "(Value)(auto ref Value value) " ~
+			"if (is(typeof(this." ~ fieldPrefix ~ value.name ~ " = value))) " ~
+			"{ this." ~ fieldPrefix ~ value.name ~ " = value; return this; }\n";
 	}
-	s ~= "assert(false, `Unknown field name: ` ~ name);\n";
-	s ~= "}}\n";
-	s ~= "}\n\n";
+	s ~= "\n\n";
 
 	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
@@ -306,10 +298,10 @@ private string toD(
 		foreach (ref value; type.values) {
 			bool nullable = !!value.type.nullable;
 			if (nullable)
-				s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) ";
+				s ~= "if (!this." ~ fieldPrefix ~ value.name ~ ".isNull) ";
 			s ~= "json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
 				transformScalar(value.type, GraphQLSettings.ScalarTransformation.Direction.serialization, settings) ~
-				"(this." ~ toDIdentifier(value.name) ~ (nullable ? ".get" : "") ~ ")" ~
+				"(this." ~ fieldPrefix ~ value.name ~ (nullable ? ".get" : "") ~ ")" ~
 				");\n";
 		}
 		s ~= "return json;\n";
@@ -318,7 +310,7 @@ private string toD(
 		s ~= "auto instance = new typeof(this);\n";
 		foreach (ref value; type.values) {
 			s ~= "if (`" ~ value.name ~ "` in json)" ~
-				"instance." ~ toDIdentifier(value.name) ~ " = " ~
+				"instance." ~ fieldPrefix ~ value.name ~ " = " ~
 				transformScalar(value.type, GraphQLSettings.ScalarTransformation.Direction.deserialization, settings) ~ "(" ~
 				"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(value.type, settings) ~ ")" ~
 				"(json[`" ~ value.name ~ "`])" ~
@@ -333,10 +325,10 @@ private string toD(
 		foreach (ref value; type.values) {
 			bool nullable = !!value.type.nullable;
 			if (nullable)
-				s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) ";
+				s ~= "if (!this." ~ fieldPrefix ~ value.name ~ ".isNull) ";
 			s ~= "json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
 				transformScalar(value.type, GraphQLSettings.ScalarTransformation.Direction.serialization, settings) ~
-				"(this." ~ toDIdentifier(value.name) ~ (nullable ? ".get" : "") ~ ")" ~
+				"(this." ~ fieldPrefix ~ value.name ~ (nullable ? ".get" : "") ~ ")" ~
 				"));\n";
 		}
 		s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
