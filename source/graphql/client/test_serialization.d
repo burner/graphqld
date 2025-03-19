@@ -98,12 +98,13 @@ unittest {
 
 // Custom scalars test
 unittest {
-	static immutable GraphQLSettings.ScalarTransformation scalarDefinition = {
+	static immutable GraphQLSettings.CustomScalar scalarDefinition = {
+		graphqlType: "Data",
 		dType: q{ubyte[]},
 		transformations: [
-			GraphQLSettings.ScalarTransformation.Direction.serialization:
+			GraphQLSettings.CustomScalar.Direction.serialization:
 				q{.imported!"std.base64".Base64.encode},
-			GraphQLSettings.ScalarTransformation.Direction.deserialization:
+			GraphQLSettings.CustomScalar.Direction.deserialization:
 				q{.imported!"std.base64".Base64.decode},
 		]
 	};
@@ -113,7 +114,7 @@ unittest {
 			ae_utils_json: true,
 		},
 		customScalars: [
-			"Data": scalarDefinition,
+			scalarDefinition,
 		],
 	};
 

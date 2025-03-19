@@ -337,7 +337,8 @@ unittest {
 		}
 	`, GraphQLSettings(
 		customScalars: [
-			"Date": GraphQLSettings.ScalarTransformation(
+			GraphQLSettings.CustomScalar(
+				graphqlType: "Date",
 				dType: q{.imported!q{std.datetime.date}.Date},
 				transformations: [
 					q{.imported!q{std.datetime.date}.Date.fromISOExtString},
