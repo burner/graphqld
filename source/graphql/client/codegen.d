@@ -381,6 +381,11 @@ string toD(
 	}
 
 	foreach (ref type; document.enumTypes) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			// Note: see https://github.com/vibe-d/vibe.d/issues/2820
+			s ~= "@(_graphqld_vibe_data_json.byName) ";
+		}
+
 		s ~= "enum " ~ type.name ~ " {\n";
 		foreach (ref value; type.values) {
 			s ~= "\t" ~ value.name ~ ",\n";
