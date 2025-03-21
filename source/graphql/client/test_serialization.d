@@ -207,3 +207,20 @@ unittest {
 		)();
 	}
 }
+
+// Enums test
+unittest {
+	static immutable GraphQLSettings settings = {
+		serializationLibraries: {
+			vibe_data_json: true,
+			ae_utils_json: true,
+		},
+	};
+
+	static immutable schema = graphqlSchema!(`
+		enum Test {
+			FOO
+			BAR
+		}
+	`, settings);
+}
