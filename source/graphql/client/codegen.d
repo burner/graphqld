@@ -562,9 +562,52 @@ private string toD(
 
 	s ~= "}\n";
 
+	bool needsCustomSerialization = false;
 	s ~= "struct Variables {\n";
-	foreach (variable; operation.variables) {
+	foreach (ref variable; operation.variables) {
 		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ";\n";
+		bool isCustomScalar = getScalarDefinition(getTypeName(variable.type), settings) !is null;
+		if (isCustomScalar) {
+			needsCustomSerialization = true;
+		}
+	}
+
+	if (needsCustomSerialization) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "json[`" ~ variable.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(variable.name) ~ ")" ~
+					");\n";
+			}
+			s ~= "return json;\n";
+			s ~= "}\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "typeof(this) instance;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "instance." ~ toDIdentifier(variable.name) ~ " = " ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(variable.type, settings) ~ ")" ~
+					"(json[`" ~ variable.name ~ "`])" ~
+					");\n";
+			}
+			s ~= "return instance;\n";
+			s ~= "}\n";
+		}
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
+			s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+			s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "json[`" ~ variable.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(variable.name) ~ ")" ~
+					"));\n";
+			}
+			s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
+			s ~= "}\n";
+		}
 	}
 	s ~= "}\n";
 

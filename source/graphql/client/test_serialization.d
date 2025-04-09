@@ -139,9 +139,17 @@ unittest {
 		}
 	`, settings);
 
-	immutable query = schema.query!`
+	immutable query1 = schema.query!`
 		query($input: TestInput!) {
 			field(input: $input) {
+				d
+			}
+		}
+	`;
+
+	immutable query2 = schema.query!`
+		query($data: Data!) {
+			field(input: { d: $data }) {
 				d
 			}
 		}
@@ -154,19 +162,23 @@ unittest {
 	)() {
 		// Input types and variables
 		{
-			auto q = query(new schema.Schema.TestInput()
+			auto q = query1(new schema.Schema.TestInput()
 				.d(cast(ubyte[])x"01 02 03 04"),
 			);
 			assert(serialize(q.variables) == `{"input":{"d":"AQIDBA=="}}`);
 		}
+		{
+			auto q = query2(cast(ubyte[])x"01 02 03 04");
+			assert(serialize(q.variables) == `{"data":"AQIDBA=="}`);
+		}
 		static if (testExtras) {{
-			auto v = deserialize!(query.Variables)(`{"input":{"d":"AQIDBA=="}}`);
+			auto v = deserialize!(query1.Variables)(`{"input":{"d":"AQIDBA=="}}`);
 			assert(v.input.d == x"01 02 03 04");
 		}}
 
 		// Return types
 		{
-			query.ReturnType r = {
+			query1.ReturnType r = {
 				field: {
 					d: [0x01, 0x02, 0x03, 0x04]
 				}
@@ -174,7 +186,7 @@ unittest {
 			assert(serialize(r) == `{"field":{"d":"AQIDBA=="}}`);
 		}
 		static if (testExtras) {{
-			auto v = deserialize!(query.ReturnType)(`{"field":{"d":"AQIDBA=="}}`);
+			auto v = deserialize!(query1.ReturnType)(`{"field":{"d":"AQIDBA=="}}`);
 			assert(v.field.d == [0x01, 0x02, 0x03, 0x04]);
 		}}
 
