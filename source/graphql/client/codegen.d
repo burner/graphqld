@@ -125,7 +125,7 @@ private string toD(
 			if (type.implementsInterfaces.length) {
 				s ~= "override _graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 			} else {
-				s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
+				s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 			}
 			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 			foreach (ref field; type.fields) {
@@ -307,8 +307,7 @@ private string toD(
 
 	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
-		// Note: we emit a template function to avoid circular resolution errors
-		s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
+		s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 		foreach (ref value; type.values) {
 			bool nullable = !!value.type.nullable;
@@ -499,7 +498,7 @@ in(typeName !is null, "No typeName provided") {
 
 	if (needsCustomSerialization) {
 		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
-			s ~= "_graphqld_vibe_data_json.Json toJson()() const @trusted {\n";
+			s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 			foreach (ref field; selections) {
 				s ~= "json[`" ~ field.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
