@@ -3,25 +3,6 @@ module graphql.client.helpers;
 
 static import std.typecons;
 
-// Avoid redundant nullability for reference types +
-// work around https://github.com/dlang/phobos/issues/10661
-template NullableIfNeeded(T) {
-	static if (is(T == class)) {
-		// Already nullable - no need for extra nullability
-		alias NullableIfNeeded = T;
-	} else {
-		alias NullableIfNeeded = std.typecons.Nullable!T;
-	}
-}
-
-unittest {
-	struct S {}
-	class C {}
-	static assert(is(NullableIfNeeded!int == std.typecons.Nullable!int));
-	static assert(is(NullableIfNeeded!S == std.typecons.Nullable!S));
-	static assert(is(NullableIfNeeded!C == C));
-}
-
 // Helpers for pre/post-converting custom scalars.
 template map(alias pred) {
 	import std.typecons : Nullable; // https://github.com/dlang/dmd/issues/21008
@@ -33,7 +14,7 @@ template map(alias pred) {
 			return std.typecons.nullable(pred(value.get()));
 	}
 
-	auto map(T)(inout T[] value) {
+	auto map(T)(T[] value) {
 		alias U = typeof({ T v = void; return pred(v); }());
 		auto result = new U[value.length];
 		foreach (i, ref v; value) {
