@@ -199,6 +199,20 @@ unittest {
 			auto v = deserialize!(schema.Schema.Test)(`{"d":"AQIDBA=="}`);
 			assert(v.d == [0x01, 0x02, 0x03, 0x04]);
 		}}
+
+		// Test serialization of null objects
+		{
+			// Input types and variables
+			{
+				auto q = query1(null);
+				assert(serialize(q.variables) == `{"input":null}`);
+			}
+			// Object types
+			static if (testExtras) {{
+				schema.Schema.Test t = null;
+				assert(serialize(t) == `null`);
+			}}
+		}
 	}
 
 	{
