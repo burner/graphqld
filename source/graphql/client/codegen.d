@@ -447,6 +447,13 @@ private string toD(
 		s ~= "typeof(this) " ~ toDIdentifier(value.name) ~ "(Value)(auto ref Value value) " ~
 			"if (is(typeof(this." ~ fieldPrefix ~ value.name ~ " = value))) " ~
 			"{ this." ~ fieldPrefix ~ value.name ~ " = value; return this; }\n";
+		if (value.type.nullable) {
+			// Additional setter to help with the two layers of Nullable
+			s ~= "typeof(this) " ~ toDIdentifier(value.name) ~ "(Value)(auto ref Value value) " ~
+				"if (!is(typeof(this." ~ fieldPrefix ~ value.name ~ " = value)) " ~
+				"&& is(typeof(this." ~ fieldPrefix ~ value.name ~ " = _graphqld_typecons.nullable(value)))) " ~
+				"{ this." ~ fieldPrefix ~ value.name ~ " = _graphqld_typecons.nullable(value); return this; }\n";
+		}
 	}
 	s ~= "\n\n";
 
