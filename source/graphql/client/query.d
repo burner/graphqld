@@ -359,3 +359,24 @@ unittest {
 
 	static assert(is(typeof(query.ReturnType.today) == std.datetime.date.Date));
 }
+
+// Test input setters
+unittest {
+	enum code = toDStruct(`
+		input I {
+			f: Int
+		}
+        type Query {
+			i(input: I!): Int!
+		}
+	`);
+
+	static struct schema { mixin(code); }
+
+	import std.typecons : nullable;
+
+	auto i = new schema.Schema.I;
+	i.f(42.nullable.nullable);
+	i.f(42.nullable);
+	i.f(42);
+}
