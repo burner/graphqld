@@ -219,7 +219,7 @@ private string toD(
 			}
 			s ~= "return json;\n";
 			s ~= "}\n";
-			s ~= "static typeof(this) fromJson()(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
 			s ~= "auto instance = new typeof(this);\n";
 			foreach (ref field; type.fields) {
 				s ~= "instance." ~ toDIdentifier(field.name) ~ " = " ~
@@ -476,7 +476,7 @@ private string toD(
 		}
 		s ~= "return json;\n";
 		s ~= "}\n";
-		s ~= "static typeof(this) fromJson()(_graphqld_vibe_data_json.Json json) @safe {\n";
+		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
 		s ~= "auto instance = new typeof(this);\n";
 		foreach (ref value; type.values) {
 			s ~= "if (`" ~ value.name ~ "` in json)" ~
@@ -665,7 +665,7 @@ in(typeName !is null, "No typeName provided") {
 			}
 			s ~= "return json;\n";
 			s ~= "}\n";
-			s ~= "static typeof(this) fromJson()(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
 			s ~= "typeof(this) instance;\n";
 			foreach (ref field; selections) {
 				s ~= "instance." ~ toDIdentifier(field.name) ~ " = " ~
