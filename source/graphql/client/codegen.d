@@ -593,6 +593,7 @@ in(typeName !is null, "No typeName provided") {
 
 	bool needsCustomSerialization = false;
 	const(Type)*[string] types;
+	string[string] deserializationTypes;
 
 	foreach (ref field; selections) {
 		switch (field.name) {
@@ -641,6 +642,8 @@ in(typeName !is null, "No typeName provided") {
 			foreach_reverse (wrapper; wrappers) {
 				dType = wrapper(dType);
 			}
+
+			deserializationTypes[field.name] = dType;
 		} else {
 			dType = toD(*type, schema, settings);
 
@@ -648,6 +651,8 @@ in(typeName !is null, "No typeName provided") {
 			if (isCustomScalar) {
 				needsCustomSerialization = true;
 			}
+
+			deserializationTypes[field.name] = toDSerializableType(*types[field.name], schema, settings);
 		}
 
 		s ~= toDField(field.name, dType, settings);
@@ -670,7 +675,7 @@ in(typeName !is null, "No typeName provided") {
 			foreach (ref field; selections) {
 				s ~= "instance." ~ toDIdentifier(field.name) ~ " = " ~
 					transformScalar(*types[field.name], GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
-					"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(*types[field.name], schema, settings) ~ ")" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ deserializationTypes[field.name] ~ ")" ~
 					"(json[`" ~ field.name ~ "`])" ~
 					");\n";
 			}
