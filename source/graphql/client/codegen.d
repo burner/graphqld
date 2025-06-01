@@ -355,7 +355,7 @@ private string toJson(
 }
 
 /// Emit an expression which transforms a value (D expression) to convert any
-/// contained custom serials before/after serialization/deserialization.
+/// contained custom scalars before/after serialization/deserialization.
 private string transformScalar(
 	ref const Type type,
 	GraphQLSettings.CustomScalar.Direction direction,
