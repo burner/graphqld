@@ -261,7 +261,7 @@ class SchemaValidator(Schema) : Visitor {
 
 	override void enter(const(FieldName) fn) {
 		import std.array : empty;
-		string n = fn.aka.value.empty ? fn.name.tok.value : fn.aka.value;
+		string n = !fn.aka ? fn.name.tok.value : fn.aka.tok.value;
 		this.addToTypeStack(n);
 	}
 

@@ -933,9 +933,8 @@ struct Parser {
 			if(this.lex.front.type == TokenType.colon) {
 				this.lex.popFront();
 				subRules = ["A"];
-				if(this.lex.front.type == TokenType.name) {
-					Token aka = this.lex.front;
-					this.lex.popFront();
+				if(this.firstIdentifier()) {
+					Identifier aka = this.parseIdentifier();
 
 					return new FieldName(FieldNameEnum.A
 						, name
@@ -950,7 +949,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name"]
+					["directive","enum_","extend","false_","fragment","implements","input","interface_","mutation","name","null_","on_","query","scalar","schema","subscription","true_","type","union_"]
 				);
 
 			}
