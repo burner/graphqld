@@ -596,22 +596,22 @@ in(typeName !is null, "No typeName provided") {
 	string[string] deserializationTypes;
 
 	foreach (ref field; selections) {
-		switch (field.name) {
+		switch (field.fieldName) {
 			case "__typename":
-				s ~= toDField(field.name, q{string}, settings);
+				s ~= toDField(field.fieldName, q{string}, settings);
 				continue;
 			default:
 		}
 
 		auto type = {
 			foreach (ref typeField; typeFields) {
-				if (typeField.name == field.name) {
+				if (typeField.name == field.fieldName) {
 					return &typeField.type;
 				}
 			}
-			assert(false, "Field not found in type: " ~ field.name);
+			assert(false, "Field not found in type: " ~ field.fieldName);
 		}();
-		types[field.name] = type;
+		types[field.responseName] = type;
 
 		string dType;
 		if (field.selections) {
@@ -633,7 +633,7 @@ in(typeName !is null, "No typeName provided") {
 				}
 			}
 
-			auto selectionTypeName = "_" ~ field.name ~ "_Type";
+			auto selectionTypeName = "_" ~ field.responseName ~ "_Type";
 			s ~= "\tstruct " ~ selectionTypeName ~ " {\n";
 			s ~= toD(field.selections, baseType.name, schema, settings);
 			s ~= "\t}\n";
@@ -643,7 +643,7 @@ in(typeName !is null, "No typeName provided") {
 				dType = wrapper(dType);
 			}
 
-			deserializationTypes[field.name] = dType;
+			deserializationTypes[field.responseName] = dType;
 		} else {
 			dType = toD(*type, schema, settings);
 
@@ -652,10 +652,10 @@ in(typeName !is null, "No typeName provided") {
 				needsCustomSerialization = true;
 			}
 
-			deserializationTypes[field.name] = toDSerializableType(*types[field.name], schema, settings);
+			deserializationTypes[field.responseName] = toDSerializableType(*types[field.responseName], schema, settings);
 		}
 
-		s ~= toDField(field.name, dType, settings);
+		s ~= toDField(field.responseName, dType, settings);
 	}
 
 	if (needsCustomSerialization) {
@@ -663,9 +663,9 @@ in(typeName !is null, "No typeName provided") {
 			s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
 			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 			foreach (ref field; selections) {
-				s ~= "json[`" ~ field.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
-					transformScalar(*types[field.name], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
-					"(this." ~ toDIdentifier(field.name) ~ ")" ~
+				s ~= "json[`" ~ field.responseName ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.responseName) ~ ")" ~
 					");\n";
 			}
 			s ~= "return json;\n";
@@ -673,10 +673,10 @@ in(typeName !is null, "No typeName provided") {
 			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
 			s ~= "typeof(this) instance;\n";
 			foreach (ref field; selections) {
-				s ~= "instance." ~ toDIdentifier(field.name) ~ " = " ~
-					transformScalar(*types[field.name], GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
-					"_graphqld_vibe_data_json.deserializeJson!(" ~ deserializationTypes[field.name] ~ ")" ~
-					"(json[`" ~ field.name ~ "`])" ~
+				s ~= "instance." ~ toDIdentifier(field.responseName) ~ " = " ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ deserializationTypes[field.responseName] ~ ")" ~
+					"(json[`" ~ field.responseName ~ "`])" ~
 					");\n";
 			}
 			s ~= "return instance;\n";
@@ -686,9 +686,9 @@ in(typeName !is null, "No typeName provided") {
 			s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
 			s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
 			foreach (ref field; selections) {
-				s ~= "json[`" ~ field.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
-					transformScalar(*types[field.name], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
-					"(this." ~ toDIdentifier(field.name) ~ ")" ~
+				s ~= "json[`" ~ field.responseName ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.responseName) ~ ")" ~
 					"));\n";
 			}
 			s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";

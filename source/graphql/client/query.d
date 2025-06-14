@@ -218,6 +218,21 @@ unittest {
 	static assert(is(typeof(query.ReturnType.s.__typename) == string));
 }
 
+// Test field aliases
+unittest {
+	static immutable schema = graphqlSchema!`
+		type Query {
+			i: Int!
+		}
+	`;
+
+	immutable query = schema.query!`{
+		j: i
+	}`;
+
+	static assert(is(typeof(query.ReturnType.j) == int));
+}
+
 // Test schema type generation
 unittest {
 	static immutable schema = graphqlSchema!`

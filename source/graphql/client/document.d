@@ -238,11 +238,17 @@ struct SchemaDocument {
 }
 
 struct Field {
-	string name;
+	string fieldName;
+	string responseName;
 	Field[] selections;
 
 	this(ast.Field f) {
-		this.name = f.name.name.tok.value;
+		this.responseName = f.name.name.tok.value;
+		if (f.name.aka) {
+			this.fieldName = f.name.aka.tok.value;
+		} else {
+			this.fieldName = this.responseName;
+		}
 		if (auto ss = f.ss) {
 			for (auto sels = ss.sel; sels !is null; sels = sels.follow) {
 				if (auto sel = sels.sel) {
