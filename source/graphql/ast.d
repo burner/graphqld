@@ -577,10 +577,10 @@ class FieldName : Node {
 @safe :
 
 	FieldNameEnum ruleSelection;
-	Token aka;
+	Identifier aka;
 	Identifier name;
 
-	this(FieldNameEnum ruleSelection, Identifier name, Token aka) {
+	this(FieldNameEnum ruleSelection, Identifier name, Identifier aka) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.aka = aka;

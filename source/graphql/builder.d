@@ -120,11 +120,11 @@ struct FieldRangeItem {
 
 	@property string name() {
 		return f.name.name.tok.value;
-		//return f.name.aka.value.empty ? f.name.name.tok.value : f.name.aka.value;
+		//return !f.name.aka ? f.name.name.tok.value : f.name.aka.value;
 	}
 
 	@property string aka() {
-		return f.name.aka.value;
+		return f.name.aka ? f.name.aka.tok.value : null;
 	}
 }
 
