@@ -65,7 +65,7 @@ auto graphqlSchema(
 
 		return SchemaDocument(d);
 	}();
-    return GraphQLSchema!(document, settings)();
+	return GraphQLSchema!(document, settings)();
 }
 
 // Basic ReturnType test
@@ -198,21 +198,21 @@ unittest {
 // Test __typename
 unittest {
 	static immutable schema = graphqlSchema!`
-        type S {
-            i: Int
-        }
+		type S {
+			i: Int
+		}
 
 		type Query {
-            s: S!
+			s: S!
 		}
 	`;
 
 	immutable query = schema.query!`{
-        __typename
-        s {
-            __typename
-        }
-    }`;
+		__typename
+		s {
+			__typename
+		}
+	}`;
 
 	static assert(is(typeof(query.ReturnType.__typename) == string));
 	static assert(is(typeof(query.ReturnType.s.__typename) == string));
@@ -221,10 +221,10 @@ unittest {
 // Test schema type generation
 unittest {
 	static immutable schema = graphqlSchema!`
-        type S {
+		type S {
 			str: String!
-            next: S
-        }
+			next: S
+		}
 	`;
 
 	static assert(is(typeof(schema.Schema.S.init.str) == string));
@@ -236,10 +236,10 @@ unittest {
 	import std.typecons : nullable;
 
 	static immutable schema = graphqlSchema!`
-        type S {
+		type S {
 			str: String!
-            next: S
-        }
+			next: S
+		}
 	`;
 
 	auto s = new schema.Schema.S(
@@ -256,21 +256,21 @@ unittest {
 		interface Node {
 			nodeId: ID!
 		}
-        type SomeNode implements Node {
+		type SomeNode implements Node {
 			nodeId: ID!
-        }
-        type Query {
+		}
+		type Query {
 			someNode: SomeNode!
-        }
+		}
 	`;
 
 	static assert(is(typeof(schema.Schema.SomeNode.init.nodeId) == string));
 
 	immutable query = schema.query!`{
-        someNode {
-            nodeId
-        }
-    }`;
+		someNode {
+			nodeId
+		}
+	}`;
 
 	static assert(is(typeof(query.ReturnType.someNode.nodeId) == string));
 }
@@ -331,7 +331,7 @@ unittest {
 // Test settings serialisation
 unittest {
 	enum code = toDStruct(`
-        scalar Date
+		scalar Date
 		type Query {
 			today: Date!
 		}
@@ -366,7 +366,7 @@ unittest {
 		input I {
 			f: Int
 		}
-        type Query {
+		type Query {
 			i(input: I!): Int!
 		}
 	`);
