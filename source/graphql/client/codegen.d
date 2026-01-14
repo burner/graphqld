@@ -609,7 +609,7 @@ in(typeName !is null, "No typeName provided") {
 					return &typeField.type;
 				}
 			}
-			assert(false, "Field not found in type: " ~ field.fieldName);
+			assert(false, "Field not found in type" ~ typeName ~  " : " ~ field.fieldName);
 		}();
 		types[field.responseName] = type;
 
