@@ -180,8 +180,7 @@ struct Lexer {
 					++this.stringPos;
 					++this.column;
 					++e;
-					if(this.isNotQueryParser() &&
-							this.testStrAndInc!"ubscription"(e))
+					if(this.testStrAndInc!"ubscription"(e))
 					{
 						if(this.isTokenStop()) {
 							this.cur =
