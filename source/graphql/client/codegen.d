@@ -1,36 +1,163 @@
 /// D code generation.
 module graphql.client.codegen;
 
-// This is an internal module.
+/// Controls the UDAs and JSON serialization in generated code.
+public struct SerializationLibraries {
+	bool vibe_data_json;  /// `vibe.data.json` support
+	bool ae_utils_json;  /// `ae.utils.json` support
+}
+
+/// GraphQL code generation settings.
+public struct GraphQLSettings {
+	/// Which serialization libraries to generate code for.
+	SerializationLibraries serializationLibraries;
+
+	/// Definitions of custom scalars.
+	struct CustomScalar {
+		/// Type name as it appears in the GraphQL schema.
+		string graphqlType;
+
+		/// Fully qualified name of the D type
+		/// (use `.imported!"module.name.here"` to specify the module).
+		string dType;
+
+		/// Fully qualified name of the serialized type.
+		/// This will usually be `"string"`.
+		string serializableType = "string";
+
+		enum Direction {
+			/// Defines how to convert a serialized value (usually a string) to this type.
+			/// Must be a fully-qualified function name, or a self-contained callable D expression.
+			/// Example: `.imported!"std.datetime.date".Date.fromISOExtString`
+			deserialization,
+
+			/// Defines how to convert this type to a serializable value, as above.
+			/// Example: `(x => x.toISOExtString())`
+			serialization,
+		}
+		string[2] transformations;
+	}
+	CustomScalar[] customScalars; /// ditto
+}
+
+// Implementation follows.
 package(graphql):
 
 import std.array : join;
 
 import graphql.client.document;
 
-/// Controls the UDAs and JSON serialization in generated code.
-struct SerializationLibraries {
-	bool vibe_data_json;  /// `vibe.data.json` support
-	bool ae_utils_json;  /// `ae.utils.json` support
-}
-
 struct CodeGenerationSettings {
 	/// A prefix used to qualify referenced type definitions.
 	string schemaRefExpr;
 
-	/// Controls the UDAs and JSON serialization in generated code.
-	SerializationLibraries serializationLibraries;
+	/// User-supplied settings.
+	GraphQLSettings graphqlSettings;
+}
+
+/// If "name" is a GraphQL custom scalar, get its `CustomScalar` definition.
+private const(GraphQLSettings.CustomScalar)* getScalarDefinition(
+	string name,
+	ref const CodeGenerationSettings settings,
+) {
+	foreach (ref definition; settings.graphqlSettings.customScalars) {
+		if (name == definition.graphqlType) {
+			return &definition;
+		}
+	}
+	return null;
+}
+
+private enum TypeKind {
+	none,  // no such type
+	builtin,  // built-in GraphQL scalar type (Int, String...)
+	object,
+	interface_,
+	scalar,  // custom GraphQL scalar
+	enum_,
+	input,
+}
+private TypeKind getTypeKind(
+	string name,
+	ref const SchemaDocument document,
+	ref const CodeGenerationSettings settings,
+) {
+	switch (name) {
+		case "Int":
+		case "Float":
+		case "String":
+		case "Boolean":
+		case "ID":
+			return TypeKind.builtin;
+		default:
+	}
+	foreach (ref type; document.objectTypes) {
+		if (type.name == name) {
+			return TypeKind.object;
+		}
+	}
+	foreach (ref type; document.interfaceTypes) {
+		if (type.name == name) {
+			return TypeKind.interface_;
+		}
+	}
+	foreach (ref type; document.scalarTypes) {
+		if (type.name == name) {
+			return TypeKind.scalar;
+		}
+	}
+	foreach (ref type; document.enumTypes) {
+		if (type.name == name) {
+			return TypeKind.enum_;
+		}
+	}
+	foreach (ref type; document.inputTypes) {
+		if (type.name == name) {
+			return TypeKind.input;
+		}
+	}
+	return TypeKind.none;
+}
+
+/// Returns `true` if the D type we would use for the GraphQL type `type`
+/// has a `null` value which can map to a GraphQL `null`.
+/// Currently, this is equivalent to checking if we would use a D `class` type.
+private bool isNativelyNullable(
+	ref const Type type,
+	ref const SchemaDocument document,
+	ref const CodeGenerationSettings settings,
+) {
+	if (type.list || type.nullable)
+		return false;
+	auto typeKind = getTypeKind(type.name, document, settings);
+	final switch (typeKind) {
+		case TypeKind.none:
+			throw new Exception("Unknown type: " ~ type.name);
+		case TypeKind.builtin:
+		case TypeKind.enum_:
+		case TypeKind.scalar:
+			return false;
+		case TypeKind.object:
+		case TypeKind.interface_:
+		case TypeKind.input:
+			return true;
+	}
 }
 
 /// Convert a field type to D.
 private string toD(
 	ref const Type type,
+	ref const SchemaDocument document,
 	ref const CodeGenerationSettings settings,
 ) {
 	if (type.list) {
-		return toD(type.list[0], settings) ~ "[]";
+		return toD(type.list[0], document, settings) ~ "[]";
 	} else if (type.nullable) {
-		return settings.schemaRefExpr ~ "Schema._graphqld_Nullable!(" ~ toD(type.nullable[0], settings) ~ ")";
+		auto nextType = type.nullable[0];
+		auto expr = toD(nextType, document, settings);
+		if (!isNativelyNullable(nextType, document, settings))
+			expr = "_graphqld_typecons.Nullable!(" ~ expr ~ ")";
+		return expr;
 	} else if (type.name) {
 		return settings.schemaRefExpr ~ "Schema." ~ type.name;
 	} else {
@@ -41,6 +168,7 @@ private string toD(
 /// Convert an object type definition to a D struct.
 private string toD(
 	ref const ObjectTypeDefinition type,
+	ref const SchemaDocument document,
 	ref const CodeGenerationSettings settings,
 ) {
 	string s;
@@ -49,13 +177,21 @@ private string toD(
 			? " : " ~ type.implementsInterfaces.join(", ")
 			: ""
 	) ~ " {\n";
+
+	bool needsCustomSerialization = false;
 	foreach (ref field; type.fields) {
-		auto dType = toD(field.type, settings);
+		auto dType = toD(field.type, document, settings);
 		s ~= toDField(field.name, dType, settings);
+
+		bool isCustomScalar = getScalarDefinition(getTypeName(field.type), settings) !is null;
+		if (isCustomScalar) {
+			needsCustomSerialization = true;
+		}
 	}
+
 	s ~= "this(\n";
 	foreach (ref field; type.fields) {
-		auto dType = toD(field.type, settings);
+		auto dType = toD(field.type, document, settings);
 		auto dName = toDIdentifier(field.name);
 		s ~= "\t" ~ dType ~ " " ~ dName ~ " = " ~ dType ~ ".init,\n";
 	}
@@ -66,15 +202,62 @@ private string toD(
 	}
 	s ~= "}\n";
 
-	if (type.implementsInterfaces.length) {
+	if (needsCustomSerialization) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			if (type.implementsInterfaces.length) {
+				s ~= "override _graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+			} else {
+				s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+			}
+			s ~= "if (this is null) return _graphqld_vibe_data_json.Json(null);\n";
+			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
+			foreach (ref field; type.fields) {
+				s ~= "json[`" ~ field.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+					transformScalar(field.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.name) ~ ")" ~
+					");\n";
+			}
+			s ~= "return json;\n";
+			s ~= "}\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "auto instance = new typeof(this);\n";
+			foreach (ref field; type.fields) {
+				s ~= "instance." ~ toDIdentifier(field.name) ~ " = " ~
+					transformScalar(field.type, GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(field.type, document, settings) ~ ")" ~
+					"(json[`" ~ field.name ~ "`])" ~
+					");\n";
+			}
+			s ~= "return instance;\n";
+			s ~= "}\n";
+		}
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
+			if (type.implementsInterfaces.length) s ~= "override ";
+			s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+			s ~= "if (this is null) return _graphqld_ae_utils_json.JSONFragment(`null`);\n";
+			s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
+			foreach (ref field; type.fields) {
+				s ~= "json[`" ~ field.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+					transformScalar(field.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.name) ~ ")" ~
+					"));\n";
+			}
+			s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
+			s ~= "}\n";
+		}
+	} else if (type.implementsInterfaces.length) {
 		// Implement interfaces' JSON shim.
 		// Call serializeToJson to perform standard serialization of all fields.
 		// By marking this method protected, we avoid infinite recursion.
-		if (settings.serializationLibraries.vibe_data_json) {
-			s ~= "protected override _graphqld_vibe_data_json.Json toJson() const { return _graphqld_vibe_data_json.serializeToJson(this); }\n";
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			s ~= "protected override _graphqld_vibe_data_json.Json toJson() const { " ~
+				"return _graphqld_vibe_data_json.serializeToJson(this); " ~
+				"}\n";
 		}
-		if (settings.serializationLibraries.ae_utils_json) {
-			s ~= "protected override _graphqld_ae_utils_json.JSONFragment toJSON() const { return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this)); }\n";
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
+			s ~= "protected override _graphqld_ae_utils_json.JSONFragment toJSON() const { " ~
+				"return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this)); " ~
+				"}\n";
 		}
 	}
 
@@ -90,20 +273,147 @@ private string toD(
 	string s;
 	s ~= "static interface " ~ type.name ~ " {\n";
 	// Do not emit the fields, just the interface, and JSON serialisation shim
-	if (settings.serializationLibraries.vibe_data_json) {
-		s ~= "_graphqld_vibe_data_json.Json toJson() const @safe;\n";
-		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+		s ~= "_graphqld_vibe_data_json.Json toJson() const @safe;\n" ~
+			"static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { " ~
+			"assert(false, `Deserialization not supported`); " ~
+			"}\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const;\n";
 	}
 	s ~= "}\n\n";
 	return s;
 }
 
+/// Returns the GraphQL type name of the given type, ignoring arrays and nullability.
+private string getTypeName(ref const Type type) {
+	if (type.list) {
+		return getTypeName(type.list[0]);
+	} else if (type.nullable) {
+		return getTypeName(type.nullable[0]);
+	} else if (type.name) {
+		return type.name;
+	} else {
+		assert(false, "Uninitialized type");
+	}
+}
+
+/// Combine two callable expressions using function composition,
+/// such that `compose(f, g)(x) == g(f(x))`.
+private string compose(string fun1, string fun2) {
+	return "((ref x) => " ~ fun2 ~ "(" ~ fun1 ~ "(x)))";
+}
+
+/// Returns a callable expression which converts a value of the given type to a
+/// `vibe.data.json.Json` value.
+/// Note that `vibe.data.json` can do this automatically as well - this method
+/// simply avoids a lot of the template instantiation overhead, significantly
+/// improving compilation times for large schemas.
+private string toJson(
+	ref const Type type,
+	ref const SchemaDocument document,
+	ref const CodeGenerationSettings settings,
+) {
+	string wrap(ref const Type type) {
+		if (type.list) {
+			auto next = wrap(type.list[0]);
+			return compose(
+				"_graphqld_helpers.map!(" ~ next ~ ")",
+				"_graphqld_vibe_data_json.Json",
+			);
+		} else if (type.nullable) {
+			auto nextType = type.nullable[0];
+			auto next = wrap(nextType);
+			if (isNativelyNullable(nextType, document, settings))
+				return "((ref x) => x is null ? _graphqld_vibe_data_json.Json(null) : " ~ next ~ "(x))";
+			else
+				return "((ref x) => x.isNull ? _graphqld_vibe_data_json.Json(null) : " ~ next ~ "(x.get))";
+		} else if (type.name) {
+			auto typeKind = getTypeKind(type.name, document, settings);
+			final switch (typeKind) {
+				case TypeKind.none:
+					throw new Exception("Unknown type: " ~ type.name);
+				case TypeKind.builtin:
+				case TypeKind.enum_:
+					return "_graphqld_vibe_data_json.serializeToJson";
+				case TypeKind.object:
+				case TypeKind.interface_:
+				case TypeKind.input:
+					return "((ref x) => x.toJson())";
+				case TypeKind.scalar:
+					return compose(
+						transformScalar(type, GraphQLSettings.CustomScalar.Direction.serialization, settings),
+						"_graphqld_vibe_data_json.serializeToJson"
+					);
+			}
+		} else {
+			assert(false);
+		}
+	}
+	return wrap(type);
+}
+
+/// Emit an expression which transforms a value (D expression) to convert any
+/// contained custom scalars before/after serialization/deserialization.
+private string transformScalar(
+	ref const Type type,
+	GraphQLSettings.CustomScalar.Direction direction,
+	ref const CodeGenerationSettings settings,
+) {
+	auto scalarDefinition = getScalarDefinition(getTypeName(type), settings);
+
+	if (!scalarDefinition) {
+		return ""; // Will be followed by "(" ~ expression ~ ")"
+	}
+
+	string wrap(ref const Type type) {
+		if (type.list) {
+			auto next = wrap(type.list[0]);
+			return "_graphqld_helpers.map!(" ~ next ~ ")";
+		} else if (type.nullable) {
+			auto next = wrap(type.nullable[0]);
+			return "_graphqld_helpers.map!(" ~ next ~ ")";
+		} else if (type.name) {
+			auto scalarDefinition = getScalarDefinition(getTypeName(type), settings);
+			return scalarDefinition.transformations[direction];
+		} else {
+			assert(false);
+		}
+	}
+	return wrap(type);
+}
+
+/// Like above, but for types (and only in the serialization direction).
+/// Like toD(Type), but translates custom scalar types.
+private string toDSerializableType(
+	ref const Type type,
+	ref const SchemaDocument document,
+	ref const CodeGenerationSettings settings,
+) {
+	if (type.list) {
+		return toDSerializableType(type.list[0], document, settings) ~ "[]";
+	} else if (type.nullable) {
+		auto nextType = type.nullable[0];
+		auto expr = toDSerializableType(nextType, document, settings);
+		if (!isNativelyNullable(nextType, document, settings))
+			expr = "_graphqld_typecons.Nullable!(" ~ expr ~ ")";
+		return expr;
+	} else if (type.name) {
+		if (auto scalarDefinition = getScalarDefinition(type.name, settings)) {
+			return scalarDefinition.serializableType;
+		} else {
+			return settings.schemaRefExpr ~ "Schema." ~ type.name;
+		}
+	} else {
+		assert(false, "Uninitialized type");
+	}
+}
+
 /// Convert an input object type definition to a D struct.
 private string toD(
 	ref const InputObjectTypeDefinition type,
+	ref const SchemaDocument document,
 	ref const CodeGenerationSettings settings,
 ) {
 	/*
@@ -119,48 +429,78 @@ private string toD(
 
 	string s;
 	s ~= "final static class " ~ type.name ~ " {\n";
+	enum fieldPrefix = "f_";
 	foreach (ref value; type.values) {
-		auto dType = "_graphqld_typecons.Nullable!(" ~ toD(value.type, settings) ~ ")";
-		s ~= toDField(value.name, dType, settings);
-	}
+		// If the input object field type is nullable, then we need two layers of Nullable:
+		// one to represent the absence or presence of the field, and one to represent
+		// whether the value itself is null or not.
+		auto dType = toD(value.type, document, settings);
+		auto fieldType = dType;
+		if (value.type.nullable)
+			fieldType = "_graphqld_typecons.Nullable!(" ~ fieldType ~ ")";
+		s ~= "\t" ~ fieldType ~ " " ~ fieldPrefix ~ value.name ~ ";\n";
 
+		// Generate getter for field access
+		s ~= "ref " ~ toDIdentifier(value.name) ~ "() inout { return this." ~ fieldPrefix ~ value.name ~ "; }\n";
+
+		// Generate setter for builder-like construction
+		s ~= "typeof(this) " ~ toDIdentifier(value.name) ~ "(Value)(auto ref Value value) " ~
+			"if (is(typeof(this." ~ fieldPrefix ~ value.name ~ " = value))) " ~
+			"{ this." ~ fieldPrefix ~ value.name ~ " = value; return this; }\n";
+		if (value.type.nullable) {
+			// Additional setter to help with the two layers of Nullable
+			s ~= "typeof(this) " ~ toDIdentifier(value.name) ~ "(Value)(auto ref Value value) " ~
+				"if (!is(typeof(this." ~ fieldPrefix ~ value.name ~ " = value)) " ~
+				"&& is(typeof(this." ~ fieldPrefix ~ value.name ~ " = _graphqld_typecons.nullable(value)))) " ~
+				"{ this." ~ fieldPrefix ~ value.name ~ " = _graphqld_typecons.nullable(value); return this; }\n";
+		}
+	}
 	s ~= "\n\n";
-	s ~= "this(Args...)(Args args) if (Args.length % 2 == 0) {\n";
-	s ~= "static foreach (i; 0 .. args.length / 2) {{\n";
-	s ~= "alias name = args[i * 2];\n";
-	s ~= "alias value = args[i * 2 + 1];\n";
-	foreach (ref value; type.values) {
-		s ~=
-			"if (name == `" ~ value.name ~ "`) {\n" ~
-			"  static if (is(typeof({ this." ~ toDIdentifier(value.name) ~ " = value; })))\n" ~
-			"    this." ~ toDIdentifier(value.name) ~ " = value;\n" ~
-			"  else\n" ~
-			"    assert(false, `Cannot convert ` ~ typeof(value).stringof ~ ` to ` ~ " ~
-			"typeof(this." ~ toDIdentifier(value.name) ~ ".get()).stringof ~ ` for field ` ~ name);\n" ~
-			"} else ";
-	}
-	s ~= "assert(false, `Unknown field name: ` ~ name);\n";
-	s ~= "}}\n";
-	s ~= "}\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json) {
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		// Note: we use @trusted instead of @safe to work around DMD recursive attribute inference bugs
 		s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+		s ~= "if (this is null) return _graphqld_vibe_data_json.Json(null);\n";
 		s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
 		foreach (ref value; type.values) {
-			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
-				"json[`" ~ value.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(this." ~ toDIdentifier(value.name) ~ ".get);\n";
+			bool nullable = !!value.type.nullable;
+			if (nullable)
+				s ~= "if (!this." ~ fieldPrefix ~ value.name ~ ".isNull) ";
+
+			string expr = "this." ~ fieldPrefix ~ value.name;
+			if (nullable)
+				expr ~= ".get";
+			auto transformation = toJson(value.type, document, settings);
+
+			s ~= "json[`" ~ value.name ~ "`] = " ~ transformation ~ "(" ~ expr ~ ");\n";
 		}
 		s ~= "return json;\n";
 		s ~= "}\n";
-		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json) @safe { assert(false, `Deserialization not supported`); }\n";
+		s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
+		s ~= "auto instance = new typeof(this);\n";
+		foreach (ref value; type.values) {
+			s ~= "if (`" ~ value.name ~ "` in json)" ~
+				"instance." ~ fieldPrefix ~ value.name ~ " = " ~
+				transformScalar(value.type, GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+				"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(value.type, document, settings) ~ ")" ~
+				"(json[`" ~ value.name ~ "`])" ~
+				");\n";
+		}
+		s ~= "return instance;\n";
+		s ~= "}\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+		s ~= "if (this is null) return _graphqld_ae_utils_json.JSONFragment(`null`);\n";
 		s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
 		foreach (ref value; type.values) {
-			s ~= "if (!this." ~ toDIdentifier(value.name) ~ ".isNull) " ~
-				"json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(this." ~ toDIdentifier(value.name) ~ ".get));\n";
+			bool nullable = !!value.type.nullable;
+			if (nullable)
+				s ~= "if (!this." ~ fieldPrefix ~ value.name ~ ".isNull) ";
+			s ~= "json[`" ~ value.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+				transformScalar(value.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+				"(this." ~ fieldPrefix ~ value.name ~ (nullable ? ".get" : "") ~ ")" ~
+				"));\n";
 		}
 		s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
 		s ~= "}\n";
@@ -188,25 +528,20 @@ string toD(
 		alias Boolean = bool;
 
 		alias ID = string;
-
-		// Avoid redundant nullability for reference types +
-		// work around https://github.com/dlang/phobos/issues/10661
-		template _graphqld_Nullable(T) {
-			static if (is(T == class)) {
-				// Already nullable - no need for extra nullability
-				alias _graphqld_Nullable = T;
-			} else {
-				alias _graphqld_Nullable = _graphqld_typecons.Nullable!T;
-			}
-		}
 	};
 
 	foreach (ref type; document.scalarTypes) {
-		// TODO: allow customizing serialization / D type?
-		s ~= "alias " ~ type.name ~ " = string;\n";
+		auto scalarDefinition = getScalarDefinition(type.name, settings);
+		auto dType = scalarDefinition ? scalarDefinition.dType : "string";
+		s ~= "alias " ~ type.name ~ " = " ~ dType ~ ";\n";
 	}
 
 	foreach (ref type; document.enumTypes) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			// Note: see https://github.com/vibe-d/vibe.d/issues/2820
+			s ~= "@(_graphqld_vibe_data_json.byName) ";
+		}
+
 		s ~= "enum " ~ type.name ~ " {\n";
 		foreach (ref value; type.values) {
 			s ~= "\t" ~ value.name ~ ",\n";
@@ -215,14 +550,14 @@ string toD(
 	}
 
 	foreach (type; document.inputTypes) {
-		s ~= toD(type, settings);
+		s ~= toD(type, document, settings);
 	}
 
 	// Generate types for schema object types as well.
 	// These won't be used directly by most client code,
 	// but can be used for some client/server interoperability scenarios.
 	foreach (type; document.objectTypes) {
-		s ~= toD(type, settings);
+		s ~= toD(type, document, settings);
 	}
 
 	foreach (type; document.interfaceTypes) {
@@ -256,22 +591,27 @@ in(typeName !is null, "No typeName provided") {
 
 	s ~= "alias __SchemaType = " ~ settings.schemaRefExpr ~ "Schema." ~ typeName ~ ";\n";
 
+	bool needsCustomSerialization = false;
+	const(Type)*[string] types;
+	string[string] deserializationTypes;
+
 	foreach (ref field; selections) {
-		switch (field.name) {
+		switch (field.fieldName) {
 			case "__typename":
-				s ~= toDField(field.name, q{string}, settings);
+				s ~= toDField(field.fieldName, q{string}, settings);
 				continue;
 			default:
 		}
 
 		auto type = {
 			foreach (ref typeField; typeFields) {
-				if (typeField.name == field.name) {
+				if (typeField.name == field.fieldName) {
 					return &typeField.type;
 				}
 			}
-			assert(false, "Field not found in type: " ~ field.name);
+			assert(false, "Field not found in type" ~ typeName ~  " : " ~ field.fieldName);
 		}();
+		types[field.responseName] = type;
 
 		string dType;
 		if (field.selections) {
@@ -293,7 +633,7 @@ in(typeName !is null, "No typeName provided") {
 				}
 			}
 
-			auto selectionTypeName = "_" ~ field.name ~ "_Type";
+			auto selectionTypeName = "_" ~ field.responseName ~ "_Type";
 			s ~= "\tstruct " ~ selectionTypeName ~ " {\n";
 			s ~= toD(field.selections, baseType.name, schema, settings);
 			s ~= "\t}\n";
@@ -302,12 +642,60 @@ in(typeName !is null, "No typeName provided") {
 			foreach_reverse (wrapper; wrappers) {
 				dType = wrapper(dType);
 			}
+
+			deserializationTypes[field.responseName] = dType;
 		} else {
-			dType = toD(*type, settings);
+			dType = toD(*type, schema, settings);
+
+			bool isCustomScalar = getScalarDefinition(getTypeName(*type), settings) !is null;
+			if (isCustomScalar) {
+				needsCustomSerialization = true;
+			}
+
+			deserializationTypes[field.responseName] = toDSerializableType(*types[field.responseName], schema, settings);
 		}
 
-		s ~= toDField(field.name, dType, settings);
+		s ~= toDField(field.responseName, dType, settings);
 	}
+
+	if (needsCustomSerialization) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
+			foreach (ref field; selections) {
+				s ~= "json[`" ~ field.responseName ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.responseName) ~ ")" ~
+					");\n";
+			}
+			s ~= "return json;\n";
+			s ~= "}\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "typeof(this) instance;\n";
+			foreach (ref field; selections) {
+				s ~= "instance." ~ toDIdentifier(field.responseName) ~ " = " ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ deserializationTypes[field.responseName] ~ ")" ~
+					"(json[`" ~ field.responseName ~ "`])" ~
+					");\n";
+			}
+			s ~= "return instance;\n";
+			s ~= "}\n";
+		}
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
+			s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+			s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
+			foreach (ref field; selections) {
+				s ~= "json[`" ~ field.responseName ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+					transformScalar(*types[field.responseName], GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(field.responseName) ~ ")" ~
+					"));\n";
+			}
+			s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
+			s ~= "}\n";
+		}
+	}
+
 	return s;
 }
 
@@ -335,9 +723,52 @@ private string toD(
 
 	s ~= "}\n";
 
+	bool needsCustomSerialization = false;
 	s ~= "struct Variables {\n";
-	foreach (variable; operation.variables) {
-		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ";\n";
+	foreach (ref variable; operation.variables) {
+		s ~= "\t" ~ toD(variable.type, schema, settings) ~ " " ~ variable.name ~ ";\n";
+		bool isCustomScalar = getScalarDefinition(getTypeName(variable.type), settings) !is null;
+		if (isCustomScalar) {
+			needsCustomSerialization = true;
+		}
+	}
+
+	if (needsCustomSerialization) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
+			s ~= "_graphqld_vibe_data_json.Json toJson() const @trusted {\n";
+			s ~= "auto json = _graphqld_vibe_data_json.Json.emptyObject;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "json[`" ~ variable.name ~ "`] = _graphqld_vibe_data_json.serializeToJson(" ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(variable.name) ~ ")" ~
+					");\n";
+			}
+			s ~= "return json;\n";
+			s ~= "}\n";
+			s ~= "static typeof(this) fromJson(_graphqld_vibe_data_json.Json json) @safe {\n";
+			s ~= "typeof(this) instance;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "instance." ~ toDIdentifier(variable.name) ~ " = " ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.deserialization, settings) ~ "(" ~
+					"_graphqld_vibe_data_json.deserializeJson!(" ~ toDSerializableType(variable.type, schema, settings) ~ ")" ~
+					"(json[`" ~ variable.name ~ "`])" ~
+					");\n";
+			}
+			s ~= "return instance;\n";
+			s ~= "}\n";
+		}
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
+			s ~= "_graphqld_ae_utils_json.JSONFragment toJSON() const {\n";
+			s ~= "_graphqld_ae_utils_json.JSONFragment[string] json;\n";
+			foreach (ref variable; operation.variables) {
+				s ~= "json[`" ~ variable.name ~ "`] = _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(" ~
+					transformScalar(variable.type, GraphQLSettings.CustomScalar.Direction.serialization, settings) ~
+					"(this." ~ toDIdentifier(variable.name) ~ ")" ~
+					"));\n";
+			}
+			s ~= "return _graphqld_ae_utils_json.JSONFragment(_graphqld_ae_utils_json.toJson(json));\n";
+			s ~= "}\n";
+		}
 	}
 	s ~= "}\n";
 
@@ -348,7 +779,7 @@ private string toD(
 
 	s ~= "QueryInstance opCall(\n";
 	foreach (variable; operation.variables) {
-		s ~= "\t" ~ toD(variable.type, settings) ~ " " ~ variable.name ~ ",\n";
+		s ~= "\t" ~ toD(variable.type, schema, settings) ~ " " ~ variable.name ~ ",\n";
 	}
 	s ~= ") const {";
 	s ~= "QueryInstance _graphqld_instance;";
@@ -386,14 +817,15 @@ string toD(
 	return s;
 }
 
-private string getImports(CodeGenerationSettings settings) {
+private string getImports(ref const CodeGenerationSettings settings) {
 	string s;
+	s ~= "private import _graphqld_helpers = graphql.client.helpers;\n\n";
 	s ~= "private import _graphqld_typecons = std.typecons;\n\n";
 
-	if (settings.serializationLibraries.vibe_data_json) {
+	if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 		s ~= "private import _graphqld_vibe_data_json = vibe.data.json;\n\n";
 	}
-	if (settings.serializationLibraries.ae_utils_json) {
+	if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 		s ~= "private import _graphqld_ae_utils_json = ae.utils.json;\n\n";
 	}
 
@@ -410,10 +842,10 @@ private string toDField(
 	string s;
 	string dName = toDIdentifier(name);
 	if (dName != name) {
-		if (settings.serializationLibraries.vibe_data_json) {
+		if (settings.graphqlSettings.serializationLibraries.vibe_data_json) {
 			s ~= "\t@(_graphqld_vibe_data_json.name(`" ~ name ~ "`))\n";
 		}
-		if (settings.serializationLibraries.ae_utils_json) {
+		if (settings.graphqlSettings.serializationLibraries.ae_utils_json) {
 			s ~= "\t@(_graphqld_ae_utils_json.JSONName(`" ~ name ~ "`))\n";
 		}
 	}
@@ -565,3 +997,68 @@ private immutable string[] keywords = [
   "__traits",
   "__vector",
 ];
+
+private template fullyQualifiedName(alias x) {
+	enum identifier = __traits(identifier, x);
+	static if (!__traits(compiles, __traits(parent, x))) {
+		enum fullyQualifiedName = identifier;
+	} else {
+		enum fullyQualifiedName = fullyQualifiedName!(__traits(parent, x)) ~ "." ~ identifier;
+	}
+}
+
+string toDLiteral(T)(ref const T value) {
+	static if (is(T == enum)) {
+		string s = fullyQualifiedName!T ~ ".";
+		static foreach (member; __traits(allMembers, T)) {
+			if (__traits(getMember, T, member) == value) {
+				return s ~ member;
+			}
+		}
+		throw new Exception("Enum member not found");
+	} else static if (is(T == string)) {
+		string s = `"`;
+		foreach (c; value) {
+			if (c == '"' || c == '\\') {
+				s ~= '\\';
+			}
+			s ~= c;
+		}
+		return s ~ `"`;
+	} else static if (is(T == bool)) {
+		return value ? "true" : "false";
+	} else static if (is(T == struct)) {
+		string s = fullyQualifiedName!T ~ "(";
+		foreach (ref const field; value.tupleof) {
+			s ~= toDLiteral(field) ~ ",\n";
+		}
+		s ~= ")";
+		return s;
+	} else static if (is(T == U[], U)) {
+		string s = "[\n";
+		foreach (ref const item; value) {
+			s ~= toDLiteral(item) ~ ",\n";
+		}
+		s ~= "]";
+		return s;
+	} else static if (is(T == U[n], U, size_t n)) {
+		string s = "[\n";
+		foreach (ref const item; value) {
+			s ~= toDLiteral(item) ~ ",\n";
+		}
+		s ~= "]";
+		return s;
+	} else static if (is(T == V[K], K, V)) {
+		if (value.length == 0) {
+			return "null";
+		}
+		string s = "[\n";
+		foreach (ref const k, ref const v; value) {
+			s ~= toDLiteral(k) ~ ":" ~ toDLiteral(v) ~ ",\n";
+		}
+		s ~= "]";
+		return s;
+	} else {
+		static assert(false, "Unsupported type for toDLiteral: " ~ T.stringof);
+	}
+}

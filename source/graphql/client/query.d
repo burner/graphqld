@@ -2,15 +2,11 @@
 module graphql.client.query;
 
 import graphql.client.document;
-import graphql.client.codegen : toD, CodeGenerationSettings;
+import graphql.client.codegen : toD, CodeGenerationSettings, toDLiteral;
 import graphql.lexer;
 import graphql.parser;
 
-public import graphql.client.codegen : SerializationLibraries;
-
-struct GraphQLSettings {
-	SerializationLibraries serializationLibraries;
-}
+public import graphql.client.codegen : GraphQLSettings, SerializationLibraries;
 
 /// Represents a parsed GraphQL schema, an object which can serve
 /// as a base for building GraphQL queries.
@@ -19,9 +15,10 @@ struct GraphQLSchema(alias document_, GraphQLSettings settings_) {
 	alias settings = settings_;
 
 	enum code = {
-		CodeGenerationSettings settings;
-		settings.serializationLibraries = this.settings.serializationLibraries;
-		settings.schemaRefExpr = q{};
+		const CodeGenerationSettings settings = {
+			graphqlSettings: this.settings,
+			schemaRefExpr: q{},
+		};
 		return toD(document, settings);
 	}();
 
@@ -44,9 +41,10 @@ struct GraphQLQuery(GraphQLSchema, alias queryText_) {
 	}();
 
 	mixin({
-		CodeGenerationSettings settings;
-		settings.serializationLibraries = GraphQLSchema.settings.serializationLibraries;
-		settings.schemaRefExpr = q{GraphQLSchema.};
+		const CodeGenerationSettings settings = {
+			graphqlSettings: GraphQLSchema.settings,
+			schemaRefExpr: q{GraphQLSchema.},
+		};
 		return toD(document, GraphQLSchema.document, settings);
 	}());
 }
@@ -67,7 +65,7 @@ auto graphqlSchema(
 
 		return SchemaDocument(d);
 	}();
-    return GraphQLSchema!(document, settings)();
+	return GraphQLSchema!(document, settings)();
 }
 
 // Basic ReturnType test
@@ -200,33 +198,48 @@ unittest {
 // Test __typename
 unittest {
 	static immutable schema = graphqlSchema!`
-        type S {
-            i: Int
-        }
+		type S {
+			i: Int
+		}
 
 		type Query {
-            s: S!
+			s: S!
 		}
 	`;
 
 	immutable query = schema.query!`{
-        __typename
-        s {
-            __typename
-        }
-    }`;
+		__typename
+		s {
+			__typename
+		}
+	}`;
 
 	static assert(is(typeof(query.ReturnType.__typename) == string));
 	static assert(is(typeof(query.ReturnType.s.__typename) == string));
 }
 
+// Test field aliases
+unittest {
+	static immutable schema = graphqlSchema!`
+		type Query {
+			i: Int!
+		}
+	`;
+
+	immutable query = schema.query!`{
+		j: i
+	}`;
+
+	static assert(is(typeof(query.ReturnType.j) == int));
+}
+
 // Test schema type generation
 unittest {
 	static immutable schema = graphqlSchema!`
-        type S {
+		type S {
 			str: String!
-            next: S
-        }
+			next: S
+		}
 	`;
 
 	static assert(is(typeof(schema.Schema.S.init.str) == string));
@@ -238,10 +251,10 @@ unittest {
 	import std.typecons : nullable;
 
 	static immutable schema = graphqlSchema!`
-        type S {
+		type S {
 			str: String!
-            next: S
-        }
+			next: S
+		}
 	`;
 
 	auto s = new schema.Schema.S(
@@ -258,21 +271,127 @@ unittest {
 		interface Node {
 			nodeId: ID!
 		}
-        type SomeNode implements Node {
+		type SomeNode implements Node {
 			nodeId: ID!
-        }
-        type Query {
+		}
+		type Query {
 			someNode: SomeNode!
-        }
+		}
 	`;
 
 	static assert(is(typeof(schema.Schema.SomeNode.init.nodeId) == string));
 
 	immutable query = schema.query!`{
-        someNode {
-            nodeId
-        }
-    }`;
+		someNode {
+			nodeId
+		}
+	}`;
 
 	static assert(is(typeof(query.ReturnType.someNode.nodeId) == string));
+}
+
+/// Parses `schemaText` as a GraphQL schema, and returns a string containing
+/// D code for the parsed schema.  The resulting code should be pasted into
+/// a struct definition.
+string toDStruct(string schemaText, GraphQLSettings settings = GraphQLSettings()) {
+	const document = {
+		auto l = Lexer(schemaText, QueryParser.no);
+		auto p = Parser(l);
+		auto d = p.parseDocument();
+
+		return SchemaDocument(d);
+	}();
+
+	CodeGenerationSettings codeGenSettings;
+	codeGenSettings.graphqlSettings = settings;
+	codeGenSettings.schemaRefExpr = q{};
+
+	return "
+		private static import graphql.ast;
+		private static import graphql.client.codegen;
+		private static import graphql.client.document;
+		private static import graphql.client.query;
+
+		static const document = " ~ document.toDLiteral() ~ ";
+		static const settings = " ~ settings.toDLiteral() ~ ";
+
+		" ~ toD(document, codeGenSettings) ~ "
+
+		template query(string queryText_) {
+			static immutable queryText = queryText_;
+			enum query = graphql.client.query.GraphQLQuery!(typeof(this), queryText).init;
+		}
+	";
+}
+
+// Test ahead-of-time code generation
+unittest {
+	enum code = toDStruct(`
+		type Query {
+			hello: String!
+		}
+	`);
+
+	static struct schema { mixin(code); }
+
+	immutable query = schema.query!`
+		query {
+			hello
+		}
+	`;
+
+	static assert(is(typeof(query.ReturnType.hello) == string));
+}
+
+// Test settings serialisation
+unittest {
+	enum code = toDStruct(`
+		scalar Date
+		type Query {
+			today: Date!
+		}
+	`, GraphQLSettings(
+		customScalars: [
+			GraphQLSettings.CustomScalar(
+				graphqlType: "Date",
+				dType: q{.imported!q{std.datetime.date}.Date},
+				transformations: [
+					q{.imported!q{std.datetime.date}.Date.fromISOExtString},
+					q{(x => x.toISOExtString())},
+				],
+			),
+		],
+	));
+
+	static import std.datetime.date;
+	static struct schema { mixin(code); }
+
+	immutable query = schema.query!`
+		query {
+			today
+		}
+	`;
+
+	static assert(is(typeof(query.ReturnType.today) == std.datetime.date.Date));
+}
+
+// Test input setters
+unittest {
+	enum code = toDStruct(`
+		input I {
+			f: Int
+		}
+		type Query {
+			i(input: I!): Int!
+		}
+	`);
+
+	static struct schema { mixin(code); }
+
+	import std.typecons : nullable;
+
+	auto i = new schema.Schema.I;
+	i.f(42.nullable.nullable);
+	i.f(42.nullable);
+	i.f(42);
 }

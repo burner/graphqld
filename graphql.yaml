@@ -65,7 +65,7 @@ Field:
     F: [FieldName#name]
 
 FieldName:
-    A: [Identifier#name, colon, name#aka]
+    A: [Identifier#name, colon, Identifier#aka]
     N: [Identifier#name]
 
 Identifier:

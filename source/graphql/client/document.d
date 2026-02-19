@@ -2,9 +2,6 @@
 /// GraphQL documents (schemas and queries).
 module graphql.client.document;
 
-// This is an internal module.
-package(graphql):
-
 import ast = graphql.ast;
 
 /*
@@ -50,6 +47,7 @@ struct Type {
 				break;
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct FieldDefinition {
@@ -64,6 +62,7 @@ struct FieldDefinition {
 		this.name = fd.name.tok.value;
 		this.type = Type(fd.typ);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InterfaceTypeDefinition {
@@ -78,6 +77,7 @@ struct InterfaceTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct ObjectTypeDefinition {
@@ -98,6 +98,7 @@ struct ObjectTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InputValueDefinition {
@@ -108,6 +109,7 @@ struct InputValueDefinition {
 		this.name = ivd.name.tok.value;
 		this.type = Type(ivd.type);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct InputObjectTypeDefinition {
@@ -122,6 +124,7 @@ struct InputObjectTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct ScalarTypeDefinition {
@@ -130,6 +133,7 @@ struct ScalarTypeDefinition {
 	this(ast.ScalarTypeDefinition std) {
 		this.name = std.name.value;
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct EnumValueDefinition {
@@ -138,6 +142,7 @@ struct EnumValueDefinition {
 	this(ast.EnumValueDefinition evd) {
 		this.name = evd.name.value;
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct EnumTypeDefinition {
@@ -152,23 +157,20 @@ struct EnumTypeDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
-alias OperationType = ast.OperationTypeEnum;
+alias OperationTypeEnum = ast.OperationTypeEnum;
 
 struct OperationTypeDefinition {
-	OperationType type;
+	OperationTypeEnum type;
 	string name;
 
 	this(ast.OperationTypeDefinition otd) {
 		this.type = otd.ot.ruleSelection;
 		this.name = otd.nt.value;
 	}
-
-	this(OperationType type, string name) {
-		this.type = type;
-		this.name = name;
-	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct SchemaDefinition {
@@ -181,10 +183,7 @@ struct SchemaDefinition {
 			}
 		}
 	}
-
-	this(OperationTypeDefinition[] operationTypes) {
-		this.operationTypes = operationTypes;
-	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct SchemaDocument {
@@ -229,20 +228,27 @@ struct SchemaDocument {
 		if (this.schema is SchemaDefinition.init) {
 			// Populate with the default
 			this.schema = SchemaDefinition([
-				OperationTypeDefinition(OperationType.Query, "Query"),
-				OperationTypeDefinition(OperationType.Mutation, "Mutation"),
-				OperationTypeDefinition(OperationType.Sub, "Subscription"),
+				OperationTypeDefinition(OperationTypeEnum.Query, "Query"),
+				OperationTypeDefinition(OperationTypeEnum.Mutation, "Mutation"),
+				OperationTypeDefinition(OperationTypeEnum.Sub, "Subscription"),
 			]);
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct Field {
-	string name;
+	string fieldName;
+	string responseName;
 	Field[] selections;
 
 	this(ast.Field f) {
-		this.name = f.name.name.tok.value;
+		this.responseName = f.name.name.tok.value;
+		if (f.name.aka) {
+			this.fieldName = f.name.aka.tok.value;
+		} else {
+			this.fieldName = this.responseName;
+		}
 		if (auto ss = f.ss) {
 			for (auto sels = ss.sel; sels !is null; sels = sels.follow) {
 				if (auto sel = sels.sel) {
@@ -253,6 +259,7 @@ struct Field {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct VariableDefinition {
@@ -263,16 +270,17 @@ struct VariableDefinition {
 		this.name = vd.var.name.value;
 		this.type = Type(vd.type);
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct OperationDefinition {
-	OperationType type;
+	OperationTypeEnum type;
 	string name;
 	VariableDefinition[] variables;
 	Field[] selections;
 
 	this(ast.OperationDefinition od) {
-		this.type = od.ot ? od.ot.ruleSelection : OperationType.Query;
+		this.type = od.ot ? od.ot.ruleSelection : OperationTypeEnum.Query;
 		this.name = od.name.value;
 		if (auto vd = od.vd) {
 			for (auto vars = vd.vars; vars !is null; vars = vars.follow) {
@@ -291,9 +299,12 @@ struct OperationDefinition {
 			}
 		}
 	}
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
 
 struct QueryDocument {
+	OperationDefinition[] operations;
+
 	this(ast.Document d) {
 		for (auto defs = d.defs; defs !is null; defs = defs.follow) {
 			if (auto def = defs.def) {
@@ -303,6 +314,5 @@ struct QueryDocument {
 			}
 		}
 	}
-
-	OperationDefinition[] operations;
+	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }
