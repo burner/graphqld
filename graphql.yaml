@@ -288,6 +288,9 @@ EnumValueDefinitions:
     DCE: [EnumValueDefinition#evd, comma, EnumValueDefinitions#follow]
     DE: [EnumValueDefinition#evd, EnumValueDefinitions#follow]
 
+# (parser.d's parseEnumValueDefinition takes a keyword other than true, false
+# and null for the name too, as an enum value is a Name but not true, false
+# or null.)
 EnumValueDefinition:
     ED: [name#name, Directives#dirs]
     E: [name#name]

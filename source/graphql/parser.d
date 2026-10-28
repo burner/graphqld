@@ -4602,8 +4602,25 @@ struct Parser {
 	}
 
 	bool firstEnumValueDefinition() const pure @nogc @safe {
-		return this.lex.front.type == TokenType.name
+		return this.firstEnumValueName()
 			 || this.firstDescription();
+	}
+
+	// (Not generated from graphql.yaml.) An enum value is a Name other
+	// than true, false and null: keywords too (e.g. a value `type`).
+	bool firstEnumValueName() const pure @nogc @safe {
+		return this.firstIdentifier()
+			 && this.lex.front.type != TokenType.true_
+			 && this.lex.front.type != TokenType.false_
+			 && this.lex.front.type != TokenType.null_;
+	}
+
+	// The enum value name at the front, as a name token.
+	Token takeEnumValueName() {
+		Token name = this.lex.front;
+		name.type = TokenType.name;
+		this.lex.popFront();
+		return name;
 	}
 
 	EnumValueDefinition parseEnumValueDefinition() {
@@ -4620,9 +4637,8 @@ struct Parser {
 	EnumValueDefinition parseEnumValueDefinitionImpl() {
 		string[] subRules;
 		subRules = ["E", "ED"];
-		if(this.lex.front.type == TokenType.name) {
-			Token name = this.lex.front;
-			this.lex.popFront();
+		if(this.firstEnumValueName()) {
+			Token name = this.takeEnumValueName();
 			subRules = ["ED"];
 			if(this.firstDirectives()) {
 				Directives dirs = this.parseDirectives();
@@ -4638,9 +4654,8 @@ struct Parser {
 		} else if(this.firstDescription()) {
 			Description des = this.parseDescription();
 			subRules = ["DE", "DED"];
-			if(this.lex.front.type == TokenType.name) {
-				Token name = this.lex.front;
-				this.lex.popFront();
+			if(this.firstEnumValueName()) {
+				Token name = this.takeEnumValueName();
 				subRules = ["DED"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
