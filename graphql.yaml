@@ -173,6 +173,7 @@ ObjectValues:
 
 ObjectType:
     Var: [lcurly, ObjectValues#vals, rcurly]
+    Empty: [lcurly, rcurly]
 
 TypeSystemDefinition:
     S: [SchemaDefinition#sch]

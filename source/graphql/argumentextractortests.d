@@ -89,3 +89,23 @@ fragment charac on Character {
 				format("%s", args));
 	}
 }
+
+unittest {
+	string q = `
+query a {
+	starships(overSize: 10, search: {}) {
+		name
+	}
+}`;
+
+	Document doc = cast()lexAndParse(q);
+	assert(doc !is null);
+
+	auto starships = astSelect!Field(doc, "a.starships");
+	assert(starships !is null);
+
+	Json args = getArguments(cast()starships, Json.emptyObject);
+	assert(args == parseJsonString(`{"overSize" : 10, "search": {}}`),
+			format("%s", args)
+		);
+}
