@@ -109,3 +109,23 @@ query a {
 			format("%s", args)
 		);
 }
+
+unittest {
+	string q = `
+query a($id: Int) {
+	starships(ids: [1, $id]) {
+		name
+	}
+}`;
+
+	Json vars = parseJsonString(`{ "id": 2 }`);
+
+	Document doc = cast()lexAndParse(q);
+	assert(doc !is null);
+
+	auto starships = astSelect!Field(doc, "a.starships");
+	assert(starships !is null);
+
+	Json args = getArguments(cast()starships, vars);
+	assert(args == parseJsonString(`{"ids" : [1, 2]}`), format("%s", args));
+}

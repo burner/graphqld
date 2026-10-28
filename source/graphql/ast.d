@@ -1255,15 +1255,15 @@ class Values : Node {
 @safe :
 
 	ValuesEnum ruleSelection;
-	Value val;
+	ValueOrVariable val;
 	Values follow;
 
-	this(ValuesEnum ruleSelection, Value val) {
+	this(ValuesEnum ruleSelection, ValueOrVariable val) {
 		this.ruleSelection = ruleSelection;
 		this.val = val;
 	}
 
-	this(ValuesEnum ruleSelection, Value val, Values follow) {
+	this(ValuesEnum ruleSelection, ValueOrVariable val, Values follow) {
 		this.ruleSelection = ruleSelection;
 		this.val = val;
 		this.follow = follow;
