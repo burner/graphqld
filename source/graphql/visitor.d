@@ -707,6 +707,8 @@ class Visitor : ConstVisitor {
 			case ObjectTypeEnum.Var:
 				obj.vals.visit(this);
 				break;
+			case ObjectTypeEnum.Empty:
+				break;
 		}
 		exit(obj);
 	}
@@ -1982,6 +1984,8 @@ class ConstVisitor {
 		final switch(obj.ruleSelection) {
 			case ObjectTypeEnum.Var:
 				obj.vals.visit(this);
+				break;
+			case ObjectTypeEnum.Empty:
 				break;
 		}
 		exit(obj);

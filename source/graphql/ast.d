@@ -1369,6 +1369,7 @@ class ObjectValues : Node {
 
 enum ObjectTypeEnum {
 	Var,
+	Empty,
 }
 
 class ObjectType : Node {
@@ -1380,6 +1381,10 @@ class ObjectType : Node {
 	this(ObjectTypeEnum ruleSelection, ObjectValues vals) {
 		this.ruleSelection = ruleSelection;
 		this.vals = vals;
+	}
+
+	this(ObjectTypeEnum ruleSelection) {
+		this.ruleSelection = ruleSelection;
 	}
 
 	void visit(Visitor vis) {

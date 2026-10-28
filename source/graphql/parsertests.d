@@ -512,6 +512,22 @@ query {
 }
 `);
 
+	tests ~= TestCase(36, QueryParser.yes, `
+mutation m {
+	update(id: 1, patch: {}) @dir(arg: {}) {
+		id
+	}
+}
+`);
+
+	tests ~= TestCase(37, QueryParser.yes, `
+query q($a: Int = 1, $o: In = {}) {
+	f(list: [{x: 1}, {x: {}} {}], objs: [[{}], {}], obj: {x: {y: {}}}) {
+		g
+	}
+}
+`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str, test.qp);
 		auto p = Parser(l);
@@ -551,4 +567,47 @@ unittest {
 	auto l = Lexer(readText("starwarsschemaparsetest.graphql"), QueryParser.no);
 	auto p = Parser(l);
 	auto a = p.parseDocument();
+}
+
+unittest {
+	import graphql.ast;
+
+	auto l = Lexer(`{ f(obj: {}, nested: {x: {}}) }`, QueryParser.yes);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, format("%s", p.lex.getRestOfInput()));
+
+	auto args = d.defs.def.op.ss.sel.sel.field.args.arg;
+
+	auto obj = args.arg;
+	assert(obj.name.value == "obj");
+	assert(obj.vv.ruleSelection == ValueOrVariableEnum.Val);
+	assert(obj.vv.val.ruleSelection == ValueEnum.O);
+	assert(obj.vv.val.obj.ruleSelection == ObjectTypeEnum.Empty);
+	assert(obj.vv.val.obj.vals is null);
+
+	auto nested = args.follow.arg;
+	assert(nested.name.value == "nested");
+	auto x = nested.vv.val.obj.vals;
+	assert(nested.vv.val.obj.ruleSelection == ObjectTypeEnum.Var);
+	assert(x.name.value == "x");
+	assert(x.follow is null);
+	assert(x.val.val.ruleSelection == ValueEnum.O);
+	assert(x.val.val.obj.ruleSelection == ObjectTypeEnum.Empty);
+}
+
+unittest {
+	foreach(str; [`{ f(a: {x}) }`, `{ f(a: {x: }) }`, `{ f(a: {]) }`,
+			`{ f(a: {) }`])
+	{
+		auto l = Lexer(str, QueryParser.yes);
+		auto p = Parser(l);
+		bool failed;
+		try {
+			p.parseDocument();
+		} catch(Exception e) {
+			failed = true;
+		}
+		assert(failed, str);
+	}
 }

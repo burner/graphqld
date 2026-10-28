@@ -2458,7 +2458,7 @@ struct Parser {
 
 	ObjectType parseObjectTypeImpl() {
 		string[] subRules;
-		subRules = ["Var"];
+		subRules = ["Empty", "Var"];
 		if(this.lex.front.type == TokenType.lcurly) {
 			this.lex.popFront();
 			subRules = ["Var"];
@@ -2483,6 +2483,11 @@ struct Parser {
 					["rcurly"]
 				);
 
+			} else if(this.lex.front.type == TokenType.rcurly) {
+				this.lex.popFront();
+
+				return new ObjectType(ObjectTypeEnum.Empty
+				);
 			}
 			auto app = appender!string();
 			formattedWrite(app, 
@@ -2492,7 +2497,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name"]
+				["name","rcurly"]
 			);
 
 		}
