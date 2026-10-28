@@ -701,3 +701,34 @@ unittest {
 		assert(failed, str);
 	}
 }
+
+unittest {
+	import graphql.ast;
+	import graphql.tokenmodule : TokenType;
+
+	// Enum values which are keywords (other than true, false and null)
+	auto l = Lexer("enum E {\n  type\n  input\n  \"d\" enum\n  name\n}\n", QueryParser.no);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, p.lex.getRestOfInput());
+	string[] names;
+	for(auto vals = d.defs.def.type.td.etd.evds; vals !is null;
+			vals = vals.follow)
+	{
+		assert(vals.evd.name.type == TokenType.name);
+		names ~= vals.evd.name.value;
+	}
+	assert(names == ["type", "input", "enum", "name"], format("%s", names));
+
+	foreach(str; ["enum E { true }", "enum E { null }"]) {
+		auto l2 = Lexer(str, QueryParser.no);
+		auto p2 = Parser(l2);
+		bool failed;
+		try {
+			p2.parseDocument();
+		} catch(Exception e) {
+			failed = true;
+		}
+		assert(failed, str);
+	}
+}
