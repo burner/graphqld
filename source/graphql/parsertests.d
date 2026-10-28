@@ -528,6 +528,30 @@ query q($a: Int = 1, $o: In = {}) {
 }
 `);
 
+	tests ~= TestCase(38, QueryParser.yes, `
+mutation removeItem($itemId: ID!) {
+	removeItems(input: {itemIds: [$itemId]}) {
+		ok
+	}
+}
+`);
+
+	tests ~= TestCase(39, QueryParser.yes, `
+query q($a: Int, $b: Int) {
+	f(list: [$a], list2: [1, $a, 2 $b], nested: [[$a], [], [[$b, 3]]]) {
+		g @dir(arg: [$a, {x: [$b]}])
+	}
+}
+`);
+
+	tests ~= TestCase(40, QueryParser.yes, `
+query q($a: Int) {
+	f(list: [{x: $a}, {x: [$a]} {}], objs: [{x: [{y: [$a]}]}, $a]) {
+		g
+	}
+}
+`);
+
 	foreach(test; tests) {
 		auto l = Lexer(test.str, test.qp);
 		auto p = Parser(l);
@@ -599,6 +623,72 @@ unittest {
 unittest {
 	foreach(str; [`{ f(a: {x}) }`, `{ f(a: {x: }) }`, `{ f(a: {]) }`,
 			`{ f(a: {) }`])
+	{
+		auto l = Lexer(str, QueryParser.yes);
+		auto p = Parser(l);
+		bool failed;
+		try {
+			p.parseDocument();
+		} catch(Exception e) {
+			failed = true;
+		}
+		assert(failed, str);
+	}
+}
+
+unittest {
+	import graphql.ast;
+
+	auto l = Lexer(`
+query q($a: Int, $b: Int) {
+	f(list: [1, $a, [$b], {x: $a}])
+}
+`, QueryParser.yes);
+	auto p = Parser(l);
+	auto d = p.parseDocument();
+	assert(p.lex.empty, format("%s", p.lex.getRestOfInput()));
+
+	auto arg = d.defs.def.op.ss.sel.sel.field.args.arg.arg;
+	assert(arg.name.value == "list");
+	assert(arg.vv.ruleSelection == ValueOrVariableEnum.Val);
+	assert(arg.vv.val.ruleSelection == ValueEnum.ARR);
+	assert(arg.vv.val.arr.ruleSelection == ArrayEnum.Value);
+
+	ValueOrVariable[] elements;
+	for(Values v = arg.vv.val.arr.vals; v !is null; v = v.follow) {
+		elements ~= v.val;
+	}
+	assert(elements.length == 4, format("%s", elements.length));
+
+	// 1
+	assert(elements[0].ruleSelection == ValueOrVariableEnum.Val);
+	assert(elements[0].val.ruleSelection == ValueEnum.INT);
+	assert(elements[0].val.tok.value == "1");
+
+	// $a
+	assert(elements[1].ruleSelection == ValueOrVariableEnum.Var);
+	assert(elements[1].var.name.value == "a");
+
+	// [$b]
+	assert(elements[2].ruleSelection == ValueOrVariableEnum.Val);
+	assert(elements[2].val.ruleSelection == ValueEnum.ARR);
+	auto inner = elements[2].val.arr.vals;
+	assert(inner.ruleSelection == ValuesEnum.Val);
+	assert(inner.val.ruleSelection == ValueOrVariableEnum.Var);
+	assert(inner.val.var.name.value == "b");
+
+	// {x: $a}
+	assert(elements[3].ruleSelection == ValueOrVariableEnum.Val);
+	assert(elements[3].val.ruleSelection == ValueEnum.O);
+	assert(elements[3].val.obj.vals.name.value == "x");
+	assert(elements[3].val.obj.vals.val.ruleSelection
+			== ValueOrVariableEnum.Var);
+	assert(elements[3].val.obj.vals.val.var.name.value == "a");
+}
+
+unittest {
+	foreach(str; [`{ f(a: [$x }`, `{ f(a: [$]) }`, `{ f(a: [$1]) }`,
+			`{ f(a: [}) }`])
 	{
 		auto l = Lexer(str, QueryParser.yes);
 		auto p = Parser(l);

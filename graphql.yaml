@@ -158,9 +158,9 @@ ListType:
     T: [lbrack, Type#type, rbrack]
 
 Values:
-    Val: [Value#val]
-    Vals: [Value#val, comma, Values#follow]
-    ValsNoComma: [Value#val, Values#follow]
+    Val: [ValueOrVariable#val]
+    Vals: [ValueOrVariable#val, comma, Values#follow]
+    ValsNoComma: [ValueOrVariable#val, Values#follow]
 
 Array:
     Empty: [lbrack, rbrack]

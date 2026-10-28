@@ -2199,7 +2199,7 @@ struct Parser {
 	}
 
 	bool firstValues() const pure @nogc @safe {
-		return this.firstValue();
+		return this.firstValueOrVariable();
 	}
 
 	Values parseValues() {
@@ -2216,8 +2216,8 @@ struct Parser {
 	Values parseValuesImpl() {
 		string[] subRules;
 		subRules = ["Val", "Vals", "ValsNoComma"];
-		if(this.firstValue()) {
-			Value val = this.parseValue();
+		if(this.firstValueOrVariable()) {
+			ValueOrVariable val = this.parseValueOrVariable();
 			subRules = ["Vals"];
 			if(this.lex.front.type == TokenType.comma) {
 				this.lex.popFront();
@@ -2238,7 +2238,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
+					["dollar -> ValueOrVariable","false_ -> ValueOrVariable","floatValue -> ValueOrVariable","intValue -> ValueOrVariable","lbrack -> ValueOrVariable","lcurly -> ValueOrVariable","name -> ValueOrVariable","null_ -> ValueOrVariable","stringValue -> ValueOrVariable","true_ -> ValueOrVariable"]
 				);
 
 			} else if(this.firstValues()) {
@@ -2261,7 +2261,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["false_","floatValue","intValue","lbrack -> Array","lcurly -> ObjectType","name","null_","stringValue","true_"]
+			["dollar -> Variable","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
 		);
 
 	}
@@ -2322,7 +2322,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["rbrack","false_ -> Value","floatValue -> Value","intValue -> Value","lbrack -> Value","lcurly -> Value","name -> Value","null_ -> Value","stringValue -> Value","true_ -> Value"]
+				["rbrack","dollar -> ValueOrVariable","false_ -> ValueOrVariable","floatValue -> ValueOrVariable","intValue -> ValueOrVariable","lbrack -> ValueOrVariable","lcurly -> ValueOrVariable","name -> ValueOrVariable","null_ -> ValueOrVariable","stringValue -> ValueOrVariable","true_ -> ValueOrVariable"]
 			);
 
 		}
