@@ -4443,7 +4443,7 @@ struct Parser {
 						throw new ParseException(app.data,
 							__FILE__, __LINE__,
 							subRules,
-							["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
+							["directive -> EnumValueDefinition","enum_ -> EnumValueDefinition","extend -> EnumValueDefinition","fragment -> EnumValueDefinition","implements -> EnumValueDefinition","input -> EnumValueDefinition","interface_ -> EnumValueDefinition","mutation -> EnumValueDefinition","name -> EnumValueDefinition","on_ -> EnumValueDefinition","query -> EnumValueDefinition","scalar -> EnumValueDefinition","schema -> EnumValueDefinition","stringValue -> EnumValueDefinition","subscription -> EnumValueDefinition","type -> EnumValueDefinition","union_ -> EnumValueDefinition"]
 						);
 
 					}
@@ -4492,7 +4492,7 @@ struct Parser {
 					throw new ParseException(app.data,
 						__FILE__, __LINE__,
 						subRules,
-						["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
+						["directive -> EnumValueDefinition","enum_ -> EnumValueDefinition","extend -> EnumValueDefinition","fragment -> EnumValueDefinition","implements -> EnumValueDefinition","input -> EnumValueDefinition","interface_ -> EnumValueDefinition","mutation -> EnumValueDefinition","name -> EnumValueDefinition","on_ -> EnumValueDefinition","query -> EnumValueDefinition","scalar -> EnumValueDefinition","schema -> EnumValueDefinition","stringValue -> EnumValueDefinition","subscription -> EnumValueDefinition","type -> EnumValueDefinition","union_ -> EnumValueDefinition"]
 					);
 
 				}
@@ -4573,7 +4573,7 @@ struct Parser {
 				throw new ParseException(app.data,
 					__FILE__, __LINE__,
 					subRules,
-					["name -> EnumValueDefinition","stringValue -> EnumValueDefinition"]
+					["directive -> EnumValueDefinition","enum_ -> EnumValueDefinition","extend -> EnumValueDefinition","fragment -> EnumValueDefinition","implements -> EnumValueDefinition","input -> EnumValueDefinition","interface_ -> EnumValueDefinition","mutation -> EnumValueDefinition","name -> EnumValueDefinition","on_ -> EnumValueDefinition","query -> EnumValueDefinition","scalar -> EnumValueDefinition","schema -> EnumValueDefinition","stringValue -> EnumValueDefinition","subscription -> EnumValueDefinition","type -> EnumValueDefinition","union_ -> EnumValueDefinition"]
 				);
 
 			} else if(this.firstEnumValueDefinitions()) {
@@ -4596,7 +4596,7 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue -> Description"]
+			["directive -> EnumValueName","enum_ -> EnumValueName","extend -> EnumValueName","fragment -> EnumValueName","implements -> EnumValueName","input -> EnumValueName","interface_ -> EnumValueName","mutation -> EnumValueName","name -> EnumValueName","on_ -> EnumValueName","query -> EnumValueName","scalar -> EnumValueName","schema -> EnumValueName","stringValue -> Description","subscription -> EnumValueName","type -> EnumValueName","union_ -> EnumValueName"]
 		);
 
 	}
@@ -4604,23 +4604,6 @@ struct Parser {
 	bool firstEnumValueDefinition() const pure @nogc @safe {
 		return this.firstEnumValueName()
 			 || this.firstDescription();
-	}
-
-	// (Not generated from graphql.yaml.) An enum value is a Name other
-	// than true, false and null: keywords too (e.g. a value `type`).
-	bool firstEnumValueName() const pure @nogc @safe {
-		return this.firstIdentifier()
-			 && this.lex.front.type != TokenType.true_
-			 && this.lex.front.type != TokenType.false_
-			 && this.lex.front.type != TokenType.null_;
-	}
-
-	// The enum value name at the front, as a name token.
-	Token takeEnumValueName() {
-		Token name = this.lex.front;
-		name.type = TokenType.name;
-		this.lex.popFront();
-		return name;
 	}
 
 	EnumValueDefinition parseEnumValueDefinition() {
@@ -4638,7 +4621,7 @@ struct Parser {
 		string[] subRules;
 		subRules = ["E", "ED"];
 		if(this.firstEnumValueName()) {
-			Token name = this.takeEnumValueName();
+			EnumValueName name = this.parseEnumValueName();
 			subRules = ["ED"];
 			if(this.firstDirectives()) {
 				Directives dirs = this.parseDirectives();
@@ -4655,7 +4638,7 @@ struct Parser {
 			Description des = this.parseDescription();
 			subRules = ["DE", "DED"];
 			if(this.firstEnumValueName()) {
-				Token name = this.takeEnumValueName();
+				EnumValueName name = this.parseEnumValueName();
 				subRules = ["DED"];
 				if(this.firstDirectives()) {
 					Directives dirs = this.parseDirectives();
@@ -4679,7 +4662,7 @@ struct Parser {
 			throw new ParseException(app.data,
 				__FILE__, __LINE__,
 				subRules,
-				["name"]
+				["directive","enum_","extend","fragment","implements","input","interface_","mutation","name","on_","query","scalar","schema","subscription","type","union_"]
 			);
 
 		}
@@ -4691,7 +4674,166 @@ struct Parser {
 		throw new ParseException(app.data,
 			__FILE__, __LINE__,
 			subRules,
-			["name","stringValue"]
+			["directive","enum_","extend","fragment","implements","input","interface_","mutation","name","on_","query","scalar","schema","subscription","type","union_","stringValue"]
+		);
+
+	}
+
+	bool firstEnumValueName() const pure @nogc @safe {
+		return this.lex.front.type == TokenType.name
+			 || this.lex.front.type == TokenType.mutation
+			 || this.lex.front.type == TokenType.subscription
+			 || this.lex.front.type == TokenType.scalar
+			 || this.lex.front.type == TokenType.schema
+			 || this.lex.front.type == TokenType.on_
+			 || this.lex.front.type == TokenType.directive
+			 || this.lex.front.type == TokenType.enum_
+			 || this.lex.front.type == TokenType.extend
+			 || this.lex.front.type == TokenType.input
+			 || this.lex.front.type == TokenType.interface_
+			 || this.lex.front.type == TokenType.implements
+			 || this.lex.front.type == TokenType.fragment
+			 || this.lex.front.type == TokenType.query
+			 || this.lex.front.type == TokenType.type
+			 || this.lex.front.type == TokenType.union_;
+	}
+
+	EnumValueName parseEnumValueName() {
+		try {
+			return this.parseEnumValueNameImpl();
+		} catch(ParseException e) {
+			throw new ParseException(
+				"While parsing a EnumValueName an Exception was thrown.",
+				e, __FILE__, __LINE__
+			);
+		}
+	}
+
+	EnumValueName parseEnumValueNameImpl() {
+		string[] subRules;
+		subRules = ["I"];
+		if(this.lex.front.type == TokenType.name) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.I
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.mutation) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Mutation
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.subscription) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Subscription
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.scalar) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Scalar
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.schema) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Schema
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.on_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.On
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.directive) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Directive
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.enum_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Enum
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.extend) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Extend
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.input) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Input
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.interface_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Interface
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.implements) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Implements
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.fragment) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Fragment
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.query) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Query
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.type) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Type
+				, tok
+			);
+		} else if(this.lex.front.type == TokenType.union_) {
+			Token tok = this.lex.front;
+			this.lex.popFront();
+
+			return new EnumValueName(EnumValueNameEnum.Union
+				, tok
+			);
+		}
+		auto app = appender!string();
+		formattedWrite(app, 
+			"In 'EnumValueName' found a '%s' while looking for", 
+			this.lex.front
+		);
+		throw new ParseException(app.data,
+			__FILE__, __LINE__,
+			subRules,
+			["name","mutation","subscription","scalar","schema","on_","directive","enum_","extend","input","interface_","implements","fragment","query","type","union_"]
 		);
 
 	}

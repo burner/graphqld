@@ -140,7 +140,7 @@ struct EnumValueDefinition {
 	string name;
 
 	this(ast.EnumValueDefinition evd) {
-		this.name = evd.name.value;
+		this.name = evd.name.tok.value;
 	}
 	this(typeof(this.tupleof) args) { this.tupleof = args; }
 }

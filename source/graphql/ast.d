@@ -2375,30 +2375,77 @@ class EnumValueDefinition : Node {
 	EnumValueDefinitionEnum ruleSelection;
 	Description des;
 	Directives dirs;
-	Token name;
+	EnumValueName name;
 
-	this(EnumValueDefinitionEnum ruleSelection, Token name, Directives dirs) {
+	this(EnumValueDefinitionEnum ruleSelection, EnumValueName name, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 		this.dirs = dirs;
 	}
 
-	this(EnumValueDefinitionEnum ruleSelection, Token name) {
+	this(EnumValueDefinitionEnum ruleSelection, EnumValueName name) {
 		this.ruleSelection = ruleSelection;
 		this.name = name;
 	}
 
-	this(EnumValueDefinitionEnum ruleSelection, Description des, Token name, Directives dirs) {
+	this(EnumValueDefinitionEnum ruleSelection, Description des, EnumValueName name, Directives dirs) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
 		this.dirs = dirs;
 	}
 
-	this(EnumValueDefinitionEnum ruleSelection, Description des, Token name) {
+	this(EnumValueDefinitionEnum ruleSelection, Description des, EnumValueName name) {
 		this.ruleSelection = ruleSelection;
 		this.des = des;
 		this.name = name;
+	}
+
+	void visit(Visitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(Visitor vis) const {
+		vis.accept(this);
+	}
+
+	void visit(ConstVisitor vis) {
+		vis.accept(this);
+	}
+
+	void visit(ConstVisitor vis) const {
+		vis.accept(this);
+	}
+}
+
+enum EnumValueNameEnum {
+	I,
+	Mutation,
+	Subscription,
+	Scalar,
+	Schema,
+	On,
+	Directive,
+	Enum,
+	Extend,
+	Input,
+	Interface,
+	Implements,
+	Fragment,
+	Query,
+	Type,
+	Union,
+}
+
+class EnumValueName : Node {
+@safe :
+
+	EnumValueNameEnum ruleSelection;
+	Token tok;
+
+	this(EnumValueNameEnum ruleSelection, Token tok) {
+		this.ruleSelection = ruleSelection;
+		this.tok = tok;
 	}
 
 	void visit(Visitor vis) {
