@@ -288,14 +288,30 @@ EnumValueDefinitions:
     DCE: [EnumValueDefinition#evd, comma, EnumValueDefinitions#follow]
     DE: [EnumValueDefinition#evd, EnumValueDefinitions#follow]
 
-# (parser.d's parseEnumValueDefinition takes a keyword other than true, false
-# and null for the name too, as an enum value is a Name but not true, false
-# or null.)
 EnumValueDefinition:
-    ED: [name#name, Directives#dirs]
-    E: [name#name]
-    DED: [Description#des, name#name, Directives#dirs]
-    DE: [Description#des, name#name]
+    ED: [EnumValueName#name, Directives#dirs]
+    E: [EnumValueName#name]
+    DED: [Description#des, EnumValueName#name, Directives#dirs]
+    DE: [Description#des, EnumValueName#name]
+
+# An enum value is a Name but not true, false or null.
+EnumValueName:
+    I: [name#tok]
+    "Mutation": [mutation#tok]
+    "Subscription": [subscription#tok]
+    "Scalar": [scalar#tok]
+    "Schema": [schema#tok]
+    "On": [on_#tok]
+    "Directive": [directive#tok]
+    "Enum": [enum_#tok]
+    "Extend": [extend#tok]
+    "Input": [input#tok]
+    "Interface": [interface_#tok]
+    "Implements": [implements#tok]
+    "Fragment": [fragment#tok]
+    "Query": [query#tok]
+    "Type": [type#tok]
+    "Union": [union_#tok]
 
 TypeExtensionDefinition:
     O: [extend, ObjectTypeDefinition#otd]

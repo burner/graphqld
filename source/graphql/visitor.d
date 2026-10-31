@@ -1201,6 +1201,64 @@ class Visitor : ConstVisitor {
 		exit(obj);
 	}
 
+	void enter(EnumValueName obj) {}
+	void exit(EnumValueName obj) {}
+
+	void accept(EnumValueName obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case EnumValueNameEnum.I:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Mutation:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Subscription:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Scalar:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Schema:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.On:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Directive:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Enum:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Extend:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Input:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Interface:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Implements:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Fragment:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Query:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Type:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Union:
+				obj.tok.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
 	void enter(TypeExtensionDefinition obj) {}
 	void exit(TypeExtensionDefinition obj) {}
 
@@ -2474,6 +2532,64 @@ class ConstVisitor {
 			case EnumValueDefinitionEnum.DE:
 				obj.des.visit(this);
 				obj.name.visit(this);
+				break;
+		}
+		exit(obj);
+	}
+
+	void enter(const(EnumValueName) obj) {}
+	void exit(const(EnumValueName) obj) {}
+
+	void accept(const(EnumValueName) obj) {
+		enter(obj);
+		final switch(obj.ruleSelection) {
+			case EnumValueNameEnum.I:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Mutation:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Subscription:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Scalar:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Schema:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.On:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Directive:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Enum:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Extend:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Input:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Interface:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Implements:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Fragment:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Query:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Type:
+				obj.tok.visit(this);
+				break;
+			case EnumValueNameEnum.Union:
+				obj.tok.visit(this);
 				break;
 		}
 		exit(obj);
