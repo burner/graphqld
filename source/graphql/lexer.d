@@ -453,21 +453,39 @@ struct Lexer {
 								);
 					} else {
 						//writeln("normal string");
+						const startLine = this.line;
+						const startColumn = this.column;
+						bool hasEscapes;
 						while(this.stringPos < this.input.length
-								&& (this.input[this.stringPos] != '"'
-									|| (this.input[this.stringPos] == '"'
-										&& this.input[this.stringPos - 1U] == '\\')
-							 		)
-							)
+								&& this.input[this.stringPos] != '"')
 						{
+							if(this.input[this.stringPos] == '\\'
+									&& this.stringPos + 1 < this.input.length)
+							{
+								// The escaped character, which may be a quote,
+								// is part of the string.
+								hasEscapes = true;
+								++this.stringPos;
+								++this.column;
+								++e;
+							}
 							++this.stringPos;
 							++this.column;
 							++e;
 						}
+						if(this.stringPos >= this.input.length) {
+							throw new Exception(format(
+									"unterminated string starting at line %s column %s",
+									startLine, startColumn - 1));
+						}
 						++this.stringPos;
 						++this.column;
-						this.cur = Token(TokenType.stringValue, this.input[b + 1
-								.. e], this.line, this.column);
+						const raw = this.input[b + 1 .. e];
+						this.cur = Token(TokenType.stringValue
+								, hasEscapes
+									? decodeStringEscapes(raw, startLine, startColumn)
+									: raw
+								, this.line, this.column);
 					}
 					break;
 				default:
@@ -570,6 +588,145 @@ private void test(string input, TokenType[] tokens, bool requireEmpty = true) {
 			, format("Lexer was not empty after all tokens have "
 				~ "been consumpt\n%s", token));
 	}
+}
+
+
+/** The value of a (non-block) string literal whose characters between the
+quotes are `raw`, with its escape sequences (`\"`, `\\`, `\/`, `\b`, `\f`, `\n`,
+`\r`, `\t`, `\uXXXX` including surrogate pairs, and `\u{X...}`)
+replaced by the characters they stand for. `line` and `column` locate the
+first character of `raw` for error messages.
+*/
+private string decodeStringEscapes(string raw, uint line, size_t column) @safe {
+	import std.array : appender;
+	import std.conv : to;
+	import std.utf : encode, isValidDchar;
+
+	Exception error(size_t i, string what) {
+		return new Exception(format("%s at line %s column %s", what, line,
+				column + i));
+	}
+
+	dchar parseHex(size_t i, string digits) {
+		import std.ascii : isHexDigit;
+		import std.algorithm.searching : all;
+		if(digits.length == 0 || digits.length > 8 || !digits.all!isHexDigit) {
+			throw error(i, format("invalid unicode escape \\u%s", digits));
+		}
+		return cast(dchar)digits.to!uint(16);
+	}
+
+	auto result = appender!string();
+	result.reserve(raw.length);
+	size_t i = 0;
+	while(i < raw.length) {
+		const c = raw[i];
+		if(c != '\\') {
+			result.put(c);
+			++i;
+			continue;
+		}
+		const escapeStart = i;
+		if(i + 1 >= raw.length) {
+			throw error(i, "unterminated escape sequence");
+		}
+		const kind = raw[i + 1];
+		i += 2;
+		switch(kind) {
+			case '"': result.put('"'); break;
+			case '\\': result.put('\\'); break;
+			case '/': result.put('/'); break;
+			case 'b': result.put('\b'); break;
+			case 'f': result.put('\f'); break;
+			case 'n': result.put('\n'); break;
+			case 'r': result.put('\r'); break;
+			case 't': result.put('\t'); break;
+			case 'u':
+				dchar cp;
+				if(i < raw.length && raw[i] == '{') {
+					import std.string : indexOf;
+					const close = raw[i .. $].indexOf('}');
+					if(close < 0) {
+						throw error(escapeStart, "unterminated unicode escape");
+					}
+					cp = parseHex(escapeStart, raw[i + 1 .. i + close]);
+					i += close + 1;
+				} else {
+					if(i + 4 > raw.length) {
+						throw error(escapeStart, "incomplete unicode escape");
+					}
+					cp = parseHex(escapeStart, raw[i .. i + 4]);
+					i += 4;
+					// A leading surrogate must be followed by an escaped
+					// trailing one; together they encode one code point.
+					if(cp >= 0xD800 && cp <= 0xDBFF) {
+						if(i + 6 > raw.length || raw[i .. i + 2] != `\u`) {
+							throw error(escapeStart, "unpaired surrogate in unicode escape");
+						}
+						const trail = parseHex(i, raw[i + 2 .. i + 6]);
+						if(trail < 0xDC00 || trail > 0xDFFF) {
+							throw error(escapeStart, "unpaired surrogate in unicode escape");
+						}
+						cp = 0x10000 + ((cp - 0xD800) << 10) + (trail - 0xDC00);
+						i += 6;
+					}
+				}
+				if(!isValidDchar(cp)) {
+					throw error(escapeStart, "invalid unicode escape");
+				}
+				char[4] buf;
+				result.put(buf[0 .. encode(buf, cp)]);
+				break;
+			default:
+				throw error(escapeStart, format("invalid escape sequence \\%s",
+						kind));
+		}
+	}
+	return result[];
+}
+
+// Escape sequences in strings, including an escaped backslash before the
+// closing quote
+unittest {
+	import std.exception : assertThrown;
+
+	string lexString(string f) {
+		auto l = Lexer(f);
+		assert(!l.empty);
+		assert(l.front.type == TokenType.stringValue, l.front.toString());
+		const v = l.front.value;
+		l.popFront();
+		assert(l.empty, l.front.toString());
+		return v;
+	}
+
+	assert(lexString(`"plain"`) == "plain");
+	assert(lexString(`"a\\"`) == `a\`);
+	assert(lexString(`"\\\\"`) == `\\`);
+	assert(lexString(`"say \"hi\""`) == `say "hi"`);
+	assert(lexString(`"\\\""`) == `\"`);
+	assert(lexString(`"\/\b\f\n\r\t"`) == "/\b\f\n\r\t");
+	assert(lexString(`"\u00e9\u20AC"`) == "é€");
+	assert(lexString(`"\uD83D\uDE00"`) == "😀");
+	assert(lexString(`"\u{1F600}"`) == "😀");
+
+	// The token after a string ending in an escaped backslash
+	auto l = Lexer(`("C:\\" x)`);
+	l.popFront();
+	assert(l.front.type == TokenType.stringValue);
+	assert(l.front.value == `C:\`);
+	l.popFront();
+	assert(l.front.type == TokenType.name, l.front.toString());
+	assert(l.front.value == "x");
+
+	assertThrown(Lexer(`"\x"`));
+	assertThrown(Lexer(`"\u12"`));
+	assertThrown(Lexer(`"\uZZZZ"`));
+	assertThrown(Lexer(`"\uD83D"`));
+	assertThrown(Lexer(`"\uDE00"`));
+	assertThrown(Lexer(`"\u{110000}"`));
+	assertThrown(Lexer(`"unterminated`));
+	assertThrown(Lexer(`"unterminated\"`));
 }
 
 unittest {
